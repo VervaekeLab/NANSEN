@@ -1410,7 +1410,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 if isempty(tableVariableClassName); return; end
 
                 tableRowIdx = app.UiMetaTableViewer.getMetaTableRows(thisRow); % Visible row to data row transformation
-                tableValue = app.MetaTable.entries{tableRowIdx, thisColumnName};
+                tableValue = app.MetaTable.entries{tableRowIdx, thisVariableName};
                 tableVariableObj = feval(tableVariableClassName, tableValue);
 
                 metaObj = app.getMetaObjects( tableRowIdx );
