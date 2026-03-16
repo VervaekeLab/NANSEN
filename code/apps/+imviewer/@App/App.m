@@ -973,7 +973,7 @@ methods % App initialization & creation
         % dynamic java classpath
         dpathOrig = javaclasspath('-dynamic');
         dndcontrolPath = fileparts( which("dndcontrol") );
-        if ~contains(dpathOrig, dndcontrolPath)
+        if isempty(dpathOrig) || ~contains(dndcontrolPath, dpathOrig)
             javaclasspath(dpathOrig, dndcontrolPath)
         end
 
