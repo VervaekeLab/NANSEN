@@ -1402,7 +1402,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             TVA = app.getTableVariableAttributes('HasDoubleClickFunction');
             
             isMatch = strcmp(thisVariableName, {TVA.Name}) & ...
-                strcmp(app.UiMetaTableViewer.MetaTableType,[TVA.TableType]);
+                strcmpi(app.UiMetaTableViewer.MetaTableType,[TVA.TableType]);
 
             if any( isMatch )
 
@@ -1446,8 +1446,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             [~,thisVariableName] = app.UiMetaTableViewer.getColumnNames(thisCol);
 
             TVA = app.getTableVariableAttributes('HasRendererFunction');
-            isMatch = strcmp(thisVariableName, {TVA.Name});
-            
+            isMatch = strcmp(thisVariableName, {TVA.Name}) & ...
+                strcmpi(app.UiMetaTableViewer.MetaTableType, [TVA.TableType]);
+
             if any( isMatch )
                 tableVariableClassName = TVA(isMatch).ClassName;
                 thisRowIdx = app.UiMetaTableViewer.getMetaTableRows(thisRow);
