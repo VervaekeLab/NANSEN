@@ -524,16 +524,18 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             end
         end
     
-        function columnNames = getColumnNames(obj, columnIndices)
+        function [columnNames,variableNames] = getColumnNames(obj, columnIndices)
         % getColumnNames - Get name of column(s) given column indices
             if nargin < 2; columnIndices = []; end
             
-            columnNames = obj.ColumnModel.getColumnNames();
+            [columnNames,variableNames] = obj.ColumnModel.getColumnNames();
             if ~isempty(columnIndices)
                 columnNames = columnNames(columnIndices);
+                variableNames = variableNames(columnIndices);
             end
             if numel(columnNames) == 1 && iscell(columnNames)
                 columnNames = columnNames{1};
+                variableNames = variableNames{1};
             end
         end
     end

@@ -1395,15 +1395,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
             
             % Get name of column which was clicked
-            thisColumnName = app.UiMetaTableViewer.getColumnNames(thisCol);
+            [~,thisVariableName] = app.UiMetaTableViewer.getColumnNames(thisCol);
 
             % Use table variable attributes to check if a double click
             % callback function exists for the current table column
             TVA = app.getTableVariableAttributes('HasDoubleClickFunction');
             
-            isMatch = strcmp(thisColumnName, {TVA.Name});
+            isMatch = strcmp(thisVariableName, {TVA.Name}) & ...
+                strcmp(app.UiMetaTableViewer.MetaTableType,[TVA.TableType]);
 
             if any( isMatch )
+
                 tableVariableClassName = TVA(isMatch).ClassName;
                 if isempty(tableVariableClassName); return; end
 
