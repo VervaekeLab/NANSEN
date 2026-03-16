@@ -1338,7 +1338,7 @@ classdef MetaTable < handle
             defaultValue = updateFunction();
 
             % Character vectors should be in a scalar cell
-            if isequal(defaultValue, {'N/A'}) || isequal(defaultValue, {'<undefined>'}) 
+            if iscell(defaultValue) && (isequal(defaultValue, {'N/A'}) || isequal(defaultValue, {'<undefined>'}))
                 expectedDataType = 'character vector or a scalar cell containing a character vector';
             else
                 expectedDataType = class(defaultValue);
