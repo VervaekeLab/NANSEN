@@ -1443,15 +1443,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 prevCol = thisCol;
             end
             
-            thisColumnName = app.UiMetaTableViewer.getColumnNames(thisCol);
+            [~,thisVariableName] = app.UiMetaTableViewer.getColumnNames(thisCol);
 
             TVA = app.getTableVariableAttributes('HasRendererFunction');
-            isMatch = strcmp(thisColumnName, {TVA.Name});
+            isMatch = strcmp(thisVariableName, {TVA.Name});
             
             if any( isMatch )
                 tableVariableClassName = TVA(isMatch).ClassName;
                 thisRowIdx = app.UiMetaTableViewer.getMetaTableRows(thisRow);
-                tableValue = app.MetaTable.entries{thisRowIdx, thisColumnName};
+                tableValue = app.MetaTable.entries{thisRowIdx, thisVariableName};
 
                 tableVariableObj = feval(tableVariableClassName, tableValue);
                 str = tableVariableObj.getCellTooltipString();
