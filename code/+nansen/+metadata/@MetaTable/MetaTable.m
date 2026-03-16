@@ -1338,7 +1338,7 @@ classdef MetaTable < handle
             defaultValue = updateFunction();
 
             % Character vectors should be in a scalar cell
-            if isequal(defaultValue, {'N/A'}) || isequal(defaultValue, {'<undefined>'}) 
+            if iscell(defaultValue) && (isequal(defaultValue, {'N/A'}) || isequal(defaultValue, {'<undefined>'}))
                 expectedDataType = 'character vector or a scalar cell containing a character vector';
             else
                 expectedDataType = class(defaultValue);
@@ -1398,9 +1398,11 @@ classdef MetaTable < handle
             end
 
             % Update values in the metatable..
-            updatedRowIndices = tableRowIndices(wasUpdated);
-            updatedValues = updatedValues(wasUpdated);
-            obj.editEntries(updatedRowIndices, variableName, updatedValues);
+            if any(wasUpdated) % Only update if any values actually got updated
+                updatedRowIndices = tableRowIndices(wasUpdated);
+                updatedValues = updatedValues(wasUpdated);
+                obj.editEntries(updatedRowIndices, variableName, updatedValues);
+            end
         end
     end
 

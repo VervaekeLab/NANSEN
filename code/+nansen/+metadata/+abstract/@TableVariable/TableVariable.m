@@ -78,7 +78,7 @@ classdef TableVariable
             end
         end
         
-        function [] = onCellDoubleClick(obj, metaObj, varargin)
+        function [] = onCellDoubleClick(obj, metaObj, varargin) %#ok<INUSD>
             % Do nothing. Subclass may override
         end
     end
@@ -95,17 +95,27 @@ classdef TableVariable
     end
     
     methods (Static)
-        % Subclasses can implement update....How to formalize this???
-        % Subclasses should be allowed not to have the update method...
+        function update(metaObj) %#ok<INUSD>
+            % Do nothing. Subclass may implement/override
+            % NB: nansen.App does not properly handle class-based update
+            % functions
+        end
     end
     
     methods (Static)
+        function T = viewTableAttributeTable(options)
+            arguments
+                options.ForceRefresh (1,1) logical = true
+            end
+            p = nansen.getCurrentProject();
+            T = p.getTable('TableVariable', options.ForceRefresh);
+        end
+
         % Function in separate file
         attributeTable = buildTableVariableTable(fileList)
 
         S = getDefaultTableVariableAttribute()
 
         defaultTableVariableList = getDefaultTableVariables(metadataType)
-
     end
 end
