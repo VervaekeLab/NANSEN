@@ -1395,7 +1395,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
             
             % Get name of column which was clicked
-            thisColumnName = app.UiMetaTableViewer.getColumnNames(thisCol);
+            [~,thisVarName] = app.UiMetaTableViewer.getColumnNames(thisCol);
 
             % Use table variable attributes to check if a double click
             % callback function exists for the current table column
