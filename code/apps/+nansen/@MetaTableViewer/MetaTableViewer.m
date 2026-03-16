@@ -1335,12 +1335,12 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
             isMatch = strcmp(thisColumnName, {TVA.Name});
 
             if any( isMatch )
-                tableVariableFunctionName = TVA(isMatch).RendererFunctionName;
-                
-                if ~isempty(tableVariableFunctionName)
+                tableVariableClassName = TVA(isMatch).ClassName;
+
+                if ~isempty(tableVariableClassName)
                     tableRowIdx = app.UiMetaTableViewer.getMetaTableRows(thisRow); % Visible row to data row transformation
                     tableValue = app.MetaTable.entries{tableRowIdx, thisColumnName};
-                    tableVariableObj = feval(tableVariableFunctionName, tableValue);
+                    tableVariableObj = feval(tableVariableClassName, tableValue);
                     
                     tableRowData = app.MetaTable.entries(tableRowIdx,:);
                     metaObj = app.tableEntriesToMetaObjects( tableRowData );

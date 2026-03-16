@@ -1404,13 +1404,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             isMatch = strcmp(thisColumnName, {TVA.Name});
 
             if any( isMatch )
-                tableVariableFunctionName = TVA(isMatch).RendererFunctionName;
-                if isempty(tableVariableFunctionName); return; end
-                
+                tableVariableClassName = TVA(isMatch).ClassName;
+                if isempty(tableVariableClassName); return; end
+
                 tableRowIdx = app.UiMetaTableViewer.getMetaTableRows(thisRow); % Visible row to data row transformation
                 tableValue = app.MetaTable.entries{tableRowIdx, thisColumnName};
-                tableVariableObj = feval(tableVariableFunctionName, tableValue);
-                
+                tableVariableObj = feval(tableVariableClassName, tableValue);
+
                 metaObj = app.getMetaObjects( tableRowIdx );
                 tableVariableObj.onCellDoubleClick( metaObj );
             end
@@ -1447,11 +1447,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             isMatch = strcmp(thisColumnName, {TVA.Name});
             
             if any( isMatch )
-                tableVariableFunctionName = TVA(isMatch).RendererFunctionName;
+                tableVariableClassName = TVA(isMatch).ClassName;
                 thisRowIdx = app.UiMetaTableViewer.getMetaTableRows(thisRow);
                 tableValue = app.MetaTable.entries{thisRowIdx, thisColumnName};
-                
-                tableVariableObj = feval(tableVariableFunctionName, tableValue);
+
+                tableVariableObj = feval(tableVariableClassName, tableValue);
                 str = tableVariableObj.getCellTooltipString();
             else
                 str = '';
