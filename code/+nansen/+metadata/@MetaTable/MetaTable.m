@@ -1398,9 +1398,11 @@ classdef MetaTable < handle
             end
 
             % Update values in the metatable..
-            updatedRowIndices = tableRowIndices(wasUpdated);
-            updatedValues = updatedValues(wasUpdated);
-            obj.editEntries(updatedRowIndices, variableName, updatedValues);
+            if any(wasUpdated) % Only update if any values actually got updated
+                updatedRowIndices = tableRowIndices(wasUpdated);
+                updatedValues = updatedValues(wasUpdated);
+                obj.editEntries(updatedRowIndices, variableName, updatedValues);
+            end
         end
     end
 
