@@ -107,16 +107,22 @@ function attributeTable = buildTableVariableTable(fileList)
                 S(idx).HasOptions = true;
                 S(idx).OptionsList = {fcnResult.LIST_ALTERNATIVES};
             end
-            
-            if ismethod(fcnResult, 'update')
-                updateFcnName = strjoin({thisFcnName, 'update'}, '.');
-            	S(idx).HasUpdateFunction = true;
+
+            % Check whether table variable class overrides any methods
+            % defined in the base class.
+            metaclassObject = meta.class.fromName(thisFcnName);
+
+            [hasUpdate, updateFcnName] = isMethodOverridden(...
+                metaclassObject, thisFcnName, 'update');
+            if hasUpdate
+                S(idx).HasUpdateFunction = true;
                 S(idx).UpdateFunctionName = updateFcnName;
             end
 
-            if ismethod(fcnResult, 'onCellDoubleClick')
-                doubleClickFcnName = strjoin({thisFcnName, 'onCellDoubleClick'}, '.');
-            	S(idx).HasDoubleClickFunction = true;
+            [hasDoubleClick, doubleClickFcnName] = isMethodOverridden(...
+                metaclassObject, thisFcnName, 'onCellDoubleClick');
+            if hasDoubleClick
+                S(idx).HasDoubleClickFunction = true;
                 S(idx).DoubleClickFunctionName = doubleClickFcnName;
             end
         else
@@ -133,4 +139,13 @@ function attributeTable = buildTableVariableTable(fileList)
     
     attributeTable = struct2table(S);
     attributeTable.TableType = string(attributeTable.TableType);
+end
+
+function [isOverridden, fcnName] = isMethodOverridden(metaclassObject, className, methodName)
+% isMethodOverridden - Check if a method is overridden relative to the base TableVariable class.
+    BASE_CLASS = 'nansen.metadata.abstract.TableVariable';
+    methodInfo = nansen.internal.introspection.getClassMethodInfo(...
+        metaclassObject, methodName, "AttributeName", "DefiningClass");
+    isOverridden = ~strcmp(methodInfo{'DefiningClass'}.Name, BASE_CLASS);
+    fcnName = strjoin({className, methodName}, '.');
 end
