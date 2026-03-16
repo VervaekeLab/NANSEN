@@ -962,9 +962,21 @@ methods % App initialization & creation
             
         warning('on', 'MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
         warning('on', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
-
-        dndcontrol.initJava();
         
+        % The initJava static method is not reliable, and will trigger
+        % warnings. 
+        % warnState = warning('off', 'MATLAB:Java:DuplicateClass');
+        % warnCleanup = onCleanup(@(ws) warning(warnState));
+        % % dndcontrol.initJava();
+
+        % Adding dndcontrol only if it does not already exist on the 
+        % dynamic java classpath
+        dpathOrig = javaclasspath('-dynamic');
+        dndcontrolPath = fileparts( which("dndcontrol") );
+        if ~contains(dpathOrig, dndcontrolPath)
+            javaclasspath(dpathOrig, dndcontrolPath)
+        end
+
         % Create dndcontrol for the JTextArea object
         obj.dndObj = dndcontrol(jWindow);
 
