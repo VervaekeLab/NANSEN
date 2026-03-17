@@ -744,17 +744,17 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
         function mode = getStringSearchMode(obj, rowNumber)
 
-            hBtnGroup = obj.RowControls(rowNumber).ButtonGroupStrfindMode;
-            h = hBtnGroup.SelectedObject;
+            buttonGroup = obj.RowControls(rowNumber).ButtonGroupStrfindMode;
+            h = buttonGroup.SelectedObject;
             mode = h.Text;
         end
 
         function setStringSearchMode(obj, rowNumber, value)
-            hBtnGroup = obj.RowControls(rowNumber).ButtonGroupStrfindMode;
-            hButtons = hBtnGroup.Children;
+            buttonGroup = obj.RowControls(rowNumber).ButtonGroupStrfindMode;
+            hButtons = buttonGroup.Children;
 
             isMatch = strcmp({hButtons.Text}, value);
-            hBtnGroup.SelectedObject = hButtons(isMatch);
+            buttonGroup.SelectedObject = hButtons(isMatch);
         end
 
         function strPattern = getStringSearchPattern(obj, rowNumber, mode)
