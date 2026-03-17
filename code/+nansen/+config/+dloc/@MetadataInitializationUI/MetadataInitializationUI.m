@@ -421,13 +421,13 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 try
                     feval(obj.FunctionName{rowNumber}, '', '')
                 catch ME
-                    existFunction = ~strcmp(ME.identifier, 'MATLAB:UndefinedFunction');
+                    functionExists = ~strcmp(ME.identifier, 'MATLAB:UndefinedFunction');
                 end
             else
-                existFunction = false;
+                functionExists = false;
             end
 
-            if ~existFunction
+            if ~functionExists
                 hFig = ancestor(src, 'figure');
                 message = sprintf( ['The function does not exist yet. ', ...
                     'Please press "Edit" to initialize the function from a template.']);
