@@ -484,13 +484,13 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         function onDataLocationSelectionChanged(obj, src, evt)
         % onDataLocationSelectionChanged - Dropdown value changed callback
 
-            newInd = obj.DataLocationModel.getItemIndex(evt.Value);
+            newIndex = obj.DataLocationModel.getItemIndex(evt.Value);
 
             % Update datalocationmodel with data from ui
             obj.updateDataLocationModel()
 
             % Change current data location
-            obj.DataLocationIndex = newInd;
+            obj.DataLocationIndex = newIndex;
         end
     end
 
