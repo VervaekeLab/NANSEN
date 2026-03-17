@@ -335,19 +335,19 @@ classdef MetaTableAdvancedTest < matlab.unittest.TestCase
             
             % Test double validation
             defaultVal = 0;
-            [isValid, newVal] = nansen.metadata.MetaTable.validateVariableValue(defaultVal, 42);
+            [isValid, newVal] = nansen.metadata.tablevar.validateVariableValue(defaultVal, 42);
             testCase.verifyTrue(isValid);
             testCase.verifyEqual(newVal, 42);
             
             % Test string to char conversion
             defaultVal =  {'N/A'};
-            [isValid, newVal] = nansen.metadata.MetaTable.validateVariableValue(defaultVal, "string");
+            [isValid, newVal] = nansen.metadata.tablevar.validateVariableValue(defaultVal, "string");
             testCase.verifyTrue(isValid);
             testCase.verifyClass(newVal, 'char');
             
             % Test logical validation
             defaultVal = false;
-            [isValid, newVal] = nansen.metadata.MetaTable.validateVariableValue(defaultVal, true);
+            [isValid, newVal] = nansen.metadata.tablevar.validateVariableValue(defaultVal, true);
             testCase.verifyTrue(isValid);
             testCase.verifyEqual(newVal, true);
         end

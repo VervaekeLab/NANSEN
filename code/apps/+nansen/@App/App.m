@@ -1402,7 +1402,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             TVA = app.getTableVariableAttributes('HasDoubleClickFunction');
             
             isMatch = strcmp(thisVariableName, {TVA.Name}) & ...
-                strcmp(app.UiMetaTableViewer.MetaTableType,[TVA.TableType]);
+                strcmpi(app.UiMetaTableViewer.MetaTableType,[TVA.TableType]);
 
             if any( isMatch )
 
@@ -1443,15 +1443,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 prevCol = thisCol;
             end
             
-            thisColumnName = app.UiMetaTableViewer.getColumnNames(thisCol);
+            [~,thisVariableName] = app.UiMetaTableViewer.getColumnNames(thisCol);
 
             TVA = app.getTableVariableAttributes('HasRendererFunction');
-            isMatch = strcmp(thisColumnName, {TVA.Name});
-            
+            isMatch = strcmp(thisVariableName, {TVA.Name}) & ...
+                strcmpi(app.UiMetaTableViewer.MetaTableType, [TVA.TableType]);
+
             if any( isMatch )
                 tableVariableClassName = TVA(isMatch).ClassName;
                 thisRowIdx = app.UiMetaTableViewer.getMetaTableRows(thisRow);
-                tableValue = app.MetaTable.entries{thisRowIdx, thisColumnName};
+                tableValue = app.MetaTable.entries{thisRowIdx, thisVariableName};
 
                 tableVariableObj = feval(tableVariableClassName, tableValue);
                 str = tableVariableObj.getCellTooltipString();
@@ -2587,47 +2588,18 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                             end
                         end
 
-                        if isa(newValue, 'string'); newValue = char(newValue); end % Table does not accept strings
-                        % if ischar(newValue); newValue = {newValue}; end % Need to put char in a cell. Should use strings instead, but that's for later
+                        [isValid, newValue] = ...
+                            nansen.metadata.tablevar.validateVariableValue(...
+                                defaultValue, newValue);
 
-                        % Currently, only three data types are accepted,
-                        % numerics, cell array of character vector and
-                        % logicals
+                        if isValid
+                            updatedValues{iSession} = newValue;
+                        end
 
-                        isValid = false;
-
-                        if isa(defaultValue, 'double')
-                            if isnumeric(newValue)
-                                updatedValues{iSession} = newValue;
-                                isValid = true;
-                            end
-                        elseif isa(defaultValue, 'logical')
-                            if islogical(newValue)
-                                updatedValues{iSession} = newValue;
-                                isValid = true;
-                            end
-                        elseif isequal(defaultValue, {'N/A'}) || isequal(defaultValue, {'<undefined>'}) % Character vectors should be in a scalar cell
+                        if nansen.metadata.utility.isUnassignedCharValue(defaultValue)
                             expectedDataType = 'character vector or a scalar cell containing a character vector';
-                            if iscell(newValue) && numel(newValue)==1 && ischar(newValue{1})
-                                updatedValues{iSession} = newValue{1};
-                                isValid = true;
-                            elseif isa(newValue, 'char')
-                                updatedValues{iSession} = newValue;
-                                isValid = true;
-                            end
-                        elseif isa(defaultValue, 'struct')
-                            if isstruct(newValue)
-                                updatedValues{iSession} = newValue;
-                                isValid = true;
-                            end
-                        elseif isa(defaultValue, 'categorical')
-                            if  isa(newValue, 'categorical')
-                                updatedValues{iSession} = newValue;
-                                isValid = true;
-                            end
-
                         else
-                            % Invalid;
+                            expectedDataType = class(defaultValue);
                         end
 
                         if ~isValid
