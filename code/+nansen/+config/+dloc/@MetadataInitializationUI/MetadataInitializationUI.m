@@ -467,8 +467,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 edit(functionFilePath)
             end
 
-            fullFuntionName = utility.path.abspath2funcname(functionFilePath);
-            obj.FunctionName{rowNumber} = fullFuntionName;
+            fullFunctionName = utility.path.abspath2funcname(functionFilePath);
+            obj.FunctionName{rowNumber} = fullFunctionName;
             obj.IsDirty = true;
         end
 
