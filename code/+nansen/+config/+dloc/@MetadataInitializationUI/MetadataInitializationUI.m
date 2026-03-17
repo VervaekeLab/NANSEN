@@ -1,12 +1,16 @@
 classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDataLocationModel
-% Class interface for editing metadata specifications in a uifigure
+% MetadataInitializationUI - UI panel for configuring session metadata extraction rules
 %
+%   Provides a table-based interface where the user defines how each
+%   session metadata variable (Subject ID, Session ID, Experiment Date,
+%   Experiment Time) is extracted from a folder path string. Three
+%   extraction modes are supported: index-based substring selection,
+%   regular expression matching, and a custom MATLAB function.
 %
+%   The panel reads its initial state from a DataLocationModel and writes
+%   back to it when the user applies changes. A toolbar dropdown allows
+%   switching between data locations when multiple are configured.
 
-% Note: The data in this ui will only depend on the first datalocation. It
-% might be an idea to let the user select which data location to use for
-% detecting session information, but for simplicity the first data location
-% is used.
 
 % Todo: Simplify component creation.
 %    [ ] Get cell locations as array with one entry for each column of a row.
@@ -413,14 +417,14 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         function onRunFunctionButtonClicked(obj, src, evt)
             rowNumber = obj.getComponentRowNumber(src);
 
+            functionExists = false;
             if ~isempty(obj.FunctionName{rowNumber})
                 try
                     feval(obj.FunctionName{rowNumber}, '', '')
+                    functionExists = true;
                 catch ME
                     functionExists = ~strcmp(ME.identifier, 'MATLAB:UndefinedFunction');
                 end
-            else
-                functionExists = false;
             end
 
             if ~functionExists
