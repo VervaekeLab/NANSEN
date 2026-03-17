@@ -340,7 +340,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
                     shortName = strrep(hRow.VariableName.Text, 'Experiment', '');
 
-                    substring = obj.getFolderSubString(rowNumber);
+                    substring = obj.getFolderSubstring(rowNumber);
                     [dtInFormat, dtOutFormat] = obj.uiGetDateTimeFormat(hRow.VariableName.Text, substring);
 
                     if ~isempty(dtInFormat)
@@ -380,7 +380,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             identifierName = obj.getIdentifierNameForRow(rowNumber);
 
             try
-                substring = obj.getFolderSubString(rowNumber);
+                substring = obj.getFolderSubstring(rowNumber);
             catch ME
                 hFig = ancestor(src, 'figure');
                 substring = 'N/A';
@@ -496,8 +496,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
     methods % Methods for updating the Result column
 
-        function substring = getFolderSubString(obj, rowNumber)
-        %getFolderSubString Get folder substring based on current UI selections
+        function substring = getFolderSubstring(obj, rowNumber)
+        %getFolderSubstring Get folder substring based on current UI selections
         %
         %   Builds an S struct from the current UI state and delegates the
         %   full extraction to DataLocationModel.getSubstringFromFolder.
@@ -706,7 +706,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             hRow = obj.RowControls(rowNumber);
 
             % Update values in editboxes
-            substring = obj.getFolderSubString(rowNumber);
+            substring = obj.getFolderSubstring(rowNumber);
             hRow.StrfindResultEditbox.Value = char( substring );
             hRow.StrfindResultEditbox.Tooltip = char( substring );
 
