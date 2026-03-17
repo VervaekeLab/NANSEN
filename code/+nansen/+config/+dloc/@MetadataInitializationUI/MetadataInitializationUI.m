@@ -764,22 +764,22 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             end
 
             hRow = obj.RowControls(rowNumber);
-            strInd = hRow.StringDetectInputField.Value;
+            inputValue = hRow.StringDetectInputField.Value;
 
-            strPattern = strInd;
+            strPattern = inputValue;
             return
 
             switch lower(mode)
 
                 case 'ind'
-%                     strInd = strrep(strInd, '-', ':');
+%                     inputValue = strrep(inputValue, '-', ':');
 %
-%                     strInd = sprintf('[%s]', strInd);
+%                     inputValue = sprintf('[%s]', inputValue);
 %
-%                     strPattern = eval(strInd);
+%                     strPattern = eval(inputValue);
 
                 case 'expr'
-                    strPattern = strInd;
+                    strPattern = inputValue;
             end
         end
 
