@@ -323,16 +323,16 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             % Create a dialog where the user can select a substring from
             % the foldername
             hFig = ancestor(src, 'figure');
-            IND = uim.dialog.createStringSelectorDialog(folderName, hFig.Position);
+            selectedIndices = uim.dialog.createStringSelectorDialog(folderName, hFig.Position);
 
             % Return if user canceled...
-            if isempty(IND)
+            if isempty(selectedIndices)
                 pause(0.1)
                 figure(hFig) % Bring uifigure back to focus
                 return
             % ...Or update data and controls
             else
-                hRow.StringDetectInputField.Value = obj.simplifyIndices(IND);
+                hRow.StringDetectInputField.Value = obj.simplifyIndices(selectedIndices);
 
                 % If the variable is date or time, try to convert to
                 % datetime value:
@@ -502,8 +502,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         %   Builds an S struct from the current UI state and delegates the
         %   full extraction to DataLocationModel.getSubstringFromFolder.
 
-            dlIdx = obj.DataLocationIndex;
-            thisDataLocation = obj.DataLocationModel.Data(dlIdx);
+            dataLocationIndex = obj.DataLocationIndex;
+            thisDataLocation = obj.DataLocationModel.Data(dataLocationIndex);
 
             S = struct();
             S.StringDetectMode  = obj.getStringSearchMode(rowNumber);
@@ -569,8 +569,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         %
         %   % Update control values based on the DataLocationModel
 
-            dlIdx = obj.DataLocationIndex;
-            thisDataLocation = obj.DataLocationModel.Data(dlIdx);
+            dataLocationIndex = obj.DataLocationIndex;
+            thisDataLocation = obj.DataLocationModel.Data(dataLocationIndex);
 
             % Update Items of subfolder dropdown
             obj.setFolderSelectionItems()
@@ -613,8 +613,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         function setFolderSelectionItems(obj)
         %setFolderSelectionItems Populate the folder-level dropdown items for each row
 
-            dlIdx = obj.DataLocationIndex;
-            thisDataLocation = obj.DataLocationModel.Data(dlIdx);
+            dataLocationIndex = obj.DataLocationIndex;
+            thisDataLocation = obj.DataLocationModel.Data(dataLocationIndex);
 
             subFolderStructure = thisDataLocation.SubfolderStructure;
             folderItems = {subFolderStructure.Name};
@@ -639,8 +639,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         function updateFolderSelectionValue(obj, metadataDef)
         %updateFolderSelectionValue Restore the folder selection controls from the model
 
-            dlIdx = obj.DataLocationIndex;
-            thisDataLocation = obj.DataLocationModel.Data(dlIdx);
+            dataLocationIndex = obj.DataLocationIndex;
+            thisDataLocation = obj.DataLocationModel.Data(dataLocationIndex);
             subFolderStructure = thisDataLocation.SubfolderStructure;
 
             for i = 1:obj.NumRows
@@ -1020,8 +1020,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
     methods (Access = private)
         function substring = getSubstringFromRowFunction(obj, rowNumber)
-            dlIdx = obj.DataLocationIndex;
-            thisDataLocation = obj.DataLocationModel.Data(dlIdx);
+            dataLocationIndex = obj.DataLocationIndex;
+            thisDataLocation = obj.DataLocationModel.Data(dataLocationIndex);
             pathStr = thisDataLocation.ExamplePath;
             dataLocationName = thisDataLocation.Name;
             substring = feval(obj.FunctionName{rowNumber}, pathStr, dataLocationName);
@@ -1083,8 +1083,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         %   Used by onSelectSubstringButtonPushed to show the user the
         %   string that the extraction pattern will be applied to.
 
-            dlIdx = obj.DataLocationIndex;
-            thisDataLocation = obj.DataLocationModel.Data(dlIdx);
+            dataLocationIndex = obj.DataLocationIndex;
+            thisDataLocation = obj.DataLocationModel.Data(dataLocationIndex);
             separator = obj.Separator{rowNumber};
 
             combinedName = nansen.config.dloc.DataLocationModel.combineFolderNamesFromPath( ...
@@ -1216,11 +1216,11 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             end
         end
 
-        function IND = simplifyIndices(IND)
+        function indices = simplifyIndices(indices)
         %simplifyIndices Simplify the indices, by joining all subsequent using
         % the colon separator, i.e 1 2 3 4 5 -> 1:5
 
-            originalString = num2str(IND);
+            originalString = num2str(indices);
 
             simplifiedParts = {};
             count = 1;
@@ -1229,29 +1229,29 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             while ~finished
 
                 % Find number in list which is not increment of previous
-                lastSequenceIndex = find(diff(IND, 2) ~= 0, 1, 'first') + 1;
+                lastSequenceIndex = find(diff(indices, 2) ~= 0, 1, 'first') + 1;
                 if isempty(lastSequenceIndex)
-                    lastSequenceIndex = numel(IND);
+                    lastSequenceIndex = numel(indices);
                 end
 
                 % Add indices of format first:last to results
-                simplifiedParts{count} = sprintf('%d:%d', IND(1), IND(lastSequenceIndex));
+                simplifiedParts{count} = sprintf('%d:%d', indices(1), indices(lastSequenceIndex));
 
                 % Remove all numbers that were part of sequence
-                IND(1:lastSequenceIndex) = [];
+                indices(1:lastSequenceIndex) = [];
                 count = count+1;
 
-                if isempty(IND)
+                if isempty(indices)
                     finished = true;
                 end
             end
 
             % Join sequences
-            IND = strjoin(simplifiedParts, ',');
+            indices = strjoin(simplifiedParts, ',');
 
             % Keep the shortest character vector
-            if numel(IND) > originalString
-                IND = originalString;
+            if numel(indices) > originalString
+                indices = originalString;
             end
         end
 
