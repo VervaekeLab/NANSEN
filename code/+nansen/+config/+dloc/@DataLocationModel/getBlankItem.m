@@ -12,5 +12,4 @@ function S = getBlankItem()
 
     S.SubfolderStructure = DataLocationModel.getDefaultSubfolderStructure();
     S.MetaDataDef = DataLocationModel.getDefaultMetadataStructure();
-    
 end

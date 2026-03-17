@@ -18,7 +18,7 @@ function dataFolders = listDataFolders(obj, dataLocationName, options)
     end
 
     dataFolders = struct; % Initialize output
-    
+
     for i = ind
         rootPath = {obj.Data(i).RootPath.Value};
         S = obj.Data(i).SubfolderStructure;

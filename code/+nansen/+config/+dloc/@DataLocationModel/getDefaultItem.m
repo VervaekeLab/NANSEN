@@ -17,27 +17,26 @@ function [S, P] = getDefaultItem()
     S(i) = nansen.config.dloc.DataLocationModel.getBlankItem();
     S(i).Name = 'Rawdata';
     S(i).Type = nansen.config.dloc.DataLocationType('recorded');
-    %S(i).RootPath = {'', ''};
-    %S(i).ExamplePath = '';
-    %S(i).DataSubfolders = {};
-    
-    %S(i).SubfolderStructure = struct('Name', {}, 'Type', {}, 'Expression', {}, 'IgnoreList', {});
+    % S(i).RootPath = {'', ''};
+    % S(i).ExamplePath = '';
+    % S(i).DataSubfolders = {};
+
+    % S(i).SubfolderStructure = struct('Name', {}, 'Type', {}, 'Expression', {}, 'IgnoreList', {});
     S(i).SubfolderStructure(1).Name = '';
     S(i).SubfolderStructure(1).Type = '';
     S(i).SubfolderStructure(1).Expression = '';
     S(i).SubfolderStructure(1).IgnoreList = {};
-    
+
     i = i + 1;
     S(i) = nansen.config.dloc.DataLocationModel.getBlankItem();
     S(i).Name = 'Processed';
     S(i).Type = nansen.config.dloc.DataLocationType('processed');
-    %S(i).RootPath = {'', ''};
-    %S(i).ExamplePath = '';
-    %S(i).DataSubfolders = {};
+    % S(i).RootPath = {'', ''};
+    % S(i).ExamplePath = '';
+    % S(i).DataSubfolders = {};
 
     S(i).SubfolderStructure(1).Type = 'Subject';
     S(i).SubfolderStructure(2).Type = 'Session';
-    
+
     P.DefaultDataLocation = 'Processed';
-    
 end
