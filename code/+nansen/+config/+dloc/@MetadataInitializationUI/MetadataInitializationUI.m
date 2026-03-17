@@ -309,7 +309,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             obj.IsDirty = true;
         end
 
-        function onSelectSubstringButtonPushed(obj, src, evt)
+        function onSelectSubstringButtonPushed(obj, src, ~)
         % Open a dialog window for selecting letter positions.
 
             % Get foldername for the row which user pushed button from
@@ -436,7 +436,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             obj.onStringInputValueChanged(src, evt)
         end
 
-        function onEditFunctionButtonClicked(obj, src, evt)
+        function onEditFunctionButtonClicked(obj, src, ~)
 
             rowNumber = obj.getComponentRowNumber(src);
 
@@ -470,7 +470,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             obj.IsDirty = true;
         end
 
-        function onStrfindModeSelectionChanged(obj, src, evt)
+        function onStrfindModeSelectionChanged(obj, src, ~)
         % onStrfindModeSelectionChanged Callback when strfind mode selection changes
 
             rowNumber = obj.getComponentRowNumber(src);
@@ -479,7 +479,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             obj.onStringInputValueChanged(inputField)
         end
 
-        function onDataLocationSelectionChanged(obj, src, evt)
+        function onDataLocationSelectionChanged(obj, ~, evt)
         % onDataLocationSelectionChanged - Dropdown value changed callback
 
             newIndex = obj.DataLocationModel.getItemIndex(evt.Value);
@@ -505,7 +505,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
             S = struct();
             S.StringDetectMode  = obj.getStringSearchMode(rowNumber);
-            S.StringDetectInput = obj.getStringSearchPattern(rowNumber, S.StringDetectMode);
+            S.StringDetectInput = obj.getStringSearchPattern(rowNumber);
             S.SubfolderLevel    = obj.getSubfolderLevel(rowNumber);
             S.Separator         = obj.Separator{rowNumber};
             S.NumSubfolders     = numel(thisDataLocation.SubfolderStructure);
@@ -528,7 +528,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             obj.IsDirty = newValue;
         end
 
-        function setActive(obj)
+        function setActive(obj) %#ok<MANU>
         %setActive Execute actions needed for ui activation
         % Use if UI is part of an app with tabs, and the tab is selected
         end
@@ -628,7 +628,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 % Build dropdown items — Session ID gets the multi-select option.
                 dropdownItems = ['Select foldername...', folderItems];
                 if strcmp(hRow.VariableName.Text, 'Session ID')
-                    dropdownItems = [dropdownItems, {'Select multiple folders...'}];
+                    dropdownItems = [dropdownItems, {'Select multiple folders...'}]; %#ok<AGROW>
                 end
                 hRow.FolderNameSelector.Items = dropdownItems;
             end
@@ -755,30 +755,12 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             buttonGroup.SelectedObject = hButtons(isMatch);
         end
 
-        function strPattern = getStringSearchPattern(obj, rowNumber, mode)
-
-            if nargin < 3
-                mode = obj.getStringSearchMode(rowNumber);
-            end
+        function strPattern = getStringSearchPattern(obj, rowNumber)
 
             hRow = obj.RowControls(rowNumber);
             inputValue = hRow.StringDetectInputField.Value;
 
             strPattern = inputValue;
-            return
-
-            switch lower(mode)
-
-                case 'ind'
-%                     inputValue = strrep(inputValue, '-', ':');
-%
-%                     inputValue = sprintf('[%s]', inputValue);
-%
-%                     strPattern = eval(inputValue);
-
-                case 'expr'
-                    strPattern = inputValue;
-            end
         end
 
         function indices = getSubfolderLevel(obj, rowNumber)
@@ -995,7 +977,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             end
         end
 
-        function onDataLocationAdded(obj, ~, evt)
+        function onDataLocationAdded(obj, ~, ~)
         %onDataLocationAdded Callback for DataLocationModel event
         %
         %   This method is inherited from the HasDataLocationModel
@@ -1005,7 +987,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             obj.updateDataLocationSelector()
         end
 
-        function onDataLocationRemoved(obj, ~, evt)
+        function onDataLocationRemoved(obj, ~, ~)
         %onDataLocationRemoved Callback for DataLocationModel event
         %
         %   This method is inherited from the HasDataLocationModel
@@ -1109,7 +1091,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         end
 
         function [selectedIndices, separator] = showFolderSelectorDialog( ...
-                obj, folderItems, currentIndices, currentSeparator, parentPosition)
+                ~, folderItems, currentIndices, currentSeparator, parentPosition)
         % showFolderSelectorDialog Modal dialog for selecting folder levels
         %
         %   Opens a figure with a multi-select listbox and a separator
@@ -1233,7 +1215,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 end
 
                 % Add indices of format first:last to results
-                simplifiedParts{count} = sprintf('%d:%d', indices(1), indices(lastSequenceIndex));
+                simplifiedParts{count} = sprintf('%d:%d', indices(1), indices(lastSequenceIndex)); %#ok<AGROW> We don't know beforehand how long this array will be
 
                 % Remove all numbers that were part of sequence
                 indices(1:lastSequenceIndex) = [];
