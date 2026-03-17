@@ -1220,25 +1220,25 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         %simplifyIndices Simplify the indices, by joining all subsequent using
         % the colon separator, i.e 1 2 3 4 5 -> 1:5
 
-            indOrig = num2str(IND);
+            originalString = num2str(IND);
 
-            indNew = {};
+            simplifiedParts = {};
             count = 1;
 
             finished = false;
             while ~finished
 
                 % Find number in list which is not increment of previous
-                lastSequenceIdx = find(diff(IND, 2) ~= 0, 1, 'first') + 1;
-                if isempty(lastSequenceIdx)
-                    lastSequenceIdx = numel(IND);
+                lastSequenceIndex = find(diff(IND, 2) ~= 0, 1, 'first') + 1;
+                if isempty(lastSequenceIndex)
+                    lastSequenceIndex = numel(IND);
                 end
 
                 % Add indices of format first:last to results
-                indNew{count} = sprintf('%d:%d', IND(1), IND(lastSequenceIdx));
+                simplifiedParts{count} = sprintf('%d:%d', IND(1), IND(lastSequenceIndex));
 
                 % Remove all numbers that were part of sequence
-                IND(1:lastSequenceIdx) = [];
+                IND(1:lastSequenceIndex) = [];
                 count = count+1;
 
                 if isempty(IND)
@@ -1247,11 +1247,11 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             end
 
             % Join sequences
-            IND = strjoin(indNew, ',');
+            IND = strjoin(simplifiedParts, ',');
 
             % Keep the shortest character vector
-            if numel(IND) > indOrig
-                IND = indOrig;
+            if numel(IND) > originalString
+                IND = originalString;
             end
         end
 
