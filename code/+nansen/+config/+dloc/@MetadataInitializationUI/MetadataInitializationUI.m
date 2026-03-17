@@ -10,6 +10,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 %   The panel reads its initial state from a DataLocationModel and writes
 %   back to it when the user applies changes. A toolbar dropdown allows
 %   switching between data locations when multiple are configured.
+%
+%   See also nansen.config.dloc.DataLocationModel
 
 
 % Todo: Simplify component creation.
@@ -613,7 +615,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 inputField = obj.RowControls(i).StringExtractInputField;
                 % Update value in string detection input
                 inputField.Value = metadataDefinitions(i).StringDetectInput;
-                obj.onStringInputValueChanged(inputField)
+                obj.refreshStringResult(i)
             end
         end
 
@@ -676,6 +678,18 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 else
                     obj.switchToSingleSelectMode(i, selectedItemIndex);
                 end
+            end
+        end
+
+        function refreshStringResult(obj, rowNumber)
+        %refreshStringResult Update result field for passive/programmatic updates.
+        %   Extraction errors are shown inline in the result field — no alert.
+            hRow = obj.RowControls(rowNumber);
+            try
+                obj.updateStringResult(rowNumber)
+            catch ME
+                hRow.StringExtractResultField.Value = sprintf('error: %s', ME.message);
+                hRow.StringExtractResultField.Tooltip = ME.message;
             end
         end
 
@@ -945,8 +959,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
                         % Update result of string indexing based on model...
                         for i = 1:obj.NumRows
-                            inputField = obj.RowControls(i).StringExtractInputField;
-                            obj.onStringInputValueChanged(inputField)
+                            obj.refreshStringResult(i)
                         end
                     end
                 case 'Name'

@@ -1082,22 +1082,38 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 pattern
             end
 
-            try
-                switch lower(mode)
-                    case 'ind'
-                        substring = eval(['text([' pattern '])']);
-                    case 'expr'
+            switch lower(mode)
+                case 'ind'
+                    
+                    if strcmp(pattern, '1:end') % Special case
+                        pattern = sprintf('1:%d', strlength(text));
+                    end
+                    try
+                        indices = eval(['[' pattern ']']);
+                    catch
+                        error('NANSEN:DataLocationModel:InvalidIndexPattern', ...
+                            'Index pattern "%s" is not valid MATLAB index syntax.', pattern)
+                    end
+                    if any(indices > strlength(text))
+                        error('NANSEN:DataLocationModel:IndexOutOfRange', ...
+                            'Index range [%s] exceeds the string length (%d characters).', ...
+                            pattern, strlength(text))
+                    end
+                    substring = text(indices);
+                case 'expr'
+                    try
                         result = regexp(text, pattern, 'match', 'once');
-                        if isempty(result)
-                            substring = '';
-                        else
-                            substring = result;
-                        end
-                    otherwise
+                    catch
+                        error('NANSEN:DataLocationModel:InvalidRegexPattern', ...
+                            'Regular expression "%s" is not valid.', pattern)
+                    end
+                    if isempty(result)
                         substring = '';
-                end
-            catch
-                substring = '';
+                    else
+                        substring = result;
+                    end
+                otherwise
+                    substring = '';
             end
         end
     end
