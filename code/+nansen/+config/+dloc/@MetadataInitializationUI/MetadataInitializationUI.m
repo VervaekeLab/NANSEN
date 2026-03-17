@@ -15,8 +15,6 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 %
 %    [ ] Update DL Model whenever new values are entered. - Why???
 %
-%    [ ] Fix error that will occur if several subfolders are
-%        given the same subfolder type?
 
     properties
         IsDirty = false;
@@ -648,7 +646,9 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
                 % If there is no selection, try to infer from the data organization.
                 if isempty(selectedItemIndex)
-                    selectedItemIndex = obj.initFolderSelectionItemIndex(i, subFolderStructure);
+                    variableName = metadataDefinitions(i).VariableName;
+                    selectedItemIndex = nansen.config.dloc.DataLocationModel.getDefaultSubfolderLevelForVariable( ...
+                        variableName, subFolderStructure);
                 end
 
                 % Clamp to valid range (0 means no selection).
@@ -665,37 +665,6 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 else
                     obj.switchToSingleSelectMode(i, selectedItemIndex);
                 end
-            end
-        end
-
-        function selectedItemIndex = initFolderSelectionItemIndex(obj, rowNumber, subFolderStructure)
-        %initFolderSelectionItemIndex Guess which index should be selected
-        %
-        %   For each subfolder level in the folder organization, there is a
-        %   type. If the type matches with the current row, use the index
-        %   of that subfolder level as the initial choice.
-
-            selectedItemIndex = 0;
-            switch obj.RowControls(rowNumber).VariableName.Text
-                case 'Subject ID'
-                    isMatched = strcmp({subFolderStructure.Type}, 'Subject');
-                    if any(isMatched)
-                        selectedItemIndex = find(isMatched);
-                    end
-                case 'Session ID'
-                    isMatched = strcmp({subFolderStructure.Type}, 'Session');
-                    if any(isMatched)
-                        selectedItemIndex = find(isMatched);
-                    end
-                case {'Date', 'Experiment Date'}
-                    isMatched = strcmp({subFolderStructure.Type}, 'Date');
-                    if any(isMatched)
-                        selectedItemIndex = find(isMatched);
-                    end
-                case {'Time', 'Experiment Time'}
-                    selectedItemIndex = 0;
-                otherwise
-                    selectedItemIndex = 0;
             end
         end
 

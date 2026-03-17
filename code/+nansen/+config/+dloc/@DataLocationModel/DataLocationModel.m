@@ -992,6 +992,41 @@ classdef DataLocationModel < utility.data.StorableCatalog
         end
     end
 
+    methods (Static) % Methods for inferring default metadata configuration
+
+        function subfolderIndex = getDefaultSubfolderLevelForVariable(variableName, subfolderStructure)
+        %getDefaultSubfolderLevelForVariable Infer the default subfolder level for a metadata variable
+        %
+        %   subfolderIndex = getDefaultSubfolderLevelForVariable(variableName, subfolderStructure)
+        %   returns the index into subfolderStructure whose Type matches the
+        %   semantic role of variableName, or 0 if no match is found.
+        %
+        %   This encodes the mapping between metadata variable names
+        %   ('Subject ID', 'Session ID', 'Experiment Date') and subfolder
+        %   types ('Subject', 'Session', 'Date') as defined by the
+        %   SubfolderStructure of a data location.
+
+            arguments
+                variableName  (1,:) char
+                subfolderStructure struct
+            end
+
+            switch variableName
+                case 'Subject ID'
+                    subfolderIndex = find(strcmp({subfolderStructure.Type}, 'Subject'), 1);
+                case 'Session ID'
+                    subfolderIndex = find(strcmp({subfolderStructure.Type}, 'Session'), 1);
+                case {'Date', 'Experiment Date'}
+                    subfolderIndex = find(strcmp({subfolderStructure.Type}, 'Date'), 1);
+                otherwise
+                    subfolderIndex = [];
+            end
+            if isempty(subfolderIndex)
+                subfolderIndex = 0;
+            end
+        end
+    end
+
     methods (Static, Hidden) % Low-level extraction utilities
 
         function combinedName = combineFolderNamesFromPath( ...
