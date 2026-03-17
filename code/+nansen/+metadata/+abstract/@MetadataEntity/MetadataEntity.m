@@ -149,7 +149,7 @@ classdef MetadataEntity < ...
             defaultValue = updateFunction();
 
             % Character vectors should be in a scalar cell
-            if isequal(defaultValue, {'N/A'}) || isequal(defaultValue, {'<undefined>'}) 
+            if nansen.metadata.utility.isUnassignedCharValue(defaultValue)
                 expectedDataType = 'character vector or a scalar cell containing a character vector';
             else
                 expectedDataType = class(defaultValue);
