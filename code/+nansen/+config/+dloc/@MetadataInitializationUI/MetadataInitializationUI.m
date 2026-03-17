@@ -71,7 +71,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             obj.ColumnSpacing = 25;
         end
 
-        function hRow = createTableRowComponents(obj, rowData, rowNum)
+        function hRow = createTableRowComponents(obj, rowData, rowNumber)
 
             hRow = struct();
 
@@ -80,7 +80,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
         % % Create VariableName label
             i = 1;
-            [xi, y, wi, h] = obj.getCellPosition(rowNum, i);
+            [xi, y, wi, h] = obj.getCellPosition(rowNumber, i);
 
             hRow.VariableName = uilabel(obj.TablePanel);
             hRow.VariableName.Position = [xi y wi h];
@@ -91,7 +91,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
         % % Create Filename Expression edit field
             i = 2;
-            [xi, y, wi, h] = obj.getCellPosition(rowNum, i);
+            [xi, y, wi, h] = obj.getCellPosition(rowNumber, i);
 
             hRow.FolderNameSelector = uidropdown(obj.TablePanel);
             hRow.FolderNameSelector.BackgroundColor = [1 1 1];
@@ -117,7 +117,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
         % % Create Togglebutton group for selecting string detection mode
             i = 3;
-            [xi, y, wi, h] = obj.getCellPosition(rowNum, i);
+            [xi, y, wi, h] = obj.getCellPosition(rowNumber, i);
 
             % Insert dialog button
             hRow.SelectSubstringButton = uibutton(obj.TablePanel);
@@ -157,7 +157,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
         % % Create Editbox for string expression input
             i = 4;
-            [xi, y, wi, h] = obj.getCellPosition(rowNum, i);
+            [xi, y, wi, h] = obj.getCellPosition(rowNumber, i);
 
             hRow.StringDetectInputField = uieditfield(obj.TablePanel, 'text');
             hRow.StringDetectInputField.Position = [xi y wi h];
@@ -193,7 +193,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
         % % Create Editbox to show detected string.
             i = 5;
-            [xi, y, wi, h] = obj.getCellPosition(rowNum, i);
+            [xi, y, wi, h] = obj.getCellPosition(rowNumber, i);
 
             hRow.StringDetectResultField = uieditfield(obj.TablePanel, 'text');
             hRow.StringDetectResultField.Position = [xi y wi h];
@@ -544,8 +544,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         function updateDataLocationModel(obj)
         %updateDataLocationModel Update DLModel with changes from UI
             S = obj.getMetaDataDefinitionStruct();
-            dataLocationIdx = obj.DataLocationIndex;
-            obj.DataLocationModel.updateMetaDataDefinitions(S, dataLocationIdx)
+            dataLocationIndex = obj.DataLocationIndex;
+            obj.DataLocationModel.updateMetaDataDefinitions(S, dataLocationIndex)
         end
 
         function S = getMetaDataDefinitionStruct(obj)
@@ -646,58 +646,58 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             for i = 1:obj.NumRows
                 folderItems = obj.RowControls(i).FolderNameSelector.UserData.FolderItems;
 
-                itemIdx = metadataDef(i).SubfolderLevel;
+                selectedItemIndex = metadataDef(i).SubfolderLevel;
 
                 % If there is no selection, try to infer from the data organization.
-                if isempty(itemIdx)
-                    itemIdx = obj.initFolderSelectionItemIndex(i, subFolderStructure);
+                if isempty(selectedItemIndex)
+                    selectedItemIndex = obj.initFolderSelectionItemIndex(i, subFolderStructure);
                 end
 
                 % Clamp to valid range (0 means no selection).
-                if isscalar(itemIdx) && itemIdx == 0
-                    itemIdx = [];
+                if isscalar(selectedItemIndex) && selectedItemIndex == 0
+                    selectedItemIndex = [];
                 else
-                    itemIdx = itemIdx(itemIdx >= 1 & itemIdx <= numel(folderItems));
+                    selectedItemIndex = selectedItemIndex(selectedItemIndex >= 1 & selectedItemIndex <= numel(folderItems));
                 end
 
-                if numel(itemIdx) > 1
+                if numel(selectedItemIndex) > 1
                     separator = '';
                     if isfield(metadataDef(i), 'Separator'); separator = metadataDef(i).Separator; end
-                    obj.switchToMultiSelectMode(i, itemIdx, separator);
+                    obj.switchToMultiSelectMode(i, selectedItemIndex, separator);
                 else
-                    obj.switchToSingleSelectMode(i, itemIdx);
+                    obj.switchToSingleSelectMode(i, selectedItemIndex);
                 end
             end
         end
 
-        function itemIdx = initFolderSelectionItemIndex(obj, rowNumber, subFolderStructure)
+        function selectedItemIndex = initFolderSelectionItemIndex(obj, rowNumber, subFolderStructure)
         %initFolderSelectionItemIndex Guess which index should be selected
         %
         %   For each subfolder level in the folder organization, there is a
         %   type. If the type matches with the current row, use the index
         %   of that subfolder level as the initial choice.
 
-            itemIdx = 0;
+            selectedItemIndex = 0;
             switch obj.RowControls(rowNumber).VariableName.Text
                 case 'Subject ID'
                     isMatched = strcmp({subFolderStructure.Type}, 'Subject');
                     if any(isMatched)
-                        itemIdx = find(isMatched);
+                        selectedItemIndex = find(isMatched);
                     end
                 case 'Session ID'
                     isMatched = strcmp({subFolderStructure.Type}, 'Session');
                     if any(isMatched)
-                        itemIdx = find(isMatched);
+                        selectedItemIndex = find(isMatched);
                     end
                 case {'Date', 'Experiment Date'}
                     isMatched = strcmp({subFolderStructure.Type}, 'Date');
                     if any(isMatched)
-                        itemIdx = find(isMatched);
+                        selectedItemIndex = find(isMatched);
                     end
                 case {'Time', 'Experiment Time'}
-                    itemIdx = 0;
+                    selectedItemIndex = 0;
                 otherwise
-                    itemIdx = 0;
+                    selectedItemIndex = 0;
             end
         end
 
@@ -914,7 +914,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             end
         end
 
-        function setRowDisplayMode(obj, rowNum, showAdvanced)
+        function setRowDisplayMode(obj, rowNumber, showAdvanced)
 
             xOffset = sum(obj.ColumnWidths(4))+obj.ColumnSpacing;
             visibility = 'off';
@@ -926,7 +926,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 visibility_ = 'off';
             end
 
-            hRow = obj.RowControls(rowNum);
+            hRow = obj.RowControls(rowNumber);
             hRow.FolderNameSelector.Position(3) = hRow.FolderNameSelector.Position(3) + xOffset;
             hRow.FolderMultiSelector.Position(3) = hRow.FolderMultiSelector.Position(3) + xOffset;
             hRow.SelectSubstringButton.Position(1) = hRow.SelectSubstringButton.Position(1) + xOffset;
@@ -1022,9 +1022,9 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         function substring = getSubstringFromRowFunction(obj, rowNumber)
             dataLocationIndex = obj.DataLocationIndex;
             thisDataLocation = obj.DataLocationModel.Data(dataLocationIndex);
-            pathStr = thisDataLocation.ExamplePath;
+            folderPath = thisDataLocation.ExamplePath;
             dataLocationName = thisDataLocation.Name;
-            substring = feval(obj.FunctionName{rowNumber}, pathStr, dataLocationName);
+            substring = feval(obj.FunctionName{rowNumber}, folderPath, dataLocationName);
         end
 
         function exitFuncModeIfActive(obj, rowNumber)
@@ -1101,11 +1101,11 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 hButton.Text = 'Select folder(s)...';
                 hButton.Tooltip = '';
             else
-                arrowStr = '  ▼';
+                arrowIndicator = '  ▼';
                 fullName = strjoin(folderItems(selectedIndices), ' + ');
                 label = truncateTextForWidth(fullName, hButton.Position(3), ...
-                    hButton.FontSize, arrowStr);
-                hButton.Text = [label arrowStr];
+                    hButton.FontSize, arrowIndicator);
+                hButton.Text = [label arrowIndicator];
                 hButton.Tooltip = fullName;
             end
         end
