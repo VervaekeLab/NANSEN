@@ -805,24 +805,24 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             dataLocationLabelWidth = 110;
             dataLocationSelectorWidth = 125;
 
-            Wl_init = [dataLocationLabelWidth, dataLocationSelectorWidth];
+            requestedWidths = [dataLocationLabelWidth, dataLocationSelectorWidth];
 
             % Get component positions for the components on the left
-            [Xl, Wl] = subdividePosition(toolbarPosition(1), ...
-                toolbarPosition(3), Wl_init, 10);
+            [xPositions, adjustedWidths] = subdividePosition(toolbarPosition(1), ...
+                toolbarPosition(3), requestedWidths, 10);
 
-            Y = toolbarPosition(2);
+            yPosition = toolbarPosition(2);
 
             % Create SelectDatalocationDropDownLabel
             obj.SelectDatalocationDropDownLabel = uilabel(hPanel);
-            obj.SelectDatalocationDropDownLabel.Position = [Xl(1) Y Wl(1) 22];
+            obj.SelectDatalocationDropDownLabel.Position = [xPositions(1) yPosition adjustedWidths(1) 22];
             obj.SelectDatalocationDropDownLabel.Text = 'Select data location:';
 
             % Create SelectDataLocationDropDown
             obj.SelectDataLocationDropDown = uidropdown(hPanel);
             obj.SelectDataLocationDropDown.Items = {'Rawdata'};
             obj.SelectDataLocationDropDown.ValueChangedFcn = @obj.onDataLocationSelectionChanged;
-            obj.SelectDataLocationDropDown.Position = [Xl(2) Y Wl(2) 22];
+            obj.SelectDataLocationDropDown.Position = [xPositions(2) yPosition adjustedWidths(2) 22];
             obj.SelectDataLocationDropDown.Value = 'Rawdata';
 
             obj.updateDataLocationSelector()
