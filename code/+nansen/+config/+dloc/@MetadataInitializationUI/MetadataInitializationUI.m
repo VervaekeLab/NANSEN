@@ -903,6 +903,10 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             hRow = obj.RowControls(rowNumber);
             hRow.FolderNameSelector.Position(3) = hRow.FolderNameSelector.Position(3) + xOffset;
             hRow.FolderMultiSelector.Position(3) = hRow.FolderMultiSelector.Position(3) + xOffset;
+            obj.updateFolderSelectorButtonText( ...
+                hRow.FolderMultiSelector, ...
+                hRow.FolderMultiSelector.UserData.FolderItems, ...
+                hRow.FolderMultiSelector.UserData.SelectedIndices);
             hRow.SelectSubstringButton.Position(1) = hRow.SelectSubstringButton.Position(1) + xOffset;
 
             hRow.SelectSubstringButton.Visible = visibility_;
