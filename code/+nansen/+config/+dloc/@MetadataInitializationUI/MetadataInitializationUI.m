@@ -377,7 +377,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
             rowNumber = obj.getComponentRowNumber(src);
             hRow = obj.RowControls(rowNumber);
-            identifierName = obj.getIdNameForRow(rowNumber);
+            identifierName = obj.getIdentifierNameForRow(rowNumber);
 
             try
                 substring = obj.getFolderSubString(rowNumber);
@@ -442,7 +442,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
             rowNumber = obj.getComponentRowNumber(src);
 
-            identifierName = obj.getIdNameForRow(rowNumber);
+            identifierName = obj.getIdentifierNameForRow(rowNumber);
             functionName = createFunctionName(identifierName); % local function
 
             pm = nansen.ProjectManager();
@@ -1174,7 +1174,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
     methods (Static, Access = private)
 
-        function identifierName = getIdNameForRow(rowNumber)
+        function identifierName = getIdentifierNameForRow(rowNumber)
             identifierNames = {'subjectId', 'sessionId', 'experimentDate', 'experimentTime'};
             identifierName = identifierNames{rowNumber};
         end
