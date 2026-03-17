@@ -74,8 +74,8 @@ classdef MetaTableCatalog < uim.handle
             tableInfo = struct();
             tableInfo.MetaTableName = metaTable.createDefaultName();
             tableInfo.SavePath = metatableFolder;
-            tableInfo.IsDefault = isMaster;
-            tableInfo.IsMaster = isDefault;
+            tableInfo.IsDefault = isDefault;
+            tableInfo.IsMaster = isMaster;
             
             metaTable.archive(tableInfo, obj);
         end
@@ -351,7 +351,7 @@ classdef MetaTableCatalog < uim.handle
         end
         
         function quickremove(entryName)
-        %QUICKADD Static method for removing entries without constructing class
+        %QUICKREMOVE Static method for removing entries without constructing class
             if nargin == 0; entryName = ''; end
             MT = nansen.metadata.MetaTableCatalog();
             MT.removeEntry(entryName)
