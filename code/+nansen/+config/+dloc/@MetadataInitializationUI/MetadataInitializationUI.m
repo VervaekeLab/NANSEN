@@ -506,8 +506,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             thisDataLocation = obj.DataLocationModel.Data(dlIdx);
 
             S = struct();
-            S.StringDetectMode  = obj.getStrSearchMode(rowNumber);
-            S.StringDetectInput = obj.getStrSearchPattern(rowNumber, S.StringDetectMode);
+            S.StringDetectMode  = obj.getStringSearchMode(rowNumber);
+            S.StringDetectInput = obj.getStringSearchPattern(rowNumber, S.StringDetectMode);
             S.SubfolderLevel    = obj.getSubfolderLevel(rowNumber);
             S.Separator         = obj.Separator{rowNumber};
             S.NumSubfolders     = numel(thisDataLocation.SubfolderStructure);
@@ -555,8 +555,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
             % Retrieve values from controls and add to struct
             for i = 1:obj.NumRows
-                S(i).StringDetectMode = obj.getStrSearchMode(i);
-                S(i).StringDetectInput = obj.getStrSearchPattern(i);
+                S(i).StringDetectMode = obj.getStringSearchMode(i);
+                S(i).StringDetectInput = obj.getStringSearchPattern(i);
                 S(i).SubfolderLevel = obj.getSubfolderLevel(i);
                 S(i).StringFormat = obj.StringFormat{i};
                 S(i).Separator = obj.Separator{i};
@@ -742,7 +742,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             obj.IsDirty = false;
         end
 
-        function mode = getStrSearchMode(obj, rowNumber)
+        function mode = getStringSearchMode(obj, rowNumber)
 
             hBtnGroup = obj.RowControls(rowNumber).ButtonGroupStrfindMode;
             h = hBtnGroup.SelectedObject;
@@ -757,10 +757,10 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             hBtnGroup.SelectedObject = hButtons(isMatch);
         end
 
-        function strPattern = getStrSearchPattern(obj, rowNumber, mode)
+        function strPattern = getStringSearchPattern(obj, rowNumber, mode)
 
             if nargin < 3
-                mode = obj.getStrSearchMode(rowNumber);
+                mode = obj.getStringSearchMode(rowNumber);
             end
 
             hRow = obj.RowControls(rowNumber);
@@ -1035,7 +1035,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         %   Switching back to ind is the predictable default; the user can
         %   re-select expr or func manually if needed.
 
-            if strcmp(obj.getStrSearchMode(rowNumber), 'func')
+            if strcmp(obj.getStringSearchMode(rowNumber), 'func')
                 obj.setStringSearchMode(rowNumber, 'ind')
                 obj.setFunctionButtonVisibility(rowNumber)
             end
