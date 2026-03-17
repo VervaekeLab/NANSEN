@@ -133,9 +133,9 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             hRow.ButtonGroupStrfindMode.Position = [xi y wi h];
             hRow.ButtonGroupStrfindMode.FontName = obj.FontName;
             hRow.ButtonGroupStrfindMode.ButtonDownFcn = ...
-                @obj.onButtonGroupStrfindModeButtonDown;
+                @obj.onStrfindModeSelectionChanged;
             hRow.ButtonGroupStrfindMode.SelectionChangedFcn = ...
-                @obj.onButtonGroupStrfindModeButtonDown;
+                @obj.onStrfindModeSelectionChanged;
 
             obj.centerComponent(hRow.ButtonGroupStrfindMode, y)
 
@@ -472,8 +472,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             obj.IsDirty = true;
         end
 
-        function onButtonGroupStrfindModeButtonDown(obj, src, evt)
-        % onButtonGroupStrfindModeButtonDown - Selection changed callback
+        function onStrfindModeSelectionChanged(obj, src, evt)
+        % onStrfindModeSelectionChanged Callback when strfind mode selection changes
 
             rowNumber = obj.getComponentRowNumber(src);
             obj.setFunctionButtonVisibility(rowNumber)
