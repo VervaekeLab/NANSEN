@@ -208,7 +208,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
         end
         
         function set.DefaultDataLocation(obj, newValue)
-            
+
             assert(ischar(newValue), 'Please provide a character vector with the name of a data location')
             
             % Check if data location with given name exists...
@@ -265,7 +265,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
         end
         
         function createRootPath(obj, dataLocIdx, rootIdx)
-            
+
             if nargin < 3; rootIdx = 1; end
             thisRootPath = obj.Data(dataLocIdx).RootPath(rootIdx).Value;
             
@@ -287,7 +287,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
         %
         %   Just replaces the struct in the MetaDataDef property with the
         %   input struct S.
-                    
+
             oldStruct = obj.Data(dataLocIdx).MetaDataDef;
             obj.Data(dataLocIdx).MetaDataDef = newStruct;
             
@@ -305,7 +305,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
         %
         %   Just replaces the struct in the SubfolderStructure property
         %   with the input struct S.
-        
+
             if nargin < 3
                 idx = 1;
             end
@@ -345,7 +345,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
         %          the operating system
 
         %   % Todo: Consolidate with session/fixDataLocations
-            
+
             if isempty(dataLocationStructArray); return; end
             
             if isa(dataLocationStructArray, 'cell')
@@ -411,7 +411,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
         
         function addDataLocation(obj, newDataLocation)
         %addDataLocation Add data location item to data
-        
+
             if isempty(newDataLocation.Name)
                 newDataLocation.Name = obj.getNewName();
             end
@@ -482,14 +482,13 @@ classdef DataLocationModel < utility.data.StorableCatalog
                     'No data location templates matching name "%s"', templateName)
             end
         end
-
         
         function removeDataLocation(obj, dataLocationName)
         %removeDataLocation Remove data location item from data
             
             % Todo: Necessary if a undo operation is implemented...
             %oldValue = obj.getItem(dataLocationName);
-            
+
             [~, idx] = obj.containsItem(dataLocationName);
             
             obj.removeItem(dataLocationName)
@@ -512,7 +511,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
         %   dataLocationName is the name of the data location to modify. If
         %   the modification is on the name itself, the dataLocationName
         %   should be the current (old) name.
-        
+
             [tf, idx] = obj.containsItem(dataLocationName);
             
             if ~any(tf)
@@ -556,7 +555,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
         end
         
         function pathStr = getExampleFolderPath(obj, dataLocationName)
-            
+
             dataLocation = obj.getItem(dataLocationName);
             pathStr = dataLocation.ExamplePath;
         end
@@ -566,24 +565,26 @@ classdef DataLocationModel < utility.data.StorableCatalog
     
         function substring = getSubjectID(obj, pathStr, dataLocationIndex)
         % getSubjectID - Extract subject ID from a path string
-            
+
             if nargin < 3 || isempty(dataLocationIndex)
                 dataLocationIndex = 1;
             end
 
             S = obj.getMetavariableStruct('Subject ID', dataLocationIndex);
-            substring = obj.getSubstringFromFolder(pathStr, S, dataLocationIndex);
+            dataLocationName = obj.Data(dataLocationIndex).Name;
+            substring = obj.getSubstringFromFolder(pathStr, S, dataLocationName);
         end
         
         function substring = getSessionID(obj, pathStr, dataLocationIndex)
         % getSessionID - Extract session ID from a path string
-            
+
             if nargin < 3 || isempty(dataLocationIndex)
                 dataLocationIndex = 1;
             end
 
             S = obj.getMetavariableStruct('Session ID', dataLocationIndex);
-            substring = obj.getSubstringFromFolder(pathStr, S, dataLocationIndex);
+            dataLocationName = obj.Data(dataLocationIndex).Name;
+            substring = obj.getSubstringFromFolder(pathStr, S, dataLocationName);
         end
         
         function value = getTime(obj, pathStr, dataLocationIndex)
@@ -594,7 +595,8 @@ classdef DataLocationModel < utility.data.StorableCatalog
             end
 
             S = obj.getMetavariableStruct('Experiment Time', dataLocationIndex);
-            substring = obj.getSubstringFromFolder(pathStr, S, dataLocationIndex);
+            dataLocationName = obj.Data(dataLocationIndex).Name;
+            substring = obj.getSubstringFromFolder(pathStr, S, dataLocationName);
             
             % Convert to datetime type.
             if isfield(S, 'StringFormat') && ~isempty(S.StringFormat)
@@ -618,7 +620,8 @@ classdef DataLocationModel < utility.data.StorableCatalog
             end
             
             S = obj.getMetavariableStruct('Experiment Date', dataLocationIndex);
-            substring = obj.getSubstringFromFolder(pathStr, S, dataLocationIndex);
+            dataLocationName = obj.Data(dataLocationIndex).Name;
+            substring = obj.getSubstringFromFolder(pathStr, S, dataLocationName);
             
             % Convert to datetime type.
             if isfield(S, 'StringFormat') && ~isempty(S.StringFormat)
@@ -641,6 +644,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
         %       RootPath : Key, Value pair of local rootpath.
         
             % Todo: Why is this sometimes a cell?
+
             if isa(dlStruct, 'cell')
                 dlStruct = dlStruct{1};
                 warning('Data is in an unexpected format. This is not critical, but should be investigated.')
@@ -669,6 +673,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
         end
         
         function dlStruct = reduceDataLocationInfo(~, dlStruct)
+
             fieldsToRemove = {'Name', 'Type', 'RootPath'};
             for i = 1:numel(fieldsToRemove)
                 if isfield(dlStruct, fieldsToRemove{i})
@@ -698,42 +703,49 @@ classdef DataLocationModel < utility.data.StorableCatalog
         %
         % Get struct containing instructions for how to find substring
         % (value of a metadata variable) from a directory path.
-            
+
             if nargin < 3 || isempty(dataLocationIdx)
                 dataLocationIdx = 1;
             end
-            
+
             S = obj.Data(dataLocationIdx).MetaDataDef;
 
             % Find struct entry corresponding to requested variable
             variableIdx = strcmp({S.VariableName}, varName);
             S = S(variableIdx);
-                
+
             % Need to know how many subfolders the data location has
             numSubfolders = numel(obj.Data(dataLocationIdx).SubfolderStructure);
             S.NumSubfolders = numSubfolders;
         end
+    end
 
-        function substring = getSubstringFromFolder(obj, pathStr, S, dataLocationIndex)
+    methods (Static, Hidden) % Extraction helpers — public but hidden from the API
+
+        function substring = getSubstringFromFolder(pathStr, S, dataLocationName)
         %getSubstringFromFolder Find substring from a pathstring.
         %
-        %   substring = getSubstringFromFolder(obj, pathStr, varName) Get a
-        %   substring containing the value of a variable given by varName.
-        %   The substring is obtained from the given pathStr based on
-        %   instructions from the DataLocationModel's MetaDataDef property.
+        %   substring = getSubstringFromFolder(pathStr, S, dataLocationName)
+        %   extracts a metadata value from pathStr using the extraction
+        %   rules in S (a MetaDataDef entry augmented with NumSubfolders).
         %
-        %   SubfolderLevel may be an array; substrings from each selected
-        %   folder level are concatenated using the Separator field.
+        %   SubfolderLevel may be an array; the folder names at each level
+        %   are combined with Separator before pattern extraction, so a
+        %   single ind/expr rule applies to the whole combined string.
 
-            % Initialize output
+            arguments
+                pathStr
+                S
+                dataLocationName
+            end
+
             substring = '';
-            dataLocationName = obj.Data(dataLocationIndex).Name;
 
             mode = S.StringDetectMode;
 
             if strcmp(mode, 'func')
                 substring = feval(S.FunctionName, pathStr, dataLocationName);
-                % nb: substring could be datetime value
+                % nb: substring could be a datetime value
                 if ischar(substring) && strcmp(substring, 'N/A'); substring = ''; end
                 return
             end
@@ -741,52 +753,18 @@ classdef DataLocationModel < utility.data.StorableCatalog
             strPattern = S.StringDetectInput;
             folderLevels = S.SubfolderLevel;
 
-            % Abort if instructions are not present.
             if isempty(strPattern) || isempty(folderLevels)
-                return;
+                return
             end
 
             separator = '';
-            if isfield(S, 'Separator')
-                separator = S.Separator;
-            end
+            if isfield(S, 'Separator'); separator = S.Separator; end
 
-            % Split path into folder name parts once.
-            folderPathParts = strsplit(pathStr, filesep);
-            numSubfolders = S.NumSubfolders;
+            combinedFolderName = DataLocationModel.combineFolderNamesFromPath( ...
+                pathStr, folderLevels, S.NumSubfolders, separator);
 
-            % Collect the folder name at each selected level, then combine
-            % them into a single string. The pattern is then applied to the
-            % combined string, so the user only needs one extraction rule.
-            folderNameParts = cell(1, numel(folderLevels));
-            for k = 1:numel(folderLevels)
-                reversedFolderIdx = numSubfolders - folderLevels(k);
-                folderIdx = numel(folderPathParts) - reversedFolderIdx;
-
-                if folderIdx >= 1 && folderIdx <= numel(folderPathParts)
-                    folderNameParts{k} = folderPathParts{folderIdx};
-                else
-                    folderNameParts{k} = '';
-                end
-            end
-
-            combinedFolderName = strjoin(folderNameParts, separator);
-
-            try
-                switch lower(mode)
-                    case 'ind'
-                        substring = eval(['combinedFolderName([' strPattern '])']);
-                    case 'expr'
-                        result = regexp(combinedFolderName, strPattern, 'match', 'once');
-                        if isempty(result)
-                            substring = '';
-                        else
-                            substring = result;
-                        end
-                end
-            catch
-                substring = '';
-            end
+            substring = DataLocationModel.applyExtractionPattern( ...
+                combinedFolderName, mode, strPattern);
         end
     end
     
@@ -809,6 +787,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
         %
 
             % Create type object instance.
+
             for i = 1:numel(S.Data)
                 if ~isfield(S.Data(i), 'Type') || isempty(S.Data(i).Type)
                     S.Data(i).Type = nansen.config.dloc.DataLocationType('recorded');
@@ -841,7 +820,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
     
     methods (Access = private)
         function onDataLocationRenamed(obj, oldName, newName)
-                           
+
             obj.assignItemNames()
             
             % Update value default data location if this was the one that
@@ -890,7 +869,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
         % Note: Function names for extracting data identifiers
         % (subjectId, sessionId, experimentData & experimentTime) depend on
         % the project name
-        
+
             for i = 1:obj.NumDataLocations
                 for j = 1:numel(obj.Data(i).MetaDataDef)
                     if isfield(obj.Data(i).MetaDataDef(j), 'FunctionName')
@@ -954,6 +933,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
         end
 
         function rootPathStruct = addDiskNameToRootPathStruct(obj, rootPathStruct)
+
             for i = 1:numel(rootPathStruct)
                 rootPathStruct(i).DiskName = ...
                     obj.resolveDiskName(rootPathStruct(i).Value);
@@ -978,6 +958,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
             % fields and use universal unique ids????
         
             % Update root data type from cell array to struct.
+
             if numel(S.Data) > 0
                 if isa(S.Data(1).RootPath, 'cell')
                     for i = 1:numel(S.Data)
@@ -1010,6 +991,70 @@ classdef DataLocationModel < utility.data.StorableCatalog
                         S.Data(i).RootPath(1).Value = S.Data(i).RootPath(1).Value{1};
                     end
                 end
+            end
+        end
+    end
+
+    methods (Static, Hidden) % Low-level extraction utilities
+
+        function combinedName = combineFolderNamesFromPath( ...
+                pathStr, folderLevels, numSubfolders, separator)
+        %combineFolderNamesFromPath Collect and join folder names at given levels
+        %
+        %   Counts subfolder positions backward from the deepest level so
+        %   that the indices in folderLevels are independent of the root
+        %   path depth. Returns an empty string if folderLevels is empty.
+
+            if isempty(folderLevels)
+                combinedName = '';
+                return
+            end
+
+            folderPathParts = strsplit(pathStr, filesep);
+
+            folderNameParts = cell(1, numel(folderLevels));
+            for k = 1:numel(folderLevels)
+                reversedIdx = numSubfolders - folderLevels(k);
+                folderIdx   = numel(folderPathParts) - reversedIdx;
+                if folderIdx >= 1 && folderIdx <= numel(folderPathParts)
+                    folderNameParts{k} = folderPathParts{folderIdx};
+                else
+                    folderNameParts{k} = '';
+                end
+            end
+
+            combinedName = strjoin(folderNameParts, separator);
+        end
+
+        function substring = applyExtractionPattern(text, mode, pattern)
+        %applyExtractionPattern Apply an ind or expr extraction rule to text
+        %
+        %   mode 'ind'  — evaluates pattern as a character index expression
+        %                 (e.g. '1:5', '3:end')
+        %   mode 'expr' — treats pattern as a regexp and returns first match
+
+            arguments
+                text
+                mode
+                pattern
+            end
+
+            try
+                switch lower(mode)
+                    case 'ind'
+                        substring = eval(['text([' pattern '])']);
+                    case 'expr'
+                        result = regexp(text, pattern, 'match', 'once');
+                        if isempty(result)
+                            substring = '';
+                        else
+                            substring = result;
+                        end
+                    otherwise
+                        substring = '';
+                end
+            catch
+                substring = '';
             end
         end
     end

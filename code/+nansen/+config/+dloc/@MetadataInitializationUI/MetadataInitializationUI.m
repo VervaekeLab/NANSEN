@@ -497,38 +497,25 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
     methods % Methods for updating the Result column
 
         function substring = getFolderSubString(obj, rowNumber)
-        %getFolderSubString Get folder substring based on user selections
-            mode = obj.getStrSearchMode(rowNumber);
-            strPattern = obj.getStrSearchPattern(rowNumber, mode);
+        %getFolderSubString Get folder substring based on current UI selections
+        %
+        %   Builds an S struct from the current UI state and delegates the
+        %   full extraction to DataLocationModel.getSubstringFromFolder.
 
-            switch lower(mode)
-                case 'func'
-                    substring = obj.getSubstringFromRowFunction(rowNumber);
-                    return
-            end
+            dlIdx = obj.DataLocationIndex;
+            thisDataLocation = obj.DataLocationModel.Data(dlIdx);
 
-            if isempty(obj.getSubfolderLevel(rowNumber))
-                substring = '';
-                return
-            end
+            S = struct();
+            S.StringDetectMode  = obj.getStrSearchMode(rowNumber);
+            S.StringDetectInput = obj.getStrSearchPattern(rowNumber, S.StringDetectMode);
+            S.SubfolderLevel    = obj.getSubfolderLevel(rowNumber);
+            S.Separator         = obj.Separator{rowNumber};
+            S.NumSubfolders     = numel(thisDataLocation.SubfolderStructure);
+            S.FunctionName      = obj.FunctionName{rowNumber};
 
-            combinedFolderName = obj.getCombinedFolderName(rowNumber);
-
-            try
-                switch lower(mode)
-                    case 'ind'
-                        substring = eval(['combinedFolderName([' strPattern '])']);
-                    case 'expr'
-                        result = regexp(combinedFolderName, strPattern, 'match', 'once');
-                        if isempty(result)
-                            substring = '';
-                        else
-                            substring = result;
-                        end
-                end
-            catch
-                substring = '';
-            end
+            dataLocationName = thisDataLocation.Name;
+            substring = obj.DataLocationModel.getSubstringFromFolder( ...
+                thisDataLocation.ExamplePath, S, dataLocationName);
         end
     end
     
@@ -1091,39 +1078,20 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         end
 
         function combinedName = getCombinedFolderName(obj, rowNumber)
-        %getCombinedFolderName Get the combined folder name for a row
+        %getCombinedFolderName Get the combined folder string for a row
         %
-        %   Collects folder names at each selected level from the example
-        %   path and joins them with the row's separator. This is the
-        %   string the extraction pattern (ind/expr) is applied to.
-
-            folderLevels = obj.getSubfolderLevel(rowNumber);
-            separator = obj.Separator{rowNumber};
-            if isempty(separator); separator = ''; end
+        %   Used by onSelectSubstringButtonPushed to show the user the
+        %   string that the extraction pattern will be applied to.
 
             dlIdx = obj.DataLocationIndex;
             thisDataLocation = obj.DataLocationModel.Data(dlIdx);
-            examplePath = thisDataLocation.ExamplePath;
-            numSubfolders = numel(thisDataLocation.SubfolderStructure);
-            folderPathParts = strsplit(examplePath, filesep);
+            separator = obj.Separator{rowNumber};
 
-            if isempty(folderLevels)
-                combinedName = '';
-                return
-            end
-
-            folderNameParts = cell(1, numel(folderLevels));
-            for k = 1:numel(folderLevels)
-                reversedIdx = numSubfolders - folderLevels(k);
-                folderIdx = numel(folderPathParts) - reversedIdx;
-                if folderIdx >= 1 && folderIdx <= numel(folderPathParts)
-                    folderNameParts{k} = folderPathParts{folderIdx};
-                else
-                    folderNameParts{k} = '';
-                end
-            end
-
-            combinedName = strjoin(folderNameParts, separator);
+            combinedName = nansen.config.dloc.DataLocationModel.combineFolderNamesFromPath( ...
+                thisDataLocation.ExamplePath, ...
+                obj.getSubfolderLevel(rowNumber), ...
+                numel(thisDataLocation.SubfolderStructure), ...
+                separator);
         end
 
         function updateFolderSelectorButtonText(~, hButton, folderItems, selectedIndices)
