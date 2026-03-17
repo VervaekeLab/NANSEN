@@ -127,31 +127,31 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             obj.centerComponent(hRow.SelectSubstringButton, y)
 
             % Create button group
-            hRow.StringDetectModeButtonGroup = uibuttongroup(obj.TablePanel);
-            hRow.StringDetectModeButtonGroup.BorderType = 'none';
-            hRow.StringDetectModeButtonGroup.BackgroundColor = [1 1 1];
-            hRow.StringDetectModeButtonGroup.Position = [xi y wi h];
-            hRow.StringDetectModeButtonGroup.FontName = obj.FontName;
-            hRow.StringDetectModeButtonGroup.ButtonDownFcn = ...
-                @obj.onStrfindModeSelectionChanged;
-            hRow.StringDetectModeButtonGroup.SelectionChangedFcn = ...
-                @obj.onStrfindModeSelectionChanged;
+            hRow.StringExtractModeButtonGroup = uibuttongroup(obj.TablePanel);
+            hRow.StringExtractModeButtonGroup.BorderType = 'none';
+            hRow.StringExtractModeButtonGroup.BackgroundColor = [1 1 1];
+            hRow.StringExtractModeButtonGroup.Position = [xi y wi h];
+            hRow.StringExtractModeButtonGroup.FontName = obj.FontName;
+            hRow.StringExtractModeButtonGroup.ButtonDownFcn = ...
+                @obj.onStringExtractModeChanged;
+            hRow.StringExtractModeButtonGroup.SelectionChangedFcn = ...
+                @obj.onStringExtractModeChanged;
 
-            obj.centerComponent(hRow.StringDetectModeButtonGroup, y)
+            obj.centerComponent(hRow.StringExtractModeButtonGroup, y)
 
             % Create ModeButton1
-            ModeButton1 = uitogglebutton(hRow.StringDetectModeButtonGroup);
+            ModeButton1 = uitogglebutton(hRow.StringExtractModeButtonGroup);
             ModeButton1.Text = 'ind';
             ModeButton1.Position = [1 1 41 22];
             ModeButton1.Value = true;
 
             % Create ModeButton2
-            ModeButton2 = uitogglebutton(hRow.StringDetectModeButtonGroup);
+            ModeButton2 = uitogglebutton(hRow.StringExtractModeButtonGroup);
             ModeButton2.Text = 'expr';
             ModeButton2.Position = [41 1 41 22];
 
             % Create ModeButton3
-            ModeButton3 = uitogglebutton(hRow.StringDetectModeButtonGroup);
+            ModeButton3 = uitogglebutton(hRow.StringExtractModeButtonGroup);
             ModeButton3.Text = 'func';
             ModeButton3.Position = [81 1 41 22];
 
@@ -159,16 +159,16 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             i = 4;
             [xi, y, wi, h] = obj.getCellPosition(rowNumber, i);
 
-            hRow.StringDetectInputField = uieditfield(obj.TablePanel, 'text');
-            hRow.StringDetectInputField.Position = [xi y wi h];
-            hRow.StringDetectInputField.FontName = obj.FontName;
-            hRow.StringDetectInputField.ValueChangedFcn = @obj.onStringInputValueChanged;
+            hRow.StringExtractInputField = uieditfield(obj.TablePanel, 'text');
+            hRow.StringExtractInputField.Position = [xi y wi h];
+            hRow.StringExtractInputField.FontName = obj.FontName;
+            hRow.StringExtractInputField.ValueChangedFcn = @obj.onStringInputValueChanged;
 
-            obj.centerComponent(hRow.StringDetectInputField, y)
-            hRow.StringDetectInputField.Enable = 'on';
+            obj.centerComponent(hRow.StringExtractInputField, y)
+            hRow.StringExtractInputField.Enable = 'on';
 
             if ~isempty(rowData.StringDetectInput)
-                hRow.StringDetectInputField.Value = rowData.StringDetectInput;
+                hRow.StringExtractInputField.Value = rowData.StringDetectInput;
             end
 
         % % Advanced (function) Create buttons for edit/running function
@@ -195,11 +195,11 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             i = 5;
             [xi, y, wi, h] = obj.getCellPosition(rowNumber, i);
 
-            hRow.StringDetectResultField = uieditfield(obj.TablePanel, 'text');
-            hRow.StringDetectResultField.Position = [xi y wi h];
-            hRow.StringDetectResultField.Enable = 'off';
-            hRow.StringDetectResultField.FontName = obj.FontName;
-            obj.centerComponent(hRow.StringDetectResultField, y)
+            hRow.StringExtractResultField = uieditfield(obj.TablePanel, 'text');
+            hRow.StringExtractResultField.Position = [xi y wi h];
+            hRow.StringExtractResultField.Enable = 'off';
+            hRow.StringExtractResultField.FontName = obj.FontName;
+            obj.centerComponent(hRow.StringExtractResultField, y)
         end
 
         function createToolbarComponents(obj, hPanel)
@@ -215,7 +215,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         end
     end
 
-    methods (Access = private) %Callbacks for userinteraction with controls
+    methods (Access = private) % Callbacks for userinteraction with controls
 
         function onFolderNameSelectionChanged(obj, src, ~)
         % Callback for the folder-level dropdown
@@ -332,7 +332,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 return
             % ...Or update data and controls
             else
-                hRow.StringDetectInputField.Value = obj.simplifyIndices(selectedIndices);
+                hRow.StringExtractInputField.Value = obj.simplifyIndices(selectedIndices);
 
                 % If the variable is date or time, try to convert to
                 % datetime value:
@@ -347,7 +347,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                         try
                             datetimeValue = datetime(substring, 'InputFormat', dtInFormat);
                             datetimeValue.Format = dtOutFormat;
-                            hRow.StringDetectResultField.Value = char(datetimeValue);
+                            hRow.StringExtractResultField.Value = char(datetimeValue);
                             obj.StringFormat{rowNumber} = dtInFormat;
                         catch ME
                             uialert(hFig, ME.message, sprintf('%s Format Error', shortName))
@@ -406,8 +406,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 end
             end
 
-            hRow.StringDetectResultField.Value = substring;
-            hRow.StringDetectResultField.Tooltip = substring;
+            hRow.StringExtractResultField.Value = substring;
+            hRow.StringExtractResultField.Tooltip = substring;
 
             obj.IsDirty = true;
         end
@@ -470,12 +470,12 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             obj.IsDirty = true;
         end
 
-        function onStrfindModeSelectionChanged(obj, src, ~)
-        % onStrfindModeSelectionChanged Callback when strfind mode selection changes
+        function onStringExtractModeChanged(obj, src, ~)
+        % onStringExtractModeChanged Callback when string extract mode selection changes
 
             rowNumber = obj.getComponentRowNumber(src);
             obj.setFunctionButtonVisibility(rowNumber)
-            inputField = obj.RowControls(rowNumber).StringDetectInputField;
+            inputField = obj.RowControls(rowNumber).StringExtractInputField;
             obj.onStringInputValueChanged(inputField)
         end
 
@@ -504,8 +504,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             thisDataLocation = obj.DataLocationModel.Data(dataLocationIndex);
 
             S = struct();
-            S.StringDetectMode  = obj.getStringSearchMode(rowNumber);
-            S.StringDetectInput = obj.getStringSearchPattern(rowNumber);
+            S.StringDetectMode  = obj.getStringExtractMode(rowNumber);
+            S.StringDetectInput = obj.getStringExtractPattern(rowNumber);
             S.SubfolderLevel    = obj.getSubfolderLevel(rowNumber);
             S.Separator         = obj.Separator{rowNumber};
             S.NumSubfolders     = numel(thisDataLocation.SubfolderStructure);
@@ -553,8 +553,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
             % Retrieve values from controls and add to struct
             for i = 1:obj.NumRows
-                S(i).StringDetectMode = obj.getStringSearchMode(i);
-                S(i).StringDetectInput = obj.getStringSearchPattern(i);
+                S(i).StringDetectMode = obj.getStringExtractMode(i);
+                S(i).StringDetectInput = obj.getStringExtractPattern(i);
                 S(i).SubfolderLevel = obj.getSubfolderLevel(i);
                 S(i).StringFormat = obj.StringFormat{i};
                 S(i).Separator = obj.Separator{i};
@@ -598,10 +598,10 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             % Update results
             for i = 1:obj.NumRows
                 % Update detection mode
-                obj.setStringSearchMode(i, metadataDefinitions(i).StringDetectMode)
+                obj.setStringExtractMode(i, metadataDefinitions(i).StringDetectMode)
                 obj.setFunctionButtonVisibility(i)
 
-                inputField = obj.RowControls(i).StringDetectInputField;
+                inputField = obj.RowControls(i).StringExtractInputField;
                 % Update value in string detection input
                 inputField.Value = metadataDefinitions(i).StringDetectInput;
                 obj.onStringInputValueChanged(inputField)
@@ -705,8 +705,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
             % Update values in editboxes
             substring = obj.getFolderSubstring(rowNumber);
-            hRow.StringDetectResultField.Value = char( substring );
-            hRow.StringDetectResultField.Tooltip = char( substring );
+            hRow.StringExtractResultField.Value = char( substring );
+            hRow.StringExtractResultField.Tooltip = char( substring );
 
             if ~isempty( obj.StringFormat{rowNumber} )
                 dtInFormat = obj.StringFormat{rowNumber};
@@ -716,8 +716,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 datetimeValue.Format = dtOutFormat;
                 substring = char(datetimeValue);
 
-                hRow.StringDetectResultField.Value = substring;
-                hRow.StringDetectResultField.Tooltip = substring;
+                hRow.StringExtractResultField.Value = substring;
+                hRow.StringExtractResultField.Tooltip = substring;
             end
         end
 
@@ -740,25 +740,25 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             obj.IsDirty = false;
         end
 
-        function mode = getStringSearchMode(obj, rowNumber)
+        function mode = getStringExtractMode(obj, rowNumber)
 
-            buttonGroup = obj.RowControls(rowNumber).StringDetectModeButtonGroup;
+            buttonGroup = obj.RowControls(rowNumber).StringExtractModeButtonGroup;
             h = buttonGroup.SelectedObject;
             mode = h.Text;
         end
 
-        function setStringSearchMode(obj, rowNumber, value)
-            buttonGroup = obj.RowControls(rowNumber).StringDetectModeButtonGroup;
+        function setStringExtractMode(obj, rowNumber, value)
+            buttonGroup = obj.RowControls(rowNumber).StringExtractModeButtonGroup;
             hButtons = buttonGroup.Children;
 
             isMatch = strcmp({hButtons.Text}, value);
             buttonGroup.SelectedObject = hButtons(isMatch);
         end
 
-        function strPattern = getStringSearchPattern(obj, rowNumber)
+        function strPattern = getStringExtractPattern(obj, rowNumber)
 
             hRow = obj.RowControls(rowNumber);
-            inputValue = hRow.StringDetectInputField.Value;
+            inputValue = hRow.StringExtractInputField.Value;
 
             strPattern = inputValue;
         end
@@ -912,28 +912,28 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             hRow.SelectSubstringButton.Position(1) = hRow.SelectSubstringButton.Position(1) + xOffset;
 
             hRow.SelectSubstringButton.Visible = visibility_;
-            hRow.StringDetectModeButtonGroup.Visible = visibility;
-            hRow.StringDetectInputField.Visible = visibility;
+            hRow.StringExtractModeButtonGroup.Visible = visibility;
+            hRow.StringExtractInputField.Visible = visibility;
         end
 
         function setFunctionButtonVisibility(obj, rowNumber)
 
             hRow = obj.RowControls(rowNumber);
 
-            showButtons = strcmp(hRow.StringDetectModeButtonGroup.SelectedObject.Text, 'func') ...
+            showButtons = strcmp(hRow.StringExtractModeButtonGroup.SelectedObject.Text, 'func') ...
                             && obj.IsAdvancedView;
 
             if showButtons
                 hRow.RunFunctionButton.Visible = 'on';
                 hRow.EditFunctionButton.Visible = 'on';
-                hRow.StringDetectInputField.Visible = 'off';
+                hRow.StringExtractInputField.Visible = 'off';
             else
                 hRow.RunFunctionButton.Visible = 'off';
                 hRow.EditFunctionButton.Visible = 'off';
                 if obj.IsAdvancedView
-                    hRow.StringDetectInputField.Visible = 'on';
+                    hRow.StringExtractInputField.Visible = 'on';
                 else
-                    hRow.StringDetectInputField.Visible = 'off';
+                    hRow.StringExtractInputField.Visible = 'off';
                 end
             end
         end
@@ -965,7 +965,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
                         % Update result of string indexing based on model...
                         for i = 1:obj.NumRows
-                            inputField = obj.RowControls(i).StringDetectInputField;
+                            inputField = obj.RowControls(i).StringExtractInputField;
                             obj.onStringInputValueChanged(inputField)
                         end
                     end
@@ -1015,8 +1015,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         %   Switching back to ind is the predictable default; the user can
         %   re-select expr or func manually if needed.
 
-            if strcmp(obj.getStringSearchMode(rowNumber), 'func')
-                obj.setStringSearchMode(rowNumber, 'ind')
+            if strcmp(obj.getStringExtractMode(rowNumber), 'func')
+                obj.setStringExtractMode(rowNumber, 'ind')
                 obj.setFunctionButtonVisibility(rowNumber)
             end
         end
