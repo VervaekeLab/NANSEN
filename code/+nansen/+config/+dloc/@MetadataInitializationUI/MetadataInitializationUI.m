@@ -127,31 +127,31 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             obj.centerComponent(hRow.SelectSubstringButton, y)
 
             % Create button group
-            hRow.ButtonGroupStrfindMode = uibuttongroup(obj.TablePanel);
-            hRow.ButtonGroupStrfindMode.BorderType = 'none';
-            hRow.ButtonGroupStrfindMode.BackgroundColor = [1 1 1];
-            hRow.ButtonGroupStrfindMode.Position = [xi y wi h];
-            hRow.ButtonGroupStrfindMode.FontName = obj.FontName;
-            hRow.ButtonGroupStrfindMode.ButtonDownFcn = ...
+            hRow.StringDetectModeButtonGroup = uibuttongroup(obj.TablePanel);
+            hRow.StringDetectModeButtonGroup.BorderType = 'none';
+            hRow.StringDetectModeButtonGroup.BackgroundColor = [1 1 1];
+            hRow.StringDetectModeButtonGroup.Position = [xi y wi h];
+            hRow.StringDetectModeButtonGroup.FontName = obj.FontName;
+            hRow.StringDetectModeButtonGroup.ButtonDownFcn = ...
                 @obj.onStrfindModeSelectionChanged;
-            hRow.ButtonGroupStrfindMode.SelectionChangedFcn = ...
+            hRow.StringDetectModeButtonGroup.SelectionChangedFcn = ...
                 @obj.onStrfindModeSelectionChanged;
 
-            obj.centerComponent(hRow.ButtonGroupStrfindMode, y)
+            obj.centerComponent(hRow.StringDetectModeButtonGroup, y)
 
             % Create ModeButton1
-            ModeButton1 = uitogglebutton(hRow.ButtonGroupStrfindMode);
+            ModeButton1 = uitogglebutton(hRow.StringDetectModeButtonGroup);
             ModeButton1.Text = 'ind';
             ModeButton1.Position = [1 1 41 22];
             ModeButton1.Value = true;
 
             % Create ModeButton2
-            ModeButton2 = uitogglebutton(hRow.ButtonGroupStrfindMode);
+            ModeButton2 = uitogglebutton(hRow.StringDetectModeButtonGroup);
             ModeButton2.Text = 'expr';
             ModeButton2.Position = [41 1 41 22];
 
             % Create ModeButton3
-            ModeButton3 = uitogglebutton(hRow.ButtonGroupStrfindMode);
+            ModeButton3 = uitogglebutton(hRow.StringDetectModeButtonGroup);
             ModeButton3.Text = 'func';
             ModeButton3.Position = [81 1 41 22];
 
@@ -744,13 +744,13 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
         function mode = getStringSearchMode(obj, rowNumber)
 
-            buttonGroup = obj.RowControls(rowNumber).ButtonGroupStrfindMode;
+            buttonGroup = obj.RowControls(rowNumber).StringDetectModeButtonGroup;
             h = buttonGroup.SelectedObject;
             mode = h.Text;
         end
 
         function setStringSearchMode(obj, rowNumber, value)
-            buttonGroup = obj.RowControls(rowNumber).ButtonGroupStrfindMode;
+            buttonGroup = obj.RowControls(rowNumber).StringDetectModeButtonGroup;
             hButtons = buttonGroup.Children;
 
             isMatch = strcmp({hButtons.Text}, value);
@@ -932,7 +932,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             hRow.SelectSubstringButton.Position(1) = hRow.SelectSubstringButton.Position(1) + xOffset;
 
             hRow.SelectSubstringButton.Visible = visibility_;
-            hRow.ButtonGroupStrfindMode.Visible = visibility;
+            hRow.StringDetectModeButtonGroup.Visible = visibility;
             hRow.StringDetectInputField.Visible = visibility;
         end
 
@@ -940,7 +940,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
             hRow = obj.RowControls(rowNumber);
 
-            showButtons = strcmp(hRow.ButtonGroupStrfindMode.SelectedObject.Text, 'func') ...
+            showButtons = strcmp(hRow.StringDetectModeButtonGroup.SelectedObject.Text, 'func') ...
                             && obj.IsAdvancedView;
 
             if showButtons
