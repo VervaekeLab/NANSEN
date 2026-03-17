@@ -428,10 +428,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             end
 
             if ~functionExists
-                hFig = ancestor(src, 'figure');
-                message = sprintf( ['The function does not exist yet. ', ...
-                    'Please press "Edit" to initialize the function from a template.']);
-                uialert(hFig, message, 'Function missing...','Icon', 'info')
+                obj.alertFunctionNotFound(rowNumber)
                 return
             end
 
@@ -514,8 +511,18 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             S.FunctionName      = obj.FunctionName{rowNumber};
 
             dataLocationName = thisDataLocation.Name;
-            substring = obj.DataLocationModel.getSubstringFromFolder( ...
-                thisDataLocation.ExamplePath, S, dataLocationName);
+            substring = '';
+            try
+                substring = obj.DataLocationModel.getSubstringFromFolder( ...
+                    thisDataLocation.ExamplePath, S, dataLocationName);
+            catch ME
+                switch ME.identifier
+                    case 'NANSEN:DataLocationModel:FunctionNotFound'
+                        obj.alertFunctionNotFound(rowNumber)
+                    otherwise
+                        rethrow(ME)
+                end
+            end
         end
     end
 
@@ -972,6 +979,15 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
     end
 
     methods (Access = private)
+        function alertFunctionNotFound(obj, rowNumber)
+        %alertFunctionNotFound Show a uialert when the extraction function is missing
+            hFig = ancestor(obj.RowControls(rowNumber).VariableName, 'figure');
+            variableName = obj.RowControls(rowNumber).VariableName.Text;
+            message = sprintf(['A function for extracting "%s" does not exist yet. ' ...
+                'Please press "Edit" to initialize the function from a template.'], variableName);
+            uialert(hFig, message, 'Function missing...', 'Icon', 'info')
+        end
+
         function substring = getSubstringFromRowFunction(obj, rowNumber)
             dataLocationIndex = obj.DataLocationIndex;
             thisDataLocation = obj.DataLocationModel.Data(dataLocationIndex);

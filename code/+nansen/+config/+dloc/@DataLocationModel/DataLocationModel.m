@@ -742,7 +742,18 @@ classdef DataLocationModel < utility.data.StorableCatalog
             mode = S.StringDetectMode;
 
             if strcmp(mode, 'func')
-                substring = feval(S.FunctionName, pathStr, dataLocationName);
+                try
+                    substring = feval(S.FunctionName, pathStr, dataLocationName);
+                catch ME
+                    switch ME.identifier
+                        case 'MATLAB:UndefinedFunction'
+                            error('NANSEN:DataLocationModel:FunctionNotFound', ...
+                                'The metadata extraction function "%s" was not found on the MATLAB path.', ...
+                                S.FunctionName)
+                        otherwise
+                            rethrow(ME)
+                    end
+                end
                 % nb: substring could be a datetime value
                 if ischar(substring) && strcmp(substring, 'N/A'); substring = ''; end
                 return
