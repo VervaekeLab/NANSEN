@@ -13,7 +13,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 %    [ ] Do the centering when getting the cell locations.
 %    [ ] Set fontsize/bg color and other properties in batch.
 %
-%    [ ]Update DL Model whenever new values are entered. - Why???
+%    [ ] Update DL Model whenever new values are entered. - Why???
 %
 %    [ ] Fix error that will occur if several subfolders are
 %        given the same subfolder type?
@@ -366,14 +366,12 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             figure(hFig) % Bring uifigure back into focus
         end
 
-        function onStringInputValueChanged(obj, src, event)
+        function onStringInputValueChanged(obj, src, ~)
         %onStringInputValueChanged Updates result editfield when the string
         % input/selection indices are modified.
 
-            substring = '';
-
             thisDataLocation = obj.DataLocationModel.Data(obj.DataLocationIndex);
-            metadataDef = thisDataLocation.MetaDataDef;
+            metadataDefinitions = thisDataLocation.MetaDataDef;
 
             rowNumber = obj.getComponentRowNumber(src);
             hRow = obj.RowControls(rowNumber);
@@ -389,13 +387,13 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             end
 
             % Convert date/time value if date/time format is available
-            if obj.isDateTimeVariable(metadataDef(rowNumber).VariableName)
+            if obj.isDateTimeVariable(metadataDefinitions(rowNumber).VariableName)
                 if isa(substring, 'datetime')
                     substring = char(substring);
                 else
                     examplePath = thisDataLocation.ExamplePath;
                     try
-                        switch metadataDef(rowNumber).VariableName
+                        switch metadataDefinitions(rowNumber).VariableName
                             case 'Experiment Time'
                                 value = obj.DataLocationModel.getTime(examplePath, obj.DataLocationIndex);
                             case 'Experiment Date'
@@ -577,35 +575,35 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
             % Update values of subfolder dropdown based on the metadata
             % definitions
-            metadataDef = thisDataLocation.MetaDataDef;
+            metadataDefinitions = thisDataLocation.MetaDataDef;
 
-            % Update internal values from metadataDef
+            % Update internal values from metadataDefinitions
             for i = 1:obj.NumRows
                 % Set stringformat from datalocation model.
-                obj.StringFormat{i} = metadataDef(i).StringFormat;
-                if isfield(metadataDef(i), 'Separator')
-                    obj.Separator{i} = metadataDef(i).Separator;
+                obj.StringFormat{i} = metadataDefinitions(i).StringFormat;
+                if isfield(metadataDefinitions(i), 'Separator')
+                    obj.Separator{i} = metadataDefinitions(i).Separator;
                 else
                     obj.Separator{i} = '';
                 end
                 try
-                    obj.FunctionName{i} = metadataDef(i).FunctionName;
+                    obj.FunctionName{i} = metadataDefinitions(i).FunctionName;
                 catch
                     obj.FunctionName{i} = '';
                 end
             end
 
-            obj.updateFolderSelectionValue(metadataDef)
+            obj.updateFolderSelectionValue(metadataDefinitions)
 
             % Update results
             for i = 1:obj.NumRows
                 % Update detection mode
-                obj.setStringSearchMode(i, metadataDef(i).StringDetectMode)
+                obj.setStringSearchMode(i, metadataDefinitions(i).StringDetectMode)
                 obj.setFunctionButtonVisibility(i)
 
                 inputField = obj.RowControls(i).StringDetectInputField;
                 % Update value in string detection input
-                inputField.Value = metadataDef(i).StringDetectInput;
+                inputField.Value = metadataDefinitions(i).StringDetectInput;
                 obj.onStringInputValueChanged(inputField)
             end
         end
@@ -636,7 +634,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             end
         end
 
-        function updateFolderSelectionValue(obj, metadataDef)
+        function updateFolderSelectionValue(obj, metadataDefinitions)
         %updateFolderSelectionValue Restore the folder selection controls from the model
 
             dataLocationIndex = obj.DataLocationIndex;
@@ -646,7 +644,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             for i = 1:obj.NumRows
                 folderItems = obj.RowControls(i).FolderNameSelector.UserData.FolderItems;
 
-                selectedItemIndex = metadataDef(i).SubfolderLevel;
+                selectedItemIndex = metadataDefinitions(i).SubfolderLevel;
 
                 % If there is no selection, try to infer from the data organization.
                 if isempty(selectedItemIndex)
@@ -662,7 +660,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
                 if numel(selectedItemIndex) > 1
                     separator = '';
-                    if isfield(metadataDef(i), 'Separator'); separator = metadataDef(i).Separator; end
+                    if isfield(metadataDefinitions(i), 'Separator'); separator = metadataDefinitions(i).Separator; end
                     obj.switchToMultiSelectMode(i, selectedItemIndex, separator);
                 else
                     obj.switchToSingleSelectMode(i, selectedItemIndex);
