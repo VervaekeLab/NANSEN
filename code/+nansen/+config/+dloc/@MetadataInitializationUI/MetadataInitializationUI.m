@@ -332,7 +332,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 return
             % ...Or update data and controls
             else
-                hRow.StrfindInputEditbox.Value = obj.simplifyInd(IND);
+                hRow.StrfindInputEditbox.Value = obj.simplifyIndices(IND);
 
                 % If the variable is date or time, try to convert to
                 % datetime value:
@@ -1216,8 +1216,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             end
         end
 
-        function IND = simplifyInd(IND)
-        %simplifyInd Simplify the indices, by joining all subsequent using
+        function IND = simplifyIndices(IND)
+        %simplifyIndices Simplify the indices, by joining all subsequent using
         % the colon separator, i.e 1 2 3 4 5 -> 1:5
 
             indOrig = num2str(IND);
