@@ -30,6 +30,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
     properties (Access = protected)
         StringFormat = cell(1, 4); % Store stringformat for each session metadata item. Relevant for date and time.
         FunctionName = cell(1, 4)
+        Separator = cell(1, 4) % Store folder-level separator for each session metadata item.
         % Todo: This should be incorporated better, saving directly to the model.
     end
     
@@ -97,11 +98,22 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             hRow.FolderNameSelector.Position = [xi y wi h];
             hRow.FolderNameSelector.FontName = obj.FontName;
             hRow.FolderNameSelector.ValueChangedFcn = @obj.onFolderNameSelectionChanged;
+            hRow.FolderNameSelector.UserData = struct('FolderItems', {{}});
             obj.centerComponent(hRow.FolderNameSelector, y)
-
-            % Todo: Get folders from DataLocation.
             hRow.FolderNameSelector.Items = {'Select foldername...'};
             hRow.FolderNameSelector.Value = 'Select foldername...';
+
+            % Button shown in place of the dropdown when multiple folder
+            % levels are selected (initially hidden).
+            hRow.FolderMultiSelector = uibutton(obj.TablePanel);
+            hRow.FolderMultiSelector.Position = [xi y wi h];
+            hRow.FolderMultiSelector.FontName = obj.FontName;
+            hRow.FolderMultiSelector.HorizontalAlignment = 'left';
+            hRow.FolderMultiSelector.Text = 'Select folder(s)...';
+            hRow.FolderMultiSelector.ButtonPushedFcn = @obj.onFolderSelectorButtonPushed;
+            hRow.FolderMultiSelector.UserData = struct('FolderItems', {{}}, 'SelectedIndices', []);
+            hRow.FolderMultiSelector.Visible = 'off';
+            obj.centerComponent(hRow.FolderMultiSelector, y)
             
         % % Create Togglebutton group for selecting string detection mode
             i = 3;
@@ -206,13 +218,38 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
     methods (Access = private) %Callbacks for userinteraction with controls
         
         function onFolderNameSelectionChanged(obj, src, ~)
-        % Add value to tooltip of control
-                        
+        % Callback for the folder-level dropdown
+
             rowNumber = obj.getComponentRowNumber(src);
-            idx = obj.getSubfolderLevel(rowNumber);
-            
-            obj.Data(rowNumber).SubfolderLevel = idx;
-                        
+
+            if strcmp(src.Value, 'Select multiple folders...')
+                % Open multi-select dialog
+                hFig = ancestor(src, 'figure');
+                folderItems = src.UserData.FolderItems;
+                currentSeparator = obj.Separator{rowNumber};
+                if isempty(currentSeparator); currentSeparator = ''; end
+
+                [selectedIndices, separator] = obj.showFolderSelectorDialog( ...
+                    folderItems, [], currentSeparator, hFig.Position);
+
+                if numel(selectedIndices) > 1
+                    obj.exitFuncModeIfActive(rowNumber);
+                    obj.switchToMultiSelectMode(rowNumber, selectedIndices, separator);
+                elseif isscalar(selectedIndices)
+                    % User picked exactly one — stay in dropdown mode
+                    obj.exitFuncModeIfActive(rowNumber);
+                    src.Value = folderItems{selectedIndices};
+                else
+                    % User cancelled — reset dropdown, leave mode unchanged
+                    src.Value = src.Items{1};
+                    return
+                end
+            else
+                obj.exitFuncModeIfActive(rowNumber);
+            end
+
+            obj.Data(rowNumber).SubfolderLevel = obj.getSubfolderLevel(rowNumber);
+
             try
                 obj.updateStringResult(rowNumber)
             catch ME
@@ -223,21 +260,65 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 uialert(hFig, ME.message, 'Update Failed')
             end
 
-            obj.updateStringResult(rowNumber)
-
-            %obj.onStringInputValueChanged(hComp)
-
             src.Tooltip = src.Value;
+            obj.IsDirty = true;
+        end
+
+        function onFolderSelectorButtonPushed(obj, src, ~)
+        % Callback for the multi-select button (shown when >1 levels selected)
+
+            rowNumber = obj.getComponentRowNumber(src);
+            folderItems = src.UserData.FolderItems;
+            currentIndices = src.UserData.SelectedIndices;
+            currentSeparator = obj.Separator{rowNumber};
+            if isempty(currentSeparator); currentSeparator = ''; end
+
+            hFig = ancestor(src, 'figure');
+            [selectedIndices, separator] = obj.showFolderSelectorDialog( ...
+                folderItems, currentIndices, currentSeparator, hFig.Position);
+
+            if isequal(selectedIndices, currentIndices) && strcmp(separator, currentSeparator)
+                return % No change — leave mode unchanged
+            end
+
+            obj.exitFuncModeIfActive(rowNumber);
+
+            if isscalar(selectedIndices)
+                % Reduced to a single folder — revert to dropdown
+                obj.switchToSingleSelectMode(rowNumber, selectedIndices);
+            elseif numel(selectedIndices) > 1
+                src.UserData.SelectedIndices = selectedIndices;
+                obj.Separator{rowNumber} = separator;
+                obj.updateFolderSelectorButtonText(src, folderItems, selectedIndices);
+            else
+                % User cleared the selection — revert to dropdown, no selection
+                obj.switchToSingleSelectMode(rowNumber, []);
+            end
+
+            obj.Data(rowNumber).SubfolderLevel = obj.getSubfolderLevel(rowNumber);
+
+            try
+                obj.updateStringResult(rowNumber)
+            catch ME
+                if strcmp(ME.identifier, 'MATLAB:badsubscript')
+                    ME = obj.getModifiedBadSubscriptException();
+                end
+                uialert(hFig, ME.message, 'Update Failed')
+            end
+
             obj.IsDirty = true;
         end
 
         function onSelectSubstringButtonPushed(obj, src, evt)
         % Open a dialog window for selecting letter positions.
-        
+
             % Get foldername for the row which user pushed button from
             rowNumber = obj.getComponentRowNumber(src);
             hRow = obj.RowControls(rowNumber);
-            folderName = hRow.FolderNameSelector.Value;
+
+            % Build the combined folder string from the selected levels and
+            % separator — this is the string the pattern is applied to.
+            folderName = obj.getCombinedFolderName(rowNumber);
            
             % Create a dialog where the user can select a substring from
             % the foldername
@@ -393,9 +474,11 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
         function onButtonGroupStrfindModeButtonDown(obj, src, evt)
         % onButtonGroupStrfindModeButtonDown - Selection changed callback
-                   
+
             rowNumber = obj.getComponentRowNumber(src);
             obj.setFunctionButtonVisibility(rowNumber)
+            hInputEditbox = obj.RowControls(rowNumber).StrfindInputEditbox;
+            obj.onStringInputValueChanged(hInputEditbox)
         end
 
         function onDataLocationSelectionChanged(obj, src, evt)
@@ -417,17 +500,34 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         %getFolderSubString Get folder substring based on user selections
             mode = obj.getStrSearchMode(rowNumber);
             strPattern = obj.getStrSearchPattern(rowNumber, mode);
-            folderName = obj.RowControls(rowNumber).FolderNameSelector.Value;
-            
+
             switch lower(mode)
-                case 'ind'
-                    substring = eval( ['folderName([' strPattern '])'] );
-
-                case 'expr'
-                    substring = regexp(folderName, strPattern, 'match', 'once');
-
                 case 'func'
                     substring = obj.getSubstringFromRowFunction(rowNumber);
+                    return
+            end
+
+            if isempty(obj.getSubfolderLevel(rowNumber))
+                substring = '';
+                return
+            end
+
+            combinedFolderName = obj.getCombinedFolderName(rowNumber);
+
+            try
+                switch lower(mode)
+                    case 'ind'
+                        substring = eval(['combinedFolderName([' strPattern '])']);
+                    case 'expr'
+                        result = regexp(combinedFolderName, strPattern, 'match', 'once');
+                        if isempty(result)
+                            substring = '';
+                        else
+                            substring = result;
+                        end
+                end
+            catch
+                substring = '';
             end
         end
     end
@@ -463,23 +563,17 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         
         function S = getMetaDataDefinitionStruct(obj)
         %getMetaDataDefinitionStruct Get struct of values from UI controls
-        
+
             S = obj.DataLocationModel.getDefaultMetadataStructure();
-               
+
             % Retrieve values from controls and add to struct
             for i = 1:obj.NumRows
                 S(i).StringDetectMode = obj.getStrSearchMode(i);
                 S(i).StringDetectInput = obj.getStrSearchPattern(i);
                 S(i).SubfolderLevel = obj.getSubfolderLevel(i);
                 S(i).StringFormat = obj.StringFormat{i};
+                S(i).Separator = obj.Separator{i};
                 S(i).FunctionName = obj.FunctionName{i};
-
-                if isnan(S(i).SubfolderLevel)
-                    % Revert to the original value if current value is nan.
-                    % Current value might be nan if there are currently no
-                    % available folders in the dropdown selector.
-                    S(i).SubfolderLevel = obj.Data(i).SubfolderLevel;
-                end
             end
         end
         
@@ -502,6 +596,11 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             for i = 1:obj.NumRows
                 % Set stringformat from datalocation model.
                 obj.StringFormat{i} = thisDataLocation.MetaDataDef(i).StringFormat;
+                if isfield(thisDataLocation.MetaDataDef(i), 'Separator')
+                    obj.Separator{i} = thisDataLocation.MetaDataDef(i).Separator;
+                else
+                    obj.Separator{i} = '';
+                end
                 try
                     obj.FunctionName{i} = thisDataLocation.MetaDataDef(i).FunctionName;
                 catch
@@ -525,56 +624,61 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         end
 
         function setFolderSelectionItems(obj)
-        %setFolderSelectionItems Add model's folder names to each dropdown
-        
-            % TODO: Fix error that will occur if several subfolders are
-            % given the same subfolder type?
-            
+        %setFolderSelectionItems Populate the folder-level dropdown items for each row
+
             dlIdx = obj.DataLocationIndex;
             thisDataLocation = obj.DataLocationModel.Data(dlIdx);
-            
-            % Get all the folder selector controls
-            h = [obj.RowControls.FolderNameSelector];
-            
-            % Get the folder choice examples from the data location model
-            subFolderStructure = thisDataLocation.SubfolderStructure;
-            folderChoices = ['Select foldername...', {subFolderStructure.Name}];
 
-            folderChoices(cellfun(@isempty, folderChoices)) = deal({'Foldername not found'});
-            set(h, 'Items', folderChoices)
+            subFolderStructure = thisDataLocation.SubfolderStructure;
+            folderItems = {subFolderStructure.Name};
+            folderItems(cellfun(@isempty, folderItems)) = {'Foldername not found'};
+
+            for i = 1:obj.NumRows
+                hRow = obj.RowControls(i);
+
+                % Store the clean folder list in both controls for index lookups.
+                hRow.FolderNameSelector.UserData.FolderItems = folderItems;
+                hRow.FolderMultiSelector.UserData.FolderItems = folderItems;
+
+                % Build dropdown items — Session ID gets the multi-select option.
+                dropdownItems = ['Select foldername...', folderItems];
+                if strcmp(hRow.VariableName.Text, 'Session ID')
+                    dropdownItems = [dropdownItems, {'Select multiple folders...'}];
+                end
+                hRow.FolderNameSelector.Items = dropdownItems;
+            end
         end
 
         function updateFolderSelectionValue(obj, M)
-        %updateFolderSelectionValue Set the dropdown value based on the model
-            % Get all the folder selector controls
-            h = [obj.RowControls.FolderNameSelector];
+        %updateFolderSelectionValue Restore the folder selection controls from the model
 
             dlIdx = obj.DataLocationIndex;
             thisDataLocation = obj.DataLocationModel.Data(dlIdx);
             subFolderStructure = thisDataLocation.SubfolderStructure;
 
-            for i = 1:numel(h)
-                % Todo: Subfolder level needs to be reset if the number of
-                % subfolders is changed in the model. See newt warning
-                % below
+            for i = 1:obj.NumRows
+                folderItems = obj.RowControls(i).FolderNameSelector.UserData.FolderItems;
+
                 itemIdx = M(i).SubfolderLevel;
-                
-                % If there is no selection, try to infer from the data
-                % organization.
+
+                % If there is no selection, try to infer from the data organization.
                 if isempty(itemIdx)
                     itemIdx = obj.initFolderSelectionItemIndex(i, subFolderStructure);
                 end
-                
-                if isempty(itemIdx)
-                    itemIdx = 0;
-                elseif ~isscalar(itemIdx)
-                    itemIdx = itemIdx(1);
-                end
-                
-                if itemIdx > numel(h(i).Items) - 1
-                    warning('Model is inconsistent. Working on fix')
+
+                % Clamp to valid range (0 means no selection).
+                if isscalar(itemIdx) && itemIdx == 0
+                    itemIdx = [];
                 else
-                    set(h(i), 'Value', h(i).Items{itemIdx+1})
+                    itemIdx = itemIdx(itemIdx >= 1 & itemIdx <= numel(folderItems));
+                end
+
+                if numel(itemIdx) > 1
+                    separator = '';
+                    if isfield(M(i), 'Separator'); separator = M(i).Separator; end
+                    obj.switchToMultiSelectMode(i, itemIdx, separator);
+                else
+                    obj.switchToSingleSelectMode(i, itemIdx);
                 end
             end
         end
@@ -692,27 +796,13 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             end
         end
         
-        function num = getSubfolderLevel(obj, rowNumber)
-            
-            hDropdown = obj.RowControls(rowNumber).FolderNameSelector;
-
-            if strcmp(hDropdown.Value, 'Foldername not found') || ...
-                    strcmp(hDropdown.Value, 'Data location root folder not found')
-                num = nan;
+        function indices = getSubfolderLevel(obj, rowNumber)
+            hRow = obj.RowControls(rowNumber);
+            if strcmp(hRow.FolderMultiSelector.Visible, 'on')
+                indices = hRow.FolderMultiSelector.UserData.SelectedIndices;
             else
-                items = hDropdown.Items(2:end); % Exclude first choice.
-                num = find(strcmp(items, hDropdown.Value));
-                
-                % Note: important to exclude first entry. If no folder was
-                % explicitly selected, the value of num should be empty.
-            end
-            
-            % Todo: Make this more robust. Is it ever going to happen
-            % unless the folder is not found like above?
-            if numel( num ) > 1
-                num = num(1);
-                warning(['Multiple folders has the same name. Selected the first ' ...
-                    'one in the list to use for metadata detection' ] )
+                folderItems = hRow.FolderNameSelector.UserData.FolderItems;
+                indices = find(strcmp(folderItems, hRow.FolderNameSelector.Value));
             end
         end
     end
@@ -851,6 +941,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             
             hRow = obj.RowControls(rowNum);
             hRow.FolderNameSelector.Position(3) = hRow.FolderNameSelector.Position(3) + xOffset;
+            hRow.FolderMultiSelector.Position(3) = hRow.FolderMultiSelector.Position(3) + xOffset;
             hRow.SelectSubstringButton.Position(1) = hRow.SelectSubstringButton.Position(1) + xOffset;
 
             hRow.SelectSubstringButton.Visible = visibility_;
@@ -948,6 +1039,169 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             dataLocationName = thisDataLocation.Name;
             substring = feval(obj.FunctionName{rowNumber}, pathStr, dataLocationName);
         end
+
+        function exitFuncModeIfActive(obj, rowNumber)
+        %exitFuncModeIfActive Switch from func to ind mode when folder selection changes
+        %
+        %   func mode ignores folder selection entirely, so keeping it active
+        %   when the user changes the folder would produce a silent no-op.
+        %   Switching back to ind is the predictable default; the user can
+        %   re-select expr or func manually if needed.
+
+            if strcmp(obj.getStrSearchMode(rowNumber), 'func')
+                obj.setStringSearchMode(rowNumber, 'ind')
+                obj.setFunctionButtonVisibility(rowNumber)
+            end
+        end
+
+        function switchToMultiSelectMode(obj, rowNumber, selectedIndices, separator)
+        %switchToMultiSelectMode Show button, hide dropdown, store selection
+
+            hRow = obj.RowControls(rowNumber);
+            folderItems = hRow.FolderNameSelector.UserData.FolderItems;
+
+            hRow.FolderMultiSelector.UserData.FolderItems = folderItems;
+            hRow.FolderMultiSelector.UserData.SelectedIndices = selectedIndices;
+            obj.Separator{rowNumber} = separator;
+
+            obj.updateFolderSelectorButtonText( ...
+                hRow.FolderMultiSelector, folderItems, selectedIndices);
+
+            hRow.FolderNameSelector.Visible = 'off';
+            hRow.FolderMultiSelector.Visible = 'on';
+        end
+
+        function switchToSingleSelectMode(obj, rowNumber, selectedIndex)
+        %switchToSingleSelectMode Hide button, show dropdown, clear multi-selection
+
+            hRow = obj.RowControls(rowNumber);
+            folderItems = hRow.FolderNameSelector.UserData.FolderItems;
+
+            hRow.FolderMultiSelector.Visible = 'off';
+            hRow.FolderMultiSelector.UserData.SelectedIndices = [];
+            obj.Separator{rowNumber} = '';
+
+            hRow.FolderNameSelector.Visible = 'on';
+
+            if ~isempty(selectedIndex) && selectedIndex >= 1 && selectedIndex <= numel(folderItems)
+                hRow.FolderNameSelector.Value = folderItems{selectedIndex};
+            else
+                hRow.FolderNameSelector.Value = hRow.FolderNameSelector.Items{1};
+            end
+        end
+
+        function combinedName = getCombinedFolderName(obj, rowNumber)
+        %getCombinedFolderName Get the combined folder name for a row
+        %
+        %   Collects folder names at each selected level from the example
+        %   path and joins them with the row's separator. This is the
+        %   string the extraction pattern (ind/expr) is applied to.
+
+            folderLevels = obj.getSubfolderLevel(rowNumber);
+            separator = obj.Separator{rowNumber};
+            if isempty(separator); separator = ''; end
+
+            dlIdx = obj.DataLocationIndex;
+            thisDataLocation = obj.DataLocationModel.Data(dlIdx);
+            examplePath = thisDataLocation.ExamplePath;
+            numSubfolders = numel(thisDataLocation.SubfolderStructure);
+            folderPathParts = strsplit(examplePath, filesep);
+
+            if isempty(folderLevels)
+                combinedName = '';
+                return
+            end
+
+            folderNameParts = cell(1, numel(folderLevels));
+            for k = 1:numel(folderLevels)
+                reversedIdx = numSubfolders - folderLevels(k);
+                folderIdx = numel(folderPathParts) - reversedIdx;
+                if folderIdx >= 1 && folderIdx <= numel(folderPathParts)
+                    folderNameParts{k} = folderPathParts{folderIdx};
+                else
+                    folderNameParts{k} = '';
+                end
+            end
+
+            combinedName = strjoin(folderNameParts, separator);
+        end
+
+        function updateFolderSelectorButtonText(~, hButton, folderItems, selectedIndices)
+        %updateFolderSelectorButtonText Update button label and tooltip to reflect selection
+
+            if isempty(selectedIndices)
+                hButton.Text = 'Select folder(s)...';
+                hButton.Tooltip = '';
+            else
+                arrowStr = '  ▼';
+                fullName = strjoin(folderItems(selectedIndices), ' + ');
+                label = truncateTextForWidth(fullName, hButton.Position(3), ...
+                    hButton.FontSize, arrowStr);
+                hButton.Text = [label arrowStr];
+                hButton.Tooltip = fullName;
+            end
+        end
+
+        function [selectedIndices, separator] = showFolderSelectorDialog( ...
+                obj, folderItems, currentIndices, currentSeparator, parentPosition)
+        %showFolderSelectorDialog Modal dialog for selecting folder levels
+        %
+        %   Opens a figure with a multi-select listbox and a separator
+        %   field. Returns the selected indices and separator string, or
+        %   the original values if the user cancels.
+
+            selectedIndices = currentIndices;
+            separator = currentSeparator;
+
+            dialogWidth = 300;
+            dialogHeight = 300;
+            dialogX = parentPosition(1) + (parentPosition(3) - dialogWidth) / 2;
+            dialogY = parentPosition(2) + (parentPosition(4) - dialogHeight) / 2;
+
+            dialogFigure = uifigure( ...
+                'Name', 'Select Folder Level(s)', ...
+                'Position', [dialogX, dialogY, dialogWidth, dialogHeight], ...
+                'WindowStyle', 'modal', ...
+                'Resize', 'off');
+
+            uilabel(dialogFigure, ...
+                'Text', 'Select one or more folder levels:', ...
+                'Position', [15 265 270 22]);
+
+            hListbox = uilistbox(dialogFigure, ...
+                'Items', folderItems, ...
+                'Multiselect', 'on', ...
+                'Position', [15 110 270 150]);
+
+            if ~isempty(currentIndices) && max(currentIndices) <= numel(folderItems)
+                hListbox.Value = folderItems(currentIndices);
+            end
+
+            uilabel(dialogFigure, 'Text', 'Separator:', 'Position', [15 75 80 22]);
+            hSeparatorField = uieditfield(dialogFigure, 'text', ...
+                'Value', currentSeparator, ...
+                'Position', [100 75 185 22], ...
+                'Placeholder', 'e.g. _ (leave blank for none)');
+
+            uibutton(dialogFigure, 'Text', 'OK', ...
+                'Position', [195 30 90 30], ...
+                'ButtonPushedFcn', @(~,~) uiresume(dialogFigure));
+            uibutton(dialogFigure, 'Text', 'Cancel', ...
+                'Position', [100 30 90 30], ...
+                'ButtonPushedFcn', @(~,~) delete(dialogFigure));
+
+            uiwait(dialogFigure);
+
+            % If figure still exists, the user pressed OK — read the values.
+            if isvalid(dialogFigure)
+                selected = hListbox.Value;
+                if ischar(selected); selected = {selected}; end
+                selectedIndices = find(ismember(folderItems, selected));
+                separator = hSeparatorField.Value;
+                delete(dialogFigure);
+            end
+            % else: user cancelled or closed — return the original values.
+        end
     end
 
     methods (Static, Access = private)
@@ -1038,6 +1292,24 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             ME = MException('NANSEN:SubstringSelection:BadSubscript', ...
                 'The indices for selecting a substring does not match the length of the foldername');
         end
+    end
+end
+
+function truncatedText = truncateTextForWidth(text, widthPx, fontSizePt, ~)
+%truncateTextForWidth Truncate text so it fits within a pixel width budget
+%
+%   Estimates character width as 0.6x the font size (pt→px, proportional
+%   font approximation) and reserves a fixed pixel budget for the arrow
+%   indicator. Replaces the last character with '…' when truncation occurs.
+
+    arrowReservedPx = 16;
+    pixelsPerChar   = fontSizePt * 0.6;
+    maxChars = floor((widthPx - arrowReservedPx) / pixelsPerChar);
+
+    if numel(text) > maxChars && maxChars > 3
+        truncatedText = [text(1:maxChars-1) '…'];
+    else
+        truncatedText = text;
     end
 end
 

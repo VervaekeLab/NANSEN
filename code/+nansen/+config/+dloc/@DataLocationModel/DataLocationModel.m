@@ -66,6 +66,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 'StringDetectMode', repmat({'ind'}, 1, numVars), ...
                 'StringDetectInput', repmat({'1:end'}, 1, numVars), ...
                 'StringFormat', repmat({''}, 1, numVars), ...
+                'Separator', repmat({''}, 1, numVars), ...
                 'FunctionName', repmat({''}, 1, numVars) );
         end
         
@@ -720,7 +721,10 @@ classdef DataLocationModel < utility.data.StorableCatalog
         %   substring containing the value of a variable given by varName.
         %   The substring is obtained from the given pathStr based on
         %   instructions from the DataLocationModel's MetaDataDef property.
-        
+        %
+        %   SubfolderLevel may be an array; substrings from each selected
+        %   folder level are concatenated using the Separator field.
+
             % Initialize output
             substring = '';
             dataLocationName = obj.Data(dataLocationIndex).Name;
@@ -735,31 +739,50 @@ classdef DataLocationModel < utility.data.StorableCatalog
             end
 
             strPattern = S.StringDetectInput;
-            folderLevel = S.SubfolderLevel;
-            
+            folderLevels = S.SubfolderLevel;
+
             % Abort if instructions are not present.
-            if isempty(strPattern) || isempty(folderLevel)
+            if isempty(strPattern) || isempty(folderLevels)
                 return;
             end
-            
-            % Get the index of the folder containing the substring,
-            % counting backward from the deepest subfolder level.
-            reversedFolderIdx = S.NumSubfolders - folderLevel;
-            
-            folderNames = strsplit(pathStr, filesep);
-            folderName = folderNames{end-reversedFolderIdx}; % Unpack from cell array
-            
-            % Get the substring using either indexing or regular
-            % expressions.
+
+            separator = '';
+            if isfield(S, 'Separator')
+                separator = S.Separator;
+            end
+
+            % Split path into folder name parts once.
+            folderPathParts = strsplit(pathStr, filesep);
+            numSubfolders = S.NumSubfolders;
+
+            % Collect the folder name at each selected level, then combine
+            % them into a single string. The pattern is then applied to the
+            % combined string, so the user only needs one extraction rule.
+            folderNameParts = cell(1, numel(folderLevels));
+            for k = 1:numel(folderLevels)
+                reversedFolderIdx = numSubfolders - folderLevels(k);
+                folderIdx = numel(folderPathParts) - reversedFolderIdx;
+
+                if folderIdx >= 1 && folderIdx <= numel(folderPathParts)
+                    folderNameParts{k} = folderPathParts{folderIdx};
+                else
+                    folderNameParts{k} = '';
+                end
+            end
+
+            combinedFolderName = strjoin(folderNameParts, separator);
+
             try
                 switch lower(mode)
-
                     case 'ind'
-                        %substring = folderName(strPattern);
-                        substring = eval( ['folderName([' strPattern '])'] );
-                        
+                        substring = eval(['combinedFolderName([' strPattern '])']);
                     case 'expr'
-                        substring = regexp(folderName, strPattern, 'match', 'once');
+                        result = regexp(combinedFolderName, strPattern, 'match', 'once');
+                        if isempty(result)
+                            substring = '';
+                        else
+                            substring = result;
+                        end
                 end
             catch
                 substring = '';
