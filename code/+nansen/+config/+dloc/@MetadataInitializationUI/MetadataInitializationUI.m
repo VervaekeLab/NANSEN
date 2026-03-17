@@ -159,16 +159,16 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             i = 4;
             [xi, y, wi, h] = obj.getCellPosition(rowNum, i);
 
-            hRow.StrfindInputEditbox = uieditfield(obj.TablePanel, 'text');
-            hRow.StrfindInputEditbox.Position = [xi y wi h];
-            hRow.StrfindInputEditbox.FontName = obj.FontName;
-            hRow.StrfindInputEditbox.ValueChangedFcn = @obj.onStringInputValueChanged;
+            hRow.StringDetectInputField = uieditfield(obj.TablePanel, 'text');
+            hRow.StringDetectInputField.Position = [xi y wi h];
+            hRow.StringDetectInputField.FontName = obj.FontName;
+            hRow.StringDetectInputField.ValueChangedFcn = @obj.onStringInputValueChanged;
 
-            obj.centerComponent(hRow.StrfindInputEditbox, y)
-            hRow.StrfindInputEditbox.Enable = 'on';
+            obj.centerComponent(hRow.StringDetectInputField, y)
+            hRow.StringDetectInputField.Enable = 'on';
 
             if ~isempty(rowData.StringDetectInput)
-                hRow.StrfindInputEditbox.Value = rowData.StringDetectInput;
+                hRow.StringDetectInputField.Value = rowData.StringDetectInput;
             end
 
         % % Advanced (function) Create buttons for edit/running function
@@ -195,11 +195,11 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             i = 5;
             [xi, y, wi, h] = obj.getCellPosition(rowNum, i);
 
-            hRow.StrfindResultEditbox = uieditfield(obj.TablePanel, 'text');
-            hRow.StrfindResultEditbox.Position = [xi y wi h];
-            hRow.StrfindResultEditbox.Enable = 'off';
-            hRow.StrfindResultEditbox.FontName = obj.FontName;
-            obj.centerComponent(hRow.StrfindResultEditbox, y)
+            hRow.StringDetectResultField = uieditfield(obj.TablePanel, 'text');
+            hRow.StringDetectResultField.Position = [xi y wi h];
+            hRow.StringDetectResultField.Enable = 'off';
+            hRow.StringDetectResultField.FontName = obj.FontName;
+            obj.centerComponent(hRow.StringDetectResultField, y)
         end
 
         function createToolbarComponents(obj, hPanel)
@@ -332,7 +332,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 return
             % ...Or update data and controls
             else
-                hRow.StrfindInputEditbox.Value = obj.simplifyIndices(IND);
+                hRow.StringDetectInputField.Value = obj.simplifyIndices(IND);
 
                 % If the variable is date or time, try to convert to
                 % datetime value:
@@ -347,7 +347,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                         try
                             datetimeValue = datetime(substring, 'InputFormat', dtInFormat);
                             datetimeValue.Format = dtOutFormat;
-                            hRow.StrfindResultEditbox.Value = char(datetimeValue);
+                            hRow.StringDetectResultField.Value = char(datetimeValue);
                             obj.StringFormat{rowNumber} = dtInFormat;
                         catch ME
                             uialert(hFig, ME.message, sprintf('%s Format Error', shortName))
@@ -408,8 +408,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 end
             end
 
-            hRow.StrfindResultEditbox.Value = substring;
-            hRow.StrfindResultEditbox.Tooltip = substring;
+            hRow.StringDetectResultField.Value = substring;
+            hRow.StringDetectResultField.Tooltip = substring;
 
             obj.IsDirty = true;
         end
@@ -477,8 +477,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
             rowNumber = obj.getComponentRowNumber(src);
             obj.setFunctionButtonVisibility(rowNumber)
-            hInputEditbox = obj.RowControls(rowNumber).StrfindInputEditbox;
-            obj.onStringInputValueChanged(hInputEditbox)
+            inputField = obj.RowControls(rowNumber).StringDetectInputField;
+            obj.onStringInputValueChanged(inputField)
         end
 
         function onDataLocationSelectionChanged(obj, src, evt)
@@ -603,10 +603,10 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 obj.setStringSearchMode(i, metadataDef(i).StringDetectMode)
                 obj.setFunctionButtonVisibility(i)
 
-                hComp = obj.RowControls(i).StrfindInputEditbox;
+                inputField = obj.RowControls(i).StringDetectInputField;
                 % Update value in string detection input
-                hComp.Value = metadataDef(i).StringDetectInput;
-                obj.onStringInputValueChanged(hComp)
+                inputField.Value = metadataDef(i).StringDetectInput;
+                obj.onStringInputValueChanged(inputField)
             end
         end
 
@@ -707,8 +707,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
             % Update values in editboxes
             substring = obj.getFolderSubstring(rowNumber);
-            hRow.StrfindResultEditbox.Value = char( substring );
-            hRow.StrfindResultEditbox.Tooltip = char( substring );
+            hRow.StringDetectResultField.Value = char( substring );
+            hRow.StringDetectResultField.Tooltip = char( substring );
 
             if ~isempty( obj.StringFormat{rowNumber} )
                 dtInFormat = obj.StringFormat{rowNumber};
@@ -718,8 +718,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
                 datetimeValue.Format = dtOutFormat;
                 substring = char(datetimeValue);
 
-                hRow.StrfindResultEditbox.Value = substring;
-                hRow.StrfindResultEditbox.Tooltip = substring;
+                hRow.StringDetectResultField.Value = substring;
+                hRow.StringDetectResultField.Tooltip = substring;
             end
         end
 
@@ -764,7 +764,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             end
 
             hRow = obj.RowControls(rowNumber);
-            strInd = hRow.StrfindInputEditbox.Value;
+            strInd = hRow.StringDetectInputField.Value;
 
             strPattern = strInd;
             return
@@ -933,7 +933,7 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
             hRow.SelectSubstringButton.Visible = visibility_;
             hRow.ButtonGroupStrfindMode.Visible = visibility;
-            hRow.StrfindInputEditbox.Visible = visibility;
+            hRow.StringDetectInputField.Visible = visibility;
         end
 
         function setFunctionButtonVisibility(obj, rowNumber)
@@ -946,14 +946,14 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             if showButtons
                 hRow.RunFunctionButton.Visible = 'on';
                 hRow.EditFunctionButton.Visible = 'on';
-                hRow.StrfindInputEditbox.Visible = 'off';
+                hRow.StringDetectInputField.Visible = 'off';
             else
                 hRow.RunFunctionButton.Visible = 'off';
                 hRow.EditFunctionButton.Visible = 'off';
                 if obj.IsAdvancedView
-                    hRow.StrfindInputEditbox.Visible = 'on';
+                    hRow.StringDetectInputField.Visible = 'on';
                 else
-                    hRow.StrfindInputEditbox.Visible = 'off';
+                    hRow.StringDetectInputField.Visible = 'off';
                 end
             end
         end
@@ -985,8 +985,8 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 
                         % Update result of string indexing based on model...
                         for i = 1:obj.NumRows
-                            hComp = obj.RowControls(i).StrfindInputEditbox;
-                            obj.onStringInputValueChanged(hComp)
+                            inputField = obj.RowControls(i).StringDetectInputField;
+                            obj.onStringInputValueChanged(inputField)
                         end
                     end
                 case 'Name'
