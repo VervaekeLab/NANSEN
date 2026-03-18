@@ -401,8 +401,177 @@ classdef Project < nansen.module.Module
         end
     end
     
+    methods
+        function synchronizeMetaTableVariables(obj, metaTable, options)
+        %synchronizeMetaTableVariables Sync MetaTable columns with project variable definitions
+        %
+        %   Adds missing columns and (with user confirmation) removes columns that
+        %   no longer have a corresponding variable definition in this project.
+        %
+        %   This is the project-level replacement for MetaTable.checkIfMetaTableComplete().
+
+            arguments
+                obj (1,1) nansen.config.project.Project
+                metaTable (1,1) nansen.metadata.MetaTable
+                options.MessageDisplay = []
+                options.AutoUpdateValues (1,1) logical = true
+            end
+
+            if isempty(metaTable.entries); return; end
+
+            tableType = lower(metaTable.getTableType());
+
+            obj.addMissingTableVariables(metaTable, tableType, ...
+                'AutoUpdateValues', options.AutoUpdateValues);
+            obj.removeObsoleteTableVariables(metaTable, tableType, ...
+                'MessageDisplay', options.MessageDisplay);
+
+            metaTable.setMetaTableVariables(metaTable.entries.Properties.VariableNames);
+        end
+    end
+
     methods (Access = private)
-        
+        function addMissingTableVariables(obj, metaTable, tableType, options)
+        %addMissingTableVariables Add variable to table if it is missing.
+        %
+        %   If a table variable is present in the table variable definitions,
+        %   but missing from the table, this function adds a new variable to
+        %   the table and initializes with the default value.
+
+            arguments
+                obj (1,1) nansen.config.project.Project
+                metaTable (1,1) nansen.metadata.MetaTable
+                tableType (1,:) char = 'session'
+                options.AutoUpdateValues (1,1) logical = true
+            end
+
+            tableVarNames = metaTable.entries.Properties.VariableNames;
+
+            refVariableAttributes = obj.getTable('TableVariable');
+
+            % Filter to only keep variables matching the table type
+            refVariableAttributes(lower(refVariableAttributes.TableType) ~= lower(tableType), :) = [];
+
+            isCustom = refVariableAttributes.IsCustom;
+            customVariableNames = refVariableAttributes{isCustom, 'Name'};
+
+            % Check if any variable is present in the table variable list but
+            % missing from the table
+            missingVarNames = setdiff(customVariableNames, tableVarNames);
+
+            getRowIndex = @(T, varName) find( strcmp(T.Name, varName) );
+
+            if not(isempty(missingVarNames))
+                projectName = obj.Name;
+            end
+
+            for iVarName = 1:numel(missingVarNames)
+                thisName = missingVarNames{iVarName};
+                thisRowIndex = getRowIndex(refVariableAttributes, thisName);
+
+                fcnName = sprintf('%s.tablevariable.%s.%s', projectName, lower(tableType), thisName);
+                fcnResult = feval(fcnName);
+                if isa(fcnResult, 'nansen.metadata.abstract.TableVariable')
+                    defaultValue = fcnResult.DEFAULT_VALUE;
+                else
+                    defaultValue = fcnResult;
+                end
+                metaTable.addTableVariable(thisName, defaultValue)
+
+                if options.AutoUpdateValues
+                    if refVariableAttributes{thisRowIndex, 'HasUpdateFunction'}
+                        % Update for all items of the metatable
+                        tableRowInd = 1:height(metaTable.entries);
+                        updateFcnName = refVariableAttributes{thisRowIndex, 'UpdateFunctionName'}{1};
+                        wasUpdated = metaTable.updateTableVariable(thisName, tableRowInd, str2func(updateFcnName)); %#ok<NASGU>
+                    end
+                end
+            end
+            if not( isempty(metaTable.filepath) )
+                metaTable.save()
+            end
+        end
+
+        function removeObsoleteTableVariables(obj, metaTable, tableType, options)
+        %removeObsoleteTableVariables Remove variable from table if its definition is missing.
+        %
+        %   If a table variable is missing from the table variable definitions,
+        %   but is present in the table, this function asks the user if the
+        %   variable should be removed from the table.
+
+            arguments
+                obj (1,1) nansen.config.project.Project
+                metaTable (1,1) nansen.metadata.MetaTable
+                tableType (1,:) char
+                options.MessageDisplay = []
+            end
+
+            if isempty(options.MessageDisplay); return; end
+
+            import nansen.metadata.utility.createClassForCustomTableVar
+
+            tableVarNames = metaTable.entries.Properties.VariableNames;
+
+            variableAttributes = obj.getTable('TableVariable');
+            variableAttributes(variableAttributes.TableType ~= tableType, :) = [];
+
+            % Get custom (user-defined) and default table variables
+            isCustom = variableAttributes.IsCustom;
+            customVariableNames = variableAttributes{isCustom, 'Name'};
+            defaultVariableNames = variableAttributes{~isCustom, 'Name'};
+
+            % Get those variables present in the table that are not default
+            customVariablesInTable = setdiff(tableVarNames, defaultVariableNames);
+
+            % Find difference between those and the user-defined variables
+            missingVarNames = setdiff(customVariablesInTable, customVariableNames);
+
+            wasUpdated = false;
+
+            for iVarName = 1:numel(missingVarNames)
+                thisName = missingVarNames{iVarName};
+
+                question = sprintf( ['The tablevar definition is missing ', ...
+                    'for "%s". Do you want to delete data for this variable ', ...
+                    'from the table?'], thisName );
+                title = 'Delete Table Column?';
+                if any( strcmp(thisName, metaTable.MetaTableVariables))
+                    answer = options.MessageDisplay.ask(question, ...
+                        'Title', title, ...
+                        'Alternatives', ["Yes", "No"], ...
+                        'DefaultAnswer', "No");
+                else
+                    answer = 'No';
+                end
+
+                switch answer
+                    case 'Yes'
+                        metaTable.removeTableVariable(thisName)
+                        metaTable.save()
+                    case {'Cancel', 'No', ''}
+                        tableRow = metaTable.entries(1, :);
+                        rowAsStruct = table2struct(tableRow);
+
+                        S = struct();
+                        S.VariableName = thisName;
+                        S.MetadataClass = tableType;
+                        S.DataType = class(rowAsStruct.(thisName));
+                        S.InputMode = '';
+
+                        targetFolderPath = obj.getTableVariableFolder();
+                        createClassForCustomTableVar(S, targetFolderPath);
+                        wasUpdated = true;
+                end
+            end
+            if wasUpdated
+                rehash
+                pause(1.1)
+            end
+        end
+    end
+
+    methods (Access = private)
+
         function initializeProjectReadme(obj)
         % initializeProjectReadme - Initialize project's readme file
             readmeFilePath = fullfile(obj.FolderPath, 'README.md');

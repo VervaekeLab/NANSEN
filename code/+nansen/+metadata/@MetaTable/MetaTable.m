@@ -206,6 +206,14 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             key = obj.MetaTableKey;
         end
 
+        function setMetaTableVariables(obj, variableNames)
+        %setMetaTableVariables Set the MetaTableVariables property
+        %
+        %   Used by external callers (e.g. Project.synchronizeMetaTableVariables)
+        %   to update the list of known table variables after synchronization.
+            obj.MetaTableVariables = variableNames;
+        end
+
         function variableName = getVariableName(obj, colIndex)
             variableName = obj.entries.Properties.VariableNames{colIndex};
         end
@@ -597,14 +605,16 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         function checkIfMetaTableComplete(obj, options)
         %checkIfMetaTableComplete Check if user-defined variables are
         % missing from the table.
-                    
+        %
+        %   Deprecated: use Project.synchronizeMetaTableVariables() instead.
+
             arguments
                 obj
                 options.MessageDisplay = []
             end
 
             if isempty(obj.entries); return; end
-    
+
             tableType = lower( obj.getTableType() );
             
             obj.addMissingVarsToMetaTable(tableType);
@@ -618,10 +628,12 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         function addMissingVarsToMetaTable(obj, metaTableType, options)
         %addMissingVarsToMetaTable Add variable to table if it is missing.
         %
-        %   If a table variable is present in the table variable definitions, 
+        %   If a table variable is present in the table variable definitions,
         %   but missing from the table, this functions adds a new variable to
         %   the table and initializes with the default value based on the
         %   table variable definition.
+        %
+        %   Deprecated: use Project.synchronizeMetaTableVariables() instead.
 
             arguments
                 obj (1,1) nansen.metadata.MetaTable
@@ -684,19 +696,15 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         function removeMissingVarsFromMetaTable(obj, metaTableType, options)
         %removeMissingVarsFromMetaTable Remove variable from table if it is missing.
         %
-        %   If a table variable is missing from the table variable definitions, 
-        %   but is present in the table, this functions asks the user if the 
+        %   If a table variable is missing from the table variable definitions,
+        %   but is present in the table, this functions asks the user if the
         %   variable should be removed from the table.
         %
         %   If the user selects "Yes" the variable is deleted from the
-        %   table. If the user selects no, the a non-editable dummy
-        %   variable is placed in the table variable folder for the current
-        %   project.
+        %   table. If the user selects no, a non-editable dummy variable is
+        %   placed in the table variable folder for the current project.
         %
-        %   If the table is loaded into nansen for the first time, should
-        %   skip the step of asking user. 
-        %   
-        %   Todo: How to reliably know if this is the first time initialization?
+        %   Deprecated: use Project.synchronizeMetaTableVariables() instead.
 
             arguments
                 obj
@@ -1366,7 +1374,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             % Temporarily create a new MetaTable and add missing table
             % variables
             tempMetaTable = nansen.metadata.MetaTable.newLike(newTableRows, obj);
-            tempMetaTable.addMissingVarsToMetaTable(tempMetaTable.MetaTableClass, ...
+            nansen.getCurrentProject().synchronizeMetaTableVariables(tempMetaTable, ...
                 "AutoUpdateValues", options.AutoUpdateValues);
             
             % Todo (alternative to creating a temp table):

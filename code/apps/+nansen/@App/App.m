@@ -2985,7 +2985,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 end
                 
                 % Checks if metatable matches with custom table variables
-                metaTable.checkIfMetaTableComplete("MessageDisplay", app.MessageDisplay)
+                app.CurrentProject.synchronizeMetaTableVariables(metaTable, 'MessageDisplay', app.MessageDisplay)
 
                 
                 % Temp fix. Todo: remove
@@ -3754,7 +3754,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Initialize a MetaTable using the given session schema and the
             % detected session folders.
             tmpMetaTable = nansen.metadata.MetaTable.new(newSessionObjects);
-            tmpMetaTable.addMissingVarsToMetaTable('session');
+            app.CurrentProject.synchronizeMetaTableVariables(tmpMetaTable);
             
             % Find all that are not part of existing metatable
             app.MetaTable.addTable(tmpMetaTable.entries)
