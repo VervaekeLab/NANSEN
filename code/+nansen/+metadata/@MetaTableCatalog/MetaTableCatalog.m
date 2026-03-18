@@ -278,12 +278,66 @@ classdef MetaTableCatalog < uim.handle
         %HASDEFAULTOFTYPE Check if a default MetaTable of given class exists.
             isClassMatch = strcmp(className, obj.Table.MetaTableClass);
             isDefault = obj.Table.IsDefault;
-            
+
             S = table2struct( obj.Table(isClassMatch & isDefault, :) );
             tf = ~isempty(S);
         end
+
+        function masterFilePath = getMasterFilePath(obj, metaTableKey)
+        %getMasterFilePath Get the filepath of the master MetaTable for a given key
+
+            anyKeyMatched = strcmp(obj.Table.MetaTableKey, metaTableKey);
+            IND = obj.Table.IsMaster & anyKeyMatched;
+
+            if ~any(IND)
+                masterFilePath = '';
+            else
+                masterFilePath = fullfile(obj.FolderPath, obj.Table{IND, 'FileName'}{:});
+            end
+        end
+
+        function synchronizeToMaster(obj, dummyMetaTable, S)
+        %synchronizeToMaster Synchronize dummy MetaTable entries to the master
+        %
+        %   Entries present in both are updated in master from dummy.
+        %   Entries only in dummy are appended to master.
+
+            masterFilePath = obj.getMasterFilePath(dummyMetaTable.MetaTableKey);
+            if isempty(masterFilePath)
+                error('NANSEN:MetaTableCatalog:MasterNotFound', ...
+                    'No master MetaTable found for key "%s"', dummyMetaTable.MetaTableKey)
+            end
+
+            sMaster = load(masterFilePath);
+
+            [~, iA, iB] = intersect(sMaster.MetaTableMembers, S.MetaTableMembers);
+            sMaster.MetaTableEntries(iA, :) = S.MetaTableEntries(iB, :);
+
+            [~, iA] = setdiff(S.MetaTableMembers, sMaster.MetaTableMembers);
+            if ~isempty(iA)
+                sMaster.MetaTableEntries(end+1:end+numel(iA), :) = S.MetaTableEntries(iA, :);
+            end
+
+            sMaster.MetaTableMembers = sMaster.MetaTableEntries.(dummyMetaTable.SchemaIdName);
+            save(masterFilePath, '-struct', 'sMaster')
+        end
+
+        function synchronizeFromMaster(obj, dummyMetaTable)
+        %synchronizeFromMaster Pull entries from master into a dummy MetaTable
+
+            masterFilePath = obj.getMasterFilePath(dummyMetaTable.MetaTableKey);
+
+            if isempty(masterFilePath)
+                dummyMetaTable.linkToMaster()
+                masterFilePath = obj.getMasterFilePath(dummyMetaTable.MetaTableKey);
+            end
+
+            sMaster = load(masterFilePath);
+            iA = ismember(sMaster.MetaTableMembers, dummyMetaTable.MetaTableMembers);
+            dummyMetaTable.entries = sMaster.MetaTableEntries(iA, :);
+        end
     end
-     
+
     methods (Access = private)
         function folderPath = getFolder(obj)
             folderPath = fileparts(obj.FilePath);

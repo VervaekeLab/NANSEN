@@ -798,18 +798,18 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         %   addTableVariable(obj, variableName, initValue) adds a new
         %   variable to the table and initializes all column values to the
         %   initValue.
-        
+
         % Todo: Make method for adding multiple variables in one go, i.e
         % allow "variableName" and "initValue" to be cell arrays.
 
             if ~obj.IsMaster % Add to master metatable
-                % Get filepath to master MetaTable file and load MetaTable
-                masterFilePath = obj.getMasterMetaTableFile();
+                catalog = nansen.metadata.MetaTableCatalog();
+                masterFilePath = catalog.getMasterFilePath(obj.MetaTableKey);
                 masterMT = nansen.metadata.MetaTable.open(masterFilePath);
                 masterMT.addTableVariable(variableName, initValue);
                 masterMT.save();
             end
-        
+
             obj.entries = obj.addTableVariableStatic(obj.entries, variableName, initValue);
         end
 
@@ -1016,8 +1016,8 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             end
         end
         
-% % % % Methods for syncing a dummy MetaTable with a master MetaTable.
-        
+% % % % Methods for linking a dummy MetaTable to a master MetaTable.
+
         function linkToMaster(obj)
         %linkToMaster Link a dummy MetaTable to a master MetaTable
         %
@@ -1048,78 +1048,6 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                     'You need link to a master MetaTable'); end
             
             obj.MetaTableKey = mtTmp.('MetaTableKey'){ind};
-            obj.save()
-        end
-        
-        function synchToMaster(obj, S)
-        %synchToMaster Synch entries from dummy to master MetaTable.
-        %
-        %   Entries that are present in both will be written from dummy to
-        %   master.
-        %   Entries that are only present in dummy will be appended to
-        %   master.
-        
-            % Get filepath to master MetaTable file and load MetaTable
-            masterFilePath = obj.getMasterMetaTableFile();
-            sMaster = load(masterFilePath);
-            
-            % Replace entries in master with corresponding entries in dummy
-            [~, iA, iB] = intersect(sMaster.MetaTableMembers, S.MetaTableMembers);
-            sMaster.MetaTableEntries(iA, :) = S.MetaTableEntries(iB, :);
-            
-            % Add entries to master which is only present in dummy
-            [~, iA] = setdiff(S.MetaTableMembers, sMaster.MetaTableMembers);
-            if ~isempty(iA)
-                sMaster.MetaTableEntries(end+1:end+numel(iA), :) = S.MetaTableEntries(iA, :);
-            end
-            
-            % Update MetaTable members
-            sMaster.MetaTableMembers = sMaster.MetaTableEntries.(obj.SchemaIdName);
-            
-            % Save master MetaTable.
-            save(masterFilePath, '-struct', 'sMaster')
-        end
-        
-        function synchFromMaster(obj)
-        %synchFromMaster Get entries from master MetaTable.
-        
-            % Get filepath to master MetaTable file and load MetaTable
-            masterFilePath = obj.getMasterMetaTableFile();
-            
-            if isempty(masterFilePath)
-                obj.linkToMaster()
-                masterFilePath = obj.getMasterMetaTableFile();
-            end
-            
-            sMaster = load(masterFilePath);
-            
-            iA = ismember(sMaster.MetaTableMembers, obj.MetaTableMembers);
-
-            % Todo: what if some entries are not present in master?
-            obj.entries = sMaster.MetaTableEntries(iA, :);
-        end
-        
-        function masterFilePath = getMasterMetaTableFile(obj)
-        %getMasterMetaTableFile Get filepath for master metatable
-        %   (relevant for dummy metatables)
-        
-            % Find master MetaTable from MetaTable Catalog
-            MT = nansen.metadata.MetaTableCatalog.quickload();
-            
-            anyKeyMatched = strcmp(MT.MetaTableKey, obj.MetaTableKey);
-            IND = MT.IsMaster & anyKeyMatched;
-            
-            if sum(IND) == 0 || isempty(IND)
-                masterFilePath = '';
-            else
-                % Use {:} in the end to unpack indexes results from cell array
-                % (MT{...} unpacks specified table variables to a cell array)
-                
-                rootDir = fileparts(nansen.metadata.MetaTableCatalog.getFilePath());
-                masterFilePath = fullfile(rootDir, MT{IND, 'FileName'}{:});
-                %deprecated, not compatible with multiple file locations...
-                %masterFilePath = fullfile( MT{ IND, {'SavePath', 'FileName'} }{:} );
-            end
         end
         
 % % % % Get names of all (dummy) MetaTables connected to the current master
@@ -1368,7 +1296,8 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         function S = processFileStruct(obj, S)
         %processFileStruct Synchronize to master before saving (if dummy)
             if ~obj.IsMaster && ~isempty(S.MetaTableEntries)
-                obj.synchToMaster(S)
+                catalog = nansen.metadata.MetaTableCatalog();
+                catalog.synchronizeToMaster(obj, S)
                 S.MetaTableEntries = {};
             end
         end
@@ -1376,7 +1305,8 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         function onAfterLoad(obj)
         %onAfterLoad Synchronize from master after loading (if dummy)
             if ~obj.IsMaster
-                obj.synchFromMaster()
+                catalog = nansen.metadata.MetaTableCatalog();
+                catalog.synchronizeFromMaster(obj)
             end
 
             % Check that members and entries correspond
