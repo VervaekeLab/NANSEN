@@ -1,4 +1,4 @@
-classdef MetaTable < handle
+classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
 % MetaTable Class interface for creating and working with MetaTables
 %
 %   MetaTables can be either master or dummy MetaTables. A master
@@ -75,13 +75,11 @@ classdef MetaTable < handle
     % Public properties to access MetaTable contents
     properties (SetAccess = protected)
 
-        filepath = ''       % Filepath where metatable is saved locally
         members             % IDs for MetaTable entries
         entries table       % MetaTable entries
     end
 
     properties (Access = private)
-        VersionNumber int64
         ReferenceTable % Reference to master table. Todo
     end
 
@@ -252,147 +250,16 @@ classdef MetaTable < handle
         % Load contents of MetaTable file
         % Todo: Check if file is present in MetaTable Catalog
         
-        function tf = isLatestVersion(obj)
-            if isempty(obj.VersionNumber)
-                tf = true;
-                return
-            end
-
-            versionNumberInFile = obj.loadVersionNumber();
-            tf = versionNumberInFile == obj.VersionNumber;
-        end
-
-        function tf = resolveCurrentVersion(obj)
-        %resolveCurrentVersion Resolve which version to keep in case of conflict
-        %
-        %   tf = resolveCurrentVersion(obj) returns true if newer version
-        %   is loaded to override current and false if current version
-        %   should override newer version
-        
-        %   Todo: Find better function name... Confusing that it loads, but
-        %   does not overwrite.
-
-            LOAD_NEWER_VERSION = 'Load newer version';
-            LOAD_NEWER_VERSION_AND_DROP = 'Load newer version and drop unsaved changes';
-            KEEP_CURRENT_VERSION = 'Keep current version';
-
-            titleStr = 'Newer version exists';
-
-            msg = ['The metatable has been updated outside this instance of Nansen. ' ...
-                'Select "Load newer version" to update the table from the latest ', ...
-                'version, or "Keep current version" to continue using the ',...
-                'version which is currently open. \n\n\\bfNote: Selecting "Keep ', ...
-                'current version" will overwrite the newer version for all', ...
-                'nansen instances.'];
-
-            if obj.isClean()
-                choices = {LOAD_NEWER_VERSION};
-            else
-                choices = {LOAD_NEWER_VERSION_AND_DROP};
-            end
-
-            choices{end+1} = KEEP_CURRENT_VERSION;
-            %choices = strcat('<html><font size="4">', choices);
-
-            options = struct('Default', choices{1}, 'Interpreter', 'tex');
-            %formattedMessage = strcat('\fontsize{14}', sprintf( msg) );
-            formattedMessage = sprintf( msg);
-            answer = questdlg(formattedMessage, titleStr, choices{:}, options);
-
-            switch answer
-                case KEEP_CURRENT_VERSION
-                    tf = false;
-                case LOAD_NEWER_VERSION_AND_DROP
-                    tf = true;
-                case LOAD_NEWER_VERSION
-                    tf = true;
-                otherwise
-                    tf = [];
-            end
-        end
-
-        function load(obj)
-        %LOAD Load contents of a MetaTable from file.
-        %
-        %   Note: MetaTables are not saved directly as class instances,
-        %   instead the entries are saved as a table and the entry ids
-        %   (members) are saved as a cell array. This way, the MetaTables
-        %   can be read even if the MetaTable class is not on Matlabs path.
-            
-            % If a filepath does not exist, throw error.
-            if ~isfile(obj.filepath)
-                error('NANSEN:MetaTable:FileNotFound', ...
-                    'File "%s" does not exist.', obj.filepath)
-            end
-            
-            % Load variables from MetaTable file.
-            S = load(obj.filepath);
-            
-            % Check if the loaded struct contains the variable
-            % MetaTableClass. If not, this is not a valid MetaTable file.
-            if ~isfield(S, 'MetaTableClass')
-                [~, fileName] = fileparts(obj.filepath);
-                msg = sprintf(['The file "%s" does not contain ', ...
-                    'a MetaTable'], fileName);
-                error('NANSEN:MetaTable:InvalidFileType', msg) %#ok<SPERR>
-            end
-            
-            % Assign the variables from the loaded file to properties of
-            % the current MetaClass instance.
-            obj.fromStruct(S)
-
-            if isempty(obj.VersionNumber)
-                obj.VersionNumber = 0;
-            end
-            
-            % Synch from master if this is a dummy
-            if ~obj.IsMaster
-                obj.synchFromMaster()
-            end
-            
-            % Check that members and entries are corresponding... Only
-            % relevant for master inventories (Todo: make conditional?).
-            if ~isempty(obj.members)
-                if ~isequal(obj.members, obj.entries.(obj.SchemaIdName))
-                    warning(['MetaTable is corrupted. Fixed during ', ...
-                        'loading, but you should investigate.'])
-                    
-                    obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
-                end
-            end
-            
-            % Assign flag stating that entries are not modified.
-            obj.IsModified = false;
-            %obj.IsModified = false(size(obj.entries));
-        end
-        
-        function versionNumber = loadVersionNumber(obj)
-            if isfile(obj.filepath)
-                warning('off', 'MATLAB:load:variableNotFound')
-                S = load(obj.filepath, 'VersionNumber');
-                warning('on', 'MATLAB:load:variableNotFound')
-                if isfield(S, 'VersionNumber')
-                    versionNumber = S.VersionNumber;
-                    if isempty(versionNumber); versionNumber = 0; end
-                else
-                    versionNumber = 0;
-                end
-            else
-                versionNumber = 0;
-            end
-        end
-
         function wasSaved = save(obj, force)
-        %Save Save MetaTable to file
+        %save Save MetaTable to file
         %
         %   Note: MetaTables are not saved directly as class instances,
         %   instead the entries are saved as a table and the entry ids
         %   (members) are saved as a cell array. This way, the MetaTables
         %   can be read even if the MetaTable class is not on Matlabs path.
-        
-            wasSaved = false;
 
             if nargin < 2; force = false; end
+            wasSaved = false;
 
             % If MetaTable has no filepath, use archive method.
             if isempty(obj.filepath)
@@ -402,61 +269,39 @@ classdef MetaTable < handle
                 return
             end
 
-            if obj.isClean() && ~force
-                if ~nargout; clear wasSaved; end
-                return;
-            end
-
-            if ~obj.isLatestVersion() && ~force
-                doCancel = obj.resolveCurrentVersion();
-                if isempty(doCancel); return; end
-                if doCancel; obj.load(); return; end
-            end
-
-            % Get MetaTable variables which will be saved to file.
-            S = obj.toStruct('metatable_file');
-            
-            % Sort MetaTable entries based on the entry ID.
-            % Todo: Consider whether to reinstate this
-            % obj.sort()
-            
-            % Synch with master if this is a dummy MetaTable.
-            if ~obj.IsMaster && ~isempty(S.MetaTableEntries)
-                obj.synchToMaster(S)
-                S.MetaTableEntries = {};
-            end
-
-            versionNumber = obj.loadVersionNumber();
-            obj.VersionNumber = versionNumber + 1;
-            S.VersionNumber = obj.VersionNumber;
-
-            tempPath = strrep(obj.filepath, '.mat', '.tempsave.mat');
-            save(tempPath, '-struct', 'S');
-
-            try
-                verifiedS = load(tempPath); %#ok<NASGU>
-                copyfile(tempPath, obj.filepath)
-                % Save metatable variables to file
-                % save(obj.filepath, '-struct', 'S')
+            wasSaved = save@nansen.metadata.mixin.VersionedFile(obj, force);
+            if wasSaved
                 fprintf('MetaTable saved to %s\n', obj.filepath)
-                                
-                wasSaved = true;
-                obj.IsModified = false;
-            catch ME
-                error("NANSEN:MetaTable:Save:UnknownError", ...
-                    "Something went wrong when saving the MetaTable. " + ...
-                    "A backup of the MetaTable should exist with a '.tempsave' postfix")
             end
 
             if ~nargout; clear wasSaved; end
         end
-        
-        function saveCopy(obj, savePath)
-        %saveCopy Save a copy of the metatable to the given filePath
-            originalPath = obj.filepath;
-            obj.filepath = savePath;
-            obj.save(true); % force save (table might be clean)
-            obj.filepath = originalPath;
+
+        function load(obj)
+        %load Load contents of a MetaTable from file.
+        %
+        %   Note: MetaTables are not saved directly as class instances,
+        %   instead the entries are saved as a table and the entry ids
+        %   (members) are saved as a cell array. This way, the MetaTables
+        %   can be read even if the MetaTable class is not on Matlabs path.
+
+            % Validate that this is a MetaTable file before delegating
+            if ~isfile(obj.filepath)
+                error('NANSEN:MetaTable:FileNotFound', ...
+                    'File "%s" does not exist.', obj.filepath)
+            end
+
+            S = load(obj.filepath);
+            if ~isfield(S, 'MetaTableClass')
+                [~, fileName] = fileparts(obj.filepath);
+                error('NANSEN:MetaTable:InvalidFileType', ...
+                    'The file "%s" does not contain a MetaTable', fileName)
+            end
+
+            obj.fromFileStruct(S);
+
+            obj.onAfterLoad();
+            obj.markClean();
         end
         
         function archive(obj, Sin, metaTableCatalog)
@@ -1506,6 +1351,42 @@ classdef MetaTable < handle
             end
             obj.MetaObjectCache = [];
             obj.MetaObjectCacheMembers = {};
+        end
+    end
+
+    methods (Access = protected)
+        function S = toFileStruct(obj)
+        %toFileStruct Serialize MetaTable state to struct for saving
+            S = obj.toStruct('metatable_file');
+        end
+
+        function fromFileStruct(obj, S)
+        %fromFileStruct Restore MetaTable state from loaded struct
+            obj.fromStruct(S);
+        end
+
+        function S = processFileStruct(obj, S)
+        %processFileStruct Synchronize to master before saving (if dummy)
+            if ~obj.IsMaster && ~isempty(S.MetaTableEntries)
+                obj.synchToMaster(S)
+                S.MetaTableEntries = {};
+            end
+        end
+
+        function onAfterLoad(obj)
+        %onAfterLoad Synchronize from master after loading (if dummy)
+            if ~obj.IsMaster
+                obj.synchFromMaster()
+            end
+
+            % Check that members and entries correspond
+            if ~isempty(obj.members)
+                if ~isequal(obj.members, obj.entries.(obj.SchemaIdName))
+                    warning(['MetaTable is corrupted. Fixed during loading, ' ...
+                        'but you should investigate.'])
+                    obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
+                end
+            end
         end
     end
 
