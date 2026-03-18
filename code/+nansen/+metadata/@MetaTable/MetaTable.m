@@ -833,13 +833,13 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             idName = obj.SchemaIdName;
 
             if isa(listOfEntryIds, 'cell')
-                IND = contains( obj.entries.(idName), listOfEntryIds);
-                
+                IND = ismember(obj.entries.(idName), listOfEntryIds);
+
             elseif isa(listOfEntryIds, 'numeric')
                 IND = listOfEntryIds;
-                
+
             elseif isa(listOfEntryIds, 'char')
-                IND = contains( obj.entries.(idName), listOfEntryIds);
+                IND = strcmp(obj.entries.(idName), listOfEntryIds);
             end
 
             obj.entries(IND, :) = [];
@@ -901,7 +901,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             assert(~isempty(MT), 'MetaTable Catalog is empty')
             
             isMaster = MT.IsMaster;
-            isClass = contains(MT.MetaTableClass, obj.MetaTableClass);
+            isClass = strcmp(MT.MetaTableClass, obj.MetaTableClass);
             
             mtTmp = MT(isMaster & isClass, :);
             assert(~isempty(mtTmp), 'No master MetaTable for this MetaTable class')
@@ -945,10 +945,10 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                     currentKey = obj.MetaTableKey;
                     
                     % Pick out rows with matching key
-                    rows = contains(MT.MetaTableKey, currentKey);
-                    
+                    rows = strcmp(MT.MetaTableKey, currentKey);
+
                 case 'same_class'
-                    rows = contains(MT.MetaTableClass, obj.MetaTableClass);
+                    rows = strcmp(MT.MetaTableClass, obj.MetaTableClass);
                 
                 case 'all'
                     rows = 1:size(MT, 1);
