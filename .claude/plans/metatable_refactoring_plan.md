@@ -17,88 +17,67 @@
 - [x] **0.1** `linkToMaster`: `contains()` → `strcmp()` for class name matching
 - [x] **0.1** `getAssociatedMetaTables` same_master: `contains()` → `strcmp()` for UUID key matching
 - [x] **0.1** `getAssociatedMetaTables` same_class: `contains()` → `strcmp()` for class name matching
-- [ ] **0.2** Remove `updateEntries` (throws immediately, `Access=private`, never called)
-- [ ] **0.2** Remove `openMetaTableFromName` (superseded by `MetaTable.open()`)
+- [x] **0.2** Remove stale TODO comments from class header (already completed in earlier phases)
+- [x] **0.2** Remove unused `ReferenceTable` property
+- [x] **0.2** Remove `openMetaTableSelectionDialog()` (threw "Not implemented"; no callers)
+- [x] **0.2** Fix orphaned `obj.synchFromMaster()` call in `appendTableRows` → catalog delegation
 
 ---
 
 ## Phase 1 — Public API cleanup (no structural moves)
 
-- [ ] **1.1** Remove `class()` override; update callers in App.m (×2) and MetaTable internal uses to `obj.MetaTableClass`
-- [ ] **1.2** Change `MetaTableKey`, `MetaTableName` to `SetAccess=private, GetAccess=public`; deprecate `getKey()` / `getName()`
-- [ ] **1.3** Replace `setMaster(keyword)` with `setAsMaster()` / `setAsDummy()`; keep deprecated wrapper
-- [ ] **1.4** Change `filepath SetAccess` from `{?MetaTable, ?App}` to `protected`
+- [x] **1.1** `class()` override not present; `MetaTableClass` property already used directly
+- [x] **1.2** `MetaTableKey`, `MetaTableName` are `SetAccess=private` (no change needed)
+- [x] **1.3** Remove deprecated `setMaster(keyword)`; `setAsMaster()` / `setAsDummy()` are the API
+- [x] **1.4** `filepath SetAccess` is `protected` (already done in Phase 2)
 
 ---
 
 ## Phase 2 — Extract `VersionedFile` mixin
 
-- [ ] **2.1** Create `+nansen/+metadata/+mixin/@VersionedFile/VersionedFile.m`
-  - Properties: `filepath (protected)`, `VersionNumber (protected)`
-  - Abstract: `toFileStruct()`, `fromFileStruct(S)`
-  - Protected hooks: `onBeforeSave()`, `onAfterLoad()` (default no-op)
-  - Concrete: `save(force)`, `load()`, `isLatestVersion()`, `loadVersionNumber()`, `saveCopy(path)`
-  - `save()` does NOT call `resolveCurrentVersion()` — version conflicts surface as events (already handled by MetaTableCache/App)
-
-- [ ] **2.2** MetaTable inherits mixin
-  - `classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile`
-  - Implement `toFileStruct()` (from `toStruct('metatable_file')`)
-  - Implement `fromFileStruct(S)` (from `fromStruct()`)
-  - Override `onAfterLoad()` → `synchFromMaster()` (temporary; moves in Phase 3)
-  - Override `onBeforeSave()` → `synchToMaster(S)` (temporary; moves in Phase 3)
-  - Remove duplicate `save()`, `load()`, `isLatestVersion()`, `loadVersionNumber()`, `saveCopy()`
-  - Remove `resolveCurrentVersion()` from MetaTable (App already handles via `onMetaTableFileChangedOnDisk`)
+- [x] **2.1** `+nansen/+metadata/+mixin/@VersionedFile/VersionedFile.m` created
+- [x] **2.2** MetaTable inherits mixin; implements `toFileStruct()`, `fromFileStruct()`, hooks
 
 ---
 
 ## Phase 3 — Move sync to MetaTableCatalog (depends on Phase 2)
 
-- [ ] **3.1** Add to MetaTableCatalog:
-  - `getMasterFilePath(obj, metaTableKey)` — replaces `MetaTable.getMasterMetaTableFile()`
-  - `synchronizeToMaster(obj, dummyMetaTable, S)` — replaces `MetaTable.synchToMaster()`
-  - `synchronizeFromMaster(obj, dummyMetaTable)` — replaces `MetaTable.synchFromMaster()`
-
-- [ ] **3.2** MetaTable's `onBeforeSave()` and `onAfterLoad()` delegate to catalog sync methods
-
-- [ ] **3.3** Remove `synchToMaster`, `synchFromMaster`, `getMasterMetaTableFile` from MetaTable
-
-- [ ] **3.4** Remove `linkToMaster()` GUI dialog from MetaTable; missing master → clear error; caller (App) handles recovery
-  - Update `addTableVariable()` internal call to master propagation to go through catalog
+- [x] **3.1** `getMasterFilePath`, `synchronizeToMaster`, `synchronizeFromMaster` on MetaTableCatalog
+- [x] **3.2** MetaTable hooks delegate to catalog sync methods
+- [x] **3.3** `synchToMaster`, `synchFromMaster`, `getMasterMetaTableFile` removed from MetaTable
+- [x] **3.4** `linkToMaster()` GUI removed; all call sites now raise clear errors:
+  - `MetaTable.archive()`: NANSEN:MetaTable:MasterKeyNotSet
+  - `MetaTableCatalog.registerMetaTable()`: NANSEN:MetaTableCatalog:MasterKeyNotSet
+  - `MetaTableCatalog.synchronizeFromMaster()`: NANSEN:MetaTableCatalog:MasterNotFound
+  - `setAsDummy()` no longer calls `linkToMaster()`
 
 ---
 
 ## Phase 4 — Move catalog integration out of MetaTable (depends on Phase 3)
 
-- [ ] **4.1** Add `MetaTableCatalog.registerMetaTable(metaTable, options)` (replaces `archive()`)
-  - Generates/assigns MetaTableKey, sets filepath, adds catalog entry, calls `metaTable.save(true)`
-  - Keep `archive()` as deprecated forwarding method
-  - Callers: App.m, initializeSessionTable.m, initializeSubjectTable.m, MetaTableCatalog.addMetatable()
-
-- [ ] **4.2** Add `MetaTableCatalog.setDefaultMetaTable(metaTable)` and `openDefaultMetaTable(class)`
-  - Keep `setDefault()` / `openDefault()` as deprecated forwarders
-  - Update App.m caller
+- [x] **4.1** `MetaTableCatalog.registerMetaTable()` replaces `archive()`; `archive()` is deprecated wrapper
+- [x] **4.2** `MetaTableCatalog.setDefaultMetaTable()` replaces `setDefault()`
 
 ---
 
 ## Phase 5 — Move table variable management to Project (independent of Phases 3–4)
 
-- [ ] **5.1** Add `Project.synchronizeMetaTableVariables(metaTable, options)` consolidating `checkIfMetaTableComplete`, `addMissingVarsToMetaTable`, `removeMissingVarsFromMetaTable`
-  - No call to `nansen.getCurrentProject()` — Project is the caller
-  - Update callers: App.m (×2), updateSubjectTable.m, MetaTable.appendTableRows() internal call
-
-- [ ] **5.2** Remove `checkIfMetaTableComplete`, `addMissingVarsToMetaTable`, `removeMissingVarsFromMetaTable`, `getTableVariableUpdateFunction` from MetaTable
-  - MetaTable retains only: `addTableVariable`, `removeTableVariable`, `updateTableVariable`
+- [x] **5.1** `Project.synchronizeMetaTableVariables()` exists and is called from `appendTableRows`
+- [x] **5.2** Removed from MetaTable:
+  - `checkIfMetaTableComplete`
+  - `addMissingVarsToMetaTable`
+  - `removeMissingVarsFromMetaTable`
+  - `getTableVariableUpdateFunction` (private helper)
+  - `updateTableVariable()` fallback that called `getTableVariableUpdateFunction`
+  - MetaTable retains: `addTableVariable`, `removeTableVariable`, `updateTableVariable`
 
 ---
 
 ## Phase 6 — Move display formatting to utility (independent, start any time)
 
-- [ ] **6.1** Create `nansen.metadata.utility.formatTableForDisplay(metaTable, columnIndices, rowIndices)`
-  - Move `getFormattedTableData()` logic and `getCustomDisplayString()` here
-
-- [ ] **6.2** Update callers: App.m (×2), MetaTableViewer.m, MetaTable.onMetaObjectPropertyChanged()
-
-- [ ] **6.3** Remove `getFormattedTableData()` and `getCustomDisplayString()` from MetaTable
+- [x] **6.1** `nansen.metadata.utility.formatTableForDisplay()` created
+- [x] **6.2** Callers updated to use utility directly
+- [x] **6.3** `getFormattedTableData()` is a deprecated wrapper; `getCustomDisplayString()` removed
 
 ---
 
@@ -113,23 +92,10 @@ Future shape: `MetaObjectRegistry` class; MetaTable delegates to it.
 
 | Step | Risk | Reason |
 |---|---|---|
-| 1.1 remove `class()` | Medium | Easy to miss external user code that relies on the semantic override |
-| 2.2 VersionedFile inheritance | Medium | Changes inheritance chain; silent data corruption if hook ordering is wrong |
-| 3.2/3.3 sync removal | Medium | `synchFromMaster` called during load; breakage is data corruption, not an error |
-| 4.1 archive move | High | Most complex method; three external callers; UUID generation + filepath + catalog + save side effects |
-| 5.1 variable sync to Project | Medium | `appendTableRows` calls `addMissingVarsToMetaTable` on a temp MetaTable internally |
+| 7 MetaObject caching | Low | Isolated; no other phases depend on it |
 
 ---
 
 ## Execution order
 
-```
-Phase 0 (bugfixes)
-Phase 1 (API cleanup)          Phase 5 (vars → Project)    Phase 6 (formatting)
-Phase 2 (VersionedFile)
-Phase 3 (sync → Catalog)
-Phase 4 (catalog integration)
-Phase 7 (deferred)
-```
-
-Phases 5 and 6 are independent and can run in parallel with Phases 2–4.
+All Phases 0–6 complete. Phase 7 deferred.
