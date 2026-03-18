@@ -305,7 +305,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         end
         
         function archive(obj, Sin, metaTableCatalog)
-        %ARCHIVE Save Metatable using user input and add to Catalog.
+        %archive Deprecated: use MetaTableCatalog.registerMetaTable() instead
         %
         %   This function is used whenever a new MetaTable is saved to disk
         %   Before saving the MetaTable a unique key is generated (or
@@ -980,23 +980,11 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         
         % Set current MetaTable to default in MetaTable Catalog
         function setDefault(obj)
-        %setDefault Set the current MetaTable instance to default
-        %
-        %   Also update all other MetaTables of the same class to not
-        %   default.
-        
-            MT = nansen.metadata.MetaTableCatalog.quickload();
-
-            if isempty(MT); return; end
-
-            isClass = strcmp(MT.MetaTableClass, obj.MetaTableClass);
-            isKey = strcmp(MT.MetaTableKey, obj.MetaTableKey);
-            isName = strcmp(MT.MetaTableName, obj.MetaTableName);
-
-            MT(isClass, 'IsDefault') = {false};
-            MT(isClass&isKey&isName, 'IsDefault') = {true};
-
-            nansen.metadata.MetaTableCatalog.quicksave(MT);
+        %setDefault Deprecated: use MetaTableCatalog.setDefaultMetaTable() instead
+            warning('NANSEN:MetaTable:Deprecated', ...
+                'setDefault() is deprecated. Use MetaTableCatalog.setDefaultMetaTable() instead.')
+            catalog = nansen.metadata.MetaTableCatalog();
+            catalog.setDefaultMetaTable(obj)
         end
         
         function openDefault(obj)

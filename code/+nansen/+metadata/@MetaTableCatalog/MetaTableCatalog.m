@@ -283,6 +283,76 @@ classdef MetaTableCatalog < uim.handle
             tf = ~isempty(S);
         end
 
+        function registerMetaTable(obj, metaTable, options)
+        %registerMetaTable Register a new MetaTable in the catalog and save it
+        %
+        %   This is the preferred replacement for MetaTable.archive(). It assigns
+        %   a MetaTableKey, sets the filepath, adds a catalog entry, and saves.
+        %
+        %   Input:
+        %     metaTable - A nansen.metadata.MetaTable instance
+        %     options   - struct with fields: MetaTableName, SavePath, IsMaster,
+        %                 IsDefault (same fields as the archive S argument)
+
+            arguments
+                obj (1,1) nansen.metadata.MetaTableCatalog
+                metaTable (1,1) nansen.metadata.MetaTable
+                options struct = struct()
+            end
+
+            S = metaTable.toStruct('metatable_catalog');
+
+            % Apply any provided options
+            optionFields = fieldnames(options);
+            for i = 1:numel(optionFields)
+                S.(optionFields{i}) = options.(optionFields{i});
+            end
+
+            if isempty(S.MetaTableName)
+                error('NANSEN:MetaTableCatalog:MissingName', ...
+                    'Cannot register MetaTable: MetaTableName is not set.')
+            end
+            if ~isfolder(S.SavePath)
+                error('NANSEN:MetaTableCatalog:FolderNotFound', ...
+                    'Cannot register MetaTable: save folder does not exist.')
+            end
+
+            metaTable.fromStruct(S);
+
+            if isempty(metaTable.MetaTableKey) && metaTable.IsMaster
+                metaTable.MetaTableKey = nansen.util.getuuid();
+            elseif isempty(metaTable.MetaTableKey) && ~metaTable.IsMaster
+                metaTable.linkToMaster()
+            end
+
+            S.FileName = nansen.metadata.MetaTable.createFileName(S);
+            metaTable.filepath = fullfile(S.SavePath, S.FileName);
+            S.MetaTableKey = metaTable.MetaTableKey;
+
+            obj.addEntry(S)
+
+            if S.IsDefault
+                obj.setDefaultMetaTable(metaTable)
+            end
+
+            metaTable.save(true)
+        end
+
+        function setDefaultMetaTable(obj, metaTable)
+        %setDefaultMetaTable Mark the given MetaTable as default in the catalog
+
+            MT = obj.Table;
+            isClass = strcmp(MT.MetaTableClass, metaTable.MetaTableClass);
+            isKey   = strcmp(MT.MetaTableKey,   metaTable.MetaTableKey);
+            isName  = strcmp(MT.MetaTableName,  metaTable.MetaTableName);
+
+            MT(isClass, 'IsDefault') = {false};
+            MT(isClass & isKey & isName, 'IsDefault') = {true};
+
+            obj.Table = MT;
+            obj.save();
+        end
+
         function masterFilePath = getMasterFilePath(obj, metaTableKey)
         %getMasterFilePath Get the filepath of the master MetaTable for a given key
 
