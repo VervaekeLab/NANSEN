@@ -211,16 +211,6 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             obj.linkToMaster()
         end
 
-        function setMaster(obj, keyword)
-        %setMaster Deprecated: use setAsMaster() or setAsDummy() instead
-            warning('NANSEN:MetaTable:Deprecated', ...
-                'setMaster is deprecated. Use setAsMaster() or setAsDummy() instead.')
-            switch keyword
-                case 'master'; obj.setAsMaster();
-                case 'dummy';  obj.setAsDummy();
-            end
-        end
-        
         function name = createDefaultName(obj)
         %createDefaultName Set a default name for the metatable.
 
@@ -1504,7 +1494,6 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             % If keyword is provided, use this:
             elseif any( strcmp(varargin{1}, {'master', 'dummy'} ) )
                 throw(nansen.common.exception.NotImplemented("New MetaTable from keywords."))
-                % Todo: metaTable.setMaster(varargin{1})
             end
         end
         
