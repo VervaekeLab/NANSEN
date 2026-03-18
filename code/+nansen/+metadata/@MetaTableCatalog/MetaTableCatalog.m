@@ -322,7 +322,9 @@ classdef MetaTableCatalog < uim.handle
             if isempty(metaTable.MetaTableKey) && metaTable.IsMaster
                 metaTable.MetaTableKey = nansen.util.getuuid();
             elseif isempty(metaTable.MetaTableKey) && ~metaTable.IsMaster
-                metaTable.linkToMaster()
+                error('NANSEN:MetaTableCatalog:MasterKeyNotSet', ...
+                    ['Cannot register a dummy MetaTable without a MetaTableKey. ', ...
+                     'Assign the master MetaTable''s key to MetaTableKey first.'])
             end
 
             S.FileName = nansen.metadata.MetaTable.createFileName(S);
@@ -398,8 +400,10 @@ classdef MetaTableCatalog < uim.handle
             masterFilePath = obj.getMasterFilePath(dummyMetaTable.MetaTableKey);
 
             if isempty(masterFilePath)
-                dummyMetaTable.linkToMaster()
-                masterFilePath = obj.getMasterFilePath(dummyMetaTable.MetaTableKey);
+                error('NANSEN:MetaTableCatalog:MasterNotFound', ...
+                    ['No master MetaTable found for key "%s". ', ...
+                     'The dummy MetaTable''s MetaTableKey may be stale or the ', ...
+                     'master may have been deleted.'], dummyMetaTable.MetaTableKey)
             end
 
             sMaster = load(masterFilePath);

@@ -207,8 +207,10 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
 
         function setAsDummy(obj)
         %setAsDummy Set this MetaTable as a dummy MetaTable linked to a master
+        %
+        %   Sets IsMaster to false. The MetaTableKey must be assigned
+        %   separately to link this table to its master.
             obj.IsMaster = false;
-            obj.linkToMaster()
         end
 
         function name = createDefaultName(obj)
@@ -324,13 +326,13 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             % Update properties of object from user input
             obj.fromStruct(S)
 
-            % Link to master MetaTable if this is a dummy
+            % Assign a new UUID for master, or require key to be set for dummy
             if isempty(obj.MetaTableKey) && obj.IsMaster
                 obj.MetaTableKey = nansen.util.getuuid();
             elseif isempty(obj.MetaTableKey) && ~obj.IsMaster
-                obj.linkToMaster()
-            else
-                % All is goood.
+                error('NANSEN:MetaTable:MasterKeyNotSet', ...
+                    ['Cannot archive a dummy MetaTable without a MetaTableKey. ', ...
+                     'Assign the master MetaTable''s key to MetaTableKey first.'])
             end
             
             % Assign filepath of current database object
@@ -861,36 +863,15 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         
 % % % % Methods for linking a dummy MetaTable to a master MetaTable.
 
-        function linkToMaster(obj)
-        %linkToMaster Link a dummy MetaTable to a master MetaTable
+        function linkToMaster(~)
+        %linkToMaster Deprecated: assign MetaTableKey directly
         %
-        %   Lets user select a master MetaTable from a list based on the
-        %   MetaTable Catalog. The current MetaTable inherits the uid
-        %   key from the master and will be linked to this master MetaTable
-            
-            MT = nansen.metadata.MetaTableCatalog.quickload();
-
-            assert(~isempty(MT), 'MetaTable Catalog is empty')
-            
-            isMaster = MT.IsMaster;
-            isClass = strcmp(MT.MetaTableClass, obj.MetaTableClass);
-            
-            mtTmp = MT(isMaster & isClass, :);
-            assert(~isempty(mtTmp), 'No master MetaTable for this MetaTable class')
-
-            MetaTableNames = mtTmp.MetaTableName;
-            
-            promptString = sprintf('Select a master MetaTable');
-            
-            [ind, ~] = listdlg( 'ListString', MetaTableNames, ...
-                                'SelectionMode', 'single', ...
-                                'Name', 'Select Table', ...
-                                'PromptString', promptString);
-
-            if isempty(ind); error("NANSEN:MetaTable:OperationCanceled", ...
-                    'You need link to a master MetaTable'); end
-            
-            obj.MetaTableKey = mtTmp.('MetaTableKey'){ind};
+        %   GUI-based master selection has been removed. To link a dummy
+        %   MetaTable to a master, assign MetaTableKey to the master's key
+        %   before registering.
+            error('NANSEN:MetaTable:MasterKeyNotSet', ...
+                ['MetaTableKey must be set before using a dummy MetaTable. ', ...
+                 'Assign the master MetaTable''s key to MetaTableKey directly.'])
         end
         
 % % % % Get names of all (dummy) MetaTables connected to the current master
