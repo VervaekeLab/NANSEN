@@ -39,20 +39,20 @@ classdef MetaTable < handle
         IsModified = false;
     end
     
-    properties (Access = private)
-        
+    properties (SetAccess = private)
+
         IsMaster = true
 
         MetaTableKey = '';
         MetaTableName = '';
-        
+
         % MetaTableMembers - cell array of character vectors representing
         % unique identifiers for all entries of the table
         MetaTableMembers = {} % Todo: enforce cell of char
 
         % MetaTableVariables - List of table variables. Used and updated in
         % checkIfMetaTableComplete. Purpose: Silently add table var
-        % definitions on first time-initialization of a metatable. 
+        % definitions on first time-initialization of a metatable.
         MetaTableVariables (:,1) string
     end
 
@@ -73,7 +73,7 @@ classdef MetaTable < handle
     end
     
     % Public properties to access MetaTable contents
-    properties (SetAccess = {?nansen.metadata.MetaTable, ?nansen.App})
+    properties (SetAccess = protected)
 
         filepath = ''       % Filepath where metatable is saved locally
         members             % IDs for MetaTable entries
@@ -138,14 +138,9 @@ classdef MetaTable < handle
     end
     
     methods
-        
-        function className = class(obj)
-        %CLASS Override class method to return the class/schema type of
-        %the MetaTable entries.
-            className = obj.MetaTableClass;
-        end
-         
+
         function tf = isMaster(obj)
+            % Deprecated: access IsMaster property directly
             tf = obj.IsMaster;
         end
         
@@ -200,6 +195,7 @@ classdef MetaTable < handle
         end
 
         function name = getName(obj)
+            % Deprecated: access MetaTableName property directly
             name = obj.MetaTableName;
         end
 
@@ -208,6 +204,7 @@ classdef MetaTable < handle
         end
           
         function key = getKey(obj)
+            % Deprecated: access MetaTableKey property directly
             key = obj.MetaTableKey;
         end
 
@@ -215,17 +212,24 @@ classdef MetaTable < handle
             variableName = obj.entries.Properties.VariableNames{colIndex};
         end
 
+        function setAsMaster(obj)
+        %setAsMaster Set this MetaTable as a master MetaTable
+            obj.IsMaster = true;
+        end
+
+        function setAsDummy(obj)
+        %setAsDummy Set this MetaTable as a dummy MetaTable linked to a master
+            obj.IsMaster = false;
+            obj.linkToMaster()
+        end
+
         function setMaster(obj, keyword)
-        %setMaster Set value of IsMaster property
+        %setMaster Deprecated: use setAsMaster() or setAsDummy() instead
+            warning('NANSEN:MetaTable:Deprecated', ...
+                'setMaster is deprecated. Use setAsMaster() or setAsDummy() instead.')
             switch keyword
-                case 'master'
-                    obj.IsMaster = true;
-                    
-                case 'dummy'
-                    obj.IsMaster = false;
-                    
-                    %Determine which MetaTable it should inherit from
-                    obj.linkToMaster()
+                case 'master'; obj.setAsMaster();
+                case 'dummy';  obj.setAsDummy();
             end
         end
         
@@ -559,8 +563,7 @@ classdef MetaTable < handle
                 switch varNames{i}
                     
                     case 'MetaTableClass'
-                        className = class(obj);
-                        S.MetaTableClass = className;
+                        S.MetaTableClass = obj.MetaTableClass;
                     
                     case 'MetaTableEntries'
                         S.MetaTableEntries = obj.entries;
@@ -1137,30 +1140,27 @@ classdef MetaTable < handle
         %   Also update all other MetaTables of the same class to not
         %   default.
         
-            className = class(obj);
             MT = nansen.metadata.MetaTableCatalog.quickload();
 
             if isempty(MT); return; end
-            
-            isClass = strcmp(MT.MetaTableClass, className);
+
+            isClass = strcmp(MT.MetaTableClass, obj.MetaTableClass);
             isKey = strcmp(MT.MetaTableKey, obj.MetaTableKey);
             isName = strcmp(MT.MetaTableName, obj.MetaTableName);
-            
+
             MT(isClass, 'IsDefault') = {false};
             MT(isClass&isKey&isName, 'IsDefault') = {true};
-            
+
             nansen.metadata.MetaTableCatalog.quicksave(MT);
         end
         
         function openDefault(obj)
             
-            className = class(obj);
-            
             MT = nansen.metadata.MetaTableCatalog.quickload();
 
             if isempty(MT); return; end
-            
-            isClass = strcmp(className, MT.MetaTableClass);
+
+            isClass = strcmp(obj.MetaTableClass, MT.MetaTableClass);
             isDefault = MT.IsDefault;
             
             S = table2struct( MT(isClass & isDefault, :) );
@@ -1185,7 +1185,7 @@ classdef MetaTable < handle
             assert(~isempty(MT), 'MetaTable Catalog is empty')
             
             isMaster = MT.IsMaster;
-            isClass = contains(MT.MetaTableClass, class(obj));
+            isClass = contains(MT.MetaTableClass, obj.MetaTableClass);
             
             mtTmp = MT(isMaster & isClass, :);
             assert(~isempty(mtTmp), 'No master MetaTable for this MetaTable class')
@@ -1304,7 +1304,7 @@ classdef MetaTable < handle
                     rows = contains(MT.MetaTableKey, currentKey);
                     
                 case 'same_class'
-                    rows = contains(MT.MetaTableClass, class(obj));
+                    rows = contains(MT.MetaTableClass, obj.MetaTableClass);
                 
                 case 'all'
                     rows = 1:size(MT, 1);

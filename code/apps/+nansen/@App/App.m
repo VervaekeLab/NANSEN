@@ -1252,7 +1252,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.updateAvailableTableTypes()
 
             metatableTypes = app.ItemTypes;
-            isSelected = strcmp(metatableTypes, class(app.MetaTable));
+            isSelected = strcmp(metatableTypes, app.MetaTable.MetaTableClass);
 
             if numel(unique(metatableTypes)) > 1
                 metatableTypes = utility.string.getSimpleClassName(cellstr(metatableTypes));
@@ -3052,7 +3052,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function metatable = createMetaTable(app, ~, ~)
             
             metatable = [];
-            currentTableClass = class(app.MetaTable);
+            currentTableClass = app.MetaTable.MetaTableClass;
             if ~strcmp(currentTableClass, 'nansen.metadata.type.Session') %#ok<STISA>
                 errordlg(sprintf('This operation is not supported for tables with "%s" items yet...', currentTableClass))
                 return
