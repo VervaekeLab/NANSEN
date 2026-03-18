@@ -112,6 +112,8 @@ classdef MetaTable < handle
 
     events
         TableEntryChanged
+        EntryAdded
+        EntryRemoved
     end
 
     methods % Structor
@@ -1111,8 +1113,9 @@ classdef MetaTable < handle
 
             obj.entries(IND, :) = [];
             obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
-            
+
             %obj.IsModified = true;
+            obj.notify('EntryRemoved')
         end
 
         function onEntriesChanged(obj)
@@ -1245,8 +1248,8 @@ classdef MetaTable < handle
             
             sMaster = load(masterFilePath);
             
-            iA = contains(sMaster.MetaTableMembers, obj.MetaTableMembers);
-            
+            iA = ismember(sMaster.MetaTableMembers, obj.MetaTableMembers);
+
             % Todo: what if some entries are not present in master?
             obj.entries = sMaster.MetaTableEntries(iA, :);
         end
@@ -1258,7 +1261,7 @@ classdef MetaTable < handle
             % Find master MetaTable from MetaTable Catalog
             MT = nansen.metadata.MetaTableCatalog.quickload();
             
-            anyKeyMatched = contains(MT.MetaTableKey, obj.MetaTableKey);
+            anyKeyMatched = strcmp(MT.MetaTableKey, obj.MetaTableKey);
             IND = MT.IsMaster & anyKeyMatched;
             
             if sum(IND) == 0 || isempty(IND)
@@ -1506,35 +1509,6 @@ classdef MetaTable < handle
         end
     end
 
-    methods (Access = private) % Not implemented yet
-        function updateEntries(obj, listOfEntryIds)
-            
-            % Note: not implemented
-            arguments
-                obj (1,1) nansen.metadata.MetaTable %#ok<INUSA>
-                listOfEntryIds = obj.members %#ok<INUSA> % Default: update all
-            end
-
-            error('Not implemented yet')
-
-            % % for i = 1:numel(listOfEntryIds)
-            % %     try
-            % %         % Todo: need to convert to instance of metadata entity 
-            % %         % and invoke update method.
-            % %         % Note: Assumes this class has an update method.
-            % %     catch
-            % %         fprintf( 'Failed for session %s\n', listOfEntryIds{i})
-            % %     end
-            % % end
-
-            % % % Synch changes to master
-            % % if ~obj.IsMaster && ~isempty(obj.filepath)
-            % %     S = obj.toStruct('metatable_file');
-            % %     obj.synchToMaster(S)
-            % % end
-        end
-    end
-
     methods (Access = private)
         function itemConstructor = getItemConstructor(obj)
         % getItemConstructor - Get function handle for item constructor
@@ -1620,6 +1594,8 @@ classdef MetaTable < handle
             
             % Sort entries by ID
             obj.sort()
+
+            obj.notify('EntryAdded')
         end
 
         function [metaObjects, status] = createMetaObjects(obj, tableEntries, ...
@@ -1833,26 +1809,6 @@ classdef MetaTable < handle
             obj.load()
         end
         
-        function openMetaTableFromName(obj, inputName)
-             
-            MT = nansen.metadata.MetaTableCatalog.quickload();
-            
-            isNameMatch = contains(MT.MetaTableName, inputName);
-            isClassMatch = contains(MT.MetaTableClass, inputName);
-            
-            if any(isNameMatch)
-                entry = MT(isNameMatch, :);
-                obj.filepath = fullfile(entry.SavePath{:}, entry.FileName{:});
-            elseif any(isClassMatch)
-                entry = MT(isClassMatch & MT.IsMaster, :);
-                obj.filepath = fullfile(entry.SavePath{:}, entry.FileName{:});
-            else
-                error("NANSEN:MetaTable:MetaTableNotFound", ...
-                    'No MetaTable found matching the given name ("%s")', inputName)
-            end
-            
-            obj.load()
-        end
     end
     
     methods (Static)
@@ -1906,38 +1862,45 @@ classdef MetaTable < handle
         % open - Open a MetaTable from a specified file or name
         %
         % Syntax:
-        %   metaTable = nansen.metadata.MetaTable.open(nameOrFilepath) Opens 
+        %   metaTable = nansen.metadata.MetaTable.open(nameOrFilepath) Opens
         %   a MetaTable using the given name or file path.
         %
         % Input Arguments:
-        %   nameOrFilepath (string) - The name or file path of the MetaTable 
+        %   nameOrFilepath (string) - The name or file path of the MetaTable
         %   to open.
         %
         % Output Arguments:
-        %   metaTable - An instance of the MetaTable class containing the 
+        %   metaTable - An instance of the MetaTable class containing the
         %   loaded data.
+        %
+        % Note:
+        %   Instances are cached by canonical filepath via MetaTableCache.
+        %   Subsequent calls with the same path return the same handle,
+        %   ensuring all callers (e.g. nansen.App and plugin methods) share
+        %   the same in-memory instance and receive each other's events.
 
             arguments
                 nameOrFilepath (1,1) string {mustBeNonzeroLengthText}
             end
 
-            metaTable = nansen.metadata.MetaTable();
-
-            % NOT IMPLEMENTED:
-            % If no input is provided, open a list selection and let user
-            % select a MetaTable to open from the MetaTableCatalog
-            % % if isempty( nameOrFilepath )
-            % %     metaTable.openMetaTableSelectionDialog()
-            % % end
-
-            if isfile( nameOrFilepath )
-                % If input is a filepath, open file
-                metaTable.openMetaTableFromFilepath(nameOrFilepath)
+            % Resolve to a canonical filepath before checking the cache
+            if isfile(nameOrFilepath)
+                filePath = nameOrFilepath;
             else
-                % If input is not a file, assume it is the name
-                % of a MetaTable and open using the name
-                metaTable.openMetaTableFromName(nameOrFilepath)
+                filePath = nansen.metadata.MetaTable.resolveNameToFilepath(nameOrFilepath);
             end
+
+            % Return cached instance if one exists
+            cache = nansen.metadata.MetaTableCache.instance();
+            metaTable = cache.get(filePath);
+            if ~isempty(metaTable)
+                return
+            end
+
+            % Load a fresh instance and register it in the cache
+            metaTable = nansen.metadata.MetaTable();
+            metaTable.openMetaTableFromFilepath(filePath);
+            cache.add(filePath, metaTable);
         end
 
         function filename = createFileName(S)
@@ -2050,6 +2013,29 @@ classdef MetaTable < handle
             keepValues = objectPropertyValue(keepIndex);
 
             propertyArgs = cat(1, cellstr(keepNames), keepValues);
+        end
+
+        function filePath = resolveNameToFilepath(inputName)
+        %resolveNameToFilepath Resolve a MetaTable name to its filepath
+        %
+        %   Used by MetaTable.open() when the input is a name rather than
+        %   a file path.
+
+            MT = nansen.metadata.MetaTableCatalog.quickload();
+
+            isNameMatch = contains(MT.MetaTableName, inputName);
+            isClassMatch = contains(MT.MetaTableClass, inputName);
+
+            if any(isNameMatch)
+                entry = MT(isNameMatch, :);
+                filePath = fullfile(entry.SavePath{:}, entry.FileName{:});
+            elseif any(isClassMatch)
+                entry = MT(isClassMatch & MT.IsMaster, :);
+                filePath = fullfile(entry.SavePath{:}, entry.FileName{:});
+            else
+                error("NANSEN:MetaTable:MetaTableNotFound", ...
+                    'No MetaTable found matching the given name ("%s")', inputName)
+            end
         end
     end
 end
