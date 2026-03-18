@@ -18,21 +18,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
 %
 
 % Todo:
-%   [ ]Inherit from VersionedFile
-%   [ ] Constructor access should be MetaTableCatalog...
-%   [ ] Should archive be a method on this class? Would it not be better on
-%       MetatableCatalog..?
-%   [ ] openMetaTableFromName should be a metatable catalog method...
-
-%   [ ] Todo: Meta object listeners??
-
-% Features: Should think about grouping this better.
-%       Catalog/Collection, ie adding, removing and modifying entries
-%       VersionedFile
-%       GetFormattedTableData
-%       Methods for adding/removing columns
-%       Master/dummy
-%       PartOfCatalog
+%   [ ] Meta object listeners??
 
 
     properties (SetAccess=private, SetObservable)
@@ -77,10 +63,6 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
 
         members             % IDs for MetaTable entries
         entries table       % MetaTable entries
-    end
-
-    properties (Access = private)
-        ReferenceTable % Reference to master table. Todo
     end
 
     properties (Dependent = true, Hidden = true)
@@ -1252,10 +1234,6 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             nansen.getCurrentProject().synchronizeMetaTableVariables(tempMetaTable, ...
                 "AutoUpdateValues", options.AutoUpdateValues);
             
-            % Todo (alternative to creating a temp table):
-            % - expand entries if table has dynamic table variables
-            % % updateEntries(obj, listOfEntryIds) [Not implemented]
-
             % Concatenate tables
             try
                 % Try direct concatenation
@@ -1271,7 +1249,8 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             
             % Synchronize from master if this is a dummy MetaTable
             if ~obj.IsMaster
-                obj.synchFromMaster()
+                catalog = nansen.metadata.MetaTableCatalog();
+                catalog.synchronizeFromMaster(obj)
             end
             
             % Sort entries by ID
@@ -1473,24 +1452,13 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         end
     end
 
-    methods (Access = private) % Static??
-       
-        function openMetaTableSelectionDialog(~)
-            error('Not implemented yet')
-            % Todo:
-            
-            % Open a quest dialog to ask if user wants to open a metatable
-            % from the MetaTableCatalog or browse for a file
-            
-            % Open dialog base on user's choice
-        end
-        
+    methods (Access = private)
+
         function openMetaTableFromFilepath(obj, filePath)
-            
             obj.filepath = filePath;
             obj.load()
         end
-        
+
     end
     
     methods (Static)
