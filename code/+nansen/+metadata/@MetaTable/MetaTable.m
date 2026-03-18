@@ -120,16 +120,11 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
     
     methods
 
-        function tf = isMaster(obj)
-            % Deprecated: access IsMaster property directly
-            tf = obj.IsMaster;
+        function tf = hasSameMasterKey(obj, otherMetaTable)
+        %hasSameMasterKey Check if two MetaTables share the same master key
+            tf = strcmp(obj.MetaTableKey, otherMetaTable.MetaTableKey);
         end
-        
-        function tf = isDummy(obj, dbRef)
-            % Todo: Change name...
-            tf = strcmp(obj.MetaTableKey, dbRef.MetaTableKey);
-        end
-              
+
         function tf = isClean(obj)
            tf = ~obj.IsModified;
         end
@@ -175,20 +170,10 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             end
         end
 
-        function name = getName(obj)
-            % Deprecated: access MetaTableName property directly
-            name = obj.MetaTableName;
-        end
-
         function typeName = getTableType(obj)
             typeName = utility.string.getSimpleClassName(obj.MetaTableClass);
         end
           
-        function key = getKey(obj)
-            % Deprecated: access MetaTableKey property directly
-            key = obj.MetaTableKey;
-        end
-
         function setMetaTableVariables(obj, variableNames)
         %setMetaTableVariables Set the MetaTableVariables property
         %
@@ -340,17 +325,11 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         
         function fromStruct(obj, S)
         %fromStruct Reverse of toStruct function
-        
-%             className = class(obj);
-%             assert(strcmp(className, S.MetaTableClass), ...
-%                 'MetaTable is wrong class' )
-        
+
             varNames = fieldnames(S);
-            
+
             for i = 1:numel(varNames)
                 switch varNames{i}
-                    %case 'MetaTableClass'
-                        % This is not a class property
                     case {'SavePath', 'FileName', 'IsDefault'}
                         % These are also not assigned
                     case 'MetaTableEntries'
@@ -372,14 +351,6 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             end
         end
         
-        function T = getFormattedTableData(obj, columnIndices, rowIndices)
-        %getFormattedTableData Deprecated: use nansen.metadata.utility.formatTableForDisplay()
-            if nargin < 2; columnIndices = 1:size(obj.entries, 2); end
-            if nargin < 3; rowIndices = 1:size(obj.entries, 1); end
-            T = nansen.metadata.utility.formatTableForDisplay(obj, columnIndices, rowIndices);
-        end
-        
-
 % % % % Methods for modifying entries
 
         function tf = isVariable(obj, varName)
@@ -409,11 +380,6 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
 
         function removeTableVariable(obj, variableName)
             obj.entries(:, variableName) = [];
-        end
-
-        function appendTable(obj, T)
-            warning('appendTable is deprecated and will be removed, use addTable instead.')
-            obj.addTable(T)
         end
 
         function addTable(obj, T, options)
@@ -587,19 +553,6 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             if ~isempty(S)
                 obj.filepath = fullfile(S.SavePath, S.FileName);
             end
-        end
-        
-% % % % Methods for linking a dummy MetaTable to a master MetaTable.
-
-        function linkToMaster(~)
-        %linkToMaster Deprecated: assign MetaTableKey directly
-        %
-        %   GUI-based master selection has been removed. To link a dummy
-        %   MetaTable to a master, assign MetaTableKey to the master's key
-        %   before registering.
-            error('NANSEN:MetaTable:MasterKeyNotSet', ...
-                ['MetaTableKey must be set before using a dummy MetaTable. ', ...
-                 'Assign the master MetaTable''s key to MetaTableKey directly.'])
         end
         
 % % % % Get names of all (dummy) MetaTables connected to the current master
@@ -1098,21 +1051,6 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         end
     end
 
-    methods (Access = private)
-        function assertValidClass(obj, items)
-            msgTemplate = sprintf(['Class of entries (%s) do not match ', ...
-                'the class of the MetaTable (%%s)'], class(items));
-            if ~isempty(obj.ItemClassName)
-                assert(isa(items, obj.ItemClassName), ...
-                    sprintf(msgTemplate, obj.ItemClassName))
-
-            else
-                assert(isa(items, obj.MetaTableClass), ...
-                    sprintf(msgTemplate, obj.MetaTableClass))
-            end
-        end
-    end
-
     methods (Hidden)
         function removeDuplicates(obj)
             varName = obj.SchemaIdName;
@@ -1127,15 +1065,6 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         end
     end
 
-    methods (Access = private)
-
-        function openMetaTableFromFilepath(obj, filePath)
-            obj.filepath = filePath;
-            obj.load()
-        end
-
-    end
-    
     methods (Static)
         function metaTable = newLike(entries, metaTable)
             arguments
@@ -1223,7 +1152,8 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
 
             % Load a fresh instance and register it in the cache
             metaTable = nansen.metadata.MetaTable();
-            metaTable.openMetaTableFromFilepath(filePath);
+            metaTable.filepath = filePath;
+            metaTable.load();
             cache.add(filePath, metaTable);
         end
 
@@ -1362,8 +1292,4 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             end
         end
     end
-end
-
-function str = dispStruct(s)
-    str = sprintf('%dx%d struct', size(s));
 end
