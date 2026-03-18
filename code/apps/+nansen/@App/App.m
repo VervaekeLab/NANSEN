@@ -2473,7 +2473,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 % effect of having decided to set metatable of
                 % metatableviewer to type table...
                 columnIndex = app.MetaTable.getColumnIndex(variableName);
-                columnData = app.MetaTable.getFormattedTableData(columnIndex);
+                columnData = nansen.metadata.utility.formatTableForDisplay(app.MetaTable, columnIndex);
                 app.UiMetaTableViewer.updateFormattedTableColumnData(variableName, columnData)
 
                 app.UiMetaTableViewer.refreshColumnModel();
@@ -2700,7 +2700,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
                 % Need to insert formatted table data in the MetaTable
                 % viewer
-                updatedValuesDisplay = app.MetaTable.getFormattedTableData(colIdx, rows);
+                updatedValuesDisplay = nansen.metadata.utility.formatTableForDisplay(app.MetaTable, colIdx, rows);
                 updatedValuesDisplay = table2cell(updatedValuesDisplay);
                 app.UiMetaTableViewer.updateCells(rows, colIdx, updatedValuesDisplay)
                 

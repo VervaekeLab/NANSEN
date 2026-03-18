@@ -984,7 +984,7 @@ classdef MetaTableViewer < handle & uiw.mixin.AssignPVPairs
         % compare column names. If changed, reset/update column model...
 
             if isa(newTable, 'nansen.metadata.MetaTable')
-                T = newTable.getFormattedTableData();
+                T = nansen.metadata.utility.formatTableForDisplay(newTable);
                 obj.MetaTableType = lower( newTable.getTableType() );
                 obj.MetaTableCell = table2cell(T);
             elseif isa(newTable, 'table')
