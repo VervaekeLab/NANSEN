@@ -11,14 +11,10 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
 %
 %   Therefore, it also follows that if changes are made either on the
 %   master MetaTable or another dummy MetaTable, those changes will be
-%   be available on all inventories linked to that master MetaTable.
+%   available on all MetaTables linked to that master.
 %
-%   Hopefully this will work a bit like handle objects, but with the
-%   additional step that data is saved to disk.
-%
-
-% Todo:
-%   [ ] Meta object listeners??
+%   MetaTable is a handle class — all references to the same instance
+%   share state. Data is additionally persisted to disk via VersionedFile.
 
 
     properties (SetAccess=private, SetObservable)
@@ -245,30 +241,11 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         end
 
         function load(obj)
-        %load Load contents of a MetaTable from file.
+        %load Load a MetaTable from file
         %
-        %   Note: MetaTables are not saved directly as class instances,
-        %   instead the entries are saved as a table and the entry ids
-        %   (members) are saved as a cell array. This way, the MetaTables
-        %   can be read even if the MetaTable class is not on Matlabs path.
-
-            % Validate that this is a MetaTable file before delegating
-            if ~isfile(obj.filepath)
-                error('NANSEN:MetaTable:FileNotFound', ...
-                    'File "%s" does not exist.', obj.filepath)
-            end
-
-            S = load(obj.filepath);
-            if ~isfield(S, 'MetaTableClass')
-                [~, fileName] = fileparts(obj.filepath);
-                error('NANSEN:MetaTable:InvalidFileType', ...
-                    'The file "%s" does not contain a MetaTable', fileName)
-            end
-
-            obj.fromFileStruct(S);
-
-            obj.onAfterLoad();
-            obj.markClean();
+        %   Delegates to VersionedFile.load(). MetaTable-specific validation
+        %   (checking for MetaTableClass field) happens in fromFileStruct().
+            load@nansen.metadata.mixin.VersionedFile(obj);
         end
         
         function S = toStruct(obj, source)
@@ -538,23 +515,6 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             end
         end
         
-        function openDefault(obj)
-            
-            MT = nansen.metadata.MetaTableCatalog.quickload();
-
-            if isempty(MT); return; end
-
-            isClass = strcmp(obj.MetaTableClass, MT.MetaTableClass);
-            isDefault = MT.IsDefault;
-            
-            S = table2struct( MT(isClass & isDefault, :) );
-           
-            % Set filepath to filepath of default MetaTable.
-            if ~isempty(S)
-                obj.filepath = fullfile(S.SavePath, S.FileName);
-            end
-        end
-        
 % % % % Get names of all (dummy) MetaTables connected to the current master
         function names = getAssociatedMetaTables(obj, mode)
         %getAssociatedMetaTables Get associated MetaTables
@@ -791,6 +751,11 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
 
         function fromFileStruct(obj, S)
         %fromFileStruct Restore MetaTable state from loaded struct
+            if ~isfield(S, 'MetaTableClass')
+                [~, fileName] = fileparts(obj.filepath);
+                error('NANSEN:MetaTable:InvalidFileType', ...
+                    'The file "%s" does not contain a MetaTable', fileName)
+            end
             obj.fromStruct(S);
         end
 
