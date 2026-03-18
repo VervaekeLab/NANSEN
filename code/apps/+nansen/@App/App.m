@@ -848,7 +848,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 thisName = strrep(mSubItem.Text, ' (master)', '');
                 thisName = strrep(thisName, ' (default)', '');
                 
-                if strcmp( thisName, app.MetaTable.getName() )
+                if strcmp( thisName, app.MetaTable.MetaTableName )
                     mSubItem.Checked = 'on';
                 end
             end
@@ -2026,7 +2026,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     %%% Methods for updating statusfield (Q: Should this be a separate class?)
 
         function updateFigureTitle(app)
-            fileName = app.MetaTable.getName();
+            fileName = app.MetaTable.MetaTableName;
 
             if app.isIdle()
                 status = 'idle';
@@ -3087,7 +3087,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             S_.MetaTableClass = catalogTable{isMaster, 'MetaTableClass'}{1};
             
             metatable = nansen.metadata.MetaTable();
-            metatable.archive(S_)
+            metaTableCatalog.registerMetaTable(metatable, S_)
             
             if S.AddSelectedSessions
                 sessionEntries = app.getSelectedMetaObjects;
@@ -3808,7 +3808,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
 
         function menuCallback_SetDefaultMetaTable(app, ~, ~)
-            app.MetaTable.setDefault()
+            catalog = nansen.metadata.MetaTableCatalog();
+            catalog.setDefaultMetaTable(app.MetaTable)
             app.updateRelatedInventoryLists()
         end
                 

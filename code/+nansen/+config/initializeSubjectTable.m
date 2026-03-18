@@ -33,13 +33,11 @@ function initializeSubjectTable(metatableCatalog, subjectClassName)
     S.IsDefault = false;
     S.IsMaster = true;
     
-    % Save the metatable in the current project
+    % Register the metatable in the catalog and save to disk
     try
-        metaTable.archive(S);
+        catalog = nansen.metadata.MetaTableCatalog();
+        catalog.registerMetaTable(metaTable, S);
     catch ME
         throwAsCaller(ME)
-        % Todo: have some error handling here.
-% %                 title = 'Could not save metadata table';
-% %                 uialert(app.NansenSetupUIFigure, ME.message, title)
     end
 end

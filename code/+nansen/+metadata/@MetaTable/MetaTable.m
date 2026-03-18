@@ -244,12 +244,11 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             if nargin < 2; force = false; end
             wasSaved = false;
 
-            % If MetaTable has no filepath, use archive method.
             if isempty(obj.filepath)
-                obj.archive()
-                wasSaved = true;
-                if ~nargout; clear wasSaved; end
-                return
+                error('NANSEN:MetaTable:NoFilepath', ...
+                    ['Cannot save: filepath is not set. ', ...
+                     'Use MetaTableCatalog.registerMetaTable() to register ', ...
+                     'a new MetaTable before saving.'])
             end
 
             wasSaved = save@nansen.metadata.mixin.VersionedFile(obj, force);
@@ -285,76 +284,6 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
 
             obj.onAfterLoad();
             obj.markClean();
-        end
-        
-        function archive(obj, Sin, metaTableCatalog)
-        %archive Deprecated: use MetaTableCatalog.registerMetaTable() instead
-        %
-        %   This function is used whenever a new MetaTable is saved to disk
-        %   Before saving the MetaTable a unique key is generated (or
-        %   inherited from a master MetaTable) and the info about the
-        %   MetaTable is added to the MetaTableCatalog.
-
-        % rename to saveas?
-            if nargin < 3; metaTableCatalog = []; end
-
-            S = obj.toStruct('metatable_catalog');
-
-            if nargin == 1 || isempty(Sin)
-                % Get name and savepath from user
-                msg = 'Enter MetaTable Name and Select Folder to Save';
-                inputFields = {'MetaTableName', 'SavePath', 'IsDefault', 'IsMaster'};
-
-                % Open an input dialog where user can add input values.
-                S = tools.editStruct( S, inputFields, msg);
-            else
-                inputFields = fieldnames(Sin);
-                for i = 1:numel(inputFields)
-                    S.(inputFields{i}) = Sin.(inputFields{i});
-                end
-            end
-            
-            if isempty(S.MetaTableName)
-                error("NANSEN:MetaTable:Save:MissingName", ...
-                    'Can not save MetaTable because the Name is not set.')
-            end
-            if ~isfolder(S.SavePath)
-                error("NANSEN:MetaTable:Save:FolderNotFound", ...
-                    'Can not save MetaTable because the folder (for saving) does not exist.')
-            end
-            
-            
-            % Update properties of object from user input
-            obj.fromStruct(S)
-
-            % Assign a new UUID for master, or require key to be set for dummy
-            if isempty(obj.MetaTableKey) && obj.IsMaster
-                obj.MetaTableKey = nansen.util.getuuid();
-            elseif isempty(obj.MetaTableKey) && ~obj.IsMaster
-                error('NANSEN:MetaTable:MasterKeyNotSet', ...
-                    ['Cannot archive a dummy MetaTable without a MetaTableKey. ', ...
-                     'Assign the master MetaTable''s key to MetaTableKey first.'])
-            end
-            
-            % Assign filepath of current database object
-            S.FileName = obj.createFileName(S);
-            obj.filepath = fullfile(S.SavePath, S.FileName);
-            
-            % Save to MetaTable Catalog
-            S.MetaTableKey = obj.MetaTableKey;
-                        
-            if isempty(metaTableCatalog)
-                nansen.metadata.MetaTableCatalog.quickadd(S);
-            else
-                metaTableCatalog.addEntry(S)
-            end
-            
-            if S.IsDefault
-                obj.setDefault()
-            end
-            
-            forceSave = true; % Need to make sure it is saved.
-            obj.save(forceSave)
         end
         
         function S = toStruct(obj, source)
@@ -641,15 +570,6 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 obj.entries = obj.entries(ind, :);
                 obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
             end
-        end
-        
-        % Set current MetaTable to default in MetaTable Catalog
-        function setDefault(obj)
-        %setDefault Deprecated: use MetaTableCatalog.setDefaultMetaTable() instead
-            warning('NANSEN:MetaTable:Deprecated', ...
-                'setDefault() is deprecated. Use MetaTableCatalog.setDefaultMetaTable() instead.')
-            catalog = nansen.metadata.MetaTableCatalog();
-            catalog.setDefaultMetaTable(obj)
         end
         
         function openDefault(obj)

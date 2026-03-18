@@ -68,16 +68,14 @@ classdef MetaTableCatalog < uim.handle
                 isMaster = false
                 isDefault = false
             end
-            
-            metatableFolder = fileparts(obj.FilePath);
 
-            tableInfo = struct();
-            tableInfo.MetaTableName = metaTable.createDefaultName();
-            tableInfo.SavePath = metatableFolder;
-            tableInfo.IsDefault = isDefault;
-            tableInfo.IsMaster = isMaster;
-            
-            metaTable.archive(tableInfo, obj);
+            options = struct();
+            options.MetaTableName = metaTable.createDefaultName();
+            options.SavePath = fileparts(obj.FilePath);
+            options.IsDefault = isDefault;
+            options.IsMaster = isMaster;
+
+            obj.registerMetaTable(metaTable, options);
         end
 
         function fixCatalog(obj)
