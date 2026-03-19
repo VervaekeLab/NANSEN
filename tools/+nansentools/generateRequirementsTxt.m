@@ -13,8 +13,8 @@ function generateRequirementsTxt(manifestFilePath, outputFilePath)
 %       outputFilePath (1,1) string - Path to write requirements.txt
 
     arguments
-        manifestFilePath (1,1) string {mustBeFile}
-        outputFilePath (1,1) string
+        manifestFilePath (1,1) string {mustBeFile} = fullfile(nansentools.projectdir, 'code', 'requirements.nansen.json')
+        outputFilePath (1,1) string = fullfile(nansentools.projectdir, 'requirements.txt')
     end
 
     dependencies = nansen.internal.dependencies.readManifest(manifestFilePath);
