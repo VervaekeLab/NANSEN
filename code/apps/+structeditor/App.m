@@ -1850,9 +1850,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             % Compute virtual width.
             currentWidth = obj.visibleWidthOrig + ( textbox.Extent(3) + 20 - x );
-            
-            obj.virtualWidth(obj.currentPanel) = ...
-                nanmax( [obj.virtualWidth(obj.currentPanel), currentWidth] );
+            oldWidth = obj.virtualWidth(obj.currentPanel);
+
+            widthCandidates = [currentWidth, oldWidth];
+            widthCandidates(isnan(widthCandidates)) = []; % Remove NaNs
+            obj.virtualWidth(obj.currentPanel) = max(widthCandidates);
             
             buttonTypes = {'button', 'pushbutton', 'togglebutton'};
             if isa(config, 'struct') && any( strcmp(config.type, buttonTypes) )
