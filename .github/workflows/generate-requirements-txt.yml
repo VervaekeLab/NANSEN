@@ -1,0 +1,52 @@
+name: Generate requirements.txt from manifest
+
+on:
+  push:
+    paths:
+      - 'requirements.nansen.json'
+    branches:
+      - main
+      - dev
+  workflow_dispatch:
+
+jobs:
+  generate-requirements:
+    name: Regenerate requirements.txt
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
+
+      - name: Set up MATLAB
+        uses: matlab-actions/setup-matlab@v2
+
+      - name: Add toolbox code to path and generate requirements.txt
+        uses: matlab-actions/run-command@v2
+        with:
+          command: |
+            addpath(genpath('code'));
+            addpath(genpath('tools'));
+            generateRequirementsTxt( ...
+                fullfile(pwd, 'requirements.nansen.json'), ...
+                fullfile(pwd, 'requirements.txt'));
+
+      - name: Check for changes
+        id: check-changes
+        run: |
+          if git diff --quiet requirements.txt; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit and push updated requirements.txt
+        if: steps.check-changes.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add requirements.txt
+          git commit -m "Auto-generate requirements.txt from manifest [skip ci]"
+          git push
