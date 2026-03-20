@@ -2,18 +2,18 @@ function generateRequirementsTxt(manifestFilePath, outputFilePath)
 %generateRequirementsTxt Generate requirements.txt from a manifest file.
 %
 %   generateRequirementsTxt(manifestFilePath, outputFilePath) reads a
-%   requirements.nansen.json manifest and writes a requirements.txt
+%   dependencies.nansen.json manifest and writes a requirements.txt
 %   containing only community-toolbox entries with their Source URIs.
 %
 %   MathWorks products are excluded. Entries without a Source field are
 %   skipped with a warning.
 %
 %   Input:
-%       manifestFilePath (1,1) string - Path to requirements.nansen.json
+%       manifestFilePath (1,1) string - Path to dependencies.nansen.json
 %       outputFilePath (1,1) string - Path to write requirements.txt
 
     arguments
-        manifestFilePath (1,1) string {mustBeFile} = fullfile(nansentools.projectdir, 'code', 'requirements.nansen.json')
+        manifestFilePath (1,1) string {mustBeFile} = fullfile(nansentools.projectdir, 'code', 'dependencies.nansen.json')
         outputFilePath (1,1) string = fullfile(nansentools.projectdir, 'requirements.txt')
     end
 

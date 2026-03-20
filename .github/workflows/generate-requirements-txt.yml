@@ -3,7 +3,7 @@ name: Generate requirements.txt from manifest
 on:
   push:
     paths:
-      - 'requirements.nansen.json'
+      - 'code/dependencies.nansen.json'
     branches:
       - main
       - dev
@@ -30,7 +30,7 @@ jobs:
             addpath(genpath('code'));
             addpath(genpath('tools'));
             nansentools.generateRequirementsTxt( ...
-                fullfile(pwd, 'requirements.nansen.json'), ...
+                fullfile(pwd, 'dependencies.nansen.json'), ...
                 fullfile(pwd, 'requirements.txt'));
 
       - name: Check for changes
