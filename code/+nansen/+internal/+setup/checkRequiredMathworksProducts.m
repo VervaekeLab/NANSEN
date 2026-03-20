@@ -1,31 +1,43 @@
-function checkRequiredMathworksProducts(mode)
-% checkRequiredMathworksProducts - Checks for required Mathworks products.
+function checkRequiredMathworksProducts(mode, options)
+%checkRequiredMathworksProducts Check for required MathWorks products.
 %
-% Syntax:
-%   nansen.internal.setup.checkRequiredMathworksProducts() Checks if the 
-%   required Mathworks products for NANSEN are installed.
+%   nansen.internal.setup.checkRequiredMathworksProducts() checks if the
+%   required MathWorks products for core NANSEN are installed.
+%
+%   nansen.internal.setup.checkRequiredMathworksProducts(mode) uses the
+%   specified mode ("warning" or "error") for reporting missing products.
+%
+%   nansen.internal.setup.checkRequiredMathworksProducts(mode, Name, Value)
+%   accepts additional options for module-aware checking.
+%
+%   Name-Value Arguments:
+%       ModuleNames (string array) - Module scope IDs to include in the
+%           check. Default: string.empty (core only).
 
     arguments
         mode (1,1) string {mustBeMember(mode, ["warning", "error"])} = "warning"
+        options.ModuleNames (1,:) string = string.empty
     end
 
-    versionInfo = ver();
-    installedToolboxNames = {versionInfo.Name};
+    % Use the resolver to get missing required MathWorks products
+    missingProducts = nansen.internal.dependencies.resolveRequirements( ...
+        "SelectedModules", options.ModuleNames, ...
+        "DependencyTypes", "mathworks-product", ...
+        "RequirementLevels", "required", ...
+        "MissingOnly", true);
 
-    requiredToolboxNames = nansen.internal.setup.getRequiredMatlabToolboxes();
-
-    missingToolboxNames = setdiff(requiredToolboxNames, installedToolboxNames);
-    missingToolboxNames = string(missingToolboxNames);
-
-    if ~isempty(missingToolboxNames)
-        missingToolboxNames = "  - " + missingToolboxNames;
-        
-        message = sprintf(...
-            "The following required Mathworks products are needed for NANSEN " + ...
-            "to work reliably:\n%s\n\nYou can install these from MATLAB's Add-On Manager.", ...
-            strjoin(missingToolboxNames, newline));
-        
-        fcn = str2func(mode);
-        fcn("NANSEN:MathworksProductCheck:MissingRequiredProducts", message)
+    if isempty(missingProducts)
+        return
     end
+
+    missingNames = "  - " + [missingProducts.Name];
+
+    message = sprintf( ...
+        "The following required MathWorks products are needed for NANSEN " + ...
+        "to work reliably:\n%s\n\nYou can install these from MATLAB's " + ...
+        "Add-On Explorer.", ...
+        strjoin(missingNames, newline));
+
+    reportFunction = str2func(mode);
+    reportFunction("NANSEN:MathworksProductCheck:MissingRequiredProducts", message)
 end
