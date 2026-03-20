@@ -1,14 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/VervaekeLab/NANSEN/dev-claude-standardize-requirements/schemas/dependencies.nansen.json",
+  "$id": "https://raw.githubusercontent.com/VervaekeLab/NANSEN/dev/schemas/dependencies.nansen.json",
   "title": "NANSEN Dependency Manifest",
   "description": "Schema for dependencies.nansen.json files that declare dependencies for NANSEN core and modules.",
   "type": "object",
   "required": ["_schema_version", "_type", "scope", "scopeId", "dependencies"],
   "properties": {
-    "$schema": {
+    "_schema_id": {
       "type": "string",
-      "description": "URI pointing to the JSON Schema that validates this manifest. Used by editors for inline validation."
+      "description": "Canonical URI of the schema that validates this manifest. Used for runtime type-checking by MATLAB and Python."
     },
     "_schema_version": {
       "type": "string",
