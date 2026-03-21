@@ -89,8 +89,11 @@ classdef NansenUserSession < handle
     end
 
     methods
-        function am = getAddonManager(obj)
-            am = obj.AddonManager;
+        function am = getAddonManager(~)
+        %getAddonManager Get the AddonManager singleton.
+            warning("NANSEN:UserSession:DeprecatedMethod", ...
+                "Deprecated - use nansen.AddonManager() directly")
+            am = nansen.AddonManager();
         end
 
         function pm = getProjectManager(obj)
@@ -115,7 +118,6 @@ classdef NansenUserSession < handle
         function obj = NansenUserSession(userName, skipProjectCheck)
         % NansenUserSession - Constructor method
 
-            import nansen.config.addons.AddonManager
             import nansen.config.project.ProjectManager
             obj.CurrentUserName = userName;
             obj.SkipProjectCheck = skipProjectCheck;
@@ -125,7 +127,7 @@ classdef NansenUserSession < handle
 
             obj.preStartup()
 
-            obj.AddonManager = AddonManager(preferenceDirectory);
+            obj.AddonManager = nansen.AddonManager();
             obj.ProjectManager = ProjectManager.instance(preferenceDirectory, 'reset');
 
             obj.postStartup()
