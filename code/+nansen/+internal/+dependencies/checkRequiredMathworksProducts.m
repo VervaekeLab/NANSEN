@@ -1,13 +1,13 @@
 function checkRequiredMathworksProducts(mode, options)
 %checkRequiredMathworksProducts Check for required MathWorks products.
 %
-%   nansen.internal.setup.checkRequiredMathworksProducts() checks if the
+%   nansen.internal.dependencies.checkRequiredMathworksProducts() checks if the
 %   required MathWorks products for core NANSEN are installed.
 %
-%   nansen.internal.setup.checkRequiredMathworksProducts(mode) uses the
+%   nansen.internal.dependencies.checkRequiredMathworksProducts(mode) uses the
 %   specified mode ("warning" or "error") for reporting missing products.
 %
-%   nansen.internal.setup.checkRequiredMathworksProducts(mode, Name, Value)
+%   nansen.internal.dependencies.checkRequiredMathworksProducts(mode, Name, Value)
 %   accepts additional options for module-aware checking.
 %
 %   Name-Value Arguments:
