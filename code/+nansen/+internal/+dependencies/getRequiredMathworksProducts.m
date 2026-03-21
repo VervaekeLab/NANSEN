@@ -1,10 +1,10 @@
 function requiredToolboxNames = getRequiredMathworksProducts(options)
 %getRequiredMathworksProducts Get names of required MathWorks toolboxes.
 %
-%   requiredToolboxNames = nansen.internal.setup.getRequiredMathworksProducts()
+%   requiredToolboxNames = nansen.internal.dependencies.getRequiredMathworksProducts()
 %   returns the names of required MathWorks toolboxes for core NANSEN.
 %
-%   requiredToolboxNames = nansen.internal.setup.getRequiredMathworksProducts(Name, Value)
+%   requiredToolboxNames = nansen.internal.dependencies.getRequiredMathworksProducts(Name, Value)
 %   accepts additional options for module-aware checking.
 %
 %   Name-Value Arguments:
