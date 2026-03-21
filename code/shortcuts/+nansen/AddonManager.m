@@ -5,8 +5,7 @@ function addonManager = AddonManager(varargin)
 %
 %   See also nansen.config.addons.AddonManager
 
-    userSession = nansen.internal.user.NansenUserSession.instance();
-    addonManager = userSession.getAddonManager();
+    addonManager = nansen.config.addons.AddonManager.instance();
 
     if ~nargout
         nansen.config.addons.AddonManagerApp(addonManager)
