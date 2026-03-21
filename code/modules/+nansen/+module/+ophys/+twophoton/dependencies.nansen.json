@@ -45,7 +45,7 @@
       "requirementLevel": "optional",
       "source": "https://github.com/flatironinstitute/CaImAn-MATLAB",
       "description": "Computational toolbox for large scale calcium imaging data analysis",
-      "workflowNotes": "Needed only for the CaImAn ROI extraction workflow",
+      "workflowNotes": "Needed for the CaImAn ROI extraction workflow",
       "installCheck": "CNMFSetParms"
     },
     {
@@ -56,7 +56,7 @@
       "requirementLevel": "optional",
       "source": "https://github.com/cortex-lab/Suite2P",
       "description": "Fast, accurate and complete two-photon pipeline",
-      "workflowNotes": "Needed only for the Suite2P ROI extraction workflow",
+      "workflowNotes": "Needed for the Suite2P ROI extraction workflow",
       "installCheck": "build_ops3"
     },
     {
@@ -67,7 +67,7 @@
       "requirementLevel": "optional",
       "source": "https://github.com/schnitzer-lab/EXTRACT-public",
       "description": "Tractable and robust automated cell extraction tool for calcium imaging",
-      "workflowNotes": "Needed only for the EXTRACT ROI extraction workflow",
+      "workflowNotes": "Needed for the EXTRACT ROI extraction workflow",
       "installCheck": "run_extract"
     },
     {
@@ -102,8 +102,8 @@
       "dependencyType": "community-toolbox",
       "requirementLevel": "optional",
       "source": "https://github.com/ehennestad/NoRMCorre",
+      "docsSource": "https://github.com/flatironinstitute/NoRMCorre"
       "description": "Non-rigid motion correction for calcium imaging data",
-      "reason": "Alternative motion correction algorithm",
       "installCheck": "normcorre_batch"
     },
     {
@@ -111,8 +111,8 @@
       "dependencyType": "community-toolbox",
       "requirementLevel": "optional",
       "source": "https://github.com/phflot/flow_registration",
+      "docsSource": "https://github.com/phflot/flow_registration"
       "description": "Optical flow based motion correction for calcium imaging data",
-      "reason": "Alternative motion correction algorithm",
       "setupHook": "nansen.wrapper.flowreg.install",
       "installCheck": "OF_Options"
     },
@@ -123,6 +123,7 @@
       "scopeId": "nansen.module.ophys.twophoton.workflow.seudo",
       "requirementLevel": "optional",
       "source": "https://github.com/adamshch/SEUDO",
+      "docsSource": "https://github.com/adamshch/SEUDO",
       "description": "Calcium signal decontamination",
       "workflowNotes": "Needed only for the SEUDO signal decontamination workflow",
       "installCheck": "globalSEUDOWrapper"
@@ -132,6 +133,7 @@
       "dependencyType": "community-toolbox",
       "requirementLevel": "optional",
       "source": "https://github.com/ehennestad/matnwb",
+      "docsSource": "https://matnwb.readthedocs.io/en/latest/",
       "description": "MATLAB interface for reading and writing NWB files",
       "reason": "Required for NWB file export",
       "installCheck": "nwbRead"
