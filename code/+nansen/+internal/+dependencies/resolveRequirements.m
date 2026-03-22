@@ -19,6 +19,9 @@ function resolvedRequirements = resolveRequirements(options)
 %           Default: false.
 %       TrackedAddons (struct array) - Optional tracked addon records from
 %           AddonManager. Used for richer install/path status checks.
+%       ManifestPaths (string array) - Explicit manifest file paths.
+%           When provided, skips automatic manifest discovery and uses
+%           only the given paths. Useful for testing.
 %
 %   Output:
 %       resolvedRequirements - struct array with all schema fields plus:
@@ -35,9 +38,14 @@ function resolvedRequirements = resolveRequirements(options)
         options.RequirementLevels (1,:) string = string.empty
         options.MissingOnly (1,1) logical = false
         options.TrackedAddons (1,:) struct = struct.empty(1, 0)
+        options.ManifestPaths (1,:) string = string.empty
     end
 
-    manifestPaths = collectManifestPaths(options.IncludeCore, options.SelectedModules);
+    if isempty(options.ManifestPaths)
+        manifestPaths = collectManifestPaths(options.IncludeCore, options.SelectedModules);
+    else
+        manifestPaths = options.ManifestPaths;
+    end
     allDependencies = readAllDependencies(manifestPaths);
 
     % Filter by scope inclusion
