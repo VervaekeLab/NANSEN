@@ -17,10 +17,15 @@ function resolvedRequirements = resolveRequirements(options)
 %           Empty means all levels.
 %       MissingOnly (logical) - Return only missing dependencies.
 %           Default: false.
+%       TrackedAddons (struct array) - Optional tracked addon records from
+%           AddonManager. Used for richer install/path status checks.
 %
 %   Output:
 %       resolvedRequirements - struct array with all schema fields plus:
-%           .IsInstalled (logical) - whether the dependency is present
+%           .IsInstalled (logical) - whether the dependency is tracked as
+%               installed or otherwise known to be present
+%           .IsOnPath (logical) - whether the dependency is currently
+%               available on MATLAB's search path
 
     arguments
         options.IncludeCore (1,1) logical = true
@@ -29,6 +34,7 @@ function resolvedRequirements = resolveRequirements(options)
         options.DependencyTypes (1,:) string = string.empty
         options.RequirementLevels (1,:) string = string.empty
         options.MissingOnly (1,1) logical = false
+        options.TrackedAddons (1,:) struct = struct.empty(1, 0)
     end
 
     manifestPaths = collectManifestPaths(options.IncludeCore, options.SelectedModules);
@@ -43,7 +49,7 @@ function resolvedRequirements = resolveRequirements(options)
 
     % Check installation status
     resolvedRequirements = nansen.internal.dependencies.checkInstallationStatus( ...
-        resolvedRequirements);
+        resolvedRequirements, options.TrackedAddons);
 
     % Apply filters
     resolvedRequirements = applyFilters(resolvedRequirements, ...
@@ -61,16 +67,26 @@ function manifestPaths = collectManifestPaths(includeCore, selectedModules)
         end
     end
 
-    % Module manifests — ModuleManager tracks RequirementManifestPath
+    % Module manifests
     if ~isempty(selectedModules)
-        moduleManager = nansen.config.module.ModuleManager();
-        moduleTable = moduleManager.listModules();
-        if ismember("RequirementManifestPath", moduleTable.Properties.VariableNames)
-            modulePackages = string(moduleTable.PackageName);
-            selectedMask = ismember(modulePackages, selectedModules);
-            moduleManifestPaths = string(moduleTable.RequirementManifestPath(selectedMask));
-            moduleManifestPaths = moduleManifestPaths(strlength(moduleManifestPaths) > 0);
-            manifestPaths = [manifestPaths, moduleManifestPaths(:)'];
+
+        for i = 1:numel(selectedModules)
+            
+            currentModulePath = utility.path.packagename2pathstr(selectedModules(i));
+            
+            moduleInfo = what(currentModulePath);
+            if isempty(moduleInfo)
+                warning('NANSEN:Dependencies:ModuleNotFound', ...
+                    'No module with name "%s" on MATLAB''s search path', selectedModules(i))
+                continue
+            elseif numel(moduleInfo) > 1
+                warning('NANSEN:Dependencies:MultipleModulesFound', ...
+                    'Multiple modules with name "%s" was found on MATLAB''s search path', selectedModules(i))
+            end
+            currentModuleManifestPath = fullfile(moduleInfo(1).path, 'dependencies.nansen.json');
+            if isfile(currentModuleManifestPath)
+                manifestPaths = [manifestPaths, currentModuleManifestPath]; %#ok<AGROW>
+            end
         end
     end
 
