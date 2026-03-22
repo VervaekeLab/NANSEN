@@ -10,6 +10,8 @@ function nansen_install(options)
 
     arguments
         options.SavePath (1,1) logical = true
+        options.Modules (1,:) string = string.empty
+        options.Update (1,1) logical = false
     end
 
     nansenProjectFolder = fileparts(mfilename('fullpath')); % Path to nansen codebase
@@ -20,38 +22,46 @@ function nansen_install(options)
         error('NANSEN:Setup:CodeFolderNotFound', ...
               'Could not find folder with code for Nansen')
     end
-    
+
     % Check that userpath is not empty (can happen on linux platforms)
     if isempty(userpath)
         nansen.internal.setup.resolveEmptyUserpath()
     end
-        
-    warnState = warning('off', 'MATLAB:javaclasspath:jarAlreadySpecified');
-    warningCleanup = onCleanup(@(state) warning(warnState));
+
+    % Supress a warning which is not relevant for users
+    warningIdentifier = 'MATLAB:javaclasspath:jarAlreadySpecified';
+    warningCleanup = nansen.common.suppressWarning(warningIdentifier); %#ok<NASGU>
+
+    % Get the AddonManager singleton
+    addonManager = nansen.AddonManager();
     
-    % Use MatBox to install dependencies/requirements
-    downloadAndInstallMatBox();
+    % We need MatBox first to install other dependencies
+    addonManager.downloadAndInstallMatBox()
 
-    requirementsInstallationFolder = fullfile(userpath, 'NANSEN', 'Requirements');
-    matbox.installRequirements(nansenProjectFolder, 'u', ...
-        'InstallationLocation', requirementsInstallationFolder)
+    % Install core requirements
+    addonManager.installMissingAddons();
 
-    % Add NANSEN toolbox folder to path if it was not added already 
+    if options.Update
+        addonManager.updateAddons(options.Modules);
+    else
+        numAddonsInstalled = addonManager.installMissingAddons(options.Modules);
+        if numAddonsInstalled == 0
+            disp([ ...
+                'All dependencies are installed. ', ...
+                'Use nansen_install(Update=true) to update dependencies.'])
+        end
+    end
+
+    % Add NANSEN toolbox folder to path if it was not added already
     if ~contains(path(), nansenToolboxFolder)
         addpath(genpath(nansenToolboxFolder))
-        savepath()
     end
     if options.SavePath
-        savepath()
-    end
-end
-
-function downloadAndInstallMatBox()
-    if ~exist('+matbox/installRequirements', 'file')
-        sourceFile = 'https://raw.githubusercontent.com/ehennestad/matbox-actions/refs/heads/main/install-matbox/installMatBox.m';
-        filePath = websave('installMatBox.m', sourceFile);
-        installMatBox('commit')
-        rehash()
-        delete(filePath);
+        status = savepath();
+        if status ~= 0
+            warning('NANSEN:Setup:SavePathFailed', ...
+                ['Could not save the MATLAB path. NANSEN is available for this session, ', ...
+                 'but you may need to save the path manually.'])
+        end
     end
 end
