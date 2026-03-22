@@ -100,18 +100,22 @@
     {
       "name": "NoRMCorre",
       "dependencyType": "community-toolbox",
+      "scope": "workflow",
+      "scopeId": "nansen.module.ophys.twophoton.workflow.normcorre",
       "requirementLevel": "optional",
       "source": "https://github.com/ehennestad/NoRMCorre",
-      "docsSource": "https://github.com/flatironinstitute/NoRMCorre"
+      "docsSource": "https://github.com/flatironinstitute/NoRMCorre",
       "description": "Non-rigid motion correction for calcium imaging data",
       "installCheck": "normcorre_batch"
     },
     {
       "name": "Flow Registration",
       "dependencyType": "community-toolbox",
+      "scope": "workflow",
+      "scopeId": "nansen.module.ophys.twophoton.workflow.flowreg",
       "requirementLevel": "optional",
       "source": "https://github.com/phflot/flow_registration",
-      "docsSource": "https://github.com/phflot/flow_registration"
+      "docsSource": "https://github.com/phflot/flow_registration",
       "description": "Optical flow based motion correction for calcium imaging data",
       "setupHook": "nansen.wrapper.flowreg.install",
       "installCheck": "OF_Options"
