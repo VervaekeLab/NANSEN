@@ -35,22 +35,26 @@ else
     error('User canceled.')
 end
 
+% We need the addonmanager to ensure all tutorial dependencies are installed
+addonManager = nansen.AddonManager();
+
 if startsWith(S(selection), 'Allen Brain Observatory')
-    addonManager = nansen.AddonManager();
 
     names = {addonManager.AddonList.Name};
     S = addonManager.AddonList(strcmp(names, "Brain Observatory Toolbox"));
     if ~S.IsInstalled
         fprintf('Downloading %s...', S.Name)
         addonManager.downloadAddon(S.Name)
-        addonManager.addAddonToMatlabPath(S.Name)
         fprintf('Finished.\n')
     end
+    
 elseif startsWith(S(selection), 'Nansen - Two-photon Quickstart')
     warnState = warning('off', 'MATLAB:RMDIR:RemovedFromPath');
     warnCleanup = onCleanup(@() warning(warnState));
+    
     disp('Installing two-photon addons...')
-    nansen.internal.setup.installAddons()
+    addonManager.installMissingAddons('nansen.module.ophys.twophoton')
+
     % Some users had problems where Yaml was not added to java path
     nansen.internal.setup.addYamlJarToJavaClassPath
 end
