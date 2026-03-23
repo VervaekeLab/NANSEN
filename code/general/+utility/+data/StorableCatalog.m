@@ -324,6 +324,9 @@ classdef StorableCatalog < handle
             if isnumeric(itemName) % Assume index was given instead of name
                 itemIndex = itemName;
                 itemName = obj.ItemNames(itemIndex);
+                if iscell(itemName) && isstring(itemName{1})
+                    itemName = char(itemName{1});
+                end
             end
             
             tf = obj.containsItem(itemName);
@@ -430,6 +433,10 @@ classdef StorableCatalog < handle
         function [tf, idx] = containsItem(obj, itemName)
         %containsItem Check if given item is part of current archive
 
+
+            % normalize itemName to char:
+            itemName = char(itemName);
+
             tf = ismember(obj.ItemNames, itemName);
             
             if nargout == 2
@@ -483,6 +490,7 @@ classdef StorableCatalog < handle
             assert(contains(lower(idName), 'name'), assertMsg)
             
             obj.ItemNames = {obj.Data.(idName)};
+            obj.ItemNames = cellfun(@(c) char(c), obj.ItemNames, 'uni', false); % normalize to chars
             
         end
     end
