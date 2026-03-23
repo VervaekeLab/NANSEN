@@ -30,6 +30,10 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
     properties (Access = protected)
         UITable         % Handle to the ui table
     end
+
+    properties (Access = private)
+        TableColumnSettings
+    end
     
     properties (Access = private)
         WindowMousePressListener
@@ -46,6 +50,9 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             
             roiGroup = varargin{1}; % todo: check arg
             obj@roimanager.roiDisplay(roiGroup)
+
+            obj.Preferences = roimanager.pref.RoiTablePreferences();
+            obj.loadPreferences();
             
             obj.Panel.Units = 'normalized';
             
@@ -69,10 +76,12 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             obj.UITable.HTable.CellEditCallback = @obj.onTableCellEdited;
             obj.UITable.HTable.KeyPressFcn = @obj.onKeyPressedInTable;
             obj.UITable.HTable.KeyReleaseFcn = @obj.onKeyReleasedInTable;
+            obj.UITable.HTable.ColumnResizePolicy = 'off';
 
             % Load and set column model settings from preferences.
             tableColumnSettings = obj.getPreference('TableColumnSettings', []);
             if ~isempty(tableColumnSettings)
+                obj.TableColumnSettings = tableColumnSettings;
                 obj.UITable.ColumnModel.settings = tableColumnSettings;
                 obj.UITable.refreshTable([], true)
             end
@@ -367,6 +376,22 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             obj.UITable.updateTableRow(rowIdx, tableRowData)
     
         end
+    
+        function initializeTableColumnSettings(obj)
+            
+            tableColumnSettings = obj.UITable.ColumnModel.settings;
+
+            columnNamesToHide = {'uid', 'group', 'DffPeak', 'DffNoiseStd', ...
+                'DffSnr', 'DffActivityLevel', 'DffSkewness', 'RoiSalience', ...
+                'MeanImageSimilarity', 'CorrelationSimilarity'};
+
+            columnIndicesToHide = ismember({tableColumnSettings.VariableName}, columnNamesToHide);
+            [tableColumnSettings(columnIndicesToHide).ShowColumn] = deal(false);
+
+            obj.TableColumnSettings = tableColumnSettings;
+            obj.UITable.ColumnModel.settings = tableColumnSettings;
+            obj.UITable.refreshTable([], true)
+        end
     end
     
     methods (Access = protected) % Inherited from applify.ModularApp
@@ -480,8 +505,12 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             % Update table data and uitable.
             obj.roiTable = newTable;
             %newTable = newTable(obj.VisibleRois, :);
+
             obj.UITable.refreshTable(newTable)
             
+            if isempty(obj.TableColumnSettings)
+                obj.initializeTableColumnSettings()
+            end
         end
         
         function onRoiSelectionChanged(obj, evtData)
