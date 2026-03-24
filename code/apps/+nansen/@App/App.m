@@ -2526,8 +2526,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             switch updateMode
                 case 'SelectedRows'
-                    app.assertSessionSelected()
-
+                    if app.abortIfAssertionFails(@app.assertTableEntrySelected)
+                        return
+                    end
                     metaObjects = app.getSelectedMetaObjects();
                     rows = app.UiMetaTableViewer.getSelectedEntries();
 
@@ -3152,8 +3153,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 end
             end
             
-            % Throw error if no sessions are selected.
-            app.assertSessionSelected()
+            % Show dialog and abort if no sessions are selected.
+            if app.abortIfAssertionFails(@app.assertTableEntrySelected)
+                return
+            end
             
             % Note: If the task(s) should be added to the queue, the
             % session objects need to be uncached. This is because the
@@ -4050,15 +4053,32 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
     
         %% Assertions
-        function assertSessionSelected(app)
+        function assertTableEntrySelected(app)
             entryIdx = app.UiMetaTableViewer.getSelectedEntries();
             
             if isempty(entryIdx)
-                itemName = lower(app.CurrentItemType);
-                itemName = itemName + "s"; % plural
+                itemType = lower(app.CurrentItemType);
+                itemType = itemType + "s"; % plural Todo: improve
+                
+                error('NANSEN:App:assertTableEntrySelected:TableSelectionRequired', ...
+                    'No %s are selected. Select one or more %s for this operation.', ...
+                    itemType, itemType)
+            end
+        end
 
-                message = sprintf('No %s are selected. Select one or more %s for this operation.', itemName, itemName);                                
-                app.MessageDisplay.inform(message, 'Title', 'Session Selection Required')
+        %% Check assertion, show message if assertion fails
+        function doAbort = abortIfAssertionFails(app, assertionFunction)
+            doAbort = false;
+            try
+                feval(assertionFunction)
+            catch exception
+                doAbort = true;
+
+                errorIdParts = split(exception.identifier, ':');
+                dialogTitle = utility.string.varname2label(char(errorIdParts{end}));
+
+                app.MessageDisplay.inform(exception.message, 'Title', dialogTitle)
+                return
             end
         end
     end
