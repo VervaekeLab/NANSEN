@@ -72,6 +72,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         % for updating the content status messages.
         StatusText applify.StatusText
 
+        % AllowStatusUpdate - Should act as a gatekeeper for allowing status 
+        % updates. Some event listeners might attempt to update status (i.e
+        % save table) while a task is running, this flag is used to prevent
+        % this
+        AllowStatusUpdate (1,1) logical = true % Should act as a gatekeeper for allowing status updates.
+
+        % StatusItems - Keep a list of status items to ensure we don't go
+        % back to idle if multiple requests for setIdle is active
+        % simultaneously
+        StatusItems containers.Map % Note: Handle class - Is assigned in constructor
+
         % SessionTaskMenu - An object for creating and updating a dynamic
         % set of session / items tasks on the main figure menu
         SessionTaskMenu nansen.SessionTaskMenu
@@ -164,6 +175,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             app.createLayout()
             app.createComponents()
+
+            app.StatusItems = containers.Map;
             
             app.unlockWindowPosition()
 
@@ -2031,8 +2044,23 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             tf = app.ApplicationState == nansen.enum.ApplicationState.ShuttingDown;
         end
 
-        function setIdle(app)
+        function setIdle(app, statusId)
+
+            arguments
+                app (1,1) nansen.App
+                statusId (1,1) string = missing
+            end
+
+            if ~ismissing(statusId) && isKey(app.StatusItems, statusId)
+                app.StatusItems.remove(statusId);
+            end
+
+            if ~isempty(app.StatusItems)
+                return; % Other tasks are busy.
+            end
+
             app.ApplicationState = nansen.enum.ApplicationState.Idle;
+            app.AllowStatusUpdate = true; % reset
             app.StatusText.Status = sprintf('Status: Idle');
             app.updateFigureTitle()
             
@@ -2040,7 +2068,26 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             drawnow
         end
         
-        function finishup = setBusy(app, statusStr)
+        function finishup = setBusy(app, statusStr, options)
+            arguments
+                app
+                statusStr
+                options.AllowInterrupt (1,1) logical = true
+            end
+
+            if app.ApplicationState == nansen.enum.ApplicationState.Busy
+                if ~app.AllowStatusUpdate
+                    finishup = function_handle.empty;
+                    return
+                end
+            end
+
+            statusId = matlab.lang.internal.uuid;
+            app.StatusItems(statusId) = true;
+
+            if ~options.AllowInterrupt
+                app.AllowStatusUpdate = false;
+            end
                         
             app.ApplicationState = nansen.enum.ApplicationState.Busy;
             app.Figure.Pointer = 'watch';
@@ -2062,7 +2109,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.StatusText.Status = statusStr;
             
             if nargout
-                finishup = onCleanup(@app.setIdle);
+                finishup = onCleanup(@() app.setIdle(statusId));
             end
             
             drawnow
@@ -2981,7 +3028,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if app.settings.MetadataTable.AllowTableEdits
                 wasSaved = app.MetaTable.save(forceSave);
                 
-                if wasSaved
+                if wasSaved && app.AllowStatusUpdate
                     app.StatusText.Status = sprintf('Status: Saved metadata table to %s', app.MetaTable.filepath);
                     app.clearStatusIn(5)
                 end
@@ -3175,7 +3222,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Get the function name
             functionName = evt.TaskAttributes.FunctionName;
             message = sprintf('Running task: %s', functionName);
-            returnToIdle = app.setBusy(message); %#ok<NASGU>
+            returnToIdle = app.setBusy(message, "AllowInterrupt", false); %#ok<NASGU>
                            
             app.SessionTaskMenu.Mode = 'Default'; % Reset menu mode
             drawnow
@@ -3250,12 +3297,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
 
             switch evt.Mode
-                case {'Default', 'Restart'}                       
-                    fprintf('Task completed: %s\n', ...
-                        func2str(taskConfiguration.Method));
+                case {'Default', 'Restart'}
+                    taskSplitName = split(func2str(taskConfiguration.Method), '.');
+                    fprintf('Task completed: %s\n', taskSplitName{end});
             end
-
-            app.refreshTable()
+            
+            % Refresh table - Make sure selection is preserved. Todo:
+            % should preserving of selection be part of the refreshTable
+            % method?
+            selectedEntries = app.UiMetaTableViewer.getSelectedEntries();
+            app.refreshTable()            
+            app.UiMetaTableViewer.setSelectedEntries(selectedEntries);
         end
         
         function runTasksWithDefaults(app, taskConfiguration)

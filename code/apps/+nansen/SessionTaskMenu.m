@@ -322,6 +322,7 @@ classdef SessionTaskMenu < handle
             % Create a text label for the menu
             menuName = strrep(folderListing.name, '+', '');
             menuName = utility.string.varname2label(menuName);
+            menuName = utility.string.titleCase(menuName);
             
             % Check if menu with this label already exists
             hMenuItem = findobj( hParent, 'Type', 'uimenu', '-and', ...
@@ -382,6 +383,7 @@ classdef SessionTaskMenu < handle
         %   the options manager.
 
             menuName = taskAttributes.MethodName;
+            menuName = utility.string.titleCase(menuName);
 
             % Check if menu with this label already exists
             iSubMenu = findobj( hParent, 'Type', 'uimenu', '-and', ...
