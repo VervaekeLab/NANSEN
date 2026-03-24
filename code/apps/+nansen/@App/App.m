@@ -3174,7 +3174,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             % Get the function name
             functionName = evt.TaskAttributes.FunctionName;
-            returnToIdle = app.setBusy(functionName); %#ok<NASGU>
+            message = sprintf('Running task: %s', functionName);
+            returnToIdle = app.setBusy(message); %#ok<NASGU>
                            
             app.SessionTaskMenu.Mode = 'Default'; % Reset menu mode
             drawnow
@@ -3246,6 +3247,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     case 'TaskQueue'
                         app.addTasksToQueue(taskConfiguration)
                 end
+            end
+
+            switch evt.Mode
+                case {'Default', 'Restart'}                       
+                    fprintf('Task completed: %s\n', ...
+                        func2str(taskConfiguration.Method));
             end
 
             app.refreshTable()
