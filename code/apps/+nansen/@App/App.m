@@ -3289,7 +3289,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         app.runTasksWithDefaults(taskConfiguration)
     
                     case 'Preview'
-                        app.runTasksWithPreview(taskConfiguration)
+                        wasAborted = app.runTasksWithPreview(taskConfiguration);
+                        if wasAborted; return; end
     
                     case 'TaskQueue'
                         app.addTasksToQueue(taskConfiguration)
@@ -3396,7 +3397,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
         end
 
-        function runTasksWithPreview(app, taskConfiguration)
+        function wasAborted = runTasksWithPreview(app, taskConfiguration)
             
             % Todo: Move some of this to a separate method, similar to
             % runTaskWithReset. Can get rid of some duplicate code, and
