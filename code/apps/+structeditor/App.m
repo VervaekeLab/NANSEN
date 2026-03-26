@@ -574,7 +574,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             obj.resizeControlPanel(obj.currentPanel, mainPos)
             
             if ~isempty(obj.hScroller)
-                obj.updateScrollbar(obj.currentPanel)
+                obj.refreshScrollbarLimits(obj.currentPanel)
             end
 
             if obj.showSidePanel
@@ -627,7 +627,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 obj.main.hAxes(pageNum).Position(3) = newPosition(3);
                 obj.main.hAxes(pageNum).Position(4) = newPosition(4);
                 set(obj.main.hAxes(pageNum), 'XLim', [0,newPosition(3)], 'YLim', [0, newPosition(4)]);
-                obj.moveElementsToTop()
             end
         end
         
@@ -1243,25 +1242,45 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             end
         end
         
-        function updateScrollbar(obj, panelNum)
-        %updateScrollbar Update scrollbar height based on panel height
-        %
-        % Note: This method also resets the scrollar value and moves all
-        % the elements to the top. This should be handled better. Pages
-        % should be reset when they are unselected, and scrollbar could
-        % have a reset method.
-        
-            visibleRatio = obj.visibleHeight/obj.virtualHeight(panelNum);
-            obj.hScroller.Maximum = 1/visibleRatio*100;
+        function refreshScrollbarLimits(obj, panelNum)
+        %refreshScrollbarLimits Update scrollbar limits without forcing a reset.
+            if nargin < 2 || isempty(panelNum)
+                panelNum = obj.currentPanel;
+            end
+            if isnan(obj.virtualHeight(panelNum)); return; end
 
-            obj.hScroller.resetValue()
-            obj.moveElementsToTop()
+            visibleRatio = obj.visibleHeight / obj.virtualHeight(panelNum);
+            obj.hScroller.Maximum = 1/visibleRatio*100;
 
             if obj.virtualHeight(panelNum) > obj.visibleHeight
                 obj.hScroller.Visible = 'on';
-                obj.lastScrollValue = 0;
             else
                 obj.hScroller.Visible = 'off';
+                obj.resetScrollToTop(panelNum)
+            end
+        end
+
+        function resetScrollToTop(obj, panelNum)
+        %resetScrollToTop Reset scroll value and align active page to top.
+            if nargin < 2 || isempty(panelNum)
+                panelNum = obj.currentPanel;
+            end
+
+            % moveElementsToTop uses currentPanel internally.
+            if panelNum ~= obj.currentPanel
+                return
+            end
+
+            obj.hScroller.resetValue()
+            obj.moveElementsToTop()
+            obj.lastScrollValue = 0;
+        end
+
+        function updateScrollbar(obj, panelNum)
+        %updateScrollbar Refresh limits and reset active page to top.
+            obj.refreshScrollbarLimits(panelNum)
+            if obj.virtualHeight(panelNum) > obj.visibleHeight
+                obj.resetScrollToTop(panelNum)
             end
         end
         
@@ -2133,7 +2152,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             pixelPos = getpixelposition( obj.main.hPanel(i) );
             
             if obj.showFooter
-                y0 = 45;
+                y0 = obj.Margins(2);
             else
                 y0 = 0;
             end
@@ -3038,9 +3057,17 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
             % Calculate new y-position for panel in pixels:
             offsetY = scroller.Value / 100 * obj.visibleHeight;
-            newY = obj.visibleHeight - pixelpos(4) + offsetY;
+            if obj.showFooter
+                y0 = obj.Margins(2);
+            else
+                y0 = 0;
+            end
+            newY = y0 + obj.visibleHeight - pixelpos(4) + offsetY;
             pixelpos(2) = newY;
-            setpixelposition( obj.main.hPanel(panelNum), pixelpos );
+            
+            % Update pixelpos with rounding to prevent small jitters from
+            % triggering the size changed callbacks
+            setpixelposition( obj.main.hPanel(panelNum), round(pixelpos) );
             
             return
             
