@@ -563,6 +563,10 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             footerPos = [0, 0, panelWidth, obj.Margins(2)];
             scrollPanelPos = [panelWidth-obj.Margins(3), obj.Margins(2)+1, obj.Margins(3), obj.visibleHeight-1];
             mainPos = [obj.Margins(1), obj.Margins(2), obj.visibleWidth, obj.visibleHeight];
+            if ~isempty(obj.main.hPanel) && isvalid(obj.main.hPanel(obj.currentPanel))
+                currentPanelPos = getpixelposition(obj.main.hPanel(obj.currentPanel));
+                mainPos(2) = currentPanelPos(2); % Preserve scroll offset while resizing.
+            end
             sidebarPos = [0, obj.Margins(2), obj.Margins(1), obj.visibleHeight];
             
             % Set positions using pixel units.
@@ -575,6 +579,15 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             if ~isempty(obj.hScroller)
                 obj.refreshScrollbarLimits(obj.currentPanel)
+                if obj.virtualHeight(obj.currentPanel) > obj.visibleHeight
+                    maxScrollValue = max(0, obj.hScroller.Maximum - obj.hScroller.VisibleAmount);
+                    newScrollValue = min(obj.hScroller.Value, maxScrollValue);
+                    if newScrollValue ~= obj.hScroller.Value
+                        obj.hScroller.Value = newScrollValue;
+                    else
+                        obj.scrollValueChange(struct('Value', newScrollValue), [])
+                    end
+                end
             end
 
             if obj.showSidePanel
@@ -723,7 +736,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             % Create a panel for controls for each of structs to be edited.
             for i = 1:obj.numTabs
                 obj.main.hPanel(i) = uipanel(obj.Panel, 'Visible', 'off');
-                obj.main.hPanel(i).SizeChangedFcn = @(s,e) obj.resizeControlPanel(i);
+                obj.main.hPanel(i).SizeChangedFcn = @(s,e) obj.resizeControlPanel(i, getpixelposition(s));
             end
         
             % Create a temporary panel to cover up uicontrols while they
