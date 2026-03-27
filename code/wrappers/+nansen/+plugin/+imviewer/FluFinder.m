@@ -1,4 +1,4 @@
-classdef FluFinder < imviewer.ImviewerPlugin
+classdef FluFinder < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewPlugin
 %FluFinder Imviewer plugin for FluFinder autosegmentation method
 %
 %   SYNTAX:
@@ -74,13 +74,6 @@ classdef FluFinder < imviewer.ImviewerPlugin
             obj.editSettings()
         end
         
-        function loadSettings(~)
-            % This class does not have to load settings
-        end
-        function saveSettings(~)
-            % This class does not have to save settings
-        end
-        
         function changeSetting(obj, name, value)
             obj.onSettingsChanged(name, value)
         end
@@ -145,12 +138,6 @@ classdef FluFinder < imviewer.ImviewerPlugin
                         obj.updateImviewerDisplay()
                     end
             end
-        end
-    end
-    
-    methods (Static) % Inherited...
-        function getPluginIcon()
-            
         end
     end
     

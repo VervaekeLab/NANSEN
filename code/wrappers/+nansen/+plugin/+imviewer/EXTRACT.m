@@ -1,4 +1,4 @@
-classdef EXTRACT < imviewer.ImviewerPlugin
+classdef EXTRACT < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewPlugin
 %EXTRACT Imviewer plugin for EXTRACT method
 %
 %   SYNTAX:
@@ -65,13 +65,6 @@ classdef EXTRACT < imviewer.ImviewerPlugin
             obj.editSettings()
         end
         
-        function loadSettings(~)
-            % This class does not have to load settings
-        end
-        function saveSettings(~)
-            % This class does not have to save settings
-        end
-        
         function changeSetting(obj, name, value)
             obj.onSettingsChanged(name, value)
         end
@@ -128,12 +121,6 @@ classdef EXTRACT < imviewer.ImviewerPlugin
                         obj.showTip('Please check EXTRACT''s FAQ before using this options')
                     end
             end
-        end
-    end
-    
-    methods (Static) % Inherited...
-        function getPluginIcon()
-            
         end
     end
     

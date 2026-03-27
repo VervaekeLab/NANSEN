@@ -1,4 +1,4 @@
-classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectionPreview
+classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewPlugin & nansen.processing.MotionCorrectionPreview
 %NoRMCorre Imviewer plugin for NoRMCorre method
 %
 %   SYNTAX:
@@ -72,12 +72,6 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectio
             end
         end
         
-        function loadSettings(~) % override to do nothing
-            % This class does not have to load settings
-        end
-        function saveSettings(~) % override to do nothing
-            % This class does not have to save settings
-        end
     end
     
     methods (Access = protected) % Plugin derived methods

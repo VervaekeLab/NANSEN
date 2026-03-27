@@ -34,39 +34,36 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
     properties (SetAccess = protected)
         PartialConstruction = false % Do a partial construction, i.e skip the opening of options editor on construction
     end
-    
+
     properties
-        RunMethodOnFinish = true    % Should we run method when settings/options are "saved"?
-        DestroyOnFinish = true      % Destroy plugin when control panel is closed
-        Modal = true                % Is figure modal or not
-        DataIoModel                 % Store a data i/o model object if it is provided.
-        OptionsManager              % Store optionsmanager handle if plugin is provided with an optionsmanager on construction
+        DataIoModel         % Store a data i/o model object if it is provided.
+        OptionsManager      % Store optionsmanager handle if plugin is provided with an optionsmanager on construction
     end
-    
+
     properties
-        PrimaryApp          % App which is primary "owner" of the plugin. find better propname?
+        PrimaryApp          % App which is primary "owner" of the plugin.
         MenuItem struct     % Struct for storing menu handles
         Icon
     end
-    
+
     properties (Access = protected)
         IsActivated = false;
     end
 
     methods % Constructor
-        
+
         function obj = AppPlugin(hApp, varargin)
-            
+
             [options, varargin] = applify.mixin.AppPlugin.optionsCheck(varargin);
-            
+
             if nargin > 2
                 obj.parseVarargin(varargin{1:end})
             end
-            
+
             if ~nargin || isempty(hApp); return; end
-            
+
             obj.validateAppHandle(hApp)
-            
+
             % If this plugin is already active, return the existing instance
             % rather than creating a duplicate.
             if hApp.isPluginActive(obj)
@@ -84,127 +81,71 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
             end
 
             obj.activatePlugin(hApp);
-            
+
             if ~nargout; clear obj; end
 
         end
-        
-        function delete(obj)
 
+        function delete(obj)
             % Delete menu items
             if ~isempty(obj.MenuItem)
                 structfun(@delete, obj.MenuItem)
             end
         end
     end
-    
+
     methods (Access = public)
-        
-        function openControlPanel(obj)
-            obj.editSettings()
-        end
-        
-        function run(obj)
+
+        function run(obj) %#ok<MANU>
             % Subclasses may override
         end
     end
-    
+
     % Methods for mouse and keyboard interactive callbacks
-    methods (Access = {?applify.mixin.AppPlugin, ?applify.AppWithPlugin} )
-        
-        function tf = keyPressHandler(obj, src, evt) % Subclass can override
-            % todo: rename to onKeyPressed
-            tf = false; % Key press event was not captured by plugin
+    methods (Access = {?applify.mixin.AppPlugin, ?applify.AppWithPlugin})
 
-        end
-        
-        function tf = keyReleasedHandler(obj, src, evt) % Subclass can override
-            tf = false; % Key released event was not captured by plugin
+        function tf = keyPressHandler(obj, src, evt) %#ok<INUSD> Subclass can override
+            tf = false;
         end
 
-        %tf = mousePressHandler(src, evt) % Subclass can override
-        
+        function tf = keyReleasedHandler(obj, src, evt) %#ok<INUSD> Subclass can override
+            tf = false;
+        end
+
     end
-    
-    methods % Access?
-        
+
+    methods
+
         function activatePlugin(obj, appHandle)
             obj.PrimaryApp = appHandle;
             obj.PrimaryApp.addPlugin(obj)
-            
             obj.onPluginActivated()
             obj.IsActivated = true;
         end
-        
-        function sEditor = openSettingsEditor(obj)
-        %openSettingsEditor Open ui dialog for editing plugin options.
-            
-            titleStr = sprintf('Options Editor (%s)', obj.Name);
 
-            if ~isempty(obj.OptionsManager)
-                sEditor = obj.OptionsManager.openOptionsEditor();
-                sEditor.Title = titleStr;
-                sEditor.Callback = @obj.onSettingsChanged;
-            else
-                sEditor = structeditor(obj.settings, 'Title', titleStr, ...
-                    'Callback', @obj.onSettingsChanged );
-            end
-            
-            obj.relocatePrimaryApp(sEditor) % To prevent figures covering each other
-            obj.hSettingsEditor = sEditor;
-            
-            addlistener(obj, 'ObjectBeingDestroyed', @(s,e)delete(sEditor));
-        
-        end
-        
-        function editSettings(obj)
-        %editSettings Open and wait for user to edit settings.
-        
-            sEditor = obj.openSettingsEditor();
-
-            if obj.Modal
-                sEditor.waitfor()
-                obj.onSettingsEditorResumed()
-
-            else
-                % Todo: implement above in callback.
-                addlistener(sEditor, 'AppDestroyed', ...
-                        @(s, e) obj.onSettingsEditorResumed);
-            end
-        end
-        
-        function place(obj, varargin)
-            obj.hSettingsEditor.place(varargin{:})
-        end
     end
-    
+
     methods (Access = protected)
-        
+
         function onPluginActivated(obj)
         %onPluginActivated Run subroutines when plugin is activated.
             obj.createSubMenu()
         end
-        
+
         function parseVarargin(obj, varargin)
         %parseVarargin Parser for varargin that are passed on construction
-            
-            % Look for flag of whether to open plugin's options panel on
-            % construction
+            % Look for flag of whether to open plugin's options panel on construction
             if ischar(varargin{1}) && isequal(varargin{1}, '-p')
                 obj.PartialConstruction = true;
                 varargin(1) = [];
             end
-            
             obj.assignPVPairs(varargin{:})
         end
-        
+
         function assignOptions(obj, options)
         %assignOptions Assign non default options for plugin
         %
-        %   obj.assignOptions(options) assigns non-default settings to
-        %   this object. options can be a struct or an OptionsManager
-        %   object
-        
+        %   options can be a struct or an OptionsManager object
             if isa(options, 'struct')
                 obj.settings = options;
             elseif isa(options, 'nansen.manage.OptionsManager')
@@ -212,90 +153,21 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
                 obj.settings = obj.OptionsManager.Options;
             end
         end
-        
-        function assignDefaultOptions(obj)
-        %assignDefaultOptions Assign default options
-            % Subclasses may override.
+
+        function assignDefaultOptions(obj) %#ok<MANU>
+        %assignDefaultOptions Assign default options. Subclasses may override.
         end
-        
-        function createSubMenu(obj)
+
+        function createSubMenu(obj) %#ok<MANU>
             % Subclasses may override
         end
-        
-        function onSettingsEditorResumed(obj)
-        %onSettingsEditorResumed Callback for when settings editor is resumed
-            
-            % Todo: What if obj is invalid
-        
-            % Abort if sEditor is invalid (improper exit)
-            if ~isvalid(obj.hSettingsEditor)
-                obj.hSettingsEditor = [];
-                return;
-            end
 
-            if ~obj.hSettingsEditor.wasCanceled
-                obj.settings_ = obj.hSettingsEditor.dataEdit;
-            end
-
-            obj.wasAborted = obj.hSettingsEditor.wasCanceled;
-            delete(obj.hSettingsEditor)
-            obj.hSettingsEditor = [];
-            obj.onSettingsEditorClosed()
-            
-            if ~obj.wasAborted && obj.RunMethodOnFinish
-                obj.run();
-            end
-            
-            if obj.DestroyOnFinish
-                delete(obj)
-            end
-        end
-        
-        function onSettingsEditorClosed(obj)
-            % Subclasses may override
-        end
-        
-        function relocatePrimaryApp(obj, hPlugin, direction)
-        %relocatePrimaryApp Relocate windows to prevent coverup.
-            
-            % TODO: What if plugin figure is in same window.. i.e roimanager
-            % TODO: Improve so that windows are not moved off-screen
-            
-            if nargin < 3
-                direction = 'horizontal';
-            end
-           
-            figPos(1,:) = getpixelposition(hPlugin.Figure);
-            figPos(2,:) = getpixelposition(obj.PrimaryApp.Figure);
-            hFig = [hPlugin.Figure, obj.PrimaryApp.Figure];
-
-            switch direction
-                case 'horizontal'
-                    figPos_ = figPos(:, [1,3]); dim = 1;
-                case 'vertical'
-                    figPos_ = figPos(:, [2,4]); dim = 2;
-            end
-            
-            screenPos = uim.utility.getCurrentScreenSize( obj.PrimaryApp.Figure );
-            
-            [~, idx] = sort(figPos_(:, 1));
-            figPos = figPos(idx, :);
-            hFig = hFig(idx);
-            
-            [x, ~] = uim.utility.layout.subdividePosition(min(figPos(:,1)), ...
-                screenPos(dim+2), figPos_(:,2), 20);
-            
-            for i = 1:2
-                hFig(i).Position(dim) = x(i);
-            end
-        end
     end
-    
+
     methods (Access = private)
-                    
+
         function validateAppHandle(obj, hApp)
         %validateAppHandle Check validity of app handle
-        
             if ~isa(hApp, 'applify.AppWithPlugin')
                 error('Can not add plugin "%s" to app of type %s', ...
                     obj.Name, class(hApp))
@@ -304,15 +176,12 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
     end
 
     methods (Static)
-    
-        function [opts, cellOfArgs] = optionsCheck(cellOfArgs)
-            
-            opts = [];
 
+        function [opts, cellOfArgs] = optionsCheck(cellOfArgs)
+            opts = [];
             if numel(cellOfArgs) >= 1
                 containsOpts = isa(cellOfArgs{1}, 'struct') || ...
                     isa(cellOfArgs{1}, 'nansen.manage.OptionsManager');
-
                 if containsOpts
                     opts = cellOfArgs{1}; cellOfArgs(1) = [];
                 end

@@ -1,4 +1,4 @@
-classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCorrectionPreview
+classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewPlugin & nansen.processing.MotionCorrectionPreview
 %FlowRegistration Imviewer plugin for FlowRegistration method
 %
 %   SYNTAX:
