@@ -1,8 +1,8 @@
-classdef DffExplorer < applify.mixin.AppPlugin % signalviewer plugin
-    
+classdef DffExplorer < applify.mixin.AppPlugin & applify.mixin.HasOptionsManager % signalviewer plugin
+
     properties (Constant, Hidden = true)
         USE_DEFAULT_SETTINGS = false    % Ignore settings file
-        DEFAULT_SETTINGS = []           % This class uses an optionsmanager
+        DEFAULT_SETTINGS = []           % This class uses HasOptionsManager
     end
 
     properties (Constant) % Implementation of AppPlugin property
@@ -26,7 +26,7 @@ classdef DffExplorer < applify.mixin.AppPlugin % signalviewer plugin
             obj.PrimaryApp.Figure.Name = 'DFF Explorer';
             obj.RoiSignalArray = obj.PrimaryApp.RoiSignalArray;
             
-            obj.editSettings()
+            obj.editOptions()
 
         end
         
@@ -55,21 +55,14 @@ classdef DffExplorer < applify.mixin.AppPlugin % signalviewer plugin
         function assignDefaultOptions(obj)
             functionName = 'nansen.twophoton.roisignals.computeDff';
             obj.OptionsManager = nansen.manage.OptionsManager(functionName);
-            obj.settings = obj.OptionsManager.getOptions;
         end
     end
-    
+
     methods (Access = protected)
-        
-        function onSettingsChanged(obj, name, value)
-            
-            obj.settings_.(name) = value;
-                        
-            obj.RoiSignalArray.DffOptions = obj.settings;
+
+        function onOptionsChanged(obj)
+            obj.RoiSignalArray.DffOptions = obj.Options;
             obj.RoiSignalArray.resetSignals('all', {'dff'})
-            
-            %obj.updateSignalPlot(obj.DisplayedRoiIndices, 'replace', {'dff'}, true);
-            
         end
     end
 end
