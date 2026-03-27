@@ -85,8 +85,8 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewP
             obj.MenuItem(1).PlotShifts.Callback = @obj.plotResults;
         end
         
-        function onSettingsEditorClosed(obj)
-        %onSettingsEditorClosed "Callback" for when settings editor exits
+        function onOptionsEditorClosed(obj)
+        %onOptionsEditorClosed "Callback" for when settings editor exits
             delete(obj.hGridLines)
             delete(obj.hGridOverlaps)
         end
@@ -100,8 +100,8 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewP
     
     methods % Methods for running normcorre motion correction
         
-        function sEditor = openSettingsEditor(obj)
-        %openSettingsEditor Open editor for method options.
+        function sEditor = openOptionsEditor(obj)
+        %openOptionsEditor Open editor for method options.
                         
             % Update folder- and filename in settings.
             [folderPath, fileName] = fileparts( obj.ImviewerObj.ImageStack.FileName );
@@ -113,7 +113,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewP
             obj.settings_.Export.SaveDirectory = folderPath;
             obj.settings_.Export.FileName = fileName;
 
-            sEditor = openSettingsEditor@imviewer.ImviewerPlugin(obj);
+            sEditor = openOptionsEditor@applify.mixin.ModalMethodPreviewPlugin(obj);
             
             % Need a better solution for this:
             idx = strcmp(sEditor.Name, 'Export');
@@ -126,7 +126,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewP
 
         function openControlPanel(obj)
             obj.plotGrid()
-            obj.editSettings()
+            obj.editOptions()
         end
         
         function run(obj)

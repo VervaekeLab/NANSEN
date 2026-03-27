@@ -71,7 +71,7 @@ classdef FluFinder < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewP
     methods
         
         function openControlPanel(obj, mode)
-            obj.editSettings()
+            obj.editOptions()
         end
         
         function changeSetting(obj, name, value)

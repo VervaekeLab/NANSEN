@@ -62,7 +62,7 @@ classdef EXTRACT < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewPlu
         
         function openControlPanel(obj, mode)
             obj.plotGrid()
-            obj.editSettings()
+            obj.editOptions()
         end
         
         function changeSetting(obj, name, value)

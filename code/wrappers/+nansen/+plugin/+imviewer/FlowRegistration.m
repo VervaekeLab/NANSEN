@@ -50,8 +50,8 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodP
     
     methods
         
-        function sEditor = openSettingsEditor(obj)
-        %openSettingsEditor Open editor for method options.
+        function sEditor = openOptionsEditor(obj)
+        %openOptionsEditor Open editor for method options.
                         
             % Update folder- and filename in settings.
             [folderPath, fileName] = fileparts( obj.ImviewerObj.ImageStack.FileName );
@@ -63,7 +63,7 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodP
             obj.settings_.Export.SaveDirectory = folderPath;
             obj.settings_.Export.FileName = fileName;
 
-            sEditor = openSettingsEditor@imviewer.ImviewerPlugin(obj);
+            sEditor = openOptionsEditor@applify.mixin.ModalMethodPreviewPlugin(obj);
             
             % Need a better solution for this:
             idx = strcmp(sEditor.Name, 'Export');
@@ -76,7 +76,7 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodP
         
         function openControlPanel(obj)
             obj.initializeGaussianFilter()
-            obj.editSettings()
+            obj.editOptions()
         end
 
         function run(obj)
@@ -157,8 +157,8 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodP
             % Nothing here yet
         end
         
-        function onSettingsEditorClosed(obj)
-        %onSettingsEditorClosed "Callback" for when settings editor exits
+        function onOptionsEditorClosed(obj)
+        %onOptionsEditorClosed "Callback" for when settings editor exits
             obj.resetGaussianFilter()
         end
         

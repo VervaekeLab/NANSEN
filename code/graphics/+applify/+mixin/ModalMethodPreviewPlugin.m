@@ -8,11 +8,11 @@ classdef ModalMethodPreviewPlugin < applify.mixin.AppPlugin
 %     4. Destroy themselves when finished (destroy)
 %
 %   Subclasses should override:
-%     - assignDefaultOptions   — set obj.OptionsManager and obj.settings
-%     - openControlPanel       — set up preview state, then call editSettings
-%     - run                    — execute the method
-%     - onSettingsChanged      — react to live option changes in the editor
-%     - onSettingsEditorClosed — clean up preview state when editor closes
+%     - assignDefaultOptions  — set obj.OptionsManager and obj.settings
+%     - openControlPanel      — set up preview state, then call editOptions
+%     - run                   — execute the method
+%     - onSettingsChanged     — react to live option changes in the editor
+%     - onOptionsEditorClosed — clean up preview state when editor closes
 
     properties
         RunMethodOnFinish (1,1) logical = true  % Run method when editor is confirmed
@@ -24,36 +24,36 @@ classdef ModalMethodPreviewPlugin < applify.mixin.AppPlugin
 
         function openControlPanel(obj)
         %openControlPanel Open the options editor. Subclasses may override
-        % to set up preview state before calling editSettings.
-            obj.editSettings()
+        % to set up preview state before calling editOptions.
+            obj.editOptions()
         end
 
-        function editSettings(obj)
-        %editSettings Open the options editor and wait (if modal).
-            sEditor = obj.openSettingsEditor();
+        function editOptions(obj)
+        %editOptions Open the options editor and wait (if modal).
+            optionsEditor = obj.openOptionsEditor();
             if obj.Modal
-                sEditor.waitfor()
-                obj.onSettingsEditorResumed()
+                optionsEditor.waitfor()
+                obj.onOptionsEditorResumed()
             else
-                addlistener(sEditor, 'AppDestroyed', ...
-                    @(s, e) obj.onSettingsEditorResumed);
+                addlistener(optionsEditor, 'AppDestroyed', ...
+                    @(s, e) obj.onOptionsEditorResumed);
             end
         end
 
-        function sEditor = openSettingsEditor(obj)
-        %openSettingsEditor Open the ui dialog for editing options/settings.
+        function optionsEditor = openOptionsEditor(obj)
+        %openOptionsEditor Open the ui dialog for editing method options.
             titleStr = sprintf('Options Editor (%s)', obj.Name);
             if ~isempty(obj.OptionsManager)
-                sEditor = obj.OptionsManager.openOptionsEditor();
-                sEditor.Title = titleStr;
-                sEditor.Callback = @obj.onSettingsChanged;
+                optionsEditor = obj.OptionsManager.openOptionsEditor();
+                optionsEditor.Title = titleStr;
+                optionsEditor.Callback = @obj.onSettingsChanged;
             else
-                sEditor = structeditor(obj.settings, 'Title', titleStr, ...
+                optionsEditor = structeditor(obj.settings, 'Title', titleStr, ...
                     'Callback', @obj.onSettingsChanged);
             end
-            obj.relocatePrimaryApp(sEditor)
-            obj.hSettingsEditor = sEditor;
-            addlistener(obj, 'ObjectBeingDestroyed', @(s,e) delete(sEditor));
+            obj.relocatePrimaryApp(optionsEditor)
+            obj.hSettingsEditor = optionsEditor;
+            addlistener(obj, 'ObjectBeingDestroyed', @(s,e) delete(optionsEditor));
         end
 
         function place(obj, varargin)
@@ -64,8 +64,8 @@ classdef ModalMethodPreviewPlugin < applify.mixin.AppPlugin
 
     methods (Access = protected)
 
-        function onSettingsEditorResumed(obj)
-        %onSettingsEditorResumed Called when the editor closes or is confirmed.
+        function onOptionsEditorResumed(obj)
+        %onOptionsEditorResumed Called when the editor closes or is confirmed.
             if ~isvalid(obj.hSettingsEditor)
                 obj.hSettingsEditor = [];
                 return
@@ -76,7 +76,7 @@ classdef ModalMethodPreviewPlugin < applify.mixin.AppPlugin
             obj.wasAborted = obj.hSettingsEditor.wasCanceled;
             delete(obj.hSettingsEditor)
             obj.hSettingsEditor = [];
-            obj.onSettingsEditorClosed()
+            obj.onOptionsEditorClosed()
             if ~obj.wasAborted && obj.RunMethodOnFinish
                 obj.run()
             end
@@ -85,8 +85,8 @@ classdef ModalMethodPreviewPlugin < applify.mixin.AppPlugin
             end
         end
 
-        function onSettingsEditorClosed(obj) %#ok<MANU>
-        %onSettingsEditorClosed Called just before run/destroy. Subclasses
+        function onOptionsEditorClosed(obj) %#ok<MANU>
+        %onOptionsEditorClosed Called just before run/destroy. Subclasses
         % override to clean up preview state (e.g. delete grid overlays).
         end
 
