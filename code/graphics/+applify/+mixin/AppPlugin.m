@@ -42,7 +42,6 @@ classdef AppPlugin < matlab.mixin.Heterogeneous & uiw.mixin.AssignPVPairs
     properties
         PrimaryApp          % App which is primary "owner" of the plugin.
         MenuItem struct     % Struct for storing menu handles
-        Icon
     end
 
     properties (Access = protected)

@@ -4,10 +4,6 @@ classdef DffExplorer < applify.mixin.AppPlugin & applify.mixin.HasOptionsManager
         Name = 'DFF Explorer'
     end
     
-    properties
-        PrimaryAppName = 'Roi Signal Explorer'
-    end
-    
     properties (Access = protected)
         RoiSignalArray
     end

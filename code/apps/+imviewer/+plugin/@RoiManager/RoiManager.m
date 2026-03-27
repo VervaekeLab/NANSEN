@@ -1499,10 +1499,6 @@ classdef RoiManager < imviewer.ImviewerPlugin & applify.mixin.UserSettings & roi
         
         S = getDefaultSettings()
         
-        function icon = getPluginIcon()
-            
-        end
-        
         function pathStr = getIconPath()
             % Get system dependent absolute path for icons.
             pathStr = roimanager.localpath('toolbar_icons');

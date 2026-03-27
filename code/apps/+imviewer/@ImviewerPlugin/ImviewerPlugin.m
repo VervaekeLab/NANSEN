@@ -1,12 +1,8 @@
 classdef ImviewerPlugin < applify.mixin.AppPlugin
-%imviewer.AppPlugin Superclass for plugins to the imviewer app
+%imviewer.ImviewerPlugin App-scoped plugin base for imviewer
 
     % Abstract class providing properties and methods that gives plugin
     % functionality for imviewer.
-
-    properties
-        PrimaryAppName = 'imviewer'     % Name of primary app
-    end
     
     properties (Dependent)
         ImviewerObj                     % Alias for PrimaryApp % Rename to ImviewerApp

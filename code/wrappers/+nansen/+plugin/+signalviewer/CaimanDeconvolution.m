@@ -4,10 +4,6 @@ classdef CaimanDeconvolution < applify.mixin.AppPlugin & applify.mixin.HasOption
         Name = 'CaImAn Deconvolution'
     end
     
-    properties
-        PrimaryAppName = 'Roi Signal Explorer'
-    end
-    
     properties (Access = protected)
         RoiSignalArray
     end
