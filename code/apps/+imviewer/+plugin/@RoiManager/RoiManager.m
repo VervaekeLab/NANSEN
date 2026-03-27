@@ -1231,8 +1231,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             hAxes = obj.PrimaryApp.Axes;
             hMap = obj.roiDisplay;
             
-            isMatch = contains({hViewer.plugins.pluginName}, 'pointerManager');
-            obj.PointerManager = hViewer.plugins(isMatch).pluginHandle;
+            obj.PointerManager = hViewer.PointerManager;
             
             pointerNames = {'selectObject', 'polyDraw', 'circleSelect', 'autoDetect', 'freehandDraw'};
             

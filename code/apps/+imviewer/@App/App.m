@@ -122,7 +122,10 @@ properties (Access = public) % Components
     LinkedApps % Todo: Make superclass for timeseries viewer. Property: currentSampleNum & Methods for syncing samplenumber...
 
     uiwidgets = struct() % Todo: Inherit from modular app?
-    plugins = struct('pluginName', {}, 'pluginHandle', {}); % Todo: migrate to AppWithPlugin superclass
+end
+
+properties (Access = {?imviewer.App, ?imviewer.ImviewerPlugin}) % App-owned interaction interface
+    PointerManager % uim.interface.pointerManager — owns zoom/pan pointer tools
 end
 
 properties (Access = private) % Private components (todo: clean up)
@@ -500,10 +503,7 @@ methods % App initialization & creation
         %obj.displayMessage('Initializing...')
         
         % Initialize the pointer interface.
-        pif = uim.interface.pointerManager(obj.Figure, obj.uiaxes.imdisplay, {'zoomIn', 'zoomOut', 'pan'});
-        pif.pointers.pan.buttonMotionCallback = @obj.moveImage;
-        obj.plugins(end+1).pluginName = 'pointerManager';
-        obj.plugins(end).pluginHandle = pif;
+        obj.initialisePointerManager();
         
         % A bit random to do this here, but for now it only influences the
         % pointerManager zoom tools
@@ -1407,19 +1407,15 @@ methods % App initialization & creation
         hToolbar.addButton('Icon', obj.ICONS.zoomOut, 'Mode', 'togglebutton', 'Tag', 'zoomOut', 'Tooltip', 'Zoom Out (w)', buttonProps{:})
         hToolbar.addButton('Icon', obj.ICONS.hand4, 'Mode', 'togglebutton', 'Tag', 'pan', 'Tooltip', 'Pan (y)', buttonProps{:})
 
-        % Get handle for pointerManager interface
-        isMatch = contains({obj.plugins.pluginName}, 'pointerManager');
-        pifHandle = obj.plugins(isMatch).pluginHandle;
-            
         % Add listeners for toggling of modes from the pointertools to the
         % buttons. Also connect to buttonDown to toggling of the pointer
         % tools.
         pointerModes = {'zoomIn', 'zoomOut', 'pan'};
-        
+
         for i = 1:numel(pointerModes)
             hBtn = hToolbar.getHandle(pointerModes{i});
-            hBtn.Callback = @(s,e,h,str) togglePointerMode(pifHandle, pointerModes{i});
-            hBtn.addToggleListener(pifHandle.pointers.(pointerModes{i}), 'ToggledPointerTool')
+            hBtn.Callback = @(s,e,h,str) togglePointerMode(obj.PointerManager, pointerModes{i});
+            hBtn.addToggleListener(obj.PointerManager.pointers.(pointerModes{i}), 'ToggledPointerTool')
         end
         
         % Add toolbar to the widgets property.
@@ -1739,34 +1735,29 @@ methods % App update
         obj.Axes.UIContextMenu.Parent = hFig;
         
         % TEMPORARY. Todo: should make separate method for this!
-        % Get handle for pointerManager interface
-        isMatch = contains({obj.plugins.pluginName}, 'pointerManager');
-        pifHandle = obj.plugins(isMatch).pluginHandle;
-        delete(pifHandle)
-        
+        delete(obj.PointerManager)
+
         obj.Figure.CloseRequestFcn = [];
         delete(obj.Figure)
-        
+
         obj.Figure = hFig;
-        
+
         obj.uiaxes.imdisplay.UIContextMenu = uicontextmenu(obj.Figure);
         obj.createImageMenu(obj.uiaxes.imdisplay.UIContextMenu);
-        
+
         obj.uiaxes.imdisplay.ButtonDownFcn = [];
-        pifHandle = uim.interface.pointerManager(obj.Figure, obj.uiaxes.imdisplay, {'zoomIn', 'zoomOut', 'pan'});
-        pifHandle.pointers.pan.buttonMotionCallback = @obj.moveImage;
-        obj.plugins(isMatch).pluginHandle = pifHandle;
+        obj.initialisePointerManager();
+
         % Add listeners for toggling of modes from the pointertools to the
         % buttons. Also connect to buttonDown to toggling of the pointer
         % tools.
-        
         hToolbar = obj.uiwidgets.Toolbar;
         pointerModes = {'zoomIn', 'zoomOut', 'pan'};
-        
+
         for i = 1:numel(pointerModes)
             hBtn = hToolbar.getHandle(pointerModes{i});
-            hBtn.Callback = @(s,e,h,str) togglePointerMode(pifHandle, pointerModes{i});
-            hBtn.addToggleListener(pifHandle.pointers.(pointerModes{i}), 'ToggledPointerTool')
+            hBtn.Callback = @(s,e,h,str) togglePointerMode(obj.PointerManager, pointerModes{i});
+            hBtn.addToggleListener(obj.PointerManager.pointers.(pointerModes{i}), 'ToggledPointerTool')
         end
         
         % From updateImageDisplay
@@ -4681,8 +4672,19 @@ methods % Misc, most can be outsourced
     end
 end
 
+methods (Access = private) % PointerManager lifecycle
+
+    function initialisePointerManager(obj)
+    % initialisePointerManager - Create the pointer manager and assign it to obj.PointerManager
+        pointerManager = uim.interface.pointerManager(obj.Figure, obj.uiaxes.imdisplay, {'zoomIn', 'zoomOut', 'pan'});
+        pointerManager.pointers.pan.buttonMotionCallback = @obj.moveImage;
+        obj.PointerManager = pointerManager;
+    end
+
+end
+
 methods (Access = private) % Housekeeping and internal
-    
+
     function turnOffModernAxesToolbar(obj, hAxes)
         
         % Disable newer matlab axes interactivity...
@@ -4922,10 +4924,8 @@ methods (Access = protected) % Event callbacks
     end
     
     function onMouseEnteredImage(obj, ~, ~)
-        isMatch = contains({obj.plugins.pluginName}, 'pointerManager');
-        if any(isMatch)
-            pifHandle = obj.plugins(isMatch).pluginHandle;
-            pifHandle.updatePointerSymbol()
+        if ~isempty(obj.PointerManager)
+            obj.PointerManager.updatePointerSymbol()
         end
     end
 
@@ -5058,7 +5058,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
             obj.isDrag = true;
             
             % Abort if mousemode is set
-            if ~isempty(obj.plugins(1).pluginHandle.currentPointerTool)
+            if ~isempty(obj.PointerManager) && ~isempty(obj.PointerManager.currentPointerTool)
                 return
             end
             
@@ -5183,23 +5183,16 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
         
         if ~obj.isMouseInApp && ~forceKey; return; end
 
-        % Todo: This only holds the pointermanager. Should make it into an
-        % interface.., not a plugin.
-        if ~isempty(obj.plugins)
-            for i = 1:numel(obj.plugins)
-                try
-                    wasCaptured = obj.plugins(i).pluginHandle.onKeyPress([], event);
-                    if wasCaptured; return; end
-                catch ME
-                    fprintf( [ME.message, '\n'] )
-                    % something went wrong, but that's fine?
-                end
+        % Route key press to the pointer manager first.
+        if ~isempty(obj.PointerManager)
+            try
+                wasCaptured = obj.PointerManager.onKeyPress([], event);
+                if wasCaptured; return; end
+            catch ME
+                fprintf( [ME.message, '\n'] )
             end
         end
-        
-        % Note: This should eventually take over for the if block above,
-        % pointermanager is currently saved in the 'plugins' property, and
-        % this method works on 'Plugins' property. Todo: consolidate
+
         wasCaptured = obj.sendKeyEventToPlugins([], event);
         if wasCaptured; return; end
         
@@ -5472,19 +5465,13 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
     function onKeyReleased(obj, ~, event)
     % onKeyReleased - Callback handler for key release events
 
-        % Check if any plugins are active, and invoke their keyRelease
-        % callback handler. If no plugins are active, or no plugins
-        % captures the key, let this app handle the key event.
-
-        if ~isempty(obj.plugins)
-            for i = 1:numel(obj.plugins)
-                try
-                    wasCaptured = obj.plugins(i).pluginHandle.onKeyRelease([], event);
-                    if wasCaptured; return; end
-                catch ME
-                    fprintf( [ME.message, '\n'] )
-                    % something went wrong, but that's fine?
-                end
+        % Route key release to the pointer manager first.
+        if ~isempty(obj.PointerManager)
+            try
+                wasCaptured = obj.PointerManager.onKeyRelease([], event);
+                if wasCaptured; return; end
+            catch ME
+                fprintf( [ME.message, '\n'] )
             end
         end
 
@@ -5810,20 +5797,13 @@ methods (Access = private) % Methods that runs when properties are set
     end
     
     function configureSpatialDownsampling(obj)
-        
+        if isempty(obj.PointerManager); return; end
         if isa(obj.ImageStack, 'nansen.stack.HighResolutionImage')
-            
-            ind = find(contains( {obj.plugins.pluginName}, 'pointerManager'));
-            pif = obj.plugins(ind).pluginHandle;
-            
-            pif.pointers.zoomIn.zoomFinishedCallback = @(s,e) obj.onDisplayLimitsChanged;
-            pif.pointers.zoomOut.zoomFinishedCallback = @(s,e) obj.onDisplayLimitsChanged;
-
+            obj.PointerManager.pointers.zoomIn.zoomFinishedCallback = @(s,e) obj.onDisplayLimitsChanged;
+            obj.PointerManager.pointers.zoomOut.zoomFinishedCallback = @(s,e) obj.onDisplayLimitsChanged;
         else
-            ind = find(contains( {obj.plugins.pluginName}, 'pointerManager'));
-            pif = obj.plugins(ind).pluginHandle;
-            pif.pointers.zoomIn.zoomFinishedCallback = [];
-            pif.pointers.zoomOut.zoomFinishedCallback = [];
+            obj.PointerManager.pointers.zoomIn.zoomFinishedCallback = [];
+            obj.PointerManager.pointers.zoomOut.zoomFinishedCallback = [];
         end
     end
     
