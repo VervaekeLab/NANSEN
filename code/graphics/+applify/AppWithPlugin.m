@@ -67,17 +67,36 @@ classdef AppWithPlugin < uim.handle
         end
         
         function wasCaptured = sendKeyEventToPlugins(obj, ~, evt)
-        %sendKeyEventToPlugins Send a key event to plugins
+        %sendKeyEventToPlugins Send a key press event to plugins
         %
         %   The key event is sent to the plugins in the order they have
         %   been added. If a plugin captures the key event, this method
         %   returns before sending the event to the remaining plugins.
-        
+
             wasCaptured = false;
-            
+
             for i = 1:numel(obj.Plugins)
                 try
                     wasCaptured = obj.Plugins(i).keyPressHandler([], evt);
+                    if wasCaptured; return; end
+                catch ME
+                    warning( [ME.message, '\n'] )
+                end
+            end
+        end
+
+        function wasCaptured = sendKeyReleaseEventToPlugins(obj, ~, evt)
+        %sendKeyReleaseEventToPlugins Send a key release event to plugins
+        %
+        %   The key release event is sent to the plugins in the order they
+        %   have been added. If a plugin captures the event, this method
+        %   returns before sending the event to the remaining plugins.
+
+            wasCaptured = false;
+
+            for i = 1:numel(obj.Plugins)
+                try
+                    wasCaptured = obj.Plugins(i).keyReleasedHandler([], evt);
                     if wasCaptured; return; end
                 catch ME
                     warning( [ME.message, '\n'] )

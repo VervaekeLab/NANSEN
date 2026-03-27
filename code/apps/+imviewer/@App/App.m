@@ -5475,6 +5475,9 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
             end
         end
 
+        wasCaptured = obj.sendKeyReleaseEventToPlugins([], event);
+        if wasCaptured; return; end
+
         switch event.Key
             case 'shift'
                 obj.Figure.SelectionType = 'normal';
