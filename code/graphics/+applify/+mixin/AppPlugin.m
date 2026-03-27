@@ -18,42 +18,19 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
 %        property, value pairs to be set on construction
 %
 
-    % Not quite sure yet what to add here.
+    % Plugins can:
+    %   - implement mouse/keyboard callbacks invoked by the host app
+    %   - add items to the app menu
+    %   - hold user settings via UserSettings (persistent preferences)
+    %   - hold method options via HasOptionsManager (algorithm parameters)
     %
-    % Provide properties and methods for other classes to act as plugins to
-    % apps.
-    %
-    %       On construction of the plugin, it is added to the apps plugin
-    %       list. If a plugin of the same type is already in the list, the
-    %       handle of that is returned instead of creating a new one...
-    %
-    %       Plugins can implement mouse/keyboard callbacks that are called
-    %       whenever the apps corresponding callback is invoked
-    %
-    %       The plugin gets access to some of the parent class properties
-    %       and methods.
-    %
-    %       The plugin can add items to the apps menu.
-    %
-    %       App takes plugin's settings into account.
-    
-    % Todo:
-    %   [ ] Inherit from nansen.mixin.HasOptions instead of
-    %       applify.mixin.UserSettings?
-    %       The original idea was that a plugin has some additional
-    %       settings that should be combined with the apps own settings
-    %       when the plugin is active. However, all the plugins that are
-    %       implemented is a method/algorithm with parameters, and these
-    %       are managed using the Options/OptionsManager instead...
-    
+    % matlab.mixin.Heterogeneous allows AppWithPlugin.Plugins to hold an
+    % array of mixed AppPlugin subclass instances.
+
     properties (Abstract, Constant)
         Name
     end
-    
-    properties (Abstract)
-        PrimaryAppName              % What is this used for exactly? Maybe remove?
-    end
-    
+
     properties (SetAccess = protected)
         PartialConstruction = false % Do a partial construction, i.e skip the opening of options editor on construction
     end
@@ -75,14 +52,6 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
     properties (Access = protected)
         IsActivated = false;
     end
-    
-    methods (Abstract, Static) % Should it be a property or part of settings?
-        %getPluginIcon()
-    end
-
-% %     methods (Abstract, Access = protected) % todo: Is this abstract??
-% %         onPluginActivated % Todo: find better name..
-% %     end
 
     methods % Constructor
         
@@ -98,21 +67,23 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
             
             obj.validateAppHandle(hApp)
             
-            % Check if plugin is already open/active
+            % If this plugin is already active, return the existing instance
+            % rather than creating a duplicate.
             if hApp.isPluginActive(obj)
+                warning('applify:AppPlugin:alreadyActive', ...
+                    'Plugin "%s" is already active. Returning existing instance.', obj.Name)
                 obj = hApp.getPluginHandle(obj.Name);
+                return
             end
-            
+
             % Assign options from input if provided
             if nargin >= 2 && ~isempty(options)
                 obj.assignOptions(options)
             else
                 obj.assignDefaultOptions()
             end
-                        
-            if ~hApp.isPluginActive(obj)
-                obj.activatePlugin(hApp)
-            end
+
+            obj.activatePlugin(hApp);
             
             if ~nargout; clear obj; end
 
