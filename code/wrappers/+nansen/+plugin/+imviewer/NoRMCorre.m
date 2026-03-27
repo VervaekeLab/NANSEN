@@ -1,4 +1,4 @@
-classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewPlugin & nansen.processing.MotionCorrectionPreview
+classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewController & nansen.processing.MotionCorrectionPreview
 %NoRMCorre Imviewer plugin for NoRMCorre method
 %
 %   SYNTAX:
@@ -9,7 +9,6 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewP
 %   INHERITANCE:
 %       |- imviewer.ImviewerPlugin
 %           |- applify.mixin.AppPlugin
-%               |-  applify.mixin.UserSettings
 %               |-  matlab.mixin.Heterogeneous
 %               |-  uiw.mixin.AssignPVPairs
 
@@ -20,11 +19,6 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewP
 %       [ ] Should it have a DataIoModel property? Then its easy to plug in
 %           whatever model (i.e) a session model and save data consistently.
     
-    properties (Constant, Hidden = true)
-        USE_DEFAULT_SETTINGS = false    % Ignore settings file
-        DEFAULT_SETTINGS = []           % This class uses an optionsmanager
-    end
-        
     properties (Constant) % Implementation of AppPlugin property
         Name = 'NoRMCorre'
     end
@@ -51,7 +45,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewP
                         
             obj@imviewer.ImviewerPlugin(varargin{:})
             
-            if ~ obj.PartialConstruction && isempty(obj.hSettingsEditor)
+            if ~ obj.PartialConstruction && isempty(obj.hOptionsEditor)
                 obj.openControlPanel()
             end
             
@@ -86,7 +80,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewP
         end
         
         function onOptionsEditorClosed(obj)
-        %onOptionsEditorClosed "Callback" for when settings editor exits
+        %onOptionsEditorClosed "Callback" for when options editor exits
             delete(obj.hGridLines)
             delete(obj.hGridOverlaps)
         end
@@ -94,7 +88,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewP
         function assignDefaultOptions(obj)
             functionName = 'nansen.wrapper.normcorre.Processor';
             obj.OptionsManager = nansen.manage.OptionsManager(functionName);
-            obj.settings = obj.OptionsManager.getOptions;
+            obj.Options = obj.OptionsManager.getOptions;
         end
     end
     
@@ -103,17 +97,17 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewP
         function sEditor = openOptionsEditor(obj)
         %openOptionsEditor Open editor for method options.
                         
-            % Update folder- and filename in settings.
+            % Update folder- and filename in options.
             [folderPath, fileName] = fileparts( obj.ImviewerObj.ImageStack.FileName );
             folderPath = fullfile(folderPath, obj.TargetFolderName);
             
             % Prepare default filename
             fileName = obj.buildFilenameWithExtension(fileName);
 
-            obj.settings_.Export.SaveDirectory = folderPath;
-            obj.settings_.Export.FileName = fileName;
+            obj.Options_.Export.SaveDirectory = folderPath;
+            obj.Options_.Export.FileName = fileName;
 
-            sEditor = openOptionsEditor@applify.mixin.ModalMethodPreviewPlugin(obj);
+            sEditor = openOptionsEditor@applify.mixin.ModalMethodPreviewController(obj);
             
             % Need a better solution for this:
             idx = strcmp(sEditor.Name, 'Export');
@@ -140,10 +134,10 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewP
         % Run a motion correction processor on frames instead?
         
             % Check if saveResult or showResults is selected
-            obj.assertPreviewSettingsValid()
+            obj.assertPreviewOptionsValid()
             
             % Prepare save directory
-            if obj.settings.Preview.saveResults
+            if obj.Options.Preview.saveResults
                 [saveFolder, datePrefix] = obj.prepareSaveFolder();
                 if isempty(saveFolder); return; end
             end
@@ -155,7 +149,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewP
             stackSize = size(Y);
             
             import nansen.wrapper.normcorre.*
-            ncOptions = Options.convert(obj.settings, stackSize);
+            ncOptions = Options.convert(obj.Options, stackSize);
             
             if ~isa(Y, 'single') || ~isa(Y, 'double')
                 Y = single(Y);
@@ -179,13 +173,13 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewP
             obj.ImviewerObj.clearMessage;
             
          	% Show results from test aligning:
-            if obj.settings.Preview.showResults
+            if obj.Options.Preview.showResults
                 h = imviewer(M);
                 h.stackname = sprintf('%s - %s', obj.ImviewerObj.stackname, 'NoRMCorre Test Correction');
             end
             
          	% Save results from test aligning:
-            if obj.settings.Preview.saveResults
+            if obj.Options.Preview.saveResults
                 getSavepath = @(name) fullfile(saveFolder, ...
                     sprintf('%s_%s', datePrefix, name ) );
                                 
@@ -203,35 +197,35 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewP
             dataSet = obj.prepareTargetDataset();
 
             nansen.wrapper.normcorre.Processor(obj.ImviewerObj.ImageStack,...
-                obj.settings, 'DataIoModel', dataSet)
+                obj.Options, 'DataIoModel', dataSet)
         end
     end
     
     methods (Access = protected)
         
-        function onSettingsChanged(obj, name, value)
+        function onOptionsChanged(obj, name, value)
             
-            % Call superclass method to deal with settings that are
-            % general motion correction settings.
-            onSettingsChanged@nansen.processing.MotionCorrectionPreview(obj, name, value)
+            % Call superclass method to deal with options that are
+            % general motion correction options.
+            obj.onOptionsChanged@nansen.processing.MotionCorrectionPreview(obj, name, value)
 
-            patchesFields = fieldnames(obj.settings.Configuration);
-            templateFields = fieldnames(obj.settings.Template);
+            patchesFields = fieldnames(obj.Options.Configuration);
+            templateFields = fieldnames(obj.Options.Template);
             
             switch name
                 % Note: this needs to go before the patchesfield!
                 case {'numRows', 'numCols', 'patchOverlap'}
-                    obj.settings.Configuration.(name) = value;
+                    obj.Options.Configuration.(name) = value;
                     obj.plotGrid()
 
                 case patchesFields
-                    obj.settings.Configuration.(name) = value;
+                    obj.Options.Configuration.(name) = value;
                     
                 case templateFields
-                    obj.settings.Template.(name) = value;
+                    obj.Options.Template.(name) = value;
 
                 case {'firstFrame', 'numFrames', 'saveResults', 'showResults'}
-                    obj.settings.Preview.(name) = value;
+                    obj.Options.Preview.(name) = value;
                     
                 case 'runAlign'
                     obj.runAlign()
@@ -246,8 +240,8 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewP
             xLim = [1,obj.ImviewerObj.imWidth];
             yLim = [1,obj.ImviewerObj.imHeight];
             
-            numRows = obj.settings.Configuration.numRows;
-            numCols = obj.settings.Configuration.numCols;
+            numRows = obj.Options.Configuration.numRows;
+            numCols = obj.Options.Configuration.numCols;
 
             xPoints = linspace(xLim(1),xLim(2), numCols+1);
             yPoints = linspace(yLim(1),yLim(2), numRows+1);
@@ -271,8 +265,8 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewP
             set(obj.hGridLines, 'HitTest', 'off', 'Tag', 'NorRMCorre Gridlines');
             
             xDataVert = cat(1, xDataVert, xDataVert);
-            xDataVert(1:2, :) = xDataVert(1:2, :) - obj.settings.Configuration.patchOverlap(2)/2;
-            xDataVert(3:4, :) = xDataVert(3:4, :) + obj.settings.Configuration.patchOverlap(2)/2;
+            xDataVert(1:2, :) = xDataVert(1:2, :) - obj.Options.Configuration.patchOverlap(2)/2;
+            xDataVert(3:4, :) = xDataVert(3:4, :) + obj.Options.Configuration.patchOverlap(2)/2;
             yDataVert = cat(1, yDataVert, flipud(yDataVert));
             
             h2 = patch(obj.ImviewerObj.Axes, xDataVert, yDataVert, 'w');
@@ -280,8 +274,8 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewP
             
             xDataHorz = cat(1, xDataHorz, flipud(xDataHorz));
             yDataHorz = cat(1, yDataHorz, yDataHorz);
-            yDataHorz(1:2, :) = yDataHorz(1:2, :) - obj.settings.Configuration.patchOverlap(1)/2;
-            yDataHorz(3:4, :) = yDataHorz(3:4, :) + obj.settings.Configuration.patchOverlap(1)/2;
+            yDataHorz(1:2, :) = yDataHorz(1:2, :) - obj.Options.Configuration.patchOverlap(1)/2;
+            yDataHorz(3:4, :) = yDataHorz(3:4, :) + obj.Options.Configuration.patchOverlap(1)/2;
             
             h3 = patch(obj.ImviewerObj.Axes, xDataHorz, yDataHorz, 'w');
             set(h3, 'FaceAlpha', 0.15, 'HitTest', 'off')

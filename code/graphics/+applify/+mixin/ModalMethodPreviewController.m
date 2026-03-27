@@ -1,5 +1,5 @@
-classdef ModalMethodPreviewPlugin < applify.mixin.AppPlugin
-%ModalMethodPreviewPlugin Base for plugins with a modal edit/preview/run workflow
+classdef ModalMethodPreviewController < handle
+%ModalMethodPreviewController Behavioral mixin for modal edit/preview/run workflows
 %
 %   Provides the lifecycle for plugins that:
 %     1. Open a modal options editor (edit)
@@ -8,16 +8,30 @@ classdef ModalMethodPreviewPlugin < applify.mixin.AppPlugin
 %     4. Destroy themselves when finished (destroy)
 %
 %   Subclasses should override:
-%     - assignDefaultOptions  — set obj.OptionsManager and obj.settings
+%     - assignDefaultOptions  - set the default method options
 %     - openControlPanel      — set up preview state, then call editOptions
 %     - run                   — execute the method
-%     - onSettingsChanged     — react to live option changes in the editor
+%     - onOptionsChanged      - react to live option changes in the editor
 %     - onOptionsEditorClosed — clean up preview state when editor closes
+%
+%   This class is a behavioral mixin, not the primary plugin base class.
+%   Concrete plugins should combine it with a single AppPlugin-derived
+%   superclass such as imviewer.ImviewerPlugin.
 
     properties
         RunMethodOnFinish (1,1) logical = true  % Run method when editor is confirmed
         DestroyOnFinish   (1,1) logical = true  % Destroy plugin after run
         Modal             (1,1) logical = true  % Block execution while editor is open
+    end
+
+    properties (Dependent)
+        Options
+    end
+
+    properties (Access = protected)
+        Options_ struct = struct.empty
+        hOptionsEditor
+        wasAborted = false
     end
 
     methods (Access = public)
@@ -44,20 +58,20 @@ classdef ModalMethodPreviewPlugin < applify.mixin.AppPlugin
         %openOptionsEditor Open the ui dialog for editing method options.
             titleStr = sprintf('Options Editor (%s)', obj.Name);
             if ~isempty(obj.OptionsManager)
-                optionsEditor = obj.OptionsManager.openOptionsEditor();
+                optionsEditor = obj.OptionsManager.openOptionsEditor([], obj.getCurrentOptions());
                 optionsEditor.Title = titleStr;
-                optionsEditor.Callback = @obj.onSettingsChanged;
+                optionsEditor.Callback = @obj.onOptionsChanged;
             else
-                optionsEditor = structeditor(obj.settings, 'Title', titleStr, ...
-                    'Callback', @obj.onSettingsChanged);
+                optionsEditor = structeditor(obj.getCurrentOptions(), ...
+                    'Title', titleStr, 'Callback', @obj.onOptionsChanged);
             end
             obj.relocatePrimaryApp(optionsEditor)
-            obj.hSettingsEditor = optionsEditor;
+            obj.hOptionsEditor = optionsEditor;
             addlistener(obj, 'ObjectBeingDestroyed', @(s,e) delete(optionsEditor));
         end
 
         function place(obj, varargin)
-            obj.hSettingsEditor.place(varargin{:})
+            obj.hOptionsEditor.place(varargin{:})
         end
 
     end
@@ -66,16 +80,16 @@ classdef ModalMethodPreviewPlugin < applify.mixin.AppPlugin
 
         function onOptionsEditorResumed(obj)
         %onOptionsEditorResumed Called when the editor closes or is confirmed.
-            if ~isvalid(obj.hSettingsEditor)
-                obj.hSettingsEditor = [];
+            if ~isvalid(obj.hOptionsEditor)
+                obj.hOptionsEditor = [];
                 return
             end
-            if ~obj.hSettingsEditor.wasCanceled
-                obj.settings_ = obj.hSettingsEditor.dataEdit;
+            if ~obj.hOptionsEditor.wasCanceled
+                obj.setCurrentOptions(obj.hOptionsEditor.dataEdit);
             end
-            obj.wasAborted = obj.hSettingsEditor.wasCanceled;
-            delete(obj.hSettingsEditor)
-            obj.hSettingsEditor = [];
+            obj.wasAborted = obj.hOptionsEditor.wasCanceled;
+            delete(obj.hOptionsEditor)
+            obj.hOptionsEditor = [];
             obj.onOptionsEditorClosed()
             if ~obj.wasAborted && obj.RunMethodOnFinish
                 obj.run()
@@ -88,6 +102,11 @@ classdef ModalMethodPreviewPlugin < applify.mixin.AppPlugin
         function onOptionsEditorClosed(obj) %#ok<MANU>
         %onOptionsEditorClosed Called just before run/destroy. Subclasses
         % override to clean up preview state (e.g. delete grid overlays).
+        end
+
+        function onOptionsChanged(obj, name, value)
+        %onOptionsChanged Called when the options editor changes a value.
+            obj.updateOptionValue(name, value)
         end
 
         function relocatePrimaryApp(obj, hPlugin, direction)
@@ -111,5 +130,41 @@ classdef ModalMethodPreviewPlugin < applify.mixin.AppPlugin
             end
         end
 
+        function options = getCurrentOptions(obj)
+        %getCurrentOptions Return the current method options.
+            options = obj.Options;
+        end
+
+        function setCurrentOptions(obj, options)
+        %setCurrentOptions Assign the current method options.
+            obj.Options = options;
+        end
+
+        function updateOptionValue(obj, name, value)
+            superFields = fieldnames(obj.Options);
+
+            for i = 1:numel(superFields)
+                thisField = superFields{i};
+                if isfield(obj.Options.(thisField), name)
+                    obj.Options.(thisField).(name) = value;
+                end
+            end
+        end
+    end
+
+    methods
+        function set.Options(obj, options)
+            obj.Options_ = options;
+        end
+
+        function options = get.Options(obj)
+            if ~isempty(obj.Options_)
+                options = obj.Options_;
+            elseif ~isempty(obj.OptionsManager)
+                options = obj.OptionsManager.Options;
+            else
+                options = struct.empty;
+            end
+        end
     end
 end

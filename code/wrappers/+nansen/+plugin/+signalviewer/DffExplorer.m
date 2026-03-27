@@ -1,10 +1,5 @@
 classdef DffExplorer < applify.mixin.AppPlugin & applify.mixin.HasOptionsManager % signalviewer plugin
 
-    properties (Constant, Hidden = true)
-        USE_DEFAULT_SETTINGS = false    % Ignore settings file
-        DEFAULT_SETTINGS = []           % This class uses HasOptionsManager
-    end
-
     properties (Constant) % Implementation of AppPlugin property
         Name = 'DFF Explorer'
     end
@@ -48,7 +43,7 @@ classdef DffExplorer < applify.mixin.AppPlugin & applify.mixin.HasOptionsManager
             
             % Todo: Open? Close? Toggle?
             obj.MenuItem(1).ExploreDff = uimenu(m, 'Text', 'Explore DFF', 'Enable', 'off');
-            obj.MenuItem(1).PlotShifts.Callback = @obj.editSettings;
+            obj.MenuItem(1).PlotShifts.Callback = @obj.editOptions;
             
         end
         

@@ -1,4 +1,4 @@
-classdef EXTRACT < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewPlugin
+classdef EXTRACT < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewController
 %EXTRACT Imviewer plugin for EXTRACT method
 %
 %   SYNTAX:
@@ -6,11 +6,6 @@ classdef EXTRACT < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewPlu
 %
 %       extractPlugin = EXTRACT(imviewerObj, optionsManagerObj)
 
-    properties (Constant, Hidden = true)
-        USE_DEFAULT_SETTINGS = false    % Ignore settings file
-        DEFAULT_SETTINGS = []           % This class uses an optionsmanager
-    end
-    
     properties (Constant)
        Name = 'EXTRACT'
     end
@@ -65,8 +60,8 @@ classdef EXTRACT < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewPlu
             obj.editOptions()
         end
         
-        function changeSetting(obj, name, value)
-            obj.onSettingsChanged(name, value)
+        function changeOption(obj, name, value)
+            obj.onOptionsChanged(name, value)
         end
 
         function showTip(obj, message)
@@ -83,39 +78,39 @@ classdef EXTRACT < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewPlu
             
         end
         
-        function onSettingsChanged(obj, name, value)
+        function onOptionsChanged(obj, name, value)
             
             switch name
                 case {'num_partitions_x', 'num_partitions_y'}
-                    obj.settings.Main.(name) = value;
+                    obj.Options.Main.(name) = value;
                     obj.plotGrid()
                     
                     obj.checkGridSize()
                     
                 case 'use_gpu'
-                    obj.settings.Main.(name) = value;
+                    obj.Options.Main.(name) = value;
                     if value && ismac
                         obj.showTip('Note: GPU acceleration with Parallel Computing Toolbox is not supported on macOS versions 10.14 (Mojave) and above. Support for earlier macOS versions will be removed in a future MATLAB release.')
                     end
                     
                 case 'avg_cell_radius'
-                    obj.settings.Main.(name) = value;
+                    obj.Options.Main.(name) = value;
                     obj.plotCellTemplates(value)
                     
                 case 'temporal_denoising'
-                    obj.settings.Preprocess.(name) = value;
+                    obj.Options.Preprocess.(name) = value;
                     if value
                         obj.showTip('Note: This might increase processing time considerably for long movies')
                     end
                     
                 case 'reestimate_S_if_downsampled'
-                    obj.settings.Downsample.(name) = value;
+                    obj.Options.Downsample.(name) = value;
                     if value
                         obj.showTip('This is not recommended as precise shape of cell images are typically not essential, and processing will take longer')
                     end
                     
                 case 'trace_output_option'
-                    obj.settings.Main.(name) = value;
+                    obj.Options.Main.(name) = value;
                     
                     if strcmp(value, 'raw')
                         obj.showTip('Please check EXTRACT''s FAQ before using this options')
@@ -134,8 +129,8 @@ classdef EXTRACT < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewPlu
             end
 
             % Plot grid lines
-            numRows = obj.settings.Main.num_partitions_y;
-            numCols = obj.settings.Main.num_partitions_x;
+            numRows = obj.Options.Main.num_partitions_y;
+            numCols = obj.Options.Main.num_partitions_x;
             
             hLine = imviewer.plot.plotGridLines(obj.PrimaryApp, numRows, numCols);
 
@@ -193,8 +188,8 @@ classdef EXTRACT < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewPlu
         
         function checkGridSize(obj)
                         
-            numRows = obj.settings.Main.num_partitions_y;
-            numCols = obj.settings.Main.num_partitions_x;
+            numRows = obj.Options.Main.num_partitions_y;
+            numCols = obj.Options.Main.num_partitions_x;
             
             sizeX = obj.PrimaryApp.imWidth ./ numRows;
             sizeY = obj.PrimaryApp.imHeight ./ numCols;

@@ -1,10 +1,5 @@
 classdef CaimanDeconvolution < applify.mixin.AppPlugin & applify.mixin.HasOptionsManager % signalviewer plugin
 
-    properties (Constant, Hidden = true)
-        USE_DEFAULT_SETTINGS = false    % Ignore settings file
-        DEFAULT_SETTINGS = []           % This class uses HasOptionsManager
-    end
-
     properties (Constant) % Implementation of AppPlugin property
         Name = 'CaImAn Deconvolution'
     end
@@ -56,7 +51,7 @@ classdef CaimanDeconvolution < applify.mixin.AppPlugin & applify.mixin.HasOption
             
             % Todo: Open? Close? Toggle?
             obj.MenuItem(1).ExploreDff = uimenu(m, 'Text', 'Deconvolve...', 'Enable', 'off');
-            obj.MenuItem(1).PlotShifts.Callback = @obj.editSettings;
+            obj.MenuItem(1).PlotShifts.Callback = @obj.editOptions;
             
         end
         

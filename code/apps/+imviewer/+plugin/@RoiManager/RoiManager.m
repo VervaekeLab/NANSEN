@@ -1,4 +1,4 @@
-classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixin
+classdef RoiManager < imviewer.ImviewerPlugin & applify.mixin.UserSettings & roimanager.RoiGroupFileIoAppMixin
 %imviewer.plugin.RoiManager Open the roimanager tool as a plugin in imviewer
     
     % Todo:
@@ -131,6 +131,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
         function obj = RoiManager(varargin)
             
             obj@imviewer.ImviewerPlugin(varargin{:})
+            obj@applify.mixin.UserSettings()
 
 % %             [nvPairs, varargin] = utility.getnvpairs(varargin);
 % %

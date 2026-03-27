@@ -1,4 +1,4 @@
-classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & uiw.mixin.AssignPVPairs
+classdef AppPlugin < matlab.mixin.Heterogeneous & uiw.mixin.AssignPVPairs
 %AppPlugin Abstract superclass for an app plugin
 %
 %   Syntax:
@@ -21,8 +21,7 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
     % Plugins can:
     %   - implement mouse/keyboard callbacks invoked by the host app
     %   - add items to the app menu
-    %   - hold user settings via UserSettings (persistent preferences)
-    %   - hold method options via HasOptionsManager (algorithm parameters)
+    %   - hold method options via OptionsManager (algorithm parameters)
     %
     % matlab.mixin.Heterogeneous allows AppWithPlugin.Plugins to hold an
     % array of mixed AppPlugin subclass instances.
@@ -147,10 +146,10 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
         %
         %   options can be a struct or an OptionsManager object
             if isa(options, 'struct')
-                obj.settings = options;
+                obj.assignOptionsStruct(options)
             elseif isa(options, 'nansen.manage.OptionsManager')
                 obj.OptionsManager = options;
-                obj.settings = obj.OptionsManager.Options;
+                obj.assignOptionsStruct(obj.OptionsManager.Options)
             end
         end
 
@@ -160,6 +159,15 @@ classdef AppPlugin < applify.mixin.UserSettings & matlab.mixin.Heterogeneous & u
 
         function createSubMenu(obj) %#ok<MANU>
             % Subclasses may override
+        end
+
+        function assignOptionsStruct(obj, options)
+            if isprop(obj, 'Options')
+                obj.Options = options;
+            else
+                error('AppPlugin:MissingOptionsTarget', ...
+                    'Plugin "%s" does not expose Options storage.', obj.Name)
+            end
         end
 
     end

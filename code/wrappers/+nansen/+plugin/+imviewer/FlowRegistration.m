@@ -1,4 +1,4 @@
-classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewPlugin & nansen.processing.MotionCorrectionPreview
+classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewController & nansen.processing.MotionCorrectionPreview
 %FlowRegistration Imviewer plugin for FlowRegistration method
 %
 %   SYNTAX:
@@ -7,11 +7,6 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodP
 %       flowregPlugin = FlowRegistration(imviewerObj, optionsManagerObj)
 
 % Todo: Use methods of flowreg processor to run prealigning?
-    
-    properties (Constant, Hidden = true)
-        USE_DEFAULT_SETTINGS = false        % Ignore settings file
-        DEFAULT_SETTINGS = struct.empty;
-    end
     
     properties (Constant)
         Name = 'Flow Registration'      % Name of plugin
@@ -53,17 +48,17 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodP
         function sEditor = openOptionsEditor(obj)
         %openOptionsEditor Open editor for method options.
                         
-            % Update folder- and filename in settings.
+            % Update folder- and filename in options.
             [folderPath, fileName] = fileparts( obj.ImviewerObj.ImageStack.FileName );
             folderPath = fullfile(folderPath, obj.TargetFolderName);
             
             % Prepare default filename
             fileName = obj.buildFilenameWithExtension(fileName);
 
-            obj.settings_.Export.SaveDirectory = folderPath;
-            obj.settings_.Export.FileName = fileName;
+            obj.Options_.Export.SaveDirectory = folderPath;
+            obj.Options_.Export.FileName = fileName;
 
-            sEditor = openOptionsEditor@applify.mixin.ModalMethodPreviewPlugin(obj);
+            sEditor = openOptionsEditor@applify.mixin.ModalMethodPreviewController(obj);
             
             % Need a better solution for this:
             idx = strcmp(sEditor.Name, 'Export');
@@ -86,10 +81,10 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodP
         function runTestAlign(obj)
             
             % Check if saveResult or showResults is selected
-            obj.assertPreviewSettingsValid()
+            obj.assertPreviewOptionsValid()
             
             % Prepare save directory
-            if obj.settings.Preview.saveResults
+            if obj.Options.Preview.saveResults
                 [saveFolder, datePrefix] = obj.prepareSaveFolder();
                 if isempty(saveFolder); return; end
             end
@@ -101,7 +96,7 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodP
             %stackSize = size(Y);
             
             import nansen.wrapper.flowreg.*
-            options = Options.convert(obj.settings);
+            options = Options.convert(obj.Options);
             
             if ~isa(Y, 'single') || ~isa(Y, 'double')
                 Y = single(Y);
@@ -123,13 +118,13 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodP
             obj.ImviewerObj.clearMessage;
             
             % Show results from test aligning:
-            if obj.settings.Preview.showResults
+            if obj.Options.Preview.showResults
                 h = imviewer(M);
                 h.stackname = sprintf('%s - %s', obj.ImviewerObj.stackname, 'Flowreg Test Correction');
             end
                 
          	% Save results from test aligning:
-            if obj.settings.Preview.saveResults
+            if obj.Options.Preview.saveResults
                 getSavepath = @(name) fullfile(saveFolder, ...
                     sprintf('%s_%s', datePrefix, name ) );
                                 
@@ -146,7 +141,7 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodP
             dataSet = obj.prepareTargetDataset();
 
             nansen.wrapper.flowreg.Processor(obj.ImviewerObj.ImageStack, ...
-                obj.settings, 'DataIoModel', dataSet)
+                obj.Options, 'DataIoModel', dataSet)
         end
     end
 
@@ -158,7 +153,7 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodP
         end
         
         function onOptionsEditorClosed(obj)
-        %onOptionsEditorClosed "Callback" for when settings editor exits
+        %onOptionsEditorClosed "Callback" for when options editor exits
             obj.resetGaussianFilter()
         end
         
@@ -166,7 +161,7 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodP
             functionName = 'nansen.wrapper.flowreg.Processor';
             obj.OptionsManager = nansen.manage.OptionsManager(functionName);
 
-            obj.settings = obj.OptionsManager.getOptions;
+            obj.Options = obj.OptionsManager.getOptions;
         end
     end
     
@@ -174,7 +169,7 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodP
 
         function initializeGaussianFilter(obj)
             obj.ImviewerObj.imageDisplayMode.filter = 'gauss3d';
-            obj.ImviewerObj.imageDisplayMode.filterParam = struct('sigma', obj.settings.General.sigmaX);
+            obj.ImviewerObj.imageDisplayMode.filterParam = struct('sigma', obj.Options.General.sigmaX);
             obj.ImviewerObj.updateImage();
             obj.ImviewerObj.updateImageDisplay();
         end
@@ -287,39 +282,39 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodP
         
         % Todo: Combine these into one method
         
-        function onSettingsChanged(obj, name, value)
+        function onOptionsChanged(obj, name, value)
             
-            % Call superclass method to deal with settings that are
-            % general motion correction settings.
-            onSettingsChanged@nansen.processing.MotionCorrectionPreview(obj, name, value)
+            % Call superclass method to deal with options that are
+            % general motion correction options.
+            obj.onOptionsChanged@nansen.processing.MotionCorrectionPreview(obj, name, value)
             
             switch name
                 
                 case 'symmetricKernel'
-                    obj.settings.General.symmetricKernel = value;
+                    obj.Options.General.symmetricKernel = value;
                     
                 case {'sigmaX', 'sigmaY'}
-                    if obj.settings.General.symmetricKernel
-                        obj.settings.General.sigmaX = value;
-                        obj.settings.General.sigmaY = value;
+                    if obj.Options.General.symmetricKernel
+                        obj.Options.General.sigmaX = value;
+                        obj.Options.General.sigmaY = value;
                     else
-                        obj.settings.General.(name) = value;
+                        obj.Options.General.(name) = value;
                     end
                     
-                    obj.settings.Model.sigma = [obj.settings.General.sigmaY, obj.settings.General.sigmaX, obj.settings.General.sigmaZ];
-                    obj.ImviewerObj.imageDisplayMode.filterParam = struct('sigma', obj.settings.Model.sigma);
+                    obj.Options.Model.sigma = [obj.Options.General.sigmaY, obj.Options.General.sigmaX, obj.Options.General.sigmaZ];
+                    obj.ImviewerObj.imageDisplayMode.filterParam = struct('sigma', obj.Options.Model.sigma);
                     obj.ImviewerObj.updateImage();
                     obj.ImviewerObj.updateImageDisplay();
                 
                 case 'sigmaZ'
-                    obj.settings.sigma = [obj.settings.General.sigmaX, obj.settings.General.sigmaY, obj.settings.General.sigmaZ];
-                    obj.ImviewerObj.imageDisplayMode.filterParam = struct('sigma', obj.settings.Model.sigma);
+                    obj.Options.sigma = [obj.Options.General.sigmaX, obj.Options.General.sigmaY, obj.Options.General.sigmaZ];
+                    obj.ImviewerObj.imageDisplayMode.filterParam = struct('sigma', obj.Options.Model.sigma);
                     obj.ImviewerObj.updateImage();
                     obj.ImviewerObj.updateImageDisplay();
                     
                 case 'FileName'
-                    obj.settings.Export.FileName = value;
-                    %obj.settings_.Export.FileName = value;
+                    obj.Options.Export.FileName = value;
+                    %obj.Options_.Export.FileName = value;
             end
         end
     end
