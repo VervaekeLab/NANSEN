@@ -673,8 +673,10 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
         
         function openManualRoiClassifier(obj)
             % todo....
-            hClassifier = imviewer.plugin.RoiClassifier(obj.ImviewerObj);
-            hClassifier.setFilePath(obj.roiFilePath);
+            hClassifier = obj.ImviewerObj.openPlugin('RoiClassifier');
+            if ~isempty(hClassifier) && isvalid(hClassifier)
+                hClassifier.setFilePath(obj.roiFilePath);
+            end
             
         end % /function openManualRoiClassifier
         
