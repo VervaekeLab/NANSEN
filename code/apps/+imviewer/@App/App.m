@@ -4313,7 +4313,27 @@ methods % Misc, most can be outsourced
 % % Todo: Remove/resolve this
     
     function editSettings(obj, ~, ~)
-        obj.editSettings@applify.mixin.UserSettings()
+        % Collect settings from the app and any active plugins that have settings.
+        settingsProviders = [{obj}, num2cell(obj.Plugins)];
+        hasSettings = cellfun(@(h) isprop(h, 'settings'), settingsProviders);
+        settingsProviders = settingsProviders(hasSettings);
+
+        if numel(settingsProviders) > 1
+            titleStr = sprintf('Preferences for %s', class(obj));
+            settingsStructs = cellfun(@(h) h.settings, settingsProviders, 'uni', 0);
+            names = cellfun(@(h) class(h), settingsProviders, 'uni', 0);
+            callbacks = cellfun(@(h) @(name, value) h.changeSettings(name, value), settingsProviders, 'uni', 0);
+
+            settingsStructs = tools.editStruct(settingsStructs, nan, titleStr, ...
+                'Callback', callbacks, 'Name', names);
+
+            for i = 1:numel(settingsProviders)
+                settingsProviders{i}.settings = settingsStructs{i};
+                settingsProviders{i}.saveSettings()
+            end
+        else
+            obj.editSettings@applify.mixin.UserSettings()
+        end
 
         % Why? Is this if the cancel button is hit?
         % obj.uiaxes.imdisplay.CLim = obj.settings.ImageDisplay.imageBrightnessLimits;
