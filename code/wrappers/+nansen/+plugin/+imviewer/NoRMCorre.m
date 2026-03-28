@@ -13,9 +13,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewC
 %               |-  uiw.mixin.AssignPVPairs
 
 %   TODO:
-%       [v] Subclass from imviewer plugin class.
 %       [ ] migrate plugin to new instance if results open in new window
-%       [v] Implement options based on OptionsManager & normcorre options.
 %       [ ] Should it have a DataIoModel property? Then its easy to plug in
 %           whatever model (i.e) a session model and save data consistently.
     
@@ -160,7 +158,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewC
             obj.ImviewerObj.displayMessage('Running NoRMCorre...')
             
             warning('off', 'MATLAB:mir_warning_maybe_uninitialized_temporary')
-            [M, ncShifts, ref] = normcorre_batch(Y, ncOptions);
+            [M, ncShifts, ~] = normcorre_batch(Y, ncOptions);
             warning('on', 'MATLAB:mir_warning_maybe_uninitialized_temporary')
             
             obj.TestResults(end+1).Shifts = ncShifts;

@@ -286,7 +286,7 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodP
             
             % Call superclass method to deal with options that are
             % general motion correction options.
-            obj.onOptionsChanged@nansen.processing.MotionCorrectionPreview(obj, name, value)
+            onOptionsChanged@nansen.processing.MotionCorrectionPreview(obj, name, value)
             
             switch name
                 
