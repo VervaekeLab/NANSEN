@@ -133,8 +133,8 @@ classdef DataMethod < nansen.mixin.HasOptions & nansen.processing.mixin.HasSubSt
             % Abort if h is invalid (improper exit)
             if ~isvalid(hPreviewApp); wasSuccess = false; return; end
             
-            obj.Parameters = hPreviewApp.settings;
-            obj.Options = hPreviewApp.settings;
+            obj.Parameters = hPreviewApp.Options;
+            obj.Options = hPreviewApp.Options;
             wasSuccess = ~hPreviewApp.wasAborted;
             
             delete(hPreviewApp)
