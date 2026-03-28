@@ -31,6 +31,8 @@ classdef ModalMethodPreviewController < handle
     properties (Access = protected)
         Options_ struct = struct.empty
         hOptionsEditor
+    end
+    properties
         wasAborted = false
     end
 
