@@ -205,7 +205,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewC
             
             % Call superclass method to deal with options that are
             % general motion correction options.
-            obj.onOptionsChanged@nansen.processing.MotionCorrectionPreview(obj, name, value)
+            onOptionsChanged@nansen.processing.MotionCorrectionPreview(obj, name, value)
 
             patchesFields = fieldnames(obj.Options.Configuration);
             templateFields = fieldnames(obj.Options.Template);
