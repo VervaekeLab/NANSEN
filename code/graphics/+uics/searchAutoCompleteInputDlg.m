@@ -70,8 +70,13 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
             end
 
             obj.Items_ = varargin{1};
-            if isnumeric(obj.Items_{1})
-                obj.Items_ = cellfun(@num2str, obj.Items_, 'UniformOutput', false);
+            if ~isempty(obj.Items_)
+                if isnumeric(obj.Items_{1})
+                    obj.Items_ = cellfun(@num2str, obj.Items_, 'UniformOutput', false);
+                end
+            else
+                % Create a place holder
+                obj.Items_ = 'No items are available.';
             end
 
             varargin = varargin(2:end);
