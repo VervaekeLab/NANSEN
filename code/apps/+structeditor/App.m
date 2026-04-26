@@ -797,22 +797,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             set(allPanels, 'BorderType',  'none')
 
             obj.main.disablePanel.BackgroundColor = 'w';
-            
-% % %             %[output, jPanel, ~, ~, ~] = evalc( findjobj(obj.main.disablePanel) );
-% % %             jPanel = findjobj(obj.main.disablePanel);
-% % %
-% % %             jColor = java.awt.Color(1,1,1,0.3);
-% % %             jPanel.setBackground(jColor)
-% % %             h1 = jPanel.getComponent(0);
-% % %             set(h1, 'Opaque', false);
-% % %             h2 = h1.getComponent(0);
-% % %             set(h2, 'Opaque', false);
-% % %
-% % %             h0 = jPanel.getParent();
-% % %             set(h0, 'Opaque', false);
-
             obj.main.disablePanel.Visible = 'off';
-            %get(jPanel, 'Opaque')
             
             % Set up/configure individual panels.
             obj.createHeaderComponents()

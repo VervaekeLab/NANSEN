@@ -193,7 +193,9 @@ classdef FolderMatcherDialog < uiw.abstract.AppWindow
             obj.FigureSizeChangedListener = addlistener(obj.Figure, ...
                 'SizeChanged', @(s, e) obj.updateLayout());
             
-            LimitFigSize(obj.Figure, 'min', [600, 600]) % FEX
+            if ~nansen.util.useModernUiComponents()
+                LimitFigSize(obj.Figure, 'min', [600, 600]) % FEX
+            end
 
             obj.ComponentHandles = [...
                 obj.UILabelInstructionHeader, ...
