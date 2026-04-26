@@ -58,14 +58,15 @@ classdef multiSelectionDropDown <  uim.handle & uiw.mixin.AssignPVPairs
     methods
         
         function obj = multiSelectionDropDown(varargin)
-                       
-            applify.AppWindow.switchJavaWarnings('off')
 
+            if ~nansen.util.useModernUiComponents()
+                % MATLAB R2025a removed JAVA support, abort.
+                error("NANSEN:MultiSelectionDropDown:NotSupported", ...
+                    "This component is not supported on MATLAB R2025 or newer.")
+            end
             obj.assignPVPairs(varargin{:})
             createListbox(obj)
             
-            applify.AppWindow.switchJavaWarnings('on')
-
             addlistener(obj.Parent, 'ObjectBeingDestroyed', @(s, e) obj.delete);
             
             obj.Visible = 'on';
@@ -81,6 +82,9 @@ classdef multiSelectionDropDown <  uim.handle & uiw.mixin.AssignPVPairs
     methods (Access = private)
         
         function createListbox(obj)
+
+            warnCleanup = nansen.ui.legacy.tempDisableJavaFrameWarnings();
+            warnCleanup(end+1) = nansen.ui.legacy.tempDisableJavaComponentWarning(); %#ok<NASGU>
 
             h = uicontrol(obj.Parent, 'style', 'listbox', 'String', obj.String, ...
                 'BackgroundColor', obj.BackgroundColor, ...

@@ -249,10 +249,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             obj.assignPVPairs(varargin{:});
             obj.parseStruct(S)
             
-            % Use static method of AppWindow to turn off all java related
-            % warnings. (Should be inherited at some point)
-            applify.AppWindow.switchJavaWarnings('off')
-            
             obj.customizeFigure()
             
             % Start GUI initialization
@@ -296,9 +292,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             % Make size fixed, and add close callback
             
             obj.createScrollBar();
-            
-            applify.AppWindow.switchJavaWarnings('on')
-            
+                        
             obj.pleaseWaitTxt.Parent = obj.main.constructionCurtain;
             obj.pleaseWaitTxt.Position(3) = obj.pleaseWaitTxt.Extent(3);
             obj.pleaseWaitTxt.Position(1) = 0.5 - obj.pleaseWaitTxt.Position(3)/2;
@@ -2088,6 +2082,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         function styleControls(obj, panelNum)
         %styleControls Style ui controls
         
+            if nansen.util.useModernUiComponents()
+                % Abort, requires MATLAB R2024b or older
+                return
+            end
+
             if obj.isStandalone
                 set(obj.Figure, 'Visible', 'on')
             end
@@ -2106,11 +2105,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             hUic = findobj(hPanel, 'type', 'uicontrol');
             
-% %             hUic = struct2cell( obj.hControls );
-% %             hUic = hUic(keep);
-% %
-% %             isUic = cellfun(@(c) isa(c, 'matlab.ui.control.UIControl'), hUic);
-% %             hUic = [hUic{isUic}];
+            warnCleanup = nansen.ui.legacy.tempDisableJavaFrameWarnings();
+            warnCleanup(end+1) = nansen.ui.legacy.tempDisableJavaComponentWarning(); %#ok<NASGU>
             
             % Make them look good.
             if ~isempty(hUic)
@@ -2953,7 +2949,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             % Create panel if it is opened for the first time.
             if ~obj.isTabCreated(panelNum)
                 obj.main.hPanel(panelNum).Visible = 'on';
-                applify.AppWindow.switchJavaWarnings('off')
 
                  % Create components
                 obj.addComponents(panelNum)
@@ -2969,8 +2964,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 end
                 
                 obj.main.constructionCurtain.Visible = 'off';
-                
-                applify.AppWindow.switchJavaWarnings('on')
             else
                 %obj.moveElementsToRight()
                 obj.adjustFigureWidthToComponents()
