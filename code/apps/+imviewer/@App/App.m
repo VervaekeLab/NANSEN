@@ -754,25 +754,17 @@ methods % App initialization & creation
     end
     
     function setFigureWindowBackgroundColor(obj, newColor)
-        
+    %setFigureWindowBackgroundColor Set bg color of figure's Java window
+    %
+    % This is set to reduce visual artifacts during resizing. Even when the
+    % figure background is dark, resize glitches can briefly expose the Java
+    % window's default white background.
+
         if nargin < 2
             newColor = [13,13,13] ./ 255;
         end
-        
-        rgb = num2cell(newColor);
-        
-        warning('off', 'MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
-        warning('off', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
-        
-        % Its disappearing any day now!
-        jFrame = get(handle(obj.Figure), 'JavaFrame'); %#ok<JAVFM>
-        jWindow = jFrame.getFigurePanelContainer.getTopLevelAncestor;
-        javaColor = javax.swing.plaf.ColorUIResource(rgb{:});
-        set(jWindow, 'Background', javaColor)
-        
-        warning('on', 'MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
-        warning('on', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
-        
+
+        nansen.ui.legacy.setJavaWindowBackgroundColor(obj.Figure, newColor)
     end
 
     function createUiAxes(obj, axesSize)
@@ -951,38 +943,13 @@ methods % App initialization & creation
     end
 
     function addDragAndDropFunctionality(obj)
-        
-        drawnow;
-        
-        warning('off', 'MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
-        warning('off', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
-        
-        jFrame = get(obj.Figure, 'JavaFrame'); %#ok<JAVFM>
-        jWindow = jFrame.getFigurePanelContainer.getTopLevelAncestor;
-            
-        warning('on', 'MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
-        warning('on', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
-        
-        % The initJava static method is not reliable, and will trigger
-        % warnings. 
-        % warnState = warning('off', 'MATLAB:Java:DuplicateClass');
-        % warnCleanup = onCleanup(@(ws) warning(warnState));
-        % % dndcontrol.initJava();
 
-        % Adding dndcontrol only if it does not already exist on the 
-        % dynamic java classpath
-        dpathOrig = javaclasspath('-dynamic');
-        dndcontrolPath = fileparts( which("dndcontrol") );
-        if isempty(dpathOrig) || ~contains(dndcontrolPath, dpathOrig)
-            javaclasspath(dpathOrig, dndcontrolPath)
+        if nansen.util.useModernUiComponents()
+            % MATLAB R2025a removed JAVA support, abort
+            return
         end
-
-        % Create dndcontrol for the JTextArea object
-        obj.dndObj = dndcontrol(jWindow);
-
-        % Set Drop callback functions
-        obj.dndObj.DropFileFcn = @obj.fileDropFcn;
-        
+        drawnow()
+        obj.dndObj = nansen.ui.legacy.activateDragAndDrop(obj.Figure, @obj.fileDropFcn);
     end
     
     function fileDropFcn(obj, ~, evt)
@@ -3039,21 +3006,16 @@ methods % Handle user actions
     end
     
     function pinWindow(obj, src, ~)
-        
-        warning('off', 'MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
-        warning('off', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
-        
-        jFrame = get(obj.Figure, 'JavaFrame'); %#ok<JAVFM>
-        jClient = jFrame.fHG2Client;
-        jWindow = jClient.getWindow;
-        
-        newState = src.Value;
-        
-        jWindow.setAlwaysOnTop(newState)
-        
-        warning('on', 'MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
-        warning('on', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
-        
+    %pinWindow Set window to always on top
+        if nansen.util.useModernUiComponents
+            if src.Value
+                obj.Figure.WindowStyle = "alwaysontop";
+            else
+                obj.Figure.WindowStyle = "normal";
+            end
+        else
+            nansen.ui.legacy.toggleJavaWindowAlwaysOnTop(obj.Figure, src.Value)
+        end
     end
 end
 
@@ -4351,13 +4313,12 @@ methods % Misc, most can be outsourced
         helpfig.Position(4) = helpfig.Position(4) - (1-y)*helpfig.Position(4);
         helpfig.Visible = 'on';
         
-        warning('off', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
-        
-        % Close help window if it loses focus
-        jframe = getjframe(helpfig);
-        set(jframe, 'WindowDeactivatedCallback', @(s, e) delete(helpfig))
-        
-        warning('on', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
+        if ~nansen.util.useModernUiComponents()
+            warningCleanupObj = nansen.ui.legacy.tempDisableJavaFrameWarnings(); %#ok<NASGU>
+            % Close help window if it loses focus
+            jframe = getjframe(helpfig);
+            set(jframe, 'WindowDeactivatedCallback', @(s, e) delete(helpfig))    
+        end
     end
     
 % % Todo: Remove/resolve this
@@ -5733,10 +5694,6 @@ methods (Access = protected)
         end
         
         set(obj.Figure, 'Resize', 'on')
-        
-%         jFrame = get(obj.Figure, 'JavaFrame');
-%         jWindow = jFrame.getFigurePanelContainer.getTopLevelAncestor;
-%         jWindow.setFullScreen(false)
         
         newFigurePos = screenSize;
         obj.Panel.SizeChangedFcn = [];
