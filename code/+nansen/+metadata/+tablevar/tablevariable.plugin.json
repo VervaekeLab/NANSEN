@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "1.0",
+  "pluginType": "tablevariable",
+  "plugins": [
+    {
+      "schemaVersion": "1.0",
+      "id": "nansen.metadata.tablevar.DataLocation",
+      "pluginType": "tablevariable",
+      "displayName": "DataLocation",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "class",
+        "entrypoint": "nansen.metadata.tablevar.DataLocation"
+      },
+      "capabilities": [],
+      "tableType": "tablevar",
+      "variableName": "DataLocation",
+      "isEditable": false,
+      "defaultValue": []
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "nansen.metadata.tablevar.Notebook",
+      "pluginType": "tablevariable",
+      "displayName": "Notebook",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "class",
+        "entrypoint": "nansen.metadata.tablevar.Notebook"
+      },
+      "capabilities": [],
+      "tableType": "tablevar",
+      "variableName": "Notebook",
+      "isEditable": false,
+      "defaultValue": []
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "nansen.metadata.tablevar.Progress",
+      "pluginType": "tablevariable",
+      "displayName": "Progress",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "class",
+        "entrypoint": "nansen.metadata.tablevar.Progress"
+      },
+      "capabilities": [],
+      "tableType": "tablevar",
+      "variableName": "Progress",
+      "isEditable": false,
+      "defaultValue": []
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "nansen.metadata.tablevar.Time",
+      "pluginType": "tablevariable",
+      "displayName": "Time",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "class",
+        "entrypoint": "nansen.metadata.tablevar.Time"
+      },
+      "capabilities": [],
+      "tableType": "tablevar",
+      "variableName": "Time",
+      "isEditable": false,
+      "defaultValue": []
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0",
+  "id": "ophys.twophoton.process.deconvolution.Caiman",
+  "pluginType": "action",
+  "displayName": "Deconvolution CaImAn",
+  "description": "",
+  "version": "",
+  "implementation": {
+    "language": "matlab",
+    "kind": "class",
+    "entrypoint": "ophys.twophoton.process.deconvolution.Caiman"
+  },
+  "capabilities": [],
+  "entityType": "session",
+  "methodName": "Deconvolution CaImAn",
+  "batchMode": "serial",
+  "isQueueable": true,
+  "alternatives": [],
+  "menuLocation": [
+    "process",
+    "deconvolution"
+  ]
+}

@@ -1,0 +1,92 @@
+{
+  "schemaVersion": "1.0",
+  "pluginType": "action",
+  "plugins": [
+    {
+      "schemaVersion": "1.0",
+      "id": "ophys.twophoton.data.open.imageStack",
+      "pluginType": "action",
+      "displayName": "Image Stack",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "function",
+        "entrypoint": "ophys.twophoton.data.open.imageStack"
+      },
+      "capabilities": [],
+      "entityType": "session",
+      "methodName": "Image Stack",
+      "batchMode": "serial",
+      "isQueueable": false,
+      "alternatives": [
+        "N/A"
+      ],
+      "menuLocation": [
+        "data",
+        "open"
+      ],
+      "defaultOptions": {
+        "UseVirtualStack": true,
+        "FirstImage": 1,
+        "LastImage": []
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "ophys.twophoton.data.open.twoPhotonMotionCorrected",
+      "pluginType": "action",
+      "displayName": "Two Photon Motion Corrected",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "function",
+        "entrypoint": "ophys.twophoton.data.open.twoPhotonMotionCorrected"
+      },
+      "capabilities": [],
+      "entityType": "session",
+      "methodName": "Two Photon Motion Corrected",
+      "batchMode": "serial",
+      "isQueueable": false,
+      "alternatives": [],
+      "menuLocation": [
+        "data",
+        "open"
+      ],
+      "defaultOptions": {
+        "UseVirtualStack": true,
+        "FirstImage": 1,
+        "LastImage": []
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "ophys.twophoton.data.open.twoPhotonRawImages",
+      "pluginType": "action",
+      "displayName": "Two Photon Raw Images",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "function",
+        "entrypoint": "ophys.twophoton.data.open.twoPhotonRawImages"
+      },
+      "capabilities": [],
+      "entityType": "session",
+      "methodName": "Two Photon Raw Images",
+      "batchMode": "serial",
+      "isQueueable": false,
+      "alternatives": [],
+      "menuLocation": [
+        "data",
+        "open"
+      ],
+      "defaultOptions": {
+        "UseVirtualStack": true,
+        "FirstImage": 1,
+        "LastImage": []
+      }
+    }
+  ]
+}

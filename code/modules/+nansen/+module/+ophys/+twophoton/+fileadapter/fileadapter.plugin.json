@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "1.0",
+  "pluginType": "fileadapter",
+  "plugins": [
+    {
+      "schemaVersion": "1.0",
+      "id": "ophys.twophoton.ChiatahDemoFile",
+      "pluginType": "fileadapter",
+      "displayName": "ChiatahDemoFile",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "class",
+        "entrypoint": "ophys.twophoton.ChiatahDemoFile",
+        "class": "ophys.twophoton.ChiatahDemoFile"
+      },
+      "capabilities": [],
+      "match": {
+        "extensions": [
+          "h5"
+        ]
+      },
+      "outputs": {
+        "dataType": "ImageStack"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "ophys.twophoton.ScanImageMultiRoi2PSeries",
+      "pluginType": "fileadapter",
+      "displayName": "ScanImageMultiRoi2PSeries",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "class",
+        "entrypoint": "ophys.twophoton.ScanImageMultiRoi2PSeries",
+        "class": "ophys.twophoton.ScanImageMultiRoi2PSeries"
+      },
+      "capabilities": [],
+      "match": {
+        "extensions": [
+          "tif",
+          "tiff"
+        ]
+      },
+      "outputs": {
+        "dataType": "ImageStack"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "ophys.twophoton.SciScan2PSeries",
+      "pluginType": "fileadapter",
+      "displayName": "SciScan2PSeries",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "class",
+        "entrypoint": "ophys.twophoton.SciScan2PSeries",
+        "class": "ophys.twophoton.SciScan2PSeries"
+      },
+      "capabilities": [],
+      "match": {
+        "extensions": [
+          "raw"
+        ]
+      },
+      "outputs": {
+        "dataType": "ImageStack"
+      }
+    }
+  ]
+}

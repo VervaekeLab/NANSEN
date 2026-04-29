@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "id": "ophys.twophoton.plot.plotImageStats",
+  "pluginType": "action",
+  "displayName": "Plot Image Stats",
+  "description": "",
+  "version": "",
+  "implementation": {
+    "language": "matlab",
+    "kind": "function",
+    "entrypoint": "ophys.twophoton.plot.plotImageStats"
+  },
+  "capabilities": [],
+  "entityType": "session",
+  "methodName": "Plot Image Stats",
+  "batchMode": "serial",
+  "isQueueable": false,
+  "alternatives": [],
+  "menuLocation": [
+    "plot"
+  ],
+  "defaultOptions": {
+    "ShowExtremes": true,
+    "ShowPrctile1": true,
+    "ShowPrctile2": true
+  }
+}

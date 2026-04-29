@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "1.0",
+  "pluginType": "fileadapter",
+  "plugins": [
+    {
+      "schemaVersion": "1.0",
+      "id": "nansen.dataio.fileadapter.roi.RoiArray",
+      "pluginType": "fileadapter",
+      "displayName": "RoiArray",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "class",
+        "entrypoint": "nansen.dataio.fileadapter.roi.RoiArray",
+        "class": "nansen.dataio.fileadapter.roi.RoiArray"
+      },
+      "capabilities": [],
+      "match": {
+        "extensions": [
+          "mat"
+        ]
+      },
+      "outputs": {
+        "dataType": "RoI"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "nansen.dataio.fileadapter.roi.RoiGroup",
+      "pluginType": "fileadapter",
+      "displayName": "RoiGroup",
+      "description": "This file contains information about a group of rois",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "class",
+        "entrypoint": "nansen.dataio.fileadapter.roi.RoiGroup",
+        "class": "nansen.dataio.fileadapter.roi.RoiGroup"
+      },
+      "capabilities": [],
+      "match": {
+        "extensions": [
+          "mat",
+          "npy"
+        ]
+      },
+      "outputs": {
+        "dataType": "RoiGroup"
+      }
+    }
+  ]
+}

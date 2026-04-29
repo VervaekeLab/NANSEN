@@ -81,8 +81,12 @@ classdef FileAdapterSpec < nansen.plugin.base.PluginSpec
 
         function spec = fromPluginSpec(pluginSpec)
         %fromPluginSpec Convert base PluginSpec to FileAdapterSpec.
-            spec = nansen.plugin.fileadapter.FileAdapterSpec(pluginSpec.struct());
-            spec.TypeData = pluginSpec.TypeData;
+            spec = nansen.plugin.fileadapter.FileAdapterSpec.empty;
+            for i = 1:numel(pluginSpec)
+                spec(end+1) = nansen.plugin.fileadapter.FileAdapterSpec( ...
+                    pluginSpec(i).struct()); %#ok<AGROW>
+                spec(end).TypeData = pluginSpec(i).TypeData;
+            end
         end
 
         function fileTypes = normalizeFileTypes(fileTypes)

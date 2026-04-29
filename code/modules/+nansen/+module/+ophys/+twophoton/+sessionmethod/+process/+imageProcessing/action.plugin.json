@@ -1,0 +1,133 @@
+{
+  "schemaVersion": "1.0",
+  "pluginType": "action",
+  "plugins": [
+    {
+      "schemaVersion": "1.0",
+      "id": "ophys.twophoton.process.imageProcessing.DenoiseStack",
+      "pluginType": "action",
+      "displayName": "Denoise Stack",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "function",
+        "entrypoint": "ophys.twophoton.process.imageProcessing.DenoiseStack"
+      },
+      "capabilities": [],
+      "entityType": "session",
+      "methodName": "Denoise Stack",
+      "batchMode": "serial",
+      "isQueueable": true,
+      "alternatives": [],
+      "menuLocation": [
+        "process",
+        "imageProcessing"
+      ],
+      "defaultOptions": {
+        "Input": {
+          "VariableName": "N/A",
+          "VariableName_": [
+            "N/A"
+          ]
+        },
+        "DeepInterpolation": {
+          "PrePostOmission": 0,
+          "PreFrame": 30,
+          "PostFrame": 30,
+          "PrePostOmission_": {
+            "type": "slider",
+            "args": [
+              "Min",
+              0,
+              "Max",
+              4,
+              "nTicks",
+              4,
+              "TooltipPrecision",
+              0
+            ]
+          },
+          "PreFrame_": {
+            "type": "slider",
+            "args": [
+              "Min",
+              1,
+              "Max",
+              30,
+              "nTicks",
+              29,
+              "TooltipPrecision",
+              0
+            ]
+          },
+          "PostFrame_": {
+            "type": "slider",
+            "args": [
+              "Min",
+              1,
+              "Max",
+              30,
+              "nTicks",
+              29,
+              "TooltipPrecision",
+              0
+            ]
+          }
+        },
+        "StackOptions": {
+          "frameInterval": [],
+          "numFramesPerPart": 1000,
+          "runOnSeparateWorker": false,
+          "PrimaryChannel": 1,
+          "ChannelProcessingMode": "serial",
+          "ChannelProcessingMode_": [
+            "serial",
+            "batch",
+            "single"
+          ],
+          "PlaneProcessingMode": "serial",
+          "PlaneProcessingMode_": [
+            "serial",
+            "batch"
+          ]
+        }
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "ophys.twophoton.process.imageProcessing.DownsampleStack",
+      "pluginType": "action",
+      "displayName": "Downsample Stack",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "function",
+        "entrypoint": "ophys.twophoton.process.imageProcessing.DownsampleStack"
+      },
+      "capabilities": [],
+      "entityType": "session",
+      "methodName": "Downsample Stack",
+      "batchMode": "serial",
+      "isQueueable": true,
+      "alternatives": [],
+      "menuLocation": [
+        "process",
+        "imageProcessing"
+      ],
+      "defaultOptions": {
+        "StackName": "TwoPhotonSeries_Corrected",
+        "StackName_": [
+          "TwoPhotonSeries_Corrected"
+        ],
+        "DownsamplingFactor": 10,
+        "BinningMethod": "mean",
+        "BinningMethod_": [
+          "mean",
+          "max"
+        ]
+      }
+    }
+  ]
+}

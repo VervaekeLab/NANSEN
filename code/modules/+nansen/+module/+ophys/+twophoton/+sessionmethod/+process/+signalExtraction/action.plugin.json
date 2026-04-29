@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "1.0",
+  "pluginType": "action",
+  "plugins": [
+    {
+      "schemaVersion": "1.0",
+      "id": "ophys.twophoton.process.signalExtraction.SelectRoiForSignalExtraction",
+      "pluginType": "action",
+      "displayName": "Select Roi For Signal Extraction",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "function",
+        "entrypoint": "ophys.twophoton.process.signalExtraction.SelectRoiForSignalExtraction"
+      },
+      "capabilities": [],
+      "entityType": "session",
+      "methodName": "Select Roi For Signal Extraction",
+      "batchMode": "serial",
+      "isQueueable": false,
+      "alternatives": [],
+      "menuLocation": [
+        "process",
+        "signalExtraction"
+      ],
+      "defaultOptions": {
+        "deleteRoisOutsideTheBorders": true
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "ophys.twophoton.process.signalExtraction.extractSignals",
+      "pluginType": "action",
+      "displayName": "Extract Signals",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "class",
+        "entrypoint": "ophys.twophoton.process.signalExtraction.extractSignals"
+      },
+      "capabilities": [],
+      "entityType": "session",
+      "methodName": "Extract Signals",
+      "batchMode": "serial",
+      "isQueueable": true,
+      "alternatives": [],
+      "menuLocation": [
+        "process",
+        "signalExtraction"
+      ],
+      "defaultOptions": []
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "ophys.twophoton.process.signalExtraction.extractSignalsMultiChannel",
+      "pluginType": "action",
+      "displayName": "Extract Signals (MultiChannel)",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "class",
+        "entrypoint": "ophys.twophoton.process.signalExtraction.extractSignalsMultiChannel"
+      },
+      "capabilities": [],
+      "entityType": "session",
+      "methodName": "Extract Signals (MultiChannel)",
+      "batchMode": "serial",
+      "isQueueable": true,
+      "alternatives": [],
+      "menuLocation": [
+        "process",
+        "signalExtraction"
+      ],
+      "defaultOptions": []
+    }
+  ]
+}

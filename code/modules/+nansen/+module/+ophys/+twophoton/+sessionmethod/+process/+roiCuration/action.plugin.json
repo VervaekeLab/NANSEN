@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "1.0",
+  "pluginType": "action",
+  "plugins": [
+    {
+      "schemaVersion": "1.0",
+      "id": "ophys.twophoton.process.roiCuration.openRoiClassifier",
+      "pluginType": "action",
+      "displayName": "Open Roi Classifier",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "function",
+        "entrypoint": "ophys.twophoton.process.roiCuration.openRoiClassifier"
+      },
+      "capabilities": [],
+      "entityType": "session",
+      "methodName": "Open Roi Classifier",
+      "batchMode": "serial",
+      "isQueueable": false,
+      "alternatives": [],
+      "menuLocation": [
+        "process",
+        "roiCuration"
+      ],
+      "defaultOptions": {
+        "RoiSelectedCallbackFunction": ""
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "ophys.twophoton.process.roiCuration.openRoiManager",
+      "pluginType": "action",
+      "displayName": "Open Roi Manager",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "function",
+        "entrypoint": "ophys.twophoton.process.roiCuration.openRoiManager"
+      },
+      "capabilities": [],
+      "entityType": "session",
+      "methodName": "Open Roi Manager",
+      "batchMode": "serial",
+      "isQueueable": false,
+      "alternatives": [],
+      "menuLocation": [
+        "process",
+        "roiCuration"
+      ],
+      "defaultOptions": {}
+    }
+  ]
+}

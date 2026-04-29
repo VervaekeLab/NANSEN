@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0",
+  "id": "ophys.twophoton.data.organize.changeDataLocationRoot",
+  "pluginType": "action",
+  "displayName": "Change Data Location Root",
+  "description": "",
+  "version": "",
+  "implementation": {
+    "language": "matlab",
+    "kind": "function",
+    "entrypoint": "ophys.twophoton.data.organize.changeDataLocationRoot"
+  },
+  "capabilities": [],
+  "entityType": "session",
+  "methodName": "Change Data Location Root",
+  "batchMode": "batch",
+  "isQueueable": true,
+  "alternatives": [],
+  "menuLocation": [
+    "data",
+    "organize"
+  ],
+  "defaultOptions": {}
+}

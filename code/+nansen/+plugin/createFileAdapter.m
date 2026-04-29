@@ -104,7 +104,7 @@ function text = createReadTemplate(adapterName)
 end
 
 function writeJsonFile(filePath, S)
-    jsonText = jsonencode(S);
+    jsonText = jsonencode(S, 'PrettyPrint', true);
     writeTextFile(filePath, jsonText)
 end
 

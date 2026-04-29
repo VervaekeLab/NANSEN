@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0",
+  "pluginType": "action",
+  "plugins": [
+    {
+      "schemaVersion": "1.0",
+      "id": "ophys.twophoton.data.view.viewDff",
+      "pluginType": "action",
+      "displayName": "View Dff",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "function",
+        "entrypoint": "ophys.twophoton.data.view.viewDff"
+      },
+      "capabilities": [],
+      "entityType": "session",
+      "methodName": "View Dff",
+      "batchMode": "serial",
+      "isQueueable": false,
+      "alternatives": [],
+      "menuLocation": [
+        "data",
+        "view"
+      ],
+      "defaultOptions": {}
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "ophys.twophoton.data.view.viewRoiSignals",
+      "pluginType": "action",
+      "displayName": "View Roi Signals",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "function",
+        "entrypoint": "ophys.twophoton.data.view.viewRoiSignals"
+      },
+      "capabilities": [],
+      "entityType": "session",
+      "methodName": "View Roi Signals",
+      "batchMode": "batch",
+      "isQueueable": false,
+      "alternatives": [],
+      "menuLocation": [
+        "data",
+        "view"
+      ],
+      "defaultOptions": {}
+    }
+  ]
+}

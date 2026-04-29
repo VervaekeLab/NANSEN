@@ -105,8 +105,12 @@ classdef ActionSpec < nansen.plugin.base.PluginSpec
 
         function spec = fromPluginSpec(pluginSpec)
         %fromPluginSpec Convert base PluginSpec to ActionSpec.
-            spec = nansen.plugin.action.ActionSpec(pluginSpec.struct());
-            spec.TypeData = pluginSpec.TypeData;
+            spec = nansen.plugin.action.ActionSpec.empty;
+            for i = 1:numel(pluginSpec)
+                spec(end+1) = nansen.plugin.action.ActionSpec( ...
+                    pluginSpec(i).struct()); %#ok<AGROW>
+                spec(end).TypeData = pluginSpec(i).TypeData;
+            end
         end
 
     end

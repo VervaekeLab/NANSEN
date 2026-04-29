@@ -1,0 +1,106 @@
+{
+  "schemaVersion": "1.0",
+  "pluginType": "action",
+  "plugins": [
+    {
+      "schemaVersion": "1.0",
+      "id": "ophys.twophoton.process.roiRegistration.computeClassificationData",
+      "pluginType": "action",
+      "displayName": "Compute Classification Data",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "function",
+        "entrypoint": "ophys.twophoton.process.roiRegistration.computeClassificationData"
+      },
+      "capabilities": [],
+      "entityType": "session",
+      "methodName": "Compute Classification Data",
+      "batchMode": "serial",
+      "isQueueable": true,
+      "alternatives": [],
+      "menuLocation": [
+        "process",
+        "roiRegistration"
+      ],
+      "defaultOptions": {
+        "ImageStackVariableName": "TwoPhotonSeries_Corrected"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "ophys.twophoton.process.roiRegistration.editRois",
+      "pluginType": "action",
+      "displayName": "Edit Rois",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "function",
+        "entrypoint": "ophys.twophoton.process.roiRegistration.editRois"
+      },
+      "capabilities": [],
+      "entityType": "session",
+      "methodName": "Edit Rois",
+      "batchMode": "batch",
+      "isQueueable": false,
+      "alternatives": [],
+      "menuLocation": [
+        "process",
+        "roiRegistration"
+      ],
+      "defaultOptions": {
+        "ImageStackVariableName": "TwoPhotonSeries_Corrected"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "ophys.twophoton.process.roiRegistration.migrateRoisToFovs",
+      "pluginType": "action",
+      "displayName": "Migrate Rois To Fovs",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "function",
+        "entrypoint": "ophys.twophoton.process.roiRegistration.migrateRoisToFovs"
+      },
+      "capabilities": [],
+      "entityType": "session",
+      "methodName": "Migrate Rois To Fovs",
+      "batchMode": "batch",
+      "isQueueable": false,
+      "alternatives": [],
+      "menuLocation": [
+        "process",
+        "roiRegistration"
+      ],
+      "defaultOptions": {}
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "ophys.twophoton.process.roiRegistration.migrateRoisToFovs_bak",
+      "pluginType": "action",
+      "displayName": "MigrateRoisToFovs Bak",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "function",
+        "entrypoint": "ophys.twophoton.process.roiRegistration.migrateRoisToFovs_bak"
+      },
+      "capabilities": [],
+      "entityType": "session",
+      "methodName": "MigrateRoisToFovs Bak",
+      "batchMode": "batch",
+      "isQueueable": false,
+      "alternatives": [],
+      "menuLocation": [
+        "process",
+        "roiRegistration"
+      ],
+      "defaultOptions": {}
+    }
+  ]
+}

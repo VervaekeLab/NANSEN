@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "1.0",
+  "pluginType": "action",
+  "plugins": [
+    {
+      "schemaVersion": "1.0",
+      "id": "ophys.twophoton.process.motionCorrection.flowreg",
+      "pluginType": "action",
+      "displayName": "Motion Correction (FlowRegistration)",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "class",
+        "entrypoint": "ophys.twophoton.process.motionCorrection.flowreg"
+      },
+      "capabilities": [],
+      "entityType": "session",
+      "methodName": "Motion Correction (FlowRegistration)",
+      "batchMode": "serial",
+      "isQueueable": true,
+      "alternatives": [],
+      "menuLocation": [
+        "process",
+        "motionCorrection"
+      ]
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "ophys.twophoton.process.motionCorrection.normcorre",
+      "pluginType": "action",
+      "displayName": "Motion Correction (NoRMCorre)",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "class",
+        "entrypoint": "ophys.twophoton.process.motionCorrection.normcorre"
+      },
+      "capabilities": [],
+      "entityType": "session",
+      "methodName": "Motion Correction (NoRMCorre)",
+      "batchMode": "serial",
+      "isQueueable": true,
+      "alternatives": [],
+      "menuLocation": [
+        "process",
+        "motionCorrection"
+      ]
+    }
+  ]
+}

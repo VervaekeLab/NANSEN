@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "1.0",
+  "id": "ophys.twophoton.data.backup",
+  "pluginType": "action",
+  "displayName": "Backup",
+  "description": "",
+  "version": "",
+  "implementation": {
+    "language": "matlab",
+    "kind": "function",
+    "entrypoint": "ophys.twophoton.data.backup"
+  },
+  "capabilities": [],
+  "entityType": "session",
+  "methodName": "Backup",
+  "batchMode": "serial",
+  "isQueueable": true,
+  "alternatives": [],
+  "menuLocation": [
+    "data"
+  ],
+  "defaultOptions": {
+    "BackupMode": "merge (no replace)",
+    "BackupMode_": [
+      "merge (no replace)",
+      "only replace files if newer",
+      "replace all files"
+    ],
+    "BackupLocation": "",
+    "BackupLocation_": "uigetdir"
+  }
+}

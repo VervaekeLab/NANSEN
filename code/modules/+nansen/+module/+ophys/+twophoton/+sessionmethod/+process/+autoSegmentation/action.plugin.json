@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "1.0",
+  "pluginType": "action",
+  "plugins": [
+    {
+      "schemaVersion": "1.0",
+      "id": "ophys.twophoton.process.autoSegmentation.EXTRACT",
+      "pluginType": "action",
+      "displayName": "EXTRACT (Autosegmentation)",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "class",
+        "entrypoint": "ophys.twophoton.process.autoSegmentation.EXTRACT"
+      },
+      "capabilities": [],
+      "entityType": "session",
+      "methodName": "EXTRACT (Autosegmentation)",
+      "batchMode": "serial",
+      "isQueueable": true,
+      "alternatives": [],
+      "menuLocation": [
+        "process",
+        "autoSegmentation"
+      ]
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "ophys.twophoton.process.autoSegmentation.Quicky",
+      "pluginType": "action",
+      "displayName": "Quicky (Autosegmentation)",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "class",
+        "entrypoint": "ophys.twophoton.process.autoSegmentation.Quicky"
+      },
+      "capabilities": [],
+      "entityType": "session",
+      "methodName": "Quicky (Autosegmentation)",
+      "batchMode": "serial",
+      "isQueueable": true,
+      "alternatives": [],
+      "menuLocation": [
+        "process",
+        "autoSegmentation"
+      ]
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "ophys.twophoton.process.autoSegmentation.suite2p",
+      "pluginType": "action",
+      "displayName": "suite2p (Autosegmentation)",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "class",
+        "entrypoint": "ophys.twophoton.process.autoSegmentation.suite2p"
+      },
+      "capabilities": [],
+      "entityType": "session",
+      "methodName": "suite2p (Autosegmentation)",
+      "batchMode": "serial",
+      "isQueueable": true,
+      "alternatives": [],
+      "menuLocation": [
+        "process",
+        "autoSegmentation"
+      ]
+    }
+  ]
+}

@@ -71,7 +71,15 @@ classdef PluginSpec
         function obj = fromJsonFile(filePath)
         %fromJsonFile Read a plugin spec from a JSON sidecar file.
             S = nansen.plugin.base.PluginSpec.readJsonFile(filePath);
-            obj = nansen.plugin.base.PluginSpec.fromSidecarStruct(S, filePath);
+            if isfield(S, 'plugins')
+                obj = nansen.plugin.base.PluginSpec.empty;
+                for i = 1:numel(S.plugins)
+                    obj(end+1) = nansen.plugin.base.PluginSpec.fromSidecarStruct( ...
+                        S.plugins(i), filePath); %#ok<AGROW>
+                end
+            else
+                obj = nansen.plugin.base.PluginSpec.fromSidecarStruct(S, filePath);
+            end
         end
 
         function obj = fromSidecarStruct(S, sourcePath)

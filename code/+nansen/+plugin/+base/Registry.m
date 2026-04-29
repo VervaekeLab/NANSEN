@@ -136,10 +136,12 @@ classdef (Abstract) Registry < handle
             for i = 1:numel(sidecarFiles)
                 try
                     spec = obj.readSidecarSpec(sidecarFiles{i});
-                    if isempty(spec.PluginType)
-                        spec.PluginType = obj.PluginType;
+                    for j = 1:numel(spec)
+                        if isempty(spec(j).PluginType)
+                            spec(j).PluginType = obj.PluginType;
+                        end
                     end
-                    specs(end+1) = spec; %#ok<AGROW>
+                    specs = [specs, spec]; %#ok<AGROW>
                 catch ME
                     obj.addIssue('error', ME.message, sidecarFiles{i});
                 end
@@ -203,6 +205,11 @@ classdef (Abstract) Registry < handle
                         'entry by registry precedence will be used.'], ...
                         duplicateIds{i}), ''); %#ok<AGROW>
                 end
+            end
+
+            if ~isempty(specs)
+                [~, keepIdx] = unique({specs.Id}, 'stable');
+                specs = specs(sort(keepIdx));
             end
         end
 

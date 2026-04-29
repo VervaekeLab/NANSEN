@@ -107,15 +107,17 @@ classdef Registry < nansen.plugin.base.Registry
             baseSpec = nansen.plugin.base.PluginSpec.fromJsonFile(filePath);
             spec = nansen.plugin.tablevariable.TableVariableSpec.fromPluginSpec(baseSpec);
 
-            if isempty(spec.Id)
-                [~, folderName] = fileparts(fileparts(filePath));
-                spec.Id = folderName;
-            end
-            if isempty(spec.DisplayName)
-                spec.DisplayName = spec.Id;
-            end
-            if isempty(spec.Source)
-                spec.Source = 'sidecar';
+            for i = 1:numel(spec)
+                if isempty(spec(i).Id)
+                    [~, folderName] = fileparts(fileparts(filePath));
+                    spec(i).Id = folderName;
+                end
+                if isempty(spec(i).DisplayName)
+                    spec(i).DisplayName = spec(i).Id;
+                end
+                if isempty(spec(i).Source)
+                    spec(i).Source = 'sidecar';
+                end
             end
         end
 
