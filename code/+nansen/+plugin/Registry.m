@@ -24,6 +24,9 @@ classdef Registry
                 case {'tablevariable', 'table-variable', 'table_variable'}
                     registry = nansen.plugin.tablevariable.Registry.getInstance(forceRefresh);
 
+                case {'module', 'pluginmodule', 'plugin-module'}
+                    registry = nansen.plugin.module.Registry.getInstance(forceRefresh);
+
                 otherwise
                     error('Nansen:PluginRegistry:UnknownPluginType', ...
                         'Unknown plugin type "%s".', pluginType)

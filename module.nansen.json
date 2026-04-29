@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "1.0",
+  "id": "nansen.core",
+  "pluginType": "module",
+  "displayName": "NANSEN Core",
+  "description": "Core NANSEN library and built-in plugins.",
+  "version": "1.0.0",
+  "name": "NANSEN Core",
+  "moduleVersion": "1.0.0",
+  "minNansenVersion": "",
+  "maxNansenVersion": "",
+  "dependencies": [],
+  "provides": [
+    "fileadapter",
+    "action",
+    "tablevariable"
+  ]
+}
