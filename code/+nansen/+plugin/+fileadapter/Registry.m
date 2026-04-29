@@ -144,6 +144,10 @@ classdef Registry < nansen.plugin.base.Registry
             fileAdapterMfiles = utility.path.listFiles(fileAdapterFolders, '.m');
 
             for i = 1:numel(fileAdapterMfiles)
+                if obj.hasSidecarForSourcePath(fileAdapterMfiles{i})
+                    continue
+                end
+
                 try
                     className = utility.path.abspath2funcname(fileAdapterMfiles{i});
                     mc = meta.class.fromName(className);
@@ -231,27 +235,6 @@ classdef Registry < nansen.plugin.base.Registry
         function specs = emptySpecArray(~)
         %emptySpecArray Return an empty file-adapter spec array.
             specs = nansen.plugin.fileadapter.FileAdapterSpec.empty;
-        end
-
-    end
-
-    methods (Access = private)
-
-        function specs = removeSpecsWithSidecar(~, specs)
-        %removeSpecsWithSidecar Prefer sidecars over inferred class specs.
-            if isempty(specs)
-                return
-            end
-
-            keep = true(1, numel(specs));
-            for i = 1:numel(specs)
-                sidecarPath = fullfile(fileparts(specs(i).SourcePath), ...
-                    'fileadapter.plugin.json');
-                if isfile(sidecarPath)
-                    keep(i) = false;
-                end
-            end
-            specs = specs(keep);
         end
 
     end

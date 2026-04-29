@@ -91,6 +91,10 @@ classdef Registry < nansen.plugin.base.Registry
             mFiles = obj.listMatlabFiles(obj.getRootPaths());
 
             for i = 1:numel(mFiles)
+                if obj.hasSidecarForSourcePath(mFiles{i})
+                    continue
+                end
+
                 try
                     spec = obj.createSpecFromTableVariableFile(mFiles{i});
                     if ~isempty(spec)

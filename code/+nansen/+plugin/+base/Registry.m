@@ -38,6 +38,7 @@ classdef (Abstract) Registry < handle
 
             sidecarSpecs = obj.discoverSidecarSpecs();
             compatibilitySpecs = obj.discoverCompatibilitySpecs();
+            compatibilitySpecs = obj.removeSpecsWithSidecar(compatibilitySpecs);
 
             specs = [specs, sidecarSpecs, compatibilitySpecs];
             [specs, issues] = obj.postprocessSpecs(specs);
@@ -308,6 +309,30 @@ classdef (Abstract) Registry < handle
 
             keep = ~ismember({specs.Id}, disabledIds);
             specs = specs(keep);
+        end
+
+        function specs = removeSpecsWithSidecar(obj, specs)
+        %removeSpecsWithSidecar Prefer sidecars over legacy introspection.
+            if isempty(specs)
+                return
+            end
+
+            keep = true(1, numel(specs));
+            for i = 1:numel(specs)
+                sidecarPath = fullfile(fileparts(specs(i).SourcePath), ...
+                    obj.SidecarFilename);
+                if isfile(sidecarPath)
+                    keep(i) = false;
+                end
+            end
+
+            specs = specs(keep);
+        end
+
+        function tf = hasSidecarForSourcePath(obj, sourcePath)
+        %hasSidecarForSourcePath True if a sidecar exists next to source.
+            sidecarPath = fullfile(fileparts(sourcePath), obj.SidecarFilename);
+            tf = isfile(sidecarPath);
         end
 
         function disabledIds = getDisabledPluginIds(obj)
