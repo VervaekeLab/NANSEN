@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "id": "imviewer.plugin.RoiClassifier",
+  "pluginType": "imviewerplugin",
+  "displayName": "Roiclassifier",
+  "description": "",
+  "version": "",
+  "implementation": {
+    "language": "matlab",
+    "kind": "class",
+    "entrypoint": "imviewer.plugin.RoiClassifier",
+    "class": "imviewer.plugin.RoiClassifier"
+  },
+  "capabilities": [],
+  "name": "Roiclassifier",
+  "menuLocation": []
+}

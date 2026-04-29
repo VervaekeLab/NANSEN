@@ -48,4 +48,9 @@ function testPluginRegistries()
     assert(isa(facadeSpecs, 'nansen.plugin.action.ActionSpec'), ...
         'Expected facade to return action specs')
 
+    imviewerRegistry = nansen.plugin.imviewer.Registry.getInstance(true);
+    pluginFcn = imviewerRegistry.getPluginFcn('RoiManager');
+    assert(strcmp(func2str(pluginFcn), 'imviewer.plugin.RoiManager'), ...
+        'Expected imviewer plugin registry to resolve RoiManager')
+
 end

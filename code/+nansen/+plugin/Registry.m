@@ -27,6 +27,9 @@ classdef Registry
                 case {'module', 'pluginmodule', 'plugin-module'}
                     registry = nansen.plugin.module.Registry.getInstance(forceRefresh);
 
+                case {'imviewerplugin', 'imviewer-plugin', 'imviewer_plugin'}
+                    registry = nansen.plugin.imviewer.Registry.getInstance(forceRefresh);
+
                 otherwise
                     error('Nansen:PluginRegistry:UnknownPluginType', ...
                         'Unknown plugin type "%s".', pluginType)

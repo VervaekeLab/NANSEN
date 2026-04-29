@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "id": "imviewer.plugin.FlowRegistration",
+  "pluginType": "imviewerplugin",
+  "displayName": "Flow Registration",
+  "description": "",
+  "version": "",
+  "implementation": {
+    "language": "matlab",
+    "kind": "class",
+    "entrypoint": "imviewer.plugin.FlowRegistration",
+    "class": "imviewer.plugin.FlowRegistration"
+  },
+  "capabilities": [],
+  "name": "Flow Registration",
+  "menuLocation": []
+}

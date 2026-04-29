@@ -6,7 +6,8 @@ function report = convertPluginsToSidecars(varargin)
 %   unless Overwrite is true.
 
     params = struct();
-    params.PluginTypes = {'fileadapter', 'action', 'tablevariable'};
+    params.PluginTypes = {'fileadapter', 'action', 'tablevariable', ...
+        'imviewerplugin'};
     params.DryRun = false;
     params.Overwrite = false;
     params.RootPath = nansen.rootpath();
@@ -86,6 +87,8 @@ function filename = getSidecarFilename(pluginType)
             filename = 'action.plugin.json';
         case 'tablevariable'
             filename = 'tablevariable.plugin.json';
+        case 'imviewerplugin'
+            filename = 'imviewerplugin.plugin.json';
         otherwise
             error('Nansen:PluginConversion:UnknownPluginType', ...
                 'Unknown plugin type "%s".', pluginType)
@@ -165,6 +168,12 @@ function S = specToSidecarStruct(pluginType, spec)
             S.variableName = tableVariableSpec.VariableName;
             S.isEditable = tableVariableSpec.IsEditable;
             S.defaultValue = tableVariableSpec.DefaultValue;
+
+        case 'imviewerplugin'
+            imviewerPluginSpec = ...
+                nansen.plugin.imviewer.ImviewerPluginSpec.fromPluginSpec(spec);
+            S.name = imviewerPluginSpec.Name;
+            S.menuLocation = imviewerPluginSpec.MenuLocation;
     end
 end
 

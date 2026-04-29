@@ -1052,13 +1052,13 @@ methods % App initialization & creation
             % Todo: Create as separate contextmenu on plugin button...
             mitem = uimenu(m, 'Label', 'Align Images', 'Separator', 'on');
             tmpItem = uimenu(mitem, 'Label', 'NoRMCorre', 'Enable', 'on');
-            tmpItem.Callback = @(s,e) imviewer.plugin.NoRMCorre(obj, 'Modal', false);
+            tmpItem.Callback = @(s,e) obj.openPlugin('NoRMCorre', [], 'Modal', false);
 
             tmpItem = uimenu(mitem, 'Label', 'FlowReg', 'Enable', 'on');
-            tmpItem.Callback = @(s,e) imviewer.plugin.FlowRegistration(obj, 'Modal', false);
+            tmpItem.Callback = @(s,e) obj.openPlugin('FlowRegistration', [], 'Modal', false);
 
-            mitem = uimenu(m, 'Label', 'Open Roimanager');
-            mitem.Callback = @(s, e, h) imviewer.plugin.RoiManager(obj);
+            mitem = uimenu(m, 'Label', 'Open Roimanager');   
+            mitem.Callback = @(s, e, h) obj.openPlugin('RoiManager');
         end
 
         % % % Menu section with items for linking/unlinking with viewers.
@@ -2227,8 +2227,7 @@ methods % App update
 
         % Require function handle for plugin.
         if ischar(pluginName)
-            pluginFcnName = strjoin({'imviewer', 'plugin', pluginName}, '.');
-            pluginFcn = str2func(pluginFcnName);
+            pluginFcn = imviewer.App.getPluginFcnFromName(pluginName);
         elseif isa(pluginName, 'function_handle')
             pluginFcn = pluginName;
         end
@@ -5964,6 +5963,14 @@ methods (Static)
     end
 
     function pluginFcn = getPluginFcnFromName(pluginName)
+        registry = nansen.plugin.imviewer.Registry.getInstance();
+        try
+            pluginFcn = registry.getPluginFcn(pluginName);
+            return
+        catch
+            % Fall back to legacy lookup below.
+        end
+
         pluginPackage = {'imviewer.plugin', 'nansen.plugin.imviewer'};
 
         pluginFcn = [];

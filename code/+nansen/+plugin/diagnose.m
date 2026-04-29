@@ -7,7 +7,8 @@ function report = diagnose(varargin)
 %   to the command window.
 
     if nargin == 0
-        pluginTypes = {'module', 'fileadapter', 'action', 'tablevariable'};
+        pluginTypes = {'module', 'fileadapter', 'action', ...
+            'tablevariable', 'imviewerplugin'};
     else
         pluginTypes = varargin;
     end

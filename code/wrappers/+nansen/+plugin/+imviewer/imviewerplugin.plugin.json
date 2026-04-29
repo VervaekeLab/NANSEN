@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "1.0",
+  "pluginType": "imviewerplugin",
+  "plugins": [
+    {
+      "schemaVersion": "1.0",
+      "id": "nansen.plugin.imviewer.EXTRACT",
+      "pluginType": "imviewerplugin",
+      "displayName": "EXTRACT",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "class",
+        "entrypoint": "nansen.plugin.imviewer.EXTRACT",
+        "class": "nansen.plugin.imviewer.EXTRACT"
+      },
+      "capabilities": [],
+      "name": "EXTRACT",
+      "menuLocation": []
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "nansen.plugin.imviewer.FlowRegistration",
+      "pluginType": "imviewerplugin",
+      "displayName": "Flow Registration",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "class",
+        "entrypoint": "nansen.plugin.imviewer.FlowRegistration",
+        "class": "nansen.plugin.imviewer.FlowRegistration"
+      },
+      "capabilities": [],
+      "name": "Flow Registration",
+      "menuLocation": []
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "nansen.plugin.imviewer.FluFinder",
+      "pluginType": "imviewerplugin",
+      "displayName": "FluFinder",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "class",
+        "entrypoint": "nansen.plugin.imviewer.FluFinder",
+        "class": "nansen.plugin.imviewer.FluFinder"
+      },
+      "capabilities": [],
+      "name": "FluFinder",
+      "menuLocation": []
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "nansen.plugin.imviewer.NoRMCorre",
+      "pluginType": "imviewerplugin",
+      "displayName": "NoRMCorre",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "class",
+        "entrypoint": "nansen.plugin.imviewer.NoRMCorre",
+        "class": "nansen.plugin.imviewer.NoRMCorre"
+      },
+      "capabilities": [],
+      "name": "NoRMCorre",
+      "menuLocation": [
+        "Align Images"
+      ]
+    }
+  ]
+}
