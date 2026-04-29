@@ -61,6 +61,11 @@ function [sessionFolderListOut, sessionIDs, unmatchedSessionFolderList] = ...
     uniqueSessionIds = getUniqueSessionIds(sessionIds);
     sessionIDs = uniqueSessionIds;
 
+    if isempty(sessionIDs)
+        error('NANSEN:DataIO:NoMatchingSessionFolders', ...
+            'No session folders were detected for matching')
+    end
+
     % Todo: check for empty ids?
 
     S = repmat(blankList, 1, numel(uniqueSessionIds));

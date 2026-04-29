@@ -9,7 +9,18 @@ function sessionTable = updateSessionDatalocations(sessionTable, dataLocationMod
     
     % % Use the folder structure to detect session folders.
     sessionFolders = listSessionFolders(dataLocationModel, 'all');
-    [sessionFolders, sessionIDs] = matchSessionFolders(dataLocationModel, sessionFolders);
+    try
+        [sessionFolders, sessionIDs] = matchSessionFolders(dataLocationModel, sessionFolders);
+    catch exception
+        switch exception.identifier
+            case 'NANSEN:DataIO:NoMatchingSessionFolders'
+                error('NANSEN:DataLocations:NoMatchingSessionFolders', ...
+                    ['No session folders were detected using the current ', ...
+                    'DataLocationModel. Please check the DataLocationModel configuration.'])
+            otherwise
+                rethrow(exception)
+        end
+    end
 
     % Match sessions in table with sessionFolder (data locations)
     unresolvedIdx = [];

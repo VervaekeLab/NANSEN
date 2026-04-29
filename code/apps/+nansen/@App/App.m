@@ -1652,18 +1652,25 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             try
                 d = src.openProgressDialog('Update Model');
+                % Todo: Ask model app if config is valid, i.e session
+                % folders detected?
             catch
                 warning('Something went wrong')
             end
-
-            app.MetaTable = nansen.manage.updateSessionDatalocations(...
-                app.MetaTable, app.DataLocationModel);
             
+            try
+                app.MetaTable = nansen.manage.updateSessionDatalocations(...
+                    app.MetaTable, app.DataLocationModel);
+            catch exception
+                app.MessageDisplay.alert(exception.message)
+            end
+
             app.saveMetaTable()
             try
                 close(d)
             catch
-                warning('Something went wrong')
+                warning('NANSEN:App:DialogCloseFailed', ...
+                    'Failed to close progress dialog')
             end
         end
 
