@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "id": "nansen_plugin_fixture.tablevariable.session-label",
+  "pluginType": "tablevariable",
+  "displayName": "SessionLabel",
+  "description": "Test table variable plugin.",
+  "version": "1.0.0",
+  "implementation": {
+    "language": "matlab",
+    "kind": "function",
+    "entrypoint": "nansen_plugin_fixture.tablevariable.SessionLabel.update"
+  },
+  "tableType": "session",
+  "variableName": "SessionLabel",
+  "isEditable": false,
+  "defaultValue": ""
+}

@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "1.0",
+  "id": "nansen_plugin_fixture.action.hello",
+  "pluginType": "action",
+  "displayName": "Hello Session",
+  "description": "Test action plugin.",
+  "version": "1.0.0",
+  "implementation": {
+    "language": "matlab",
+    "kind": "function",
+    "entrypoint": "nansen_plugin_fixture.action.Hello.run"
+  },
+  "entityType": "session",
+  "methodName": "Hello Session",
+  "batchMode": "serial",
+  "isQueueable": true,
+  "menuLocation": ["data"]
+}
