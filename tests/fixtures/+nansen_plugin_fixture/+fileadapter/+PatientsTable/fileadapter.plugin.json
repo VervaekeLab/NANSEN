@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "1.0",
+  "id": "nansen_plugin_fixture.fileadapter.patients-table",
+  "pluginType": "fileadapter",
+  "displayName": "PatientsTable",
+  "description": "Test function-based file adapter for patient structs.",
+  "version": "1.0.0",
+  "implementation": {
+    "language": "matlab",
+    "kind": "function",
+    "read": "read.m"
+  },
+  "match": {
+    "extensions": [".mat"]
+  },
+  "outputs": {
+    "dataType": "table"
+  },
+  "capabilities": ["read"]
+}

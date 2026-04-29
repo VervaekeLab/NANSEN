@@ -679,28 +679,18 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
 
         % Todo: Move to variable model
         function fileAdapterFcn = getFileAdapterFcn(obj, variableInfo)
-        %getFileAdapterFcn Get function handle for creating file adapter
-
-            if strcmp(variableInfo.FileAdapter, 'Default')
-                fileAdapterFcn = []; return
-            end
-
-            fileAdapterList = nansen.dataio.listFileAdapters();
-
-            if ischar(variableInfo) % Variable name was given
+        %getFileAdapterFcn Get function handle for creating file adapter                
+            
+            if ischar(variableInfo)
                 [~, variableInfo] = obj.getDataFilePath(variableInfo);
             end
-
-            % Get file adapter % Todo: make this more persistent...
-            isMatch = strcmp({fileAdapterList.FileAdapterName}, variableInfo.FileAdapter);
-
-            if ~any(isMatch)
-                error('NANSEN:Session:FileAdapterNotFound', 'File adapter was not found')
-            elseif sum(isMatch) > 1
-                error('NANSEN:Session:MultipleFileAdapters', 'This is a bug. Please report')
-            end
-
-            fileAdapterFcn = str2func(fileAdapterList(isMatch).FunctionName);
+            
+            fileAdapterRegistry = nansen.dataio.FileAdapterRegistry.getInstance();
+            fileAdapterRegistry.findByName(variableInfo.FileAdapter);
+            fileAdapterFcn = @(filePath, varargin) ...
+                fileAdapterRegistry.createAdapter( ...
+                variableInfo.FileAdapter, filePath, varargin{:});
+            
         end
 
         function viewDataVariable(obj, varName)

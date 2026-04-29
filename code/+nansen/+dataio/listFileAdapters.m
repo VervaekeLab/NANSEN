@@ -10,43 +10,5 @@ function fileAdapterList = listFileAdapters(fileExtension, refresh)
 %       SupportedFileTypes  (cell) : File types that are supported with this fileadapter
 %       DataType            (char) : Name of datatype returned by this file adapter
 
-    % Todo: Ignore file adapters with a name that are already in the list
-    % Todo: Start adding from project dir, then watchfolder, then internal?
-
-    if nargin < 2 || isempty(refresh); refresh = false; end
-
-    project = nansen.getCurrentProject();
-    if isempty(project); fileAdapterList = struct.empty; return; end
-
-    fileAdapterList = table2struct(project.getTable('FileAdapter', refresh));
-
-    if nargin < 1; fileExtension = ''; end
-    if ~isempty(fileExtension); fileExtension = strrep(fileExtension, '.', ''); end
-
-    if ~isempty(fileExtension)
-        validationFcn = @(extList) any(contains(extList, fileExtension, "IgnoreCase", true));
-        keep = arrayfun(@(s) validationFcn(s.SupportedFileTypes), ...
-            fileAdapterList);
-    else
-        keep = true(1, numel(fileAdapterList));
-    end
-
-    fileAdapterList = fileAdapterList(keep);
-
-    if isempty(fileAdapterList)
-        fileAdapterList(1).FileAdapterName = 'N/A';
-        fileAdapterList(1).FunctionName = '';
-        fileAdapterList(1).SupportedFileTypes = {};
-        fileAdapterList(1).DataType = '';
-    end
-
-    if ~nargout
-        fileAdapterList = struct2table(fileAdapterList, 'AsArray', true);
-        fileAdapterList.FileAdapterName = string(fileAdapterList.FileAdapterName);
-        fileAdapterList.FunctionName = string(fileAdapterList.FunctionName);
-        fileAdapterList.DataType = string(fileAdapterList.DataType);
-        fileFormats = fileAdapterList.SupportedFileTypes;
-        fileFormats = cellfun(@(c) string(strjoin(c, ', ')), fileFormats);
-        fileAdapterList.SupportedFileTypes = fileFormats;
-    end
+    fileAdapterList = nansen.dataio.FileAdapterRegistry.listAdapters();
 end

@@ -293,22 +293,16 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
         function fileAdapterFcn = getFileAdapterFcn(obj, variableInfo)
         %getFileAdapterFcn Get function handle for creating file adapter
 
-            fileAdapterList = nansen.dataio.listFileAdapters();
+            fileAdapterRegistry = nansen.dataio.FileAdapterRegistry.getInstance();
 
             if ischar(variableInfo)
                 [~, variableInfo] = obj.getDataFilePath(variableInfo);
             end
-
-            % Find file adapter match for name
-            isMatch = strcmp({fileAdapterList.FileAdapterName}, variableInfo.FileAdapter);
-
-            if ~any(isMatch)
-                error('File adapter was not found')
-            elseif sum(isMatch) > 1
-                error('This is a bug. Please report')
-            end
-
-            fileAdapterFcn = str2func(fileAdapterList(isMatch).FunctionName);
+            
+            fileAdapterRegistry.findByName(variableInfo.FileAdapter);
+            fileAdapterFcn = @(filePath, varargin) ...
+                fileAdapterRegistry.createAdapter( ...
+                variableInfo.FileAdapter, filePath, varargin{:});
         end
 
         function varNames = getVariableNamesOfType(obj, typeName)
@@ -613,6 +607,35 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
 
         function disableNotifications(obj)
             obj.DoNotify = false;
+        end
+    end
+    
+    methods (Static)
+        function C = listFileAdapters(fileType)
+            % Todo: Make external function for gathering this from the
+            % path. All fileadapters should inherit from a common superclass.
+            
+            if nargin < 1; fileType = ''; end
+            if ~isempty(fileType); fileType = strrep(fileType, '.', ''); end
+            
+            fileAdapterList = nansen.dataio.listFileAdapters;
+            
+            if ~isempty(fileType)
+                validationFcn = @(extList) any(strcmpi(fileType, extList));
+                keep = arrayfun(@(s) validationFcn(s.SupportedFileTypes), ...
+                    fileAdapterList);
+            else
+                keep = true(1, numel(fileAdapterList));
+            end
+            
+            C = fileAdapterList(keep);
+            
+            if isempty(C)
+                C(1).FileAdapterName = 'N/A';
+                C(1).FunctionName = '';
+                C(1).SupportedFileTypes = {};
+                C(1).DataType = '';
+            end
         end
     end
 
