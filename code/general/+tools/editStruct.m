@@ -58,14 +58,25 @@ function [sOut, wasAborted] = editStruct(sIn, fieldNames, titleStr, varargin)
 
         else
             sEditor = structeditor(sIn, varargin{:});
-            sEditor.IsModal = true;
+            if isprop(sEditor, 'IsModal')
+                sEditor.IsModal = true;
+            end
             sEditor.waitfor()
-    
-            if sEditor.wasCanceled
-                sOut = sEditor.dataOrig;
-                wasAborted = true;
+
+            if isprop(sEditor, 'FinishState')
+                if sEditor.FinishState == "Finished"
+                    sOut = sEditor.Data;
+                else
+                    sOut = sEditor.OriginalData;
+                    wasAborted = true;
+                end
             else
-                sOut = sEditor.dataEdit;
+                if sEditor.wasCanceled
+                    sOut = sEditor.dataOrig;
+                    wasAborted = true;
+                else
+                    sOut = sEditor.dataEdit;
+                end
             end
         end
         

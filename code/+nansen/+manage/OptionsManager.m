@@ -384,12 +384,22 @@ classdef OptionsManager < handle
             
             sEditor = structeditor(obj.Options, 'OptionsManager', obj, 'Title', name);
             sEditor.waitfor()
-            wasAborted = sEditor.wasCanceled;
-            
-            if wasAborted
-                obj.Options = sEditor.dataOrig;
+
+            if isprop(sEditor, 'FinishState')
+                wasAborted = sEditor.FinishState ~= "Finished";
+                if wasAborted
+                    obj.Options = sEditor.OriginalData;
+                else
+                    obj.Options = sEditor.Data;
+                end
             else
-                obj.Options = sEditor.dataEdit;
+                wasAborted = sEditor.wasCanceled;
+
+                if wasAborted
+                    obj.Options = sEditor.dataOrig;
+                else
+                    obj.Options = sEditor.dataEdit;
+                end
             end
             
             delete(sEditor)
@@ -420,8 +430,13 @@ classdef OptionsManager < handle
                 'OptionsManager', obj, ...
                 'Title', titleStr, ...
                 'Prompt', promptStr );
-            
-            hOptionsEditor.changeOptionsSelectionDropdownValue(optionsName);
+
+            if ismethod(hOptionsEditor, 'changeOptionsSelectionDropdownValue')
+                hOptionsEditor.changeOptionsSelectionDropdownValue(optionsName);
+            else
+                plugin = hOptionsEditor.getPlugin("nansen.manage.OptionsManagerPlugin");
+                plugin.setCurrentOptionsName(optionsName);
+            end
             
         end
         
@@ -449,14 +464,25 @@ classdef OptionsManager < handle
             
             sEditor = obj.openOptionsEditor(optsName, optsStruct);
             sEditor.waitfor()
-            
-            wasAborted = sEditor.wasCanceled;
 
-            if sEditor.wasCanceled
-                optsStruct = sEditor.dataOrig;
+            if isprop(sEditor, 'FinishState')
+                wasAborted = sEditor.FinishState ~= "Finished";
+                plugin = sEditor.getPlugin("nansen.manage.OptionsManagerPlugin");
+                if wasAborted
+                    optsStruct = sEditor.OriginalData;
+                else
+                    optsStruct = sEditor.Data;
+                    optsName = plugin.CurrentOptionsName;
+                end
             else
-                optsStruct = sEditor.dataEdit;
-                optsName = sEditor.currentOptionsName;
+                wasAborted = sEditor.wasCanceled;
+
+                if sEditor.wasCanceled
+                    optsStruct = sEditor.dataOrig;
+                else
+                    optsStruct = sEditor.dataEdit;
+                    optsName = sEditor.currentOptionsName;
+                end
             end
 
             % Clear modified options!

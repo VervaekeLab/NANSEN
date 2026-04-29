@@ -250,8 +250,8 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable & nansen.metadata
                     % todo for the future
                     %S.(fieldName).Subfolder_ = @(x)uigetdir(rootPath);
                 end
-
-                h = structeditor.App(S, 'AdjustFigureSize', true, ...
+                
+                h = structeditor(S, 'AdjustFigureSize', true, ...
                     'Title', 'Edit Data Location Rootpaths', ...
                     'LabelPosition', 'over', ...
                     'CustomFigureSize', [700, 300], ...
@@ -260,11 +260,18 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable & nansen.metadata
                 h.Title = sprintf('Edit Data Locations for %s', metaObj.sessionID);
 
                 h.waitfor()
+                
+                if isprop(h, 'FinishState')
+                    wasCanceled = h.FinishState ~= "Finished";
+                    sNew = h.Data;
+                else
+                    wasCanceled = h.wasCanceled;
+                    sNew = h.dataEdit;
+                end
 
-                if h.wasCanceled
+                if wasCanceled
                     return
                 else
-                    sNew = h.dataEdit;
                     if ~isequal(sNew, S)
                         metaObj.updateRootDir(sNew)
                     end
@@ -302,19 +309,26 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable & nansen.metadata
                     S.(fieldName_) = allRootPaths;
 
                 end
-
-                h = structeditor.App(S, 'AdjustFigureSize', true, ...
+                
+                h = structeditor(S, 'AdjustFigureSize', true, ...
                     'Title', 'Edit Data Location Rootpaths', ...
                     'LabelPosition', 'over', ...
                     'Prompt', 'Select datalocation root directories');
                 h.Title = sprintf('Edit Data Locations for %s', metaObj.sessionID);
 
                 h.waitfor()
+                
+                if isprop(h, 'FinishState')
+                    wasCanceled = h.FinishState ~= "Finished";
+                    sNew = h.Data;
+                else
+                    wasCanceled = h.wasCanceled;
+                    sNew = h.dataEdit;
+                end
 
-                if h.wasCanceled
+                if wasCanceled
                     return
                 else
-                    sNew = h.dataEdit;
                     if ~isequal(sNew, S)
                         metaObj.updateRootDir(sNew)
                     end
