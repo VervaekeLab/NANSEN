@@ -14,11 +14,17 @@ classdef (Abstract) Registry < handle
 
         function specs = list(obj, varargin)
         %list Return plugin specs, refreshing on first use.
+            [includeDisabled, varargin] = obj.parseListOptions(varargin{:});
+
             if ~obj.IsLoaded
                 obj.refresh()
             end
 
             specs = obj.Specs;
+
+            if ~includeDisabled
+                specs = obj.removeDisabledSpecs(specs);
+            end
 
             if ~isempty(varargin)
                 specs = obj.filterSpecs(specs, varargin{:});
@@ -49,21 +55,64 @@ classdef (Abstract) Registry < handle
         end
 
         function spec = get(obj, pluginId)
-        %get Return one spec by stable id or display name.
-            specs = obj.list();
+        %get Return the resolved spec by stable id or display name.
+            spec = obj.resolve(pluginId);
+        end
+
+        function spec = resolve(obj, pluginId, varargin)
+        %resolve Return the highest-priority matching plugin spec.
+            [includeDisabled, varargin] = obj.parseListOptions(varargin{:});
+            specs = obj.list('IncludeDisabled', includeDisabled);
+            if ~isempty(varargin)
+                specs = obj.filterSpecs(specs, varargin{:});
+            end
+
+            if isempty(specs)
+                error('Nansen:PluginRegistry:PluginNotFound', ...
+                    'Plugin "%s" was not found.', pluginId)
+            end
+
             isMatch = strcmp({specs.Id}, pluginId) | ...
                 strcmp({specs.DisplayName}, pluginId);
 
             if ~any(isMatch)
                 error('Nansen:PluginRegistry:PluginNotFound', ...
                     'Plugin "%s" was not found.', pluginId)
-            elseif sum(isMatch) > 1
-                error('Nansen:PluginRegistry:AmbiguousPluginName', ...
-                    ['Plugin name "%s" matches multiple plugins. ', ...
-                    'Use a stable plugin id instead.'], pluginId)
             end
 
-            spec = specs(isMatch);
+            spec = specs(find(isMatch, 1, 'first'));
+        end
+
+        function disable(obj, pluginId)
+        %disable Disable a plugin by stable id.
+            specs = obj.list('IncludeDisabled', true);
+            isMatch = strcmp({specs.Id}, pluginId) | ...
+                strcmp({specs.DisplayName}, pluginId);
+
+            if ~any(isMatch)
+                error('Nansen:PluginRegistry:PluginNotFound', ...
+                    'Plugin "%s" was not found.', pluginId)
+            end
+
+            pluginId = specs(find(isMatch, 1, 'first')).Id;
+            disabledIds = obj.getDisabledPluginIds();
+            if ~any(strcmp(disabledIds, pluginId))
+                disabledIds{end+1} = pluginId;
+                obj.setDisabledPluginIds(disabledIds)
+            end
+        end
+
+        function enable(obj, pluginId)
+        %enable Enable a plugin by stable id.
+            disabledIds = obj.getDisabledPluginIds();
+            keep = ~strcmp(disabledIds, pluginId);
+            obj.setDisabledPluginIds(disabledIds(keep))
+        end
+
+        function tf = isEnabled(obj, pluginId)
+        %isEnabled Return true if a plugin id is not disabled.
+            disabledIds = obj.getDisabledPluginIds();
+            tf = ~any(strcmp(disabledIds, pluginId));
         end
 
         function report = validate(obj)
@@ -138,6 +187,7 @@ classdef (Abstract) Registry < handle
                 specs(i) = obj.normalizeSpec(specs(i));
             end
 
+            specs = obj.sortSpecsByPriority(specs);
             ids = {specs.Id};
             missingId = cellfun(@isempty, ids);
             for i = find(missingId)
@@ -148,8 +198,10 @@ classdef (Abstract) Registry < handle
             duplicateIds = unique(ids(~missingId));
             for i = 1:numel(duplicateIds)
                 if sum(strcmp(ids, duplicateIds{i})) > 1
-                    issues(end+1) = obj.makeIssue('error', ...
-                        sprintf('Duplicate plugin id "%s".', duplicateIds{i}), ''); %#ok<AGROW>
+                    issues(end+1) = obj.makeIssue('warning', ...
+                        sprintf(['Duplicate plugin id "%s". The first ', ...
+                        'entry by registry precedence will be used.'], ...
+                        duplicateIds{i}), ''); %#ok<AGROW>
                 end
             end
         end
@@ -187,6 +239,126 @@ classdef (Abstract) Registry < handle
         function addIssue(obj, severity, message, sourcePath)
         %addIssue Add a validation/discovery issue.
             obj.Issues(end+1) = obj.makeIssue(severity, message, sourcePath);
+        end
+
+        function priority = getSpecPriority(obj, spec)
+        %getSpecPriority Return precedence for a plugin spec. Lower wins.
+            rootPriority = obj.getSpecRootPriority(spec);
+
+            switch lower(spec.Source)
+                case 'project'
+                    sourcePriority = 10;
+                case 'sidecar'
+                    sourcePriority = 20;
+                case {'class', 'function'}
+                    sourcePriority = 30;
+                case 'builtin'
+                    sourcePriority = 40;
+                otherwise
+                    sourcePriority = 50;
+            end
+
+            priority = rootPriority * 100 + sourcePriority;
+        end
+
+        function specs = sortSpecsByPriority(obj, specs)
+        %sortSpecsByPriority Sort specs according to registry precedence.
+            if isempty(specs)
+                return
+            end
+
+            priority = arrayfun(@(s) obj.getSpecPriority(s), specs);
+            [~, sortIdx] = sort(priority);
+            specs = specs(sortIdx);
+        end
+
+        function priority = getSpecRootPriority(obj, spec)
+        %getSpecRootPriority Return root-order priority. Lower wins.
+            roots = obj.getRootPaths();
+            if ~iscell(roots)
+                roots = {roots};
+            end
+
+            priority = numel(roots) + 1;
+            for i = 1:numel(roots)
+                if ~isempty(roots{i}) && startsWith(spec.SourcePath, roots{i})
+                    priority = i;
+                    return
+                end
+            end
+        end
+
+        function specs = removeDisabledSpecs(obj, specs)
+        %removeDisabledSpecs Remove specs disabled by the user.
+            if isempty(specs)
+                return
+            end
+
+            disabledIds = obj.getDisabledPluginIds();
+            if isempty(disabledIds)
+                return
+            end
+
+            keep = ~ismember({specs.Id}, disabledIds);
+            specs = specs(keep);
+        end
+
+        function disabledIds = getDisabledPluginIds(obj)
+        %getDisabledPluginIds Return disabled ids for this plugin type.
+            prefGroup = obj.getPreferenceGroup();
+            prefName = obj.getDisabledPreferenceName();
+            if ispref(prefGroup, prefName)
+                disabledIds = getpref(prefGroup, prefName);
+            else
+                disabledIds = {};
+            end
+
+            if ischar(disabledIds)
+                disabledIds = {disabledIds};
+            elseif isstring(disabledIds)
+                disabledIds = cellstr(disabledIds);
+            end
+        end
+
+        function setDisabledPluginIds(obj, disabledIds)
+        %setDisabledPluginIds Persist disabled ids for this plugin type.
+            setpref(obj.getPreferenceGroup(), ...
+                obj.getDisabledPreferenceName(), disabledIds)
+        end
+
+        function prefName = getDisabledPreferenceName(obj)
+        %getDisabledPreferenceName Return preference key for disabled ids.
+            prefName = matlab.lang.makeValidName( ...
+                [obj.PluginType, '_DisabledPluginIds']);
+        end
+
+    end
+
+    methods (Static, Access = protected)
+
+        function [includeDisabled, args] = parseListOptions(varargin)
+        %parseListOptions Extract registry list options from name-value pairs.
+            includeDisabled = false;
+            args = varargin;
+
+            if isempty(args)
+                return
+            end
+
+            removeIdx = false(1, numel(args));
+            for i = 1:2:numel(args)
+                if strcmpi(args{i}, 'IncludeDisabled')
+                    includeDisabled = logical(args{i+1});
+                    removeIdx([i, i+1]) = true;
+                end
+            end
+
+            args(removeIdx) = [];
+        end
+
+        function prefGroup = getPreferenceGroup()
+        %getPreferenceGroup Return preference group for plugin registry state.
+            prefGroup = 'NansenPluginRegistry';
         end
 
     end

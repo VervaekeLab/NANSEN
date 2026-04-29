@@ -60,12 +60,14 @@ classdef Registry < nansen.plugin.base.Registry
 
         function rootPaths = getRootPaths(obj)
         %getRootPaths Return roots where action plugins are defined.
-            rootPaths = obj.getSessionMethodModuleRoots();
             projectPath = obj.getProjectSessionMethodPath();
-            if ~isempty(projectPath)
-                rootPaths{end+1} = projectPath;
+            if isempty(projectPath)
+                rootPaths = {};
+            else
+                rootPaths = {projectPath};
             end
-            rootPaths = [rootPaths, obj.AdditionalRootPaths];
+            rootPaths = [rootPaths, obj.AdditionalRootPaths, ...
+                obj.getSessionMethodModuleRoots()];
         end
 
         function specs = discoverCompatibilitySpecs(obj)
