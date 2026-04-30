@@ -65,7 +65,10 @@ function [status, teardownObjects] = setupNansenTestEnvironment(options)
         teardownObjects(end+1) = onCleanup( @(str) path(searchPathStr) );
         
         %% Re-add nansen and matbox to path
-        addpath(genpath(nansenRootPath))
+        addpath(genpath(fullfile(nansenRootPath, "code")))
+        addpath(genpath(fullfile(nansenRootPath, "tests")))
+        addpath(genpath(fullfile(nansenRootPath, "tools")))
+
         addpath(genpath(matboxPath))
 
     catch ME
