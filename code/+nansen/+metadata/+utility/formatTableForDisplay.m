@@ -133,3 +133,7 @@ function strVector = getCustomDisplayString(dataObj)
         strVector{i} = rep.Representation;
     end
 end
+
+function str = dispStruct(s)
+    str = sprintf('%dx%d struct', size(s));
+end

@@ -284,8 +284,8 @@ classdef MetaTableCatalog < uim.handle
         function registerMetaTable(obj, metaTable, options)
         %registerMetaTable Register a new MetaTable in the catalog and save it
         %
-        %   This is the preferred replacement for MetaTable.archive(). It assigns
-        %   a MetaTableKey, sets the filepath, adds a catalog entry, and saves.
+        %   Assigns a MetaTableKey, sets the filepath, adds a catalog entry,
+        %   and saves the catalog and MetaTable file.
         %
         %   Input:
         %     metaTable - A nansen.metadata.MetaTable instance
@@ -315,24 +315,26 @@ classdef MetaTableCatalog < uim.handle
                     'Cannot register MetaTable: save folder does not exist.')
             end
 
-            metaTable.fromStruct(S);
-
-            if isempty(metaTable.MetaTableKey) && metaTable.IsMaster
-                metaTable.MetaTableKey = nansen.util.getuuid();
-            elseif isempty(metaTable.MetaTableKey) && ~metaTable.IsMaster
+            if isempty(S.MetaTableKey) && S.IsMaster
+                S.MetaTableKey = nansen.util.getuuid();
+            elseif isempty(S.MetaTableKey) && ~S.IsMaster
                 error('NANSEN:MetaTableCatalog:MasterKeyNotSet', ...
                     ['Cannot register a dummy MetaTable without a MetaTableKey. ', ...
                      'Assign the master MetaTable''s key to MetaTableKey first.'])
             end
 
             S.FileName = nansen.metadata.MetaTable.createFileName(S);
-            metaTable.filepath = fullfile(S.SavePath, S.FileName);
-            S.MetaTableKey = metaTable.MetaTableKey;
+            S.filepath = fullfile(S.SavePath, S.FileName);
+            metaTable.fromStruct(S);
 
-            obj.addEntry(S)
+            catalogEntry = metaTable.toStruct('metatable_catalog');
+            catalogEntry.IsDefault = S.IsDefault;
+            obj.addEntry(catalogEntry)
 
-            if S.IsDefault
+            if catalogEntry.IsDefault
                 obj.setDefaultMetaTable(metaTable)
+            else
+                obj.save()
             end
 
             metaTable.save(true)
@@ -406,7 +408,8 @@ classdef MetaTableCatalog < uim.handle
 
             sMaster = load(masterFilePath);
             iA = ismember(sMaster.MetaTableMembers, dummyMetaTable.MetaTableMembers);
-            dummyMetaTable.entries = sMaster.MetaTableEntries(iA, :);
+            S = struct('MetaTableEntries', sMaster.MetaTableEntries(iA, :));
+            dummyMetaTable.fromStruct(S);
         end
     end
 

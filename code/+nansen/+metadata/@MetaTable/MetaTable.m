@@ -764,7 +764,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             if ~obj.IsMaster && ~isempty(S.MetaTableEntries)
                 catalog = nansen.metadata.MetaTableCatalog();
                 catalog.synchronizeToMaster(obj, S)
-                S.MetaTableEntries = {};
+                S.MetaTableEntries = S.MetaTableEntries([], :);
             end
         end
 
