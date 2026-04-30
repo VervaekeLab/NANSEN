@@ -32,8 +32,7 @@ function initializeSubjectTable(metatableCatalog, subjectClassName)
     
     % Register the metatable in the catalog and save to disk
     try
-        catalog = nansen.metadata.MetaTableCatalog();
-        catalog.registerMetaTable(metaTable, S);
+        metatableCatalog.registerMetaTable(metaTable, S);
     catch ME
         throwAsCaller(ME)
     end
