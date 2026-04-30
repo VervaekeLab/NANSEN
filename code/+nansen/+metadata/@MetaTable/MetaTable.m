@@ -1273,9 +1273,9 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 defaultIdx = candidateIdx(MT.IsDefault(candidateIdx));
                 masterIdx = candidateIdx(MT.IsMaster(candidateIdx));
 
-                if numel(defaultIdx) == 1
+                if isscalar(defaultIdx)
                     candidateIdx = defaultIdx;
-                elseif numel(masterIdx) == 1
+                elseif isscalar(masterIdx)
                     candidateIdx = masterIdx;
                 else
                     error("NANSEN:MetaTable:AmbiguousMetaTableName", ...

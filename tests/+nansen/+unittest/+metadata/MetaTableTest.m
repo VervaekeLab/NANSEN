@@ -452,7 +452,7 @@ classdef MetaTableTest < matlab.unittest.TestCase
 
             catalog.registerMetaTable(metaTable, options);
 
-            metaTableCatalog = catalog.Table; %#ok<NASGU>
+            metaTableCatalog = catalog.Table;
             metaTableCatalog.SavePath = {fullfile(testCase.TestDir, 'legacy_location')};
             save(catalogPath, 'metaTableCatalog')
 
