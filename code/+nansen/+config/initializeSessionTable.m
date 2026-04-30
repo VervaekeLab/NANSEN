@@ -106,8 +106,9 @@ function wasAborted = initializeSessionTable(dataLocationModel, sessionConstruct
     
     % Register the metatable in the catalog and save to disk
     try
-        catalog = nansen.metadata.MetaTableCatalog();
-        catalog.registerMetaTable(metaTable, S);
+        currentProject = nansen.getCurrentProject();
+        metaTableCatalog = currentProject.MetaTableCatalog;
+        metaTableCatalog.registerMetaTable(metaTable, S);
     catch ME
         throwAsCaller(ME)
     end
