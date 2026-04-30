@@ -69,7 +69,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         % for updating the content status messages.
         StatusText applify.StatusText
 
-        % AllowStatusUpdate - Should act as a gatekeeper for allowing status 
+        % AllowStatusUpdate - Should act as a gatekeeper for allowing status
         % updates. Some event listeners might attempt to update status (i.e
         % save table) while a task is running, this flag is used to prevent
         % this
@@ -116,7 +116,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     end
     
     properties (Hidden, Access = private) % Event listeners
-        % WindowKeyPressedListener event.listener 
+        % WindowKeyPressedListener event.listener
         TaskInitializationListener event.listener
         SessionTaskMenuUpdatedListener event.listener
     end
@@ -254,8 +254,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 app.ApplicationState = nansen.enum.ApplicationState.ShuttingDown;
             end
 
-            % This function is called twice if the figure's close button is 
-            % pressed. First when pressing the close button, and then when the 
+            % This function is called twice if the figure's close button is
+            % pressed. First when pressing the close button, and then when the
             % figure handle is deleted, because of the way onExit is set up in
             % uiw.abstract.BaseFigure
 
@@ -360,10 +360,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.hLayout.MainPanel = uipanel('Parent', app.Figure, 'Tag', 'Main Panel');
             app.hLayout.MainPanel.BorderType = 'none';
             
-            % Not implemented. 
+            % Not implemented.
             % Idea: add a drawer panel on the right side of the app. (nansen.DrawerPanel)
             app.hLayout.SidePanel = uipanel('Parent', app.Figure, 'Tag', 'Side Panel');
-            %app.hLayout.SidePanel.BorderType = 'none';
+            % app.hLayout.SidePanel.BorderType = 'none';
             app.hLayout.SidePanel.Units = 'pixels';
             app.hLayout.SidePanel.Visible = 'off';
             
@@ -526,7 +526,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             menuSubItem = uimenu( mitem, 'Text', 'Create...', 'Tag', 'core.metatable.new_variable.create');
             menuSubItem.MenuSelectedFcn = @(s,e) app.menuCallback_CreateTableVariable;
             
-            menuSubItem = uimenu( mitem, 'Text', 'Import...', 'Tag', 'core.metatable.new_variable.import'); 
+            menuSubItem = uimenu( mitem, 'Text', 'Import...', 'Tag', 'core.metatable.new_variable.import');
             menuSubItem.MenuSelectedFcn = @(s,e) app.menuCallback_ImportTableVariable;
             
             % Menu with submenus for editing table variable definition:
@@ -688,7 +688,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function createMenu_Figure(app)
         % NOT IMPLEMENTED YET - Add menu for multipart figures.
         
-        % Developer notes: 
+        % Developer notes:
         %  - The multipart figure functionality needs to be updated and added
         %    to projects.
         %  - This menu must be updated on project change
@@ -737,7 +737,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 try
                     hMenu(2) = findobj(app.Figure, 'Text', 'Assign Pipeline');
                 catch
-                    hMenu(2) = findobj(app.SessionContextMenu, 'Text', 'Assign Pipeline'); 
+                    hMenu(2) = findobj(app.SessionContextMenu, 'Text', 'Assign Pipeline');
                 end
             end
             
@@ -876,7 +876,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         function updateRelatedInventoryLists(app, mItem)
-        % updateRelatedInventoryLists - Update submenus holding metatable lists   
+        % updateRelatedInventoryLists - Update submenus holding metatable lists
             if nargin < 2
                 mItem = findobj(app.Figure, 'Tag', 'core.metatable.open');
                 try
@@ -1356,7 +1356,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
 
         function updateCurrentTableType(app)
-
         end
 
         function updateItemSpecificMenus(app, metaTableType)
@@ -1476,7 +1475,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % - [ ] Refresh table on these events
             app.refreshTable()
         end
-
     end
     
     methods
@@ -1604,7 +1602,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             % Close Menu Customization Dialog if it is open:
             if ~isempty(app.MenuCustomizationDialogApp) && isvalid(app.MenuCustomizationDialogApp)
-                delete(app.MenuCustomizationDialogApp); 
+                delete(app.MenuCustomizationDialogApp);
                 app.MenuCustomizationDialogApp = [];
             end
 
@@ -1673,7 +1671,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function [metaObjects, rowIndices] = getVisibleMetaObjects(app, useCache)
             if nargin < 2; useCache = true; end
 
-            visibleTableRows = app.UiMetaTableViewer.DisplayedRows;            
+            visibleTableRows = app.UiMetaTableViewer.DisplayedRows;
             [metaObjects, status] = app.getMetaObjects(visibleTableRows, useCache);
             
             if nargout == 2
@@ -1744,8 +1742,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         %   Inputs:
         %       app - instance of this app
         %       tableRowIndices - Indices (or logical mask) for table rows to get objects for
-        %       options (name-value pairs) 
-        %           - useCache - (optional) - flag determining if objects should 
+        %       options (name-value pairs)
+        %           - useCache - (optional) - flag determining if objects should
         %                                     be retrieved from a cache
         %   Outputs:
         %       metaObjects - An array of metadata objects
@@ -2155,7 +2153,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 end
 
                 itemName = lower(app.CurrentItemType);
-                if numItemsTotal > 1 
+                if numItemsTotal > 1
                     itemName = itemName + "s"; % plural
                 end
                 
@@ -2915,7 +2913,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                             nansen.ProjectManager()
                         otherwise
                             % pass
-                    end                    
+                    end
                     app.forceQuit(errorMessage)
                 end
 
@@ -2954,7 +2952,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 
                 % Checks if metatable matches with custom table variables
                 app.CurrentProject.synchronizeMetaTableVariables(metaTable, 'MessageDisplay', app.MessageDisplay)
-
                 
                 % Temp fix. Todo: remove
                 metaTable = nansen.metadata.temp.fixMetaTableDataLocations(metaTable, app.DataLocationModel);
@@ -3045,7 +3042,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             S_.MetaTableName = S.MetaTableName;
             S_.IsDefault = S.MakeDefault;
             S_.IsMaster = false;
-            S_.SavePath = app.CurrentProject.getProjectPackagePath('Metadata Tables');
                         
             metaTableCatalog = app.CurrentProject.MetaTableCatalog;
             catalogTable = metaTableCatalog.Table;
@@ -3283,7 +3279,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % should preserving of selection be part of the refreshTable
             % method?
             selectedEntries = app.UiMetaTableViewer.getSelectedEntries();
-            app.refreshTable()            
+            app.refreshTable()
             app.UiMetaTableViewer.setSelectedEntries(selectedEntries);
         end
         
@@ -3501,39 +3497,39 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % % figName = sprintf( 'List of %s Tasks', mode);
             % % f = figure('MenuBar', 'none', 'Name', figName, 'NumberTitle', 'off', 'Visible', 'off');
             % % % h = nansen.TaskProcessor('Parent', f)
-            % % 
+            % %
             % % h = nansen.uiwTaskTable('Parent', f, ...
             % %     'ColumnNames', {'SessionID', 'MethodName', 'Parameters', 'Comment'}, ...
             % %     'ColumnEditable', [false, false, false, true] );
-            % % 
+            % %
             % % sessionObjects = app.getSelectedMetaObjects();
             % % count = 0;
-            % % 
+            % %
             % % for i = 1:numel(sessionObjects)
-            % % 
+            % %
             % %     pipelineObj = nansen.pipeline.Pipeline(sessionObjects(i).Progress); % Class does not exist
-            % % 
+            % %
             % %     taskList = pipelineObj.getTaskList(mode);
-            % % 
+            % %
             % %     for j = 1:numel(taskList)
-            % % 
+            % %
             % %         newTaskDisplay = struct();
             % %         newTaskDisplay.SessionID = sessionObjects(i).sessionID;
             % %         newTaskDisplay.MethodName = taskList(j).TaskName;
             % %         newTaskDisplay.Parameters = taskList.OptionsName;
             % %         newTaskDisplay.Comment = '';
             % %         newTaskDisplay = struct2table(newTaskDisplay, 'AsArray', true);
-            % % 
+            % %
             % %         % Add the task to the uitable.
             % %         h.addTask(newTaskDisplay, 'end')
-            % % 
+            % %
             % %         count = count+1;
             % %         if count == 1
             % %             f.Visible = 'on';
             % %         end
             % %     end
             % % end
-            % % 
+            % %
             % % if count == 0
             % %     close(f)
             % %     message = 'No tasks were found';
@@ -3960,7 +3956,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % % fcn = figurePackage2Function(packageName, figureName); Is this function part
             % of the multipart figure package?
             % % hFigure = fcn();
-            % % 
+            % %
             % % tabNames = {app.hLayout.TabGroup.Children.Title};
             % % isFigureTab = strcmp(tabNames, 'Figures');
             % % hFigure.reparent(app.hLayout.TabGroup.Children(isFigureTab))

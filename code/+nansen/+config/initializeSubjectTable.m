@@ -23,13 +23,10 @@ function initializeSubjectTable(metatableCatalog, subjectClassName)
     % Initialize a MetaTable
     metaTable = nansen.metadata.MetaTable.new(subjectArray);
 
-    currentProject = nansen.getCurrentProject();
-
     % Add default information for saving the metatable to a struct
     S = struct();
     S.MetaTableName = metaTable.createDefaultName;
     S.MetaTableClass = subjectClassName;
-    S.SavePath = currentProject.getProjectPackagePath('Metadata Tables');
     S.IsDefault = false;
     S.IsMaster = true;
     

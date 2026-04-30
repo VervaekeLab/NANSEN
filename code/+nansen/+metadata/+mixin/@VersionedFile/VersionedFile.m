@@ -1,10 +1,11 @@
 classdef VersionedFile < handle
-%VersionedFile Mixin providing atomic file persistence with version tracking
+%VersionedFile Mixin providing verified file persistence with version tracking
 %
 %   Subclasses must implement toFileStruct() and fromFileStruct(S).
 %   Optionally override processFileStruct(S) and onAfterLoad().
 %
-%   The save() method writes atomically (temp file -> verify -> rename) and
+%   The save() method writes to a temp file, verifies that it loads, copies
+%   it over the target file, and leaves the temp file as a backup. It also
 %   increments a version number on each save. isLatestVersion() compares
 %   the in-memory version to the one on disk, allowing detection of
 %   external modifications.
@@ -18,10 +19,10 @@ classdef VersionedFile < handle
 
     methods (Abstract, Access = protected)
         S = toFileStruct(obj)
-        %toFileStruct Serialize object state to a struct for saving
+        % toFileStruct Serialize object state to a struct for saving
 
         fromFileStruct(obj, S)
-        %fromFileStruct Restore object state from a loaded struct
+        % fromFileStruct Restore object state from a loaded struct
     end
 
     methods (Access = protected)
@@ -157,9 +158,9 @@ classdef VersionedFile < handle
 
     methods (Abstract)
         markClean(obj)
-        %markClean Mark the object as unmodified
+        % markClean Mark the object as unmodified
 
         tf = isClean(obj)
-        %isClean Return true if the object has no unsaved changes
+        % isClean Return true if the object has no unsaved changes
     end
 end

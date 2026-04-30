@@ -98,12 +98,9 @@ function wasAborted = initializeSessionTable(dataLocationModel, sessionConstruct
     % detected session folders.
     metaTable = nansen.metadata.MetaTable.new(sessionArray);
 
-    currentProject = nansen.getCurrentProject();
-
     % Add default information for saving the metatable to a struct
     S = struct();
     S.MetaTableName = metaTable.createDefaultName;
-    S.SavePath = currentProject.getProjectPackagePath('Metadata Tables');
     S.IsDefault = true;
     S.IsMaster = true;
     

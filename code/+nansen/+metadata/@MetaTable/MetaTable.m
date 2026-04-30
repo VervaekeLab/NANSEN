@@ -16,7 +16,6 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
 %   MetaTable is a handle class — all references to the same instance
 %   share state. Data is additionally persisted to disk via VersionedFile.
 
-
     properties (SetAccess=private, SetObservable)
         IsModified = false;
     end
@@ -81,7 +80,6 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             'ItemClassName', '', ...    % Which specific class to use to create instances
             'MetaTableIdVarname', '', ...
             'MetaTableKey', '', ...
-            'SavePath', '', ...
             'FileName', '', ...
             'IsDefault', false ...
             );
@@ -286,8 +284,8 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                     case 'MetaTableEntries'
                         S.MetaTableEntries = obj.entries;
                         
-                    case {'SavePath', 'FileName'}
-                        [S.SavePath, S.FileName] = fileparts(obj.filepath);
+                    case 'FileName'
+                        [~, S.FileName] = fileparts(obj.filepath);
                         S.FileName = strcat(S.FileName, '.mat');
                         
                     case 'IsDefault'
@@ -479,6 +477,30 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             [tempS(:).(columnName)] = deal( columnValues{:} );
             obj.entries = struct2table(tempS, 'AsArray', true);
         end
+
+        function wasMerged = mergeEntries(obj, sourceEntries, sourceMembers)
+        %mergeEntries Update or append entries from another MetaTable payload
+
+            sourceMembers = nansen.metadata.MetaTable.normalizeIdentifier(sourceMembers);
+            wasMerged = false;
+
+            [~, targetIdx, sourceIdx] = intersect(obj.MetaTableMembers, sourceMembers);
+            updatedEntries = sourceEntries(sourceIdx, :);
+            if ~isequaln(obj.entries(targetIdx, :), updatedEntries)
+                obj.entries(targetIdx, :) = updatedEntries;
+                wasMerged = true;
+            end
+
+            [~, sourceIdx] = setdiff(sourceMembers, obj.MetaTableMembers);
+            if ~isempty(sourceIdx)
+                obj.entries(end+1:end+numel(sourceIdx), :) = sourceEntries(sourceIdx, :);
+                wasMerged = true;
+            end
+
+            if wasMerged
+                obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
+            end
+        end
         
         % Remove entry/entries from MetaTable
         function removeEntries(obj, listOfEntryIds)
@@ -498,7 +520,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             obj.entries(IND, :) = [];
             obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
 
-            %obj.IsModified = true;
+            % obj.IsModified = true;
             obj.notify('EntryRemoved')
         end
 
@@ -651,7 +673,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         %     - obj - instance of this MetaTable
         %     - tableEntries - a collection of table rows
         %     - options (name-value pairs)
-        %         - UseCache - (logical) - flag determining if objects can be 
+        %         - UseCache - (logical) - flag determining if objects can be
         %                                  retrieved from a cache
         %     - objectNameValueArgs (name-value pairs)
         %
@@ -1223,21 +1245,48 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         %   Used by MetaTable.open() when the input is a name rather than
         %   a file path.
 
-            MT = nansen.metadata.MetaTableCatalog.quickload();
+            catalogFilePath = nansen.metadata.MetaTableCatalog.getFilePath();
+            MT = nansen.metadata.MetaTableCatalog.quickload(catalogFilePath);
 
-            isNameMatch = contains(MT.MetaTableName, inputName);
-            isClassMatch = contains(MT.MetaTableClass, inputName);
-
-            if any(isNameMatch)
-                entry = MT(isNameMatch, :);
-                filePath = fullfile(entry.SavePath{:}, entry.FileName{:});
-            elseif any(isClassMatch)
-                entry = MT(isClassMatch & MT.IsMaster, :);
-                filePath = fullfile(entry.SavePath{:}, entry.FileName{:});
-            else
+            if isempty(MT)
                 error("NANSEN:MetaTable:MetaTableNotFound", ...
                     'No MetaTable found matching the given name ("%s")', inputName)
             end
+
+            candidateIdx = find(strcmpi(MT.MetaTableName, inputName));
+            if isempty(candidateIdx)
+                candidateIdx = find(strcmpi(MT.MetaTableClass, inputName));
+            end
+            if isempty(candidateIdx)
+                candidateIdx = find(contains(MT.MetaTableName, inputName, 'IgnoreCase', true));
+            end
+            if isempty(candidateIdx)
+                candidateIdx = find(contains(MT.MetaTableClass, inputName, 'IgnoreCase', true));
+            end
+
+            if isempty(candidateIdx)
+                error("NANSEN:MetaTable:MetaTableNotFound", ...
+                    'No MetaTable found matching the given name ("%s")', inputName)
+            end
+
+            if numel(candidateIdx) > 1
+                defaultIdx = candidateIdx(MT.IsDefault(candidateIdx));
+                masterIdx = candidateIdx(MT.IsMaster(candidateIdx));
+
+                if numel(defaultIdx) == 1
+                    candidateIdx = defaultIdx;
+                elseif numel(masterIdx) == 1
+                    candidateIdx = masterIdx;
+                else
+                    error("NANSEN:MetaTable:AmbiguousMetaTableName", ...
+                        ['Multiple MetaTables match "%s". Use an exact ', ...
+                         'MetaTableName or MetaTableClass to disambiguate.'], inputName)
+                end
+            end
+
+            catalogFolder = fileparts(catalogFilePath);
+            entry = MT(candidateIdx, :);
+            filePath = fullfile(catalogFolder, entry.FileName{1});
         end
     end
 end
