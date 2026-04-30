@@ -144,9 +144,10 @@ classdef VersionedFile < handle
                 return
             end
 
-            warning('off', 'MATLAB:load:variableNotFound')
+            warnState = warning('off', 'MATLAB:load:variableNotFound');
+            warningCleanupObj = onCleanup(@() warning(warnState));
+
             S = load(obj.filepath, 'VersionNumber');
-            warning('on', 'MATLAB:load:variableNotFound')
 
             if isfield(S, 'VersionNumber') && ~isempty(S.VersionNumber)
                 versionNumber = S.VersionNumber;
