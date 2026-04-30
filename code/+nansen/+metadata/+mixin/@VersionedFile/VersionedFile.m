@@ -62,6 +62,13 @@ classdef VersionedFile < handle
                 return
             end
 
+            if ~force && ~obj.isLatestVersion()
+                error('NANSEN:VersionedFile:StaleFile', ...
+                    ['Cannot save "%s" because the file has changed on disk. ', ...
+                     'Reload the file or save with force=true to overwrite the newer version.'], ...
+                    obj.filepath)
+            end
+
             S = obj.toFileStruct();
             S = obj.processFileStruct(S);
 

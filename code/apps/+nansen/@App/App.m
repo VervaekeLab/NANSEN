@@ -60,9 +60,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     end
 
     properties (Access = private) % App / gui components
-        % Heartbeat - Timer that periodically runs internal updates 
-        Heartbeat timer
-
         % MessageDisplay - A message display interface for displaying
         % information to users.
         MessageDisplay (1,1) nansen.MessageDisplay
@@ -187,7 +184,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             app.configFigureCallbacks() % Do this last
 
-            app.initializeHeartbeat()
             app.setIdle()
 
             if app.settings.General.MonitorDrives
@@ -208,11 +204,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
             if ~isempty(PipelineViewer)
                 delete(PipelineViewer); PipelineViewer = [];
-            end
-
-            if ~isempty(app.Heartbeat)
-                stop(app.Heartbeat)
-                delete(app.Heartbeat)
             end
 
             if ~isempty(app.DiskConnectionMonitor)
@@ -1347,14 +1338,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.BatchProcessorUI = h;
         end
         
-        function initializeHeartbeat(app)
-            app.Heartbeat = timer('Name', 'Nansen App Timer');
-            app.Heartbeat.ExecutionMode = 'fixedRate';
-            app.Heartbeat.Period = 30; % Consider setting from preference
-            app.Heartbeat.TimerFcn = @(timer, event) app.onHeartbeat();
-            start(app.Heartbeat)
-        end
-    
         function initializeDiskConnectionMonitor(app)
         
             app.DiskConnectionMonitor = nansen.internal.system.DiskConnectionMonitor();
@@ -1494,23 +1477,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.refreshTable()
         end
 
-        function onHeartbeat(app)
-        %onHeartbeat - Manage periodic internal update 
-
-            % Check that we have the newest version of the metatable
-            if ~isempty(app.MetaTable) && ~app.TableIsUpdating
-                if ~app.MetaTable.isLatestVersion()
-                    stop(app.Heartbeat) % Stop timer while waiting for user's response
-                    discardNewest = app.MetaTable.resolveCurrentVersion();
-                    if discardNewest
-                        app.reloadMetaTable()
-                    else
-                        app.saveMetaTable([], [], true) % true = force-save current version
-                    end
-                    start(app.Heartbeat)
-                end
-            end
-        end
     end
     
     methods

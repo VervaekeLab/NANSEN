@@ -1091,35 +1091,19 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         %   metaTable - An instance of the MetaTable class containing the
         %   loaded data.
         %
-        % Note:
-        %   Instances are cached by canonical filepath via MetaTableCache.
-        %   Subsequent calls with the same path return the same handle,
-        %   ensuring all callers (e.g. nansen.App and plugin methods) share
-        %   the same in-memory instance and receive each other's events.
-
             arguments
                 nameOrFilepath (1,1) string {mustBeNonzeroLengthText}
             end
 
-            % Resolve to a canonical filepath before checking the cache
             if isfile(nameOrFilepath)
                 filePath = nameOrFilepath;
             else
                 filePath = nansen.metadata.MetaTable.resolveNameToFilepath(nameOrFilepath);
             end
 
-            % Return cached instance if one exists
-            cache = nansen.metadata.MetaTableCache.instance();
-            metaTable = cache.get(filePath);
-            if ~isempty(metaTable)
-                return
-            end
-
-            % Load a fresh instance and register it in the cache
             metaTable = nansen.metadata.MetaTable();
             metaTable.filepath = filePath;
             metaTable.load();
-            cache.add(filePath, metaTable);
         end
 
         function filename = createFileName(S)
