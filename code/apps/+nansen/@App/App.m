@@ -2229,14 +2229,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 evt.NewValue.TimeZone = '';
             end
             
-            % Todo: make this more robust. I.e What are the rules/
-            % conditions for when a cell can be put directly into the table
-            % versus when it needs to be put into a cell of the table?
-            try
-                app.MetaTable.entries(evt.Indices(1), evt.Indices(2)) = {evt.NewValue};
-            catch
-                app.MetaTable.entries{evt.Indices(1), evt.Indices(2)} = {evt.NewValue};
-            end
+            variableName = app.MetaTable.getVariableName(evt.Indices(2));
+            app.MetaTable.editEntries(evt.Indices(1), variableName, evt.NewValue);
+
             % The following is hopefully a temporary solution. If user
             % ticks the ignore checkbox for a session, and the settings are
             % set to hide ignored sessions, the table should be updated and
@@ -2860,7 +2855,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if any(strcmp(metaTable.entries.Properties.VariableNames, 'DataLocation'))
                 dataLocationStructs = metaTable.entries.DataLocation;
                 dataLocationStructs = app.DataLocationModel.validateDataLocationPaths(dataLocationStructs);
-                metaTable.entries.DataLocation = dataLocationStructs;
+
+                if ~iscell(dataLocationStructs)
+                    [numRows, numDataLocations] = size(dataLocationStructs);
+                    dataLocationStructs = mat2cell(dataLocationStructs, ...
+                        ones(1, numRows), numDataLocations);
+                end
+
+                metaTable.replaceDataColumn('DataLocation', dataLocationStructs);
                 metaTable.markClean() % This change does not make the table dirty.
             end
 
@@ -2984,6 +2986,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 titleStr = 'Could Not Load Session Table'; % Todo: generalize string, i.e session should depend on current table type
                 app.MessageDisplay.alert(ME.message, "Title", titleStr)
                 disp(getReport(ME, 'extended'))
+                return
             end
             
             % Add name of loaded inventory to figure title
