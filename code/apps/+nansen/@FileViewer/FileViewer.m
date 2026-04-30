@@ -1254,18 +1254,34 @@ classdef FileViewer < nansen.AbstractTabPageModule
             end
             
             fileAdapter = cell(1, numel(varName));
+            isMissingFileadapter = false(1, numel(varName));
 
             % Get file adapter
             for i = 1:numel( varName )
                 [variableInfo, ~] = varModel.getVariableStructure(varName{i});
-                fileAdapterFcn = varModel.getFileAdapterFcn(variableInfo);
+                try
+                    fileAdapterFcn = varModel.getFileAdapterFcn(variableInfo);
+                catch exception
+                    warning('NANSEN:FileViewer:detectFileAdapter:FileAdapterNotFound', ...
+                        'Could not find file adapter for variable: %s', varName{i})
+                    isMissingFileadapter(i) = true;
+                    continue
+                end    
                 fileAdapter{i} = fileAdapterFcn(filePath);
             end
-
+            
+            % Only pick the first file adapter if mode is first.
             if isscalar(varName) && mode == "first"
+                if isempty(fileAdapter{1})
+                    fileAdapter = {}; return
+                end
                 fileAdapter = fileAdapter{1};
                 varName = varName{1};
+                return
             end
+    
+            % Remove missing file adapters if any
+            fileAdapter(isMissingFileadapter) = [];
 
             if nargout < 2
                 clear varName

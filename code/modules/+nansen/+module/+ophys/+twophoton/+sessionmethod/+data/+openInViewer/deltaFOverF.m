@@ -1,5 +1,5 @@
-function varargout = viewRoiSignals(sessionObject, varargin)
-%VIEWROISIGNALS Summary of this function goes here
+function varargout = deltaFOverF(sessionObject, varargin)
+%deltaFOverF Summary of this function goes here
 %   Detailed explanation goes here
 
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
@@ -11,7 +11,7 @@ function varargout = viewRoiSignals(sessionObject, varargin)
     params = getDefaultParameters();
     
     % Create a cell array with attribute keywords
-    ATTRIBUTES = {'batch', 'unqueueable'};
+    ATTRIBUTES = {'serial', 'unqueueable'};
     
 % % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % %
 % - - - - - - - - - - Please do not edit this part - - - - - - - - - - -
@@ -30,8 +30,10 @@ function varargout = viewRoiSignals(sessionObject, varargin)
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
 % Implementation of the method : Add your code here:
     
-    sessionObject.validateVariable('RoiSignals_MeanF')
-    roiSignalArray = sessionObject.loadData('RoiSignals_MeanF');
+    sessionObject.validateVariable('RoiSignals_Dff')
+    roiSignalArray = sessionObject.loadData('RoiSignals_Dff');
+    roiSignalArray = roiSignalArray(:, 'RoiSignals_Dff');
+    
     signalviewer.App(roiSignalArray)
 
 end

@@ -217,12 +217,14 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
             % If there will be more than one chunk, adjust so that all
             % chunks will be approximately the same size.
             numParts = ceil( obj.SourceStack.NumTimepoints / N );
-            remainder = mod( obj.SourceStack.NumTimepoints , N  );
-            
-            if remainder/N < 1/3
-                numParts = numParts - 1;
+            if numParts > 1
+                remainder = mod( obj.SourceStack.NumTimepoints , N  );
+                
+                if remainder > 0 && remainder/N < 1/3
+                    numParts = numParts - 1;
+                end
             end
-
+            
             N = ceil( obj.SourceStack.NumTimepoints / numParts );
             obj.NumFramesPerPart = N;
         end

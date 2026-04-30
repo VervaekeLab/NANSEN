@@ -1050,7 +1050,8 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
             end
             
             if isempty(fileName)
-                error('NANSEN:Session:FileNotFound', 'File not found for %s', varName)
+                error('NANSEN:Session:FileNotFound', ...
+                    'No file found for variable "%s" in session "%s"', varName, obj.sessionID)
             end
             pathStr = fullfile(sessionFolder, fileName);
             
@@ -1136,7 +1137,7 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
         %getSessionFolder Get session folder for a given dataLocationName
         %
                             
-            if nargin < 2
+            if nargin < 2 || isempty(dataLocationName) 
                 dataLocationName = obj.DataLocationModel.DefaultDataLocation;
             end
 

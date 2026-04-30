@@ -2,7 +2,7 @@
 % Start a tutorial user session
 warnState = warning('off', 'Nansen:NoProjectsAvailable');
 warningCleanup = onCleanup(@() warning(warnState));
-userSession = nansen.internal.user.NansenUserSession.instance('tutorial');
+userSession = nansen.internal.user.NansenUserSession.instance();
 
 % Allow user to select an existing project
 S = ["Nansen - Two-photon Quickstart", ...

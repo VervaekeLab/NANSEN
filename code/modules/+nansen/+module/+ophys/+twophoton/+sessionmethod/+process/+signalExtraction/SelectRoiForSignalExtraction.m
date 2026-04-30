@@ -72,6 +72,10 @@ function varargout = SelectRoiForSignalExtraction(sessionObject, varargin)
     end
 
     sessionObject.saveData('RoiArray', roiGroup)
+
+    message = sprintf('Selected rois "%s" for signal extraction', varName{1});
+    title = 'RoI Selection Applied';
+    msgbox(message, title)
 end
 
 function isOutside = hasPixelsOutsideImage(roi, fovSize)

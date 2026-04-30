@@ -24,5 +24,5 @@ function tf = isUnassignedCharValue(inputValue)
     end
 
     tf = iscell(inputValue) && isscalar(inputValue) && ischar(inputValue{1}) ...
-         && (isequal(inputValue, {'N/A'}) || isequal(inputValue, {'<undefined>'}));
+         && (isequal(inputValue, {'N/A'}) || isequal(inputValue, {'<undefined>'}) || isequal(inputValue, {''}));
 end
