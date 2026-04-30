@@ -223,7 +223,6 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         %   can be read even if the MetaTable class is not on Matlabs path.
 
             if nargin < 2; force = false; end
-            wasSaved = false;
 
             if isempty(obj.filepath)
                 error('NANSEN:MetaTable:NoFilepath', ...
