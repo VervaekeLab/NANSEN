@@ -22,10 +22,18 @@ classdef DateRangeSelector < handle & uiw.mixin.AssignPVPairs
         
         function obj = DateRangeSelector(varargin)
             
+            if nansen.util.useModernUiComponents()
+                % MATLAB R2025a removed JAVA support, abort.
+                error("NANSEN:DateRangeSelector:NotSupported", ...
+                    "This component is not supported on MATLAB R2025 or newer.")
+            end
+
             obj.assignPVPairs(varargin{:})
-            applify.AppWindow.switchJavaWarnings('off')
+
+            warnCleanup = nansen.ui.legacy.tempDisableJavaFrameWarnings();
+            warnCleanup(end+1) = nansen.ui.legacy.tempDisableJavaComponentWarning(); %#ok<NASGU>
             
-            com.mathworks.mwswing.MJUtilities.initJIDE;
+            com.mathworks.mwswing.MJUtilities.initJIDE; %#ok<JAPIMATHWORKS>
 
             % Display a DateChooserPanel
             jDatePanel = com.jidesoft.combobox.DateChooserPanel;
@@ -46,9 +54,6 @@ classdef DateRangeSelector < handle & uiw.mixin.AssignPVPairs
             
             hModel = handle(obj.hDatePanel.getSelectionModel, 'CallbackProperties');
             set(hModel, 'ValueChangedCallback', obj.Callback);
-            
-            applify.AppWindow.switchJavaWarnings('on')
-
         end
     end
     

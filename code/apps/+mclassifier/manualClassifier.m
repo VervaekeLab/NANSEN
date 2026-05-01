@@ -465,15 +465,6 @@ methods (Access = private, Hidden) % Gui Creation/construction
         
         set(buttons, 'FontUnits', 'pixels')
         set(buttons, 'FontSize', 11)
-        
-        %obj.hPanelSettings
-% % %         set(inputbox, 'ForegroundColor', ones(1,3)*0.85)
-% % %
-% % %         applify.AppWindow.switchJavaWarnings('off')
-% % %         h = applify.uicontrolSchemer(inputbox);
-% % %         h = applify.uicontrolSchemer(buttons);
-% % %
-% % %         applify.AppWindow.switchJavaWarnings('on')
     end
     
     function [hLabel, hControl] = createImageSizeDropdownSelector(obj)

@@ -35,11 +35,6 @@ classdef AppWindow < uim.handle
         CanvasSize
     end
     
-    properties (Access = protected) % Graphical components
-        jFrame              % Its disappearing any day now! =(
-        jWindow
-    end
-    
     properties (Access = protected) % State
         IsConstructed = false;
     end
@@ -96,7 +91,6 @@ classdef AppWindow < uim.handle
             obj.Figure.Position(3:4) = obj.DEFAULT_FIGURE_SIZE();
             uim.utility.centerFigureOnScreen(obj.Figure)
 
-            obj.getFigureJavaHandles()
             obj.setMinimumFigureSize()
 
             obj.setFigureName()
@@ -110,11 +104,9 @@ classdef AppWindow < uim.handle
             obj.setDefaultFigureCallbacks()
             uim.utility.centerFigureOnScreen(obj.Figure)
         end
-        
+
         function configureWindow(obj)
-            
-            obj.switchJavaWarnings('off')
-            
+
             % Place screen on the preferred screen if multiple screens are
             % available.
             MP = get(0, 'MonitorPosition');
@@ -126,13 +118,8 @@ classdef AppWindow < uim.handle
                 prefScreenPos = obj.getPreference('PreferredScreenPosition', [1, 1, 1180, 700]);
                 obj.Figure.Position = prefScreenPos{screenNumber};
             end
-            
-            obj.getFigureJavaHandles()
-            
+
             obj.setMinimumFigureSize()
-            
-            obj.switchJavaWarnings('on')
-            
         end
         
         function setMinimumFigureSize(obj)
@@ -140,42 +127,23 @@ classdef AppWindow < uim.handle
             minWidth = obj.MINIMUM_FIGURE_SIZE(1);
             minHeight = obj.MINIMUM_FIGURE_SIZE(2);
 
-            obj.switchJavaWarnings('off')
-            LimitFigSize(obj.Figure, 'min', [minWidth, minHeight]) % FEX
-            obj.switchJavaWarnings('on')
+            if nansen.util.isJavaFrameSupported()
+                warningCleanup = nansen.ui.legacy.tempDisableJavaFrameWarnings(); %#ok<NASGU>
+                LimitFigSize(obj.Figure, 'min', [minWidth, minHeight]) % FEX
+            else
+                % Todo: add listener
+            end
         end
         
         function setFigureWindowBackgroundColor(obj, newColor)
-        
             if nargin < 2
                 newColor = [13,13,13] ./ 255;
             end
-
-            rgb = num2cell(newColor);
-
-            warning('off', 'MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
-            warning('off', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
-
-            javaColor = javax.swing.plaf.ColorUIResource(rgb{:});
-            set(obj.jWindow, 'Background', javaColor)
-
-            warning('on', 'MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
-            warning('on', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
-
-        end
-        
-        function getFigureJavaHandles(obj)
-            
-            obj.switchJavaWarnings('off')
-            obj.jFrame = get(obj.Figure, 'JavaFrame'); %#ok<JAVFM>
-            obj.jWindow = obj.jFrame.getFigurePanelContainer.getTopLevelAncestor;
-            obj.switchJavaWarnings('on')
-
+            nansen.ui.legacy.setJavaWindowBackgroundColor(obj.Figure, newColor)
         end
     end
     
     methods
-        
         function uiwait(obj)
             uiwait(obj.Figure)
         end
@@ -186,14 +154,6 @@ classdef AppWindow < uim.handle
     end
 
     methods (Static)
-        
-        function switchJavaWarnings(newState)
-        %switchJavaWarnings Turn warnings about java functionality on/off
-            warning(newState, 'MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
-            warning(newState, 'MATLAB:ui:javaframe:PropertyToBeRemoved')
-            warning(newState, 'MATLAB:ui:javacomponent:FunctionToBeRemoved')
-        end
-        
         function [screenSize, screenNum] = getMonitorInfo(hFigure)
         %getMonitorInfo Get size and number of monitor containing figure.
         %
