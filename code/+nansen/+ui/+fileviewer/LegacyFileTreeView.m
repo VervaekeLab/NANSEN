@@ -3,9 +3,7 @@ classdef LegacyFileTreeView < handle
 
     methods
         function tree = createTree(~, parent, callbacks)
-            warnState = warning('off', ...
-                'MATLAB:ui:javacomponent:FunctionToBeRemoved');
-            cleanup = onCleanup(@() warning(warnState));
+            warnCleanup = nansen.ui.legacy.tempDisableJavaComponentWarning(); %#ok<NASGU>
 
             tree = uiw.widget.FileTree('Parent', parent);
             tree.FontName = 'Avenir New';

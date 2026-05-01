@@ -559,9 +559,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
         function updateFolderTree(obj)
             
             if ~obj.UseModernUi
-                warnState = warning('off', ...
-                    'MATLAB:ui:javacomponent:FunctionToBeRemoved');
-                warningCleanup = onCleanup(@() warning(warnState));
+                warningCleanup = nansen.ui.legacy.tempDisableJavaComponentWarning(); %#ok<NASGU>
             end
 
             sessionObject = obj.CurrentSessionObj;
