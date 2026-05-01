@@ -1,4 +1,4 @@
-classdef MetaTable < handle
+classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
 % MetaTable Class interface for creating and working with MetaTables
 %
 %   MetaTables can be either master or dummy MetaTables. A master
@@ -11,48 +11,30 @@ classdef MetaTable < handle
 %
 %   Therefore, it also follows that if changes are made either on the
 %   master MetaTable or another dummy MetaTable, those changes will be
-%   be available on all inventories linked to that master MetaTable.
+%   available on all MetaTables linked to that master.
 %
-%   Hopefully this will work a bit like handle objects, but with the
-%   additional step that data is saved to disk.
-%
-
-% Todo:
-%   [ ]Inherit from VersionedFile
-%   [ ] Constructor access should be MetaTableCatalog...
-%   [ ] Should archive be a method on this class? Would it not be better on
-%       MetatableCatalog..?
-%   [ ] openMetaTableFromName should be a metatable catalog method...
-
-%   [ ] Todo: Meta object listeners??
-
-% Features: Should think about grouping this better.
-%       Catalog/Collection, ie adding, removing and modifying entries
-%       VersionedFile
-%       GetFormattedTableData
-%       Methods for adding/removing columns
-%       Master/dummy
-%       PartOfCatalog
-
+%   MetaTable is a handle class — all references to the same instance
+%   share state. Data is additionally persisted to disk via VersionedFile.
 
     properties (SetAccess=private, SetObservable)
         IsModified = false;
     end
     
-    properties (Access = private)
-        
+    properties (SetAccess = private)
+
         IsMaster = true
 
         MetaTableKey = '';
         MetaTableName = '';
-        
+
         % MetaTableMembers - cell array of character vectors representing
         % unique identifiers for all entries of the table
         MetaTableMembers = {} % Todo: enforce cell of char
 
-        % MetaTableVariables - List of table variables. Used and updated in
-        % checkIfMetaTableComplete. Purpose: Silently add table var
-        % definitions on first time-initialization of a metatable. 
+        % MetaTableVariables - List of table variables. Tracks which variables
+        % were present at last synchronization. Used by
+        % Project.synchronizeMetaTableVariables to detect new or removed
+        % variables on first-time initialization of a metatable.
         MetaTableVariables (:,1) string
     end
 
@@ -73,16 +55,10 @@ classdef MetaTable < handle
     end
     
     % Public properties to access MetaTable contents
-    properties (SetAccess = {?nansen.metadata.MetaTable, ?nansen.App})
+    properties (SetAccess = protected)
 
-        filepath = ''       % Filepath where metatable is saved locally
         members             % IDs for MetaTable entries
         entries table       % MetaTable entries
-    end
-
-    properties (Access = private)
-        VersionNumber int64
-        ReferenceTable % Reference to master table. Todo
     end
 
     properties (Dependent = true, Hidden = true)
@@ -104,7 +80,6 @@ classdef MetaTable < handle
             'ItemClassName', '', ...    % Which specific class to use to create instances
             'MetaTableIdVarname', '', ...
             'MetaTableKey', '', ...
-            'SavePath', '', ...
             'FileName', '', ...
             'IsDefault', false ...
             );
@@ -112,6 +87,8 @@ classdef MetaTable < handle
 
     events
         TableEntryChanged
+        EntryAdded
+        EntryRemoved
     end
 
     methods % Structor
@@ -136,22 +113,12 @@ classdef MetaTable < handle
     end
     
     methods
-        
-        function className = class(obj)
-        %CLASS Override class method to return the class/schema type of
-        %the MetaTable entries.
-            className = obj.MetaTableClass;
+
+        function tf = hasSameMasterKey(obj, otherMetaTable)
+        %hasSameMasterKey Check if two MetaTables share the same master key
+            tf = strcmp(obj.MetaTableKey, otherMetaTable.MetaTableKey);
         end
-         
-        function tf = isMaster(obj)
-            tf = obj.IsMaster;
-        end
-        
-        function tf = isDummy(obj, dbRef)
-            % Todo: Change name...
-            tf = strcmp(obj.MetaTableKey, dbRef.MetaTableKey);
-        end
-              
+
         function tf = isClean(obj)
            tf = ~obj.IsModified;
         end
@@ -197,36 +164,35 @@ classdef MetaTable < handle
             end
         end
 
-        function name = getName(obj)
-            name = obj.MetaTableName;
-        end
-
         function typeName = getTableType(obj)
             typeName = utility.string.getSimpleClassName(obj.MetaTableClass);
         end
           
-        function key = getKey(obj)
-            key = obj.MetaTableKey;
+        function setMetaTableVariables(obj, variableNames)
+        %setMetaTableVariables Set the MetaTableVariables property
+        %
+        %   Used by external callers (e.g. Project.synchronizeMetaTableVariables)
+        %   to update the list of known table variables after synchronization.
+            obj.MetaTableVariables = variableNames;
         end
 
         function variableName = getVariableName(obj, colIndex)
             variableName = obj.entries.Properties.VariableNames{colIndex};
         end
 
-        function setMaster(obj, keyword)
-        %setMaster Set value of IsMaster property
-            switch keyword
-                case 'master'
-                    obj.IsMaster = true;
-                    
-                case 'dummy'
-                    obj.IsMaster = false;
-                    
-                    %Determine which MetaTable it should inherit from
-                    obj.linkToMaster()
-            end
+        function setAsMaster(obj)
+        %setAsMaster Set this MetaTable as a master MetaTable
+            obj.IsMaster = true;
         end
-        
+
+        function setAsDummy(obj)
+        %setAsDummy Set this MetaTable as a dummy MetaTable linked to a master
+        %
+        %   Sets IsMaster to false. The MetaTableKey must be assigned
+        %   separately to link this table to its master.
+            obj.IsMaster = false;
+        end
+
         function name = createDefaultName(obj)
         %createDefaultName Set a default name for the metatable.
 
@@ -246,281 +212,37 @@ classdef MetaTable < handle
         % Load contents of MetaTable file
         % Todo: Check if file is present in MetaTable Catalog
         
-        function tf = isLatestVersion(obj)
-            if isempty(obj.VersionNumber)
-                tf = true;
-                return
-            end
-
-            versionNumberInFile = obj.loadVersionNumber();
-            tf = versionNumberInFile == obj.VersionNumber;
-        end
-
-        function tf = resolveCurrentVersion(obj)
-        %resolveCurrentVersion Resolve which version to keep in case of conflict
-        %
-        %   tf = resolveCurrentVersion(obj) returns true if newer version
-        %   is loaded to override current and false if current version
-        %   should override newer version
-        
-        %   Todo: Find better function name... Confusing that it loads, but
-        %   does not overwrite.
-
-            LOAD_NEWER_VERSION = 'Load newer version';
-            LOAD_NEWER_VERSION_AND_DROP = 'Load newer version and drop unsaved changes';
-            KEEP_CURRENT_VERSION = 'Keep current version';
-
-            titleStr = 'Newer version exists';
-
-            msg = ['The metatable has been updated outside this instance of Nansen. ' ...
-                'Select "Load newer version" to update the table from the latest ', ...
-                'version, or "Keep current version" to continue using the ',...
-                'version which is currently open. \n\n\\bfNote: Selecting "Keep ', ...
-                'current version" will overwrite the newer version for all', ...
-                'nansen instances.'];
-
-            if obj.isClean()
-                choices = {LOAD_NEWER_VERSION};
-            else
-                choices = {LOAD_NEWER_VERSION_AND_DROP};
-            end
-
-            choices{end+1} = KEEP_CURRENT_VERSION;
-            %choices = strcat('<html><font size="4">', choices);
-
-            options = struct('Default', choices{1}, 'Interpreter', 'tex');
-            %formattedMessage = strcat('\fontsize{14}', sprintf( msg) );
-            formattedMessage = sprintf( msg);
-            answer = questdlg(formattedMessage, titleStr, choices{:}, options);
-
-            switch answer
-                case KEEP_CURRENT_VERSION
-                    tf = false;
-                case LOAD_NEWER_VERSION_AND_DROP
-                    tf = true;
-                case LOAD_NEWER_VERSION
-                    tf = true;
-                otherwise
-                    tf = [];
-            end
-        end
-
-        function load(obj)
-        %LOAD Load contents of a MetaTable from file.
-        %
-        %   Note: MetaTables are not saved directly as class instances,
-        %   instead the entries are saved as a table and the entry ids
-        %   (members) are saved as a cell array. This way, the MetaTables
-        %   can be read even if the MetaTable class is not on Matlabs path.
-            
-            % If a filepath does not exist, throw error.
-            if ~isfile(obj.filepath)
-                error('NANSEN:MetaTable:FileNotFound', ...
-                    'File "%s" does not exist.', obj.filepath)
-            end
-            
-            % Load variables from MetaTable file.
-            S = load(obj.filepath);
-            
-            % Check if the loaded struct contains the variable
-            % MetaTableClass. If not, this is not a valid MetaTable file.
-            if ~isfield(S, 'MetaTableClass')
-                [~, fileName] = fileparts(obj.filepath);
-                msg = sprintf(['The file "%s" does not contain ', ...
-                    'a MetaTable'], fileName);
-                error('NANSEN:MetaTable:InvalidFileType', msg) %#ok<SPERR>
-            end
-            
-            % Assign the variables from the loaded file to properties of
-            % the current MetaClass instance.
-            obj.fromStruct(S)
-
-            if isempty(obj.VersionNumber)
-                obj.VersionNumber = 0;
-            end
-            
-            % Synch from master if this is a dummy
-            if ~obj.IsMaster
-                obj.synchFromMaster()
-            end
-            
-            % Check that members and entries are corresponding... Only
-            % relevant for master inventories (Todo: make conditional?).
-            if ~isempty(obj.members)
-                if ~isequal(obj.members, obj.entries.(obj.SchemaIdName))
-                    warning(['MetaTable is corrupted. Fixed during ', ...
-                        'loading, but you should investigate.'])
-                    
-                    obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
-                end
-            end
-            
-            % Assign flag stating that entries are not modified.
-            obj.IsModified = false;
-            %obj.IsModified = false(size(obj.entries));
-        end
-        
-        function versionNumber = loadVersionNumber(obj)
-            if isfile(obj.filepath)
-                warning('off', 'MATLAB:load:variableNotFound')
-                S = load(obj.filepath, 'VersionNumber');
-                warning('on', 'MATLAB:load:variableNotFound')
-                if isfield(S, 'VersionNumber')
-                    versionNumber = S.VersionNumber;
-                    if isempty(versionNumber); versionNumber = 0; end
-                else
-                    versionNumber = 0;
-                end
-            else
-                versionNumber = 0;
-            end
-        end
-
         function wasSaved = save(obj, force)
-        %Save Save MetaTable to file
+        %save Save MetaTable to file
         %
         %   Note: MetaTables are not saved directly as class instances,
         %   instead the entries are saved as a table and the entry ids
         %   (members) are saved as a cell array. This way, the MetaTables
         %   can be read even if the MetaTable class is not on Matlabs path.
-        
-            wasSaved = false;
 
             if nargin < 2; force = false; end
 
-            % If MetaTable has no filepath, use archive method.
             if isempty(obj.filepath)
-                obj.archive()
-                wasSaved = true;
-                if ~nargout; clear wasSaved; end
-                return
+                error('NANSEN:MetaTable:NoFilepath', ...
+                    ['Cannot save: filepath is not set. ', ...
+                     'Use MetaTableCatalog.registerMetaTable() to register ', ...
+                     'a new MetaTable before saving.'])
             end
 
-            if obj.isClean() && ~force
-                if ~nargout; clear wasSaved; end
-                return;
-            end
-
-            if ~obj.isLatestVersion() && ~force
-                doCancel = obj.resolveCurrentVersion();
-                if isempty(doCancel); return; end
-                if doCancel; obj.load(); return; end
-            end
-
-            % Get MetaTable variables which will be saved to file.
-            S = obj.toStruct('metatable_file');
-            
-            % Sort MetaTable entries based on the entry ID.
-            % Todo: Consider whether to reinstate this
-            % obj.sort()
-            
-            % Synch with master if this is a dummy MetaTable.
-            if ~obj.IsMaster && ~isempty(S.MetaTableEntries)
-                obj.synchToMaster(S)
-                S.MetaTableEntries = {};
-            end
-
-            versionNumber = obj.loadVersionNumber();
-            obj.VersionNumber = versionNumber + 1;
-            S.VersionNumber = obj.VersionNumber;
-
-            tempPath = strrep(obj.filepath, '.mat', '.tempsave.mat');
-            save(tempPath, '-struct', 'S');
-
-            try
-                verifiedS = load(tempPath); %#ok<NASGU>
-                copyfile(tempPath, obj.filepath)
-                % Save metatable variables to file
-                % save(obj.filepath, '-struct', 'S')
+            wasSaved = save@nansen.metadata.mixin.VersionedFile(obj, force);
+            if wasSaved
                 fprintf('MetaTable saved to %s\n', obj.filepath)
-                                
-                wasSaved = true;
-                obj.IsModified = false;
-            catch ME
-                error("NANSEN:MetaTable:Save:UnknownError", ...
-                    "Something went wrong when saving the MetaTable. " + ...
-                    "A backup of the MetaTable should exist with a '.tempsave' postfix")
             end
 
             if ~nargout; clear wasSaved; end
         end
-        
-        function saveCopy(obj, savePath)
-        %saveCopy Save a copy of the metatable to the given filePath
-            originalPath = obj.filepath;
-            obj.filepath = savePath;
-            obj.save(true); % force save (table might be clean)
-            obj.filepath = originalPath;
-        end
-        
-        function archive(obj, Sin, metaTableCatalog)
-        %ARCHIVE Save Metatable using user input and add to Catalog.
+
+        function load(obj)
+        %load Load a MetaTable from file
         %
-        %   This function is used whenever a new MetaTable is saved to disk
-        %   Before saving the MetaTable a unique key is generated (or
-        %   inherited from a master MetaTable) and the info about the
-        %   MetaTable is added to the MetaTableCatalog.
-
-        % rename to saveas?
-            if nargin < 3; metaTableCatalog = []; end
-
-            S = obj.toStruct('metatable_catalog');
-
-            if nargin == 1 || isempty(Sin)
-                % Get name and savepath from user
-                msg = 'Enter MetaTable Name and Select Folder to Save';
-                inputFields = {'MetaTableName', 'SavePath', 'IsDefault', 'IsMaster'};
-
-                % Open an input dialog where user can add input values.
-                S = tools.editStruct( S, inputFields, msg);
-            else
-                inputFields = fieldnames(Sin);
-                for i = 1:numel(inputFields)
-                    S.(inputFields{i}) = Sin.(inputFields{i});
-                end
-            end
-            
-            if isempty(S.MetaTableName)
-                error("NANSEN:MetaTable:Save:MissingName", ...
-                    'Can not save MetaTable because the Name is not set.')
-            end
-            if ~isfolder(S.SavePath)
-                error("NANSEN:MetaTable:Save:FolderNotFound", ...
-                    'Can not save MetaTable because the folder (for saving) does not exist.')
-            end
-            
-            
-            % Update properties of object from user input
-            obj.fromStruct(S)
-
-            % Link to master MetaTable if this is a dummy
-            if isempty(obj.MetaTableKey) && obj.IsMaster
-                obj.MetaTableKey = nansen.util.getuuid();
-            elseif isempty(obj.MetaTableKey) && ~obj.IsMaster
-                obj.linkToMaster()
-            else
-                % All is goood.
-            end
-            
-            % Assign filepath of current database object
-            S.FileName = obj.createFileName(S);
-            obj.filepath = fullfile(S.SavePath, S.FileName);
-            
-            % Save to MetaTable Catalog
-            S.MetaTableKey = obj.MetaTableKey;
-                        
-            if isempty(metaTableCatalog)
-                nansen.metadata.MetaTableCatalog.quickadd(S);
-            else
-                metaTableCatalog.addEntry(S)
-            end
-            
-            if S.IsDefault
-                obj.setDefault()
-            end
-            
-            forceSave = true; % Need to make sure it is saved.
-            obj.save(forceSave)
+        %   Delegates to VersionedFile.load(). MetaTable-specific validation
+        %   (checking for MetaTableClass field) happens in fromFileStruct().
+            load@nansen.metadata.mixin.VersionedFile(obj);
         end
         
         function S = toStruct(obj, source)
@@ -557,14 +279,13 @@ classdef MetaTable < handle
                 switch varNames{i}
                     
                     case 'MetaTableClass'
-                        className = class(obj);
-                        S.MetaTableClass = className;
+                        S.MetaTableClass = obj.MetaTableClass;
                     
                     case 'MetaTableEntries'
                         S.MetaTableEntries = obj.entries;
                         
-                    case {'SavePath', 'FileName'}
-                        [S.SavePath, S.FileName] = fileparts(obj.filepath);
+                    case 'FileName'
+                        [~, S.FileName] = fileparts(obj.filepath);
                         S.FileName = strcat(S.FileName, '.mat');
                         
                     case 'IsDefault'
@@ -578,17 +299,11 @@ classdef MetaTable < handle
         
         function fromStruct(obj, S)
         %fromStruct Reverse of toStruct function
-        
-%             className = class(obj);
-%             assert(strcmp(className, S.MetaTableClass), ...
-%                 'MetaTable is wrong class' )
-        
+
             varNames = fieldnames(S);
-            
+
             for i = 1:numel(varNames)
                 switch varNames{i}
-                    %case 'MetaTableClass'
-                        % This is not a class property
                     case {'SavePath', 'FileName', 'IsDefault'}
                         % These are also not assigned
                     case 'MetaTableEntries'
@@ -610,332 +325,6 @@ classdef MetaTable < handle
             end
         end
         
-        function T = getFormattedTableData(obj, columnIndices, rowIndices)
-        %formatTableData Format cells of columns with special data types.
-        %
-        % Some columns might have special data types, and this function
-        % formats data of such cells into a data type that can be displayed
-        % in the table, typically into a formatted string.
-            
-            import nansen.metadata.utility.getColumnFormatter
-
-            if nargin < 2 % Get all columns
-                columnIndices = 1:size(obj.entries, 2);
-            end
-            if nargin < 3 % Get all rows
-                rowIndices = 1:size(obj.entries, 1);
-            end
-            
-            if isempty(obj.entries)
-                T = obj.entries; return
-            end
-            
-            % Subselect the part of the table that should be formatted
-            T = obj.entries(rowIndices, columnIndices);
-            variableNames = T.Properties.VariableNames;
-
-            % Check if any of the columns contain structs
-            firstRowData = table2cell( obj.entries(1, columnIndices) );
-            
-            % Create a cell array to hold formatting functions for each column
-            formattingFcn = cell(size(firstRowData));
-            
-            % Step 0: (Do this first)
-            % Note, this is done before checking for enum on purpose (Todo: Adapt special enum classes to also use the CompactDisplayProvider...)
-            isCustomDisplay = @(x) isa(x, 'matlab.mixin.CustomCompactDisplayProvider');
-            isCustomDisplayObj = cellfun(@(cell) isCustomDisplay(cell), firstRowData, 'uni', 1);
-            formattingFcn(isCustomDisplayObj) = {@(o) obj.getCustomDisplayString(o)};
-
-            % Step 1: Specify formatting based on special data types.
-            isCategorical = cellfun(@iscategorical, firstRowData);
-            formattingFcn(isCategorical) = {'char'};
-
-            isEnum = cellfun(@isenum, firstRowData);
-            formattingFcn(isEnum) = {'char'};
-            
-            isString = cellfun(@isstring, firstRowData);
-            formattingFcn(isString) = {'char'}; % uiw.widget.Table does is not compatible with strings.
-
-            isStruct = cellfun(@(c) isstruct(c), firstRowData);
-            formattingFcn(isStruct) = {'dispStruct'};
-
-            isDatetime = cellfun(@(c) isdatetime(c), firstRowData);
-            formattingFcn(isDatetime) = {'datetime'};
-
-            % Step 2: Get nansen table variables formatters.
-            tableClass = lower( obj.getTableType() );
-            [fcnHandles, names] = getColumnFormatter(variableNames, tableClass);
-            
-            for i = 1:numel(names)
-                isMatch = strcmp(variableNames, names{i});
-                if any( isMatch )
-                    formattingFcn{isMatch} = fcnHandles{i};
-                end
-            end
-            
-            % Step 3: does the data type have it's own formatter?
-            dataHasTableFormatter = cellfun(@(c) isa(c, 'nansen.metadata.tablevar.mixin.HasTableColumnFormatter'), firstRowData);
-            formattingFcn(dataHasTableFormatter) = cellfun(@(c) ...
-                str2func(class(eval( strjoin({class(c), 'TableColumnFormatter'}, '.')))), ...
-                firstRowData(dataHasTableFormatter), 'uni', 0);
-            
-            % Step 4: Format all the table columns that needs formatting
-
-            % Convert table to struct for the formatting of values.
-            % (Can't change the datatype of the table columns otherwise...?)
-            tempStruct = table2struct(T);
-            numRows = numel(tempStruct);
-
-            numCols = numel(formattingFcn);
-            for jColumn = 1:numCols % Go through columns
-
-                if isempty(formattingFcn{jColumn})
-                    continue
-                end
-
-                jColumnName = T.Properties.VariableNames{jColumn};
-                jColumnValues = { tempStruct.(jColumnName) };
-                thisFormatter = formattingFcn{jColumn};
-
-                if isa( thisFormatter, 'char' )
-                    tmpFcn = str2func( thisFormatter );
-                    formattedValue = cellfun(@(s) tmpFcn(s), jColumnValues, 'uni', 0);
-                    if strcmp(thisFormatter, 'datetime')
-                        isEmpty = cellfun(@isempty, formattedValue);
-                        [formattedValue{isEmpty}] = deal(NaT);
-                    end
-              
-                elseif isa( thisFormatter, 'function_handle')
-                    try
-                        tmpObj = thisFormatter( jColumnValues );
-                        if isa(tmpObj, 'cell')
-                            formattedValue = tmpObj;
-                        else
-                            formattedValue = tmpObj.getCellDisplayString();
-                        end
-                    catch ME
-                        if contains(ME.message, 'rgb2hsv')
-                            warning('Session table might not be rendered correctly. Try to restart Matlab, and if you still see this message, please report')
-                        else
-                            warning('Failed to format data for display for table column "%s"', jColumnName)
-                            disp(getReport(ME))
-                        end
-                        formattedValue = repmat({''}, numRows, 1);
-                    end
-                else
-                    % This should not kick in
-                end
-
-                [tempStruct(:).(jColumnName)] = deal(formattedValue{:});
-            end
-            
-            % Convert back to table.
-            T = struct2table(tempStruct, 'AsArray', true);
-        end
-
-        function strVector = getCustomDisplayString(~, dataObj)
-            strVector = cell(numel(dataObj), 1);
-
-            for i = 1:numel(dataObj)
-                rep = dataObj{i}.compactRepresentationForColumn();
-                strVector{i} = rep.Representation;
-            end
-        end
-        
-% % % %  Methods for checking MetaTable against project variables
-
-        function checkIfMetaTableComplete(obj, options)
-        %checkIfMetaTableComplete Check if user-defined variables are
-        % missing from the table.
-                    
-            arguments
-                obj
-                options.MessageDisplay = []
-            end
-
-            if isempty(obj.entries); return; end
-    
-            tableType = lower( obj.getTableType() );
-            
-            obj.addMissingVarsToMetaTable(tableType);
-        
-            nvPairs = namedargs2cell(options);
-            obj.removeMissingVarsFromMetaTable(tableType, nvPairs{:});
-        
-            obj.MetaTableVariables = obj.entries.Properties.VariableNames;
-        end
-        
-        function addMissingVarsToMetaTable(obj, metaTableType, options)
-        %addMissingVarsToMetaTable Add variable to table if it is missing.
-        %
-        %   If a table variable is present in the table variable definitions, 
-        %   but missing from the table, this functions adds a new variable to
-        %   the table and initializes with the default value based on the
-        %   table variable definition.
-
-            arguments
-                obj (1,1) nansen.metadata.MetaTable
-                metaTableType = 'session'
-                options.AutoUpdateValues (1,1) logical = true
-             end
-
-            tableVarNames = obj.entries.Properties.VariableNames;
-            
-            currentProject = nansen.getCurrentProject();
-            refVariableAttributes = currentProject.getTable('TableVariable');
-
-            % Todo: Create method for getting table variable info given a
-            % type, a name an potentially other attributes like "isCustom"
-            % Todo: Add more robust detection of matching "TableType".
-            % I dont think this should be case sensitive
-            refVariableAttributes(lower(refVariableAttributes.TableType) ~= lower(metaTableType), :) = [];
-
-            isCustom = refVariableAttributes.IsCustom;
-            customVariableNames = refVariableAttributes{isCustom, 'Name'};
-            
-            % Check if any variable is present in the table variable list, but
-            % the corresponding variable is missing from the table.
-            missingVarNames = setdiff(customVariableNames, tableVarNames);
-            
-            getRowIndex = @(T, varName) find( strcmp(T.Name, varName) );
-
-            if not(isempty(missingVarNames))
-                projectName = nansen.getCurrentProject().Name;
-            end
-
-            for iVarName = 1:numel(missingVarNames)
-                thisName = missingVarNames{iVarName};
-                thisRowIndex = getRowIndex(refVariableAttributes, thisName);
-
-                fcnName = sprintf('%s.tablevariable.%s.%s', projectName, lower(metaTableType), thisName);
-                fcnResult = feval(fcnName);
-                if isa(fcnResult, 'nansen.metadata.abstract.TableVariable')
-                    defaultValue = fcnResult.DEFAULT_VALUE;
-                else
-                    defaultValue = fcnResult;
-                end
-                obj.addTableVariable(thisName, defaultValue)
-                
-                if options.AutoUpdateValues
-                    if refVariableAttributes{thisRowIndex, 'HasUpdateFunction'}
-                        % Update for all items of the metatable
-                        tableRowInd = 1:height(obj.entries);
-                        updateFcnName = refVariableAttributes{thisRowIndex, 'UpdateFunctionName'}{1};
-                        wasUpdated = obj.updateTableVariable(thisName, tableRowInd, str2func(updateFcnName)); %#ok<NASGU>
-                        % Todo: Show warning if any fails to update?
-                    end
-                end
-            end
-            if not( isempty(obj.filepath) )
-                obj.save()
-            end
-        end
-
-        function removeMissingVarsFromMetaTable(obj, metaTableType, options)
-        %removeMissingVarsFromMetaTable Remove variable from table if it is missing.
-        %
-        %   If a table variable is missing from the table variable definitions, 
-        %   but is present in the table, this functions asks the user if the 
-        %   variable should be removed from the table.
-        %
-        %   If the user selects "Yes" the variable is deleted from the
-        %   table. If the user selects no, the a non-editable dummy
-        %   variable is placed in the table variable folder for the current
-        %   project.
-        %
-        %   If the table is loaded into nansen for the first time, should
-        %   skip the step of asking user. 
-        %   
-        %   Todo: How to reliably know if this is the first time initialization?
-
-            arguments
-                obj
-                metaTableType
-                options.MessageDisplay = []
-            end
-
-            if isempty(options.MessageDisplay); return; end
-
-            import nansen.metadata.utility.createClassForCustomTableVar
-            
-            tableVarNames = obj.entries.Properties.VariableNames;
-                        
-            currentProject = nansen.getCurrentProject();
-            variableAttributes = currentProject.getTable('TableVariable');
-            variableAttributes(variableAttributes.TableType ~= metaTableType, :) = [];
-            
-            % Get custom (user-defined) and default table variables
-            isCustom = variableAttributes.IsCustom;
-            customVariableNames = variableAttributes{isCustom, 'Name'};
-            defaultVariableNames = variableAttributes{~isCustom, 'Name'};
-            
-            % Get those variables present in the table that are not default
-            customVariablesInTable = setdiff(tableVarNames, defaultVariableNames);
-            
-            % Find the difference between those and the user-defined
-            % variables, i.e if the user-defined variables were removed
-            % from the table variable folders.
-            missingVarNames = setdiff(customVariablesInTable, customVariableNames);
-
-            % Display a prompt to the user if any table variables have been
-            % removed. If user does not want to remove those variables,
-            % create a dummy function for that table variable.
-            
-            wasUpdated = false;
-
-            for iVarName = 1:numel(missingVarNames)
-                thisName = missingVarNames{iVarName};
-
-                question = sprintf( ['The tablevar definition is missing ', ...
-                    'for "%s". Do you want to delete data for this variable ', ...
-                    'from the table?'], thisName );
-                title = 'Delete Table Column?';
-                if any( strcmp(thisName, obj.MetaTableVariables))
-                    answer = options.MessageDisplay.ask(question, ...
-                        'Title', title, ...
-                        'Alternatives', ["Yes", "No"], ...
-                        'DefaultAnswer', "No");
-                else
-                    answer = 'No';
-                end
-
-                switch answer
-                    case 'Yes'
-                        obj.removeTableVariable(thisName)
-                        obj.save()
-                    case {'Cancel', 'No', ''}
-                        
-                        % Todo (Is it necessary): Maybe if the variable is
-                        % editable...(which we dont know when the definition
-                        % is removed.) Should resolve based on user
-                        % feedback/tests
-                        
-                        % Get table row as struct in order to check data
-                        % type. (Some data is within a cell array in the table)
-                        tableRow = obj.entries(1, :);
-                        rowAsStruct = table2struct(tableRow);
-                        
-                        % Create dummy function
-                        S = struct();
-                        S.VariableName = thisName;
-                        S.MetadataClass = metaTableType;
-                        S.DataType = class(rowAsStruct.(thisName));
-                        
-                        S.InputMode = '';
-                        
-                        targetFolderPath = currentProject.getTableVariableFolder();
-                        createClassForCustomTableVar(S, targetFolderPath);
-                        wasUpdated = true;
-                end
-            end
-            if wasUpdated
-                rehash
-                % Ad hoc, need to wait 1 second in order for new table variable 
-                % definitions to be registered. See nansen.module.Module/rehash
-                pause(1.1)
-            end
-        end
-
 % % % % Methods for modifying entries
 
         function tf = isVariable(obj, varName)
@@ -948,28 +337,23 @@ classdef MetaTable < handle
         %   addTableVariable(obj, variableName, initValue) adds a new
         %   variable to the table and initializes all column values to the
         %   initValue.
-        
+
         % Todo: Make method for adding multiple variables in one go, i.e
         % allow "variableName" and "initValue" to be cell arrays.
 
             if ~obj.IsMaster % Add to master metatable
-                % Get filepath to master MetaTable file and load MetaTable
-                masterFilePath = obj.getMasterMetaTableFile();
+                catalog = nansen.metadata.MetaTableCatalog();
+                masterFilePath = catalog.getMasterFilePath(obj.MetaTableKey);
                 masterMT = nansen.metadata.MetaTable.open(masterFilePath);
                 masterMT.addTableVariable(variableName, initValue);
                 masterMT.save();
             end
-        
+
             obj.entries = obj.addTableVariableStatic(obj.entries, variableName, initValue);
         end
 
         function removeTableVariable(obj, variableName)
             obj.entries(:, variableName) = [];
-        end
-
-        function appendTable(obj, T)
-            warning('appendTable is deprecated and will be removed, use addTable instead.')
-            obj.addTable(T)
         end
 
         function addTable(obj, T, options)
@@ -1093,6 +477,30 @@ classdef MetaTable < handle
             [tempS(:).(columnName)] = deal( columnValues{:} );
             obj.entries = struct2table(tempS, 'AsArray', true);
         end
+
+        function wasMerged = mergeEntries(obj, sourceEntries, sourceMembers)
+        %mergeEntries Update or append entries from another MetaTable payload
+
+            sourceMembers = nansen.metadata.MetaTable.normalizeIdentifier(sourceMembers);
+            wasMerged = false;
+
+            [~, targetIdx, sourceIdx] = intersect(obj.MetaTableMembers, sourceMembers);
+            updatedEntries = sourceEntries(sourceIdx, :);
+            if ~isequaln(obj.entries(targetIdx, :), updatedEntries)
+                obj.entries(targetIdx, :) = updatedEntries;
+                wasMerged = true;
+            end
+
+            [~, sourceIdx] = setdiff(sourceMembers, obj.MetaTableMembers);
+            if ~isempty(sourceIdx)
+                obj.entries(end+1:end+numel(sourceIdx), :) = sourceEntries(sourceIdx, :);
+                wasMerged = true;
+            end
+
+            if wasMerged
+                obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
+            end
+        end
         
         % Remove entry/entries from MetaTable
         function removeEntries(obj, listOfEntryIds)
@@ -1100,19 +508,20 @@ classdef MetaTable < handle
             idName = obj.SchemaIdName;
 
             if isa(listOfEntryIds, 'cell')
-                IND = contains( obj.entries.(idName), listOfEntryIds);
-                
+                IND = ismember(obj.entries.(idName), listOfEntryIds);
+
             elseif isa(listOfEntryIds, 'numeric')
                 IND = listOfEntryIds;
-                
+
             elseif isa(listOfEntryIds, 'char')
-                IND = contains( obj.entries.(idName), listOfEntryIds);
+                IND = strcmp(obj.entries.(idName), listOfEntryIds);
             end
 
             obj.entries(IND, :) = [];
             obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
-            
-            %obj.IsModified = true;
+
+            % obj.IsModified = true;
+            obj.notify('EntryRemoved')
         end
 
         function onEntriesChanged(obj)
@@ -1124,153 +533,6 @@ classdef MetaTable < handle
                 [~, ind] = sort(obj.entries.(obj.SchemaIdName));
                 obj.entries = obj.entries(ind, :);
                 obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
-            end
-        end
-        
-        % Set current MetaTable to default in MetaTable Catalog
-        function setDefault(obj)
-        %setDefault Set the current MetaTable instance to default
-        %
-        %   Also update all other MetaTables of the same class to not
-        %   default.
-        
-            className = class(obj);
-            MT = nansen.metadata.MetaTableCatalog.quickload();
-
-            if isempty(MT); return; end
-            
-            isClass = strcmp(MT.MetaTableClass, className);
-            isKey = strcmp(MT.MetaTableKey, obj.MetaTableKey);
-            isName = strcmp(MT.MetaTableName, obj.MetaTableName);
-            
-            MT(isClass, 'IsDefault') = {false};
-            MT(isClass&isKey&isName, 'IsDefault') = {true};
-            
-            nansen.metadata.MetaTableCatalog.quicksave(MT);
-        end
-        
-        function openDefault(obj)
-            
-            className = class(obj);
-            
-            MT = nansen.metadata.MetaTableCatalog.quickload();
-
-            if isempty(MT); return; end
-            
-            isClass = strcmp(className, MT.MetaTableClass);
-            isDefault = MT.IsDefault;
-            
-            S = table2struct( MT(isClass & isDefault, :) );
-           
-            % Set filepath to filepath of default MetaTable.
-            if ~isempty(S)
-                obj.filepath = fullfile(S.SavePath, S.FileName);
-            end
-        end
-        
-% % % % Methods for syncing a dummy MetaTable with a master MetaTable.
-        
-        function linkToMaster(obj)
-        %linkToMaster Link a dummy MetaTable to a master MetaTable
-        %
-        %   Lets user select a master MetaTable from a list based on the
-        %   MetaTable Catalog. The current MetaTable inherits the uid
-        %   key from the master and will be linked to this master MetaTable
-            
-            MT = nansen.metadata.MetaTableCatalog.quickload();
-
-            assert(~isempty(MT), 'MetaTable Catalog is empty')
-            
-            isMaster = MT.IsMaster;
-            isClass = contains(MT.MetaTableClass, class(obj));
-            
-            mtTmp = MT(isMaster & isClass, :);
-            assert(~isempty(mtTmp), 'No master MetaTable for this MetaTable class')
-
-            MetaTableNames = mtTmp.MetaTableName;
-            
-            promptString = sprintf('Select a master MetaTable');
-            
-            [ind, ~] = listdlg( 'ListString', MetaTableNames, ...
-                                'SelectionMode', 'single', ...
-                                'Name', 'Select Table', ...
-                                'PromptString', promptString);
-
-            if isempty(ind); error("NANSEN:MetaTable:OperationCanceled", ...
-                    'You need link to a master MetaTable'); end
-            
-            obj.MetaTableKey = mtTmp.('MetaTableKey'){ind};
-            obj.save()
-        end
-        
-        function synchToMaster(obj, S)
-        %synchToMaster Synch entries from dummy to master MetaTable.
-        %
-        %   Entries that are present in both will be written from dummy to
-        %   master.
-        %   Entries that are only present in dummy will be appended to
-        %   master.
-        
-            % Get filepath to master MetaTable file and load MetaTable
-            masterFilePath = obj.getMasterMetaTableFile();
-            sMaster = load(masterFilePath);
-            
-            % Replace entries in master with corresponding entries in dummy
-            [~, iA, iB] = intersect(sMaster.MetaTableMembers, S.MetaTableMembers);
-            sMaster.MetaTableEntries(iA, :) = S.MetaTableEntries(iB, :);
-            
-            % Add entries to master which is only present in dummy
-            [~, iA] = setdiff(S.MetaTableMembers, sMaster.MetaTableMembers);
-            if ~isempty(iA)
-                sMaster.MetaTableEntries(end+1:end+numel(iA), :) = S.MetaTableEntries(iA, :);
-            end
-            
-            % Update MetaTable members
-            sMaster.MetaTableMembers = sMaster.MetaTableEntries.(obj.SchemaIdName);
-            
-            % Save master MetaTable.
-            save(masterFilePath, '-struct', 'sMaster')
-        end
-        
-        function synchFromMaster(obj)
-        %synchFromMaster Get entries from master MetaTable.
-        
-            % Get filepath to master MetaTable file and load MetaTable
-            masterFilePath = obj.getMasterMetaTableFile();
-            
-            if isempty(masterFilePath)
-                obj.linkToMaster()
-                masterFilePath = obj.getMasterMetaTableFile();
-            end
-            
-            sMaster = load(masterFilePath);
-            
-            iA = contains(sMaster.MetaTableMembers, obj.MetaTableMembers);
-            
-            % Todo: what if some entries are not present in master?
-            obj.entries = sMaster.MetaTableEntries(iA, :);
-        end
-        
-        function masterFilePath = getMasterMetaTableFile(obj)
-        %getMasterMetaTableFile Get filepath for master metatable
-        %   (relevant for dummy metatables)
-        
-            % Find master MetaTable from MetaTable Catalog
-            MT = nansen.metadata.MetaTableCatalog.quickload();
-            
-            anyKeyMatched = contains(MT.MetaTableKey, obj.MetaTableKey);
-            IND = MT.IsMaster & anyKeyMatched;
-            
-            if sum(IND) == 0 || isempty(IND)
-                masterFilePath = '';
-            else
-                % Use {:} in the end to unpack indexes results from cell array
-                % (MT{...} unpacks specified table variables to a cell array)
-                
-                rootDir = fileparts(nansen.metadata.MetaTableCatalog.getFilePath());
-                masterFilePath = fullfile(rootDir, MT{IND, 'FileName'}{:});
-                %deprecated, not compatible with multiple file locations...
-                %masterFilePath = fullfile( MT{ IND, {'SavePath', 'FileName'} }{:} );
             end
         end
         
@@ -1298,10 +560,10 @@ classdef MetaTable < handle
                     currentKey = obj.MetaTableKey;
                     
                     % Pick out rows with matching key
-                    rows = contains(MT.MetaTableKey, currentKey);
-                    
+                    rows = strcmp(MT.MetaTableKey, currentKey);
+
                 case 'same_class'
-                    rows = contains(MT.MetaTableClass, class(obj));
+                    rows = strcmp(MT.MetaTableClass, obj.MetaTableClass);
                 
                 case 'all'
                     rows = 1:size(MT, 1);
@@ -1331,10 +593,6 @@ classdef MetaTable < handle
             
             wasUpdated = false(1, numel(tableRowIndices));
             hasWarned = false;
-            
-            if isempty(updateFunction) % Retrieve update function if not given
-                updateFunction = obj.getTableVariableUpdateFunction(variableName);
-            end
             defaultValue = updateFunction();
 
             % Character vectors should be in a scalar cell
@@ -1415,7 +673,7 @@ classdef MetaTable < handle
         %     - obj - instance of this MetaTable
         %     - tableEntries - a collection of table rows
         %     - options (name-value pairs)
-        %         - UseCache - (logical) - flag determining if objects can be 
+        %         - UseCache - (logical) - flag determining if objects can be
         %                                  retrieved from a cache
         %     - objectNameValueArgs (name-value pairs)
         %
@@ -1506,32 +764,46 @@ classdef MetaTable < handle
         end
     end
 
-    methods (Access = private) % Not implemented yet
-        function updateEntries(obj, listOfEntryIds)
-            
-            % Note: not implemented
-            arguments
-                obj (1,1) nansen.metadata.MetaTable %#ok<INUSA>
-                listOfEntryIds = obj.members %#ok<INUSA> % Default: update all
+    methods (Access = protected)
+        function S = toFileStruct(obj)
+        %toFileStruct Serialize MetaTable state to struct for saving
+            S = obj.toStruct('metatable_file');
+        end
+
+        function fromFileStruct(obj, S)
+        %fromFileStruct Restore MetaTable state from loaded struct
+            if ~isfield(S, 'MetaTableClass')
+                [~, fileName] = fileparts(obj.filepath);
+                error('NANSEN:MetaTable:InvalidFileType', ...
+                    'The file "%s" does not contain a MetaTable', fileName)
+            end
+            obj.fromStruct(S);
+        end
+
+        function S = processFileStruct(obj, S)
+        %processFileStruct Synchronize to master before saving (if dummy)
+            if ~obj.IsMaster && ~isempty(S.MetaTableEntries)
+                catalog = nansen.metadata.MetaTableCatalog();
+                catalog.synchronizeToMaster(obj, S)
+                S.MetaTableEntries = S.MetaTableEntries([], :);
+            end
+        end
+
+        function onAfterLoad(obj)
+        %onAfterLoad Synchronize from master after loading (if dummy)
+            if ~obj.IsMaster
+                catalog = nansen.metadata.MetaTableCatalog();
+                catalog.synchronizeFromMaster(obj)
             end
 
-            error('Not implemented yet')
-
-            % % for i = 1:numel(listOfEntryIds)
-            % %     try
-            % %         % Todo: need to convert to instance of metadata entity 
-            % %         % and invoke update method.
-            % %         % Note: Assumes this class has an update method.
-            % %     catch
-            % %         fprintf( 'Failed for session %s\n', listOfEntryIds{i})
-            % %     end
-            % % end
-
-            % % % Synch changes to master
-            % % if ~obj.IsMaster && ~isempty(obj.filepath)
-            % %     S = obj.toStruct('metatable_file');
-            % %     obj.synchToMaster(S)
-            % % end
+            % Check that members and entries correspond
+            if ~isempty(obj.members)
+                if ~isequal(obj.members, obj.entries.(obj.SchemaIdName))
+                    warning(['MetaTable is corrupted. Fixed during loading, ' ...
+                        'but you should investigate.'])
+                    obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
+                end
+            end
         end
     end
 
@@ -1593,13 +865,9 @@ classdef MetaTable < handle
             % Temporarily create a new MetaTable and add missing table
             % variables
             tempMetaTable = nansen.metadata.MetaTable.newLike(newTableRows, obj);
-            tempMetaTable.addMissingVarsToMetaTable(tempMetaTable.MetaTableClass, ...
+            nansen.getCurrentProject().synchronizeMetaTableVariables(tempMetaTable, ...
                 "AutoUpdateValues", options.AutoUpdateValues);
             
-            % Todo (alternative to creating a temp table):
-            % - expand entries if table has dynamic table variables
-            % % updateEntries(obj, listOfEntryIds) [Not implemented]
-
             % Concatenate tables
             try
                 % Try direct concatenation
@@ -1615,11 +883,14 @@ classdef MetaTable < handle
             
             % Synchronize from master if this is a dummy MetaTable
             if ~obj.IsMaster
-                obj.synchFromMaster()
+                catalog = nansen.metadata.MetaTableCatalog();
+                catalog.synchronizeFromMaster(obj)
             end
             
             % Sort entries by ID
             obj.sort()
+
+            obj.notify('EntryAdded')
         end
 
         function [metaObjects, status] = createMetaObjects(obj, tableEntries, ...
@@ -1741,7 +1012,7 @@ classdef MetaTable < handle
 
             rowIdx = metaTableEntryIdx;
             colIdx = find(strcmp(obj.entries.Properties.VariableNames, evt.Property));
-            newValue = obj.getFormattedTableData(colIdx, rowIdx);
+            newValue = nansen.metadata.utility.formatTableForDisplay(obj, colIdx, rowIdx);
             newValue = table2cell(newValue);
 
             evtData = nansen.metadata.event.MetaTableCellChangedEventData(...
@@ -1766,41 +1037,6 @@ classdef MetaTable < handle
         end
     end
 
-    methods (Access = private) % Methods related to updating table variables
-        function updateFcn = getTableVariableUpdateFunction(obj, variableName)
-        % getTableVariableUpdateFunction - Get function name of table variable update function
-                    
-            % Todo: Think about whether we always want to get tables from 
-            % the current project, or if we also want to be able to specify
-            % which project to use.
-            currentProject = nansen.getCurrentProject();
-            refVariableAttributes = currentProject.getTable('TableVariable');
-         
-            tableType = lower(obj.getTableType());
-            refVariableAttributes(refVariableAttributes.TableType ~= tableType, :) = [];
-            
-            isVariableEntry = refVariableAttributes.TableType == tableType & ...
-                                strcmp(refVariableAttributes.Name, variableName);
-            updateFcnName = refVariableAttributes{isVariableEntry, 'UpdateFunctionName'}{1};
-            updateFcn = str2func(updateFcnName);
-        end
-    end
-    
-    methods (Access = private)
-        function assertValidClass(obj, items)
-            msgTemplate = sprintf(['Class of entries (%s) do not match ', ...
-                'the class of the MetaTable (%%s)'], class(items));
-            if ~isempty(obj.ItemClassName)
-                assert(isa(items, obj.ItemClassName), ...
-                    sprintf(msgTemplate, obj.ItemClassName))
-
-            else
-                assert(isa(items, obj.MetaTableClass), ...
-                    sprintf(msgTemplate, obj.MetaTableClass))
-            end
-        end
-    end
-
     methods (Hidden)
         function removeDuplicates(obj)
             varName = obj.SchemaIdName;
@@ -1815,46 +1051,6 @@ classdef MetaTable < handle
         end
     end
 
-    methods (Access = private) % Static??
-       
-        function openMetaTableSelectionDialog(~)
-            error('Not implemented yet')
-            % Todo:
-            
-            % Open a quest dialog to ask if user wants to open a metatable
-            % from the MetaTableCatalog or browse for a file
-            
-            % Open dialog base on user's choice
-        end
-        
-        function openMetaTableFromFilepath(obj, filePath)
-            
-            obj.filepath = filePath;
-            obj.load()
-        end
-        
-        function openMetaTableFromName(obj, inputName)
-             
-            MT = nansen.metadata.MetaTableCatalog.quickload();
-            
-            isNameMatch = contains(MT.MetaTableName, inputName);
-            isClassMatch = contains(MT.MetaTableClass, inputName);
-            
-            if any(isNameMatch)
-                entry = MT(isNameMatch, :);
-                obj.filepath = fullfile(entry.SavePath{:}, entry.FileName{:});
-            elseif any(isClassMatch)
-                entry = MT(isClassMatch & MT.IsMaster, :);
-                obj.filepath = fullfile(entry.SavePath{:}, entry.FileName{:});
-            else
-                error("NANSEN:MetaTable:MetaTableNotFound", ...
-                    'No MetaTable found matching the given name ("%s")', inputName)
-            end
-            
-            obj.load()
-        end
-    end
-    
     methods (Static)
         function metaTable = newLike(entries, metaTable)
             arguments
@@ -1898,7 +1094,6 @@ classdef MetaTable < handle
             % If keyword is provided, use this:
             elseif any( strcmp(varargin{1}, {'master', 'dummy'} ) )
                 throw(nansen.common.exception.NotImplemented("New MetaTable from keywords."))
-                % Todo: metaTable.setMaster(varargin{1})
             end
         end
         
@@ -1906,38 +1101,30 @@ classdef MetaTable < handle
         % open - Open a MetaTable from a specified file or name
         %
         % Syntax:
-        %   metaTable = nansen.metadata.MetaTable.open(nameOrFilepath) Opens 
+        %   metaTable = nansen.metadata.MetaTable.open(nameOrFilepath) Opens
         %   a MetaTable using the given name or file path.
         %
         % Input Arguments:
-        %   nameOrFilepath (string) - The name or file path of the MetaTable 
+        %   nameOrFilepath (string) - The name or file path of the MetaTable
         %   to open.
         %
         % Output Arguments:
-        %   metaTable - An instance of the MetaTable class containing the 
+        %   metaTable - An instance of the MetaTable class containing the
         %   loaded data.
-
+        %
             arguments
                 nameOrFilepath (1,1) string {mustBeNonzeroLengthText}
             end
 
-            metaTable = nansen.metadata.MetaTable();
-
-            % NOT IMPLEMENTED:
-            % If no input is provided, open a list selection and let user
-            % select a MetaTable to open from the MetaTableCatalog
-            % % if isempty( nameOrFilepath )
-            % %     metaTable.openMetaTableSelectionDialog()
-            % % end
-
-            if isfile( nameOrFilepath )
-                % If input is a filepath, open file
-                metaTable.openMetaTableFromFilepath(nameOrFilepath)
+            if isfile(nameOrFilepath)
+                filePath = nameOrFilepath;
             else
-                % If input is not a file, assume it is the name
-                % of a MetaTable and open using the name
-                metaTable.openMetaTableFromName(nameOrFilepath)
+                filePath = nansen.metadata.MetaTable.resolveNameToFilepath(nameOrFilepath);
             end
+
+            metaTable = nansen.metadata.MetaTable();
+            metaTable.filepath = filePath;
+            metaTable.load();
         end
 
         function filename = createFileName(S)
@@ -2051,9 +1238,55 @@ classdef MetaTable < handle
 
             propertyArgs = cat(1, cellstr(keepNames), keepValues);
         end
-    end
-end
 
-function str = dispStruct(s)
-    str = sprintf('%dx%d struct', size(s));
+        function filePath = resolveNameToFilepath(inputName)
+        %resolveNameToFilepath Resolve a MetaTable name to its filepath
+        %
+        %   Used by MetaTable.open() when the input is a name rather than
+        %   a file path.
+
+            catalogFilePath = nansen.metadata.MetaTableCatalog.getFilePath();
+            MT = nansen.metadata.MetaTableCatalog.quickload(catalogFilePath);
+
+            if isempty(MT)
+                error("NANSEN:MetaTable:MetaTableNotFound", ...
+                    'No MetaTable found matching the given name ("%s")', inputName)
+            end
+
+            candidateIdx = find(strcmpi(MT.MetaTableName, inputName));
+            if isempty(candidateIdx)
+                candidateIdx = find(strcmpi(MT.MetaTableClass, inputName));
+            end
+            if isempty(candidateIdx)
+                candidateIdx = find(contains(MT.MetaTableName, inputName, 'IgnoreCase', true));
+            end
+            if isempty(candidateIdx)
+                candidateIdx = find(contains(MT.MetaTableClass, inputName, 'IgnoreCase', true));
+            end
+
+            if isempty(candidateIdx)
+                error("NANSEN:MetaTable:MetaTableNotFound", ...
+                    'No MetaTable found matching the given name ("%s")', inputName)
+            end
+
+            if numel(candidateIdx) > 1
+                defaultIdx = candidateIdx(MT.IsDefault(candidateIdx));
+                masterIdx = candidateIdx(MT.IsMaster(candidateIdx));
+
+                if isscalar(defaultIdx)
+                    candidateIdx = defaultIdx;
+                elseif isscalar(masterIdx)
+                    candidateIdx = masterIdx;
+                else
+                    error("NANSEN:MetaTable:AmbiguousMetaTableName", ...
+                        ['Multiple MetaTables match "%s". Use an exact ', ...
+                         'MetaTableName or MetaTableClass to disambiguate.'], inputName)
+                end
+            end
+
+            catalogFolder = fileparts(catalogFilePath);
+            entry = MT(candidateIdx, :);
+            filePath = fullfile(catalogFolder, entry.FileName{1});
+        end
+    end
 end

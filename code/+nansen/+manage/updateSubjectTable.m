@@ -30,7 +30,8 @@ function updateSubjectTable(metatableCatalog, subjectSchema)
     % Initialize a MetaTable using the given session schema and the
     % detected session folders.
     newSubjectTable = nansen.metadata.MetaTable.new(subjectArray);
-    newSubjectTable.addMissingVarsToMetaTable('subject');
+    currentProject = nansen.getCurrentProject();
+    currentProject.synchronizeMetaTableVariables(newSubjectTable);
     
     % Find all that are not part of existing metatable
     subjectTable.addTable(newSubjectTable.entries)
