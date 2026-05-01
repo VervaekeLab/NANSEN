@@ -357,7 +357,7 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
             elseif isa(obj.Parent, 'uim.abstract.virtualContainer')
                 parentSize = obj.Parent.Position(3:4);
             elseif isa(obj.Parent, 'matlab.graphics.Graphics')
-                parentPosition = getpixelposition(obj.Parent);
+                parentPosition = uim.utility.getContentPixelPosition(obj.Parent);
                 parentSize = parentPosition(3:4);
             elseif isa(obj.Parent, 'matlab.graphics.axis.Axes')
                 parentSize = obj.Parent.Position(3:4);
@@ -434,7 +434,7 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
                 parentSize = obj.Parent.Size;
                 locationPoint = obj.Parent.getLocationPoint(obj.Location);
             elseif isa(obj.Parent, 'matlab.graphics.axis.Axes') || isa(obj.Parent, 'matlab.ui.Figure') || isa(obj.Parent, 'matlab.ui.container.Panel')
-                parentPos = getpixelposition(obj.Parent);
+                parentPos = uim.utility.getContentPixelPosition(obj.Parent);
                 parentSize = parentPos(3:4);
                 locationPoint = obj.location2point(parentSize, obj.Location);
             else

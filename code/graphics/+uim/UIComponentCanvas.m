@@ -240,7 +240,7 @@ classdef UIComponentCanvas < handle & uim.mixin.assignProperties % uix.Container
         
         function onSizeChanged(obj, ~, evt)
         %onSizeChanged Call an update to the PixelSize property
-            newParentPosition = getpixelposition(obj.Parent);
+            newParentPosition = uim.utility.getContentPixelPosition(obj.Parent);
             
             persistent t0
             if isempty(t0); t0 = clock; t0 = t0(6); end
@@ -266,7 +266,7 @@ classdef UIComponentCanvas < handle & uim.mixin.assignProperties % uix.Container
         function onLocationChanged(obj, ~, evt)
             
             obj.PreviousPixelPosition = obj.PixelPosition;
-            obj.PixelPosition = getpixelposition(obj.Parent);
+            obj.PixelPosition = uim.utility.getContentPixelPosition(obj.Parent);
 
         end
         
@@ -300,15 +300,20 @@ classdef UIComponentCanvas < handle & uim.mixin.assignProperties % uix.Container
 % %                 if ~all(isnan(obj.PreviousPixelPosition))
 % %                     obj.setAxesLimitsRelative()
 % %                 else
-                    newPosition = [1,1, obj.PixelSize];
+                    axesSize = max(obj.PixelSize, [1, 1]);
+                    axesLimits = [1, max(axesSize(1)+1, 2); ...
+                                  1, max(axesSize(2)+1, 2)];
+                    newPosition = [1,1, axesSize];
 
-                    set(obj.Axes, 'Position', newPosition, 'XLim', [1, obj.PixelSize(1)], 'YLim', [1, obj.PixelSize(2)])
+                    set(obj.Axes, 'Position', newPosition, ...
+                        'XLim', axesLimits(1, :), 'YLim', axesLimits(2, :))
 % %
 % %                 end
 
             else
-                obj.Axes.XLim = [1, obj.PixelSize(1)];
-                obj.Axes.YLim = [1, obj.PixelSize(2)];
+                axesSize = max(obj.PixelSize, [1, 1]);
+                obj.Axes.XLim = [1, max(axesSize(1)+1, 2)];
+                obj.Axes.YLim = [1, max(axesSize(2)+1, 2)];
             end
         end
         
