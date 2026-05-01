@@ -290,9 +290,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 %             obj.Figure.Position(1:2) = screenSize(3:4)/2 - obj.Figure.Position(3:4)/2;
 
             % Make size fixed, and add close callback
-            
+
             obj.createScrollBar();
-                        
+
             obj.pleaseWaitTxt.Parent = obj.main.constructionCurtain;
             obj.pleaseWaitTxt.Position(3) = obj.pleaseWaitTxt.Extent(3);
             obj.pleaseWaitTxt.Position(1) = 0.5 - obj.pleaseWaitTxt.Position(3)/2;

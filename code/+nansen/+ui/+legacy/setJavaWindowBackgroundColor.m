@@ -10,9 +10,9 @@ function setJavaWindowBackgroundColor(figureHandle, newColor)
         % MATLAB R2025a removed JAVA support, abort.
         return
     end
-    
+
     rgb = num2cell(newColor);
-    
+
     warningCleanup = nansen.ui.legacy.tempDisableJavaFrameWarnings(); %#ok<NASGU>
 
     jFrame = get(handle(figureHandle), 'JavaFrame'); %#ok<JAVFM>

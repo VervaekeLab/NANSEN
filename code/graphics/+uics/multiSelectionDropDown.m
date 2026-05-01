@@ -59,7 +59,7 @@ classdef multiSelectionDropDown <  uim.handle & uiw.mixin.AssignPVPairs
         
         function obj = multiSelectionDropDown(varargin)
 
-            if ~nansen.util.useModernUiComponents()
+            if nansen.util.useModernUiComponents()
                 % MATLAB R2025a removed JAVA support, abort.
                 error("NANSEN:MultiSelectionDropDown:NotSupported", ...
                     "This component is not supported on MATLAB R2025 or newer.")

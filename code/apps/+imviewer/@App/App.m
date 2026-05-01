@@ -3007,7 +3007,7 @@ methods % Handle user actions
     
     function pinWindow(obj, src, ~)
     %pinWindow Set window to always on top
-        if nansen.util.useModernUiComponents
+        if nansen.util.useModernUiComponents()
             if src.Value
                 obj.Figure.WindowStyle = "alwaysontop";
             else
@@ -4317,7 +4317,7 @@ methods % Misc, most can be outsourced
             warningCleanupObj = nansen.ui.legacy.tempDisableJavaFrameWarnings(); %#ok<NASGU>
             % Close help window if it loses focus
             jframe = getjframe(helpfig);
-            set(jframe, 'WindowDeactivatedCallback', @(s, e) delete(helpfig))    
+            set(jframe, 'WindowDeactivatedCallback', @(s, e) delete(helpfig))
         end
     end
     

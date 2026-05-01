@@ -22,7 +22,7 @@ classdef DateRangeSelector < handle & uiw.mixin.AssignPVPairs
         
         function obj = DateRangeSelector(varargin)
             
-            if ~nansen.util.useModernUiComponents()
+            if nansen.util.useModernUiComponents()
                 % MATLAB R2025a removed JAVA support, abort.
                 error("NANSEN:DateRangeSelector:NotSupported", ...
                     "This component is not supported on MATLAB R2025 or newer.")

@@ -104,9 +104,9 @@ classdef AppWindow < uim.handle
             obj.setDefaultFigureCallbacks()
             uim.utility.centerFigureOnScreen(obj.Figure)
         end
-        
+
         function configureWindow(obj)
-                        
+
             % Place screen on the preferred screen if multiple screens are
             % available.
             MP = get(0, 'MonitorPosition');
@@ -118,7 +118,7 @@ classdef AppWindow < uim.handle
                 prefScreenPos = obj.getPreference('PreferredScreenPosition', [1, 1, 1180, 700]);
                 obj.Figure.Position = prefScreenPos{screenNumber};
             end
-                        
+
             obj.setMinimumFigureSize()
         end
         
@@ -153,7 +153,7 @@ classdef AppWindow < uim.handle
         end
     end
 
-    methods (Static)        
+    methods (Static)
         function [screenSize, screenNum] = getMonitorInfo(hFigure)
         %getMonitorInfo Get size and number of monitor containing figure.
         %
