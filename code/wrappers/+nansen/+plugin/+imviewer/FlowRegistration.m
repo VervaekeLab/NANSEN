@@ -307,7 +307,7 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodP
                     obj.ImviewerObj.updateImageDisplay();
                 
                 case 'sigmaZ'
-                    obj.Options.sigma = [obj.Options.General.sigmaX, obj.Options.General.sigmaY, obj.Options.General.sigmaZ];
+                    obj.Options.Model.sigma = [obj.Options.General.sigmaY, obj.Options.General.sigmaX, obj.Options.General.sigmaZ];
                     obj.ImviewerObj.imageDisplayMode.filterParam = struct('sigma', obj.Options.Model.sigma);
                     obj.ImviewerObj.updateImage();
                     obj.ImviewerObj.updateImageDisplay();
