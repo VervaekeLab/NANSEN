@@ -1912,16 +1912,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     end
                     
                     if isempty(app.UiFileViewer) % Create file viewer
-                    	thisTab = evt.NewValue;
+                        thisTab = evt.NewValue;
                         app.initializeFileViewer(thisTab)
                     end
-        
+
                     app.ActiveTabModule = app.UiFileViewer;
 
                     rowInd = app.UiMetaTableViewer.DisplayedRows;
                     sessionIDs = app.MetaTable.entries{rowInd, 'sessionID'};
                     app.UiFileViewer.SessionIDList = sessionIDs;
-                                        
+                    app.UiFileViewer.updateLayout()
+
                     selectedRows = app.UiMetaTableViewer.getSelectedEntries();
                     if isempty(selectedRows); return; end
                     
@@ -1969,6 +1970,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         app.initializeBatchProcessorUI(evt.NewValue)
                     end
 
+                    app.BatchProcessorUI.updateLayout()
                     app.ActiveTabModule = app.BatchProcessorUI;
                 
                 otherwise
@@ -2068,7 +2070,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 %             app.hLayout.TopBorder.Position(2) = 1-normalizedHeight;
 %             app.hLayout.TopBorder.Position(4) = normalizedHeight;
             
-            app.hLayout.TabGroup.Position = [10,6,figPosPix(3)-20,figPosPix(4)-30];
+            if nansen.util.useModernUiComponents()
+                mainPanelPosition = getpixelposition(app.hLayout.MainPanel);
+                app.hLayout.TabGroup.Position = [10, 6, ...
+                    mainPanelPosition(3)-20, mainPanelPosition(4)-12];
+            else
+                app.hLayout.TabGroup.Position = [10,6,figPosPix(3)-20,figPosPix(4)-30];
+            end
         end
         
     %%% Methods for updating statusfield (Q: Should this be a separate class?)
