@@ -442,10 +442,15 @@ classdef FileViewer < nansen.AbstractTabPageModule
         function W = createFolderTreeComponent(obj, hParent)
         % createFolderTreeComponent - Create a new folder tree component
 
-            callbacks = struct( ...
-                'MouseClickedFcn', @obj.onMouseClickOnTree, ...
-                'DoubleClickedFcn', @obj.onModernTreeDoubleClicked, ...
-                'KeyPressFcn', @obj.onKeyPressedInTree);
+            if obj.UseModernUi
+                callbacks = struct( ...
+                    'SelectionChangedFcn', @obj.onModernTreeSelectionChanged, ...
+                    'DoubleClickedFcn', @obj.onModernTreeDoubleClicked);
+            else
+                callbacks = struct( ...
+                    'MouseClickedFcn', @obj.onMouseClickOnTree, ...
+                    'KeyPressFcn', @obj.onKeyPressedInTree);
+            end
             W = obj.TreeBackend.createTree(hParent, callbacks);
             
             % Save components to class properties
@@ -775,6 +780,16 @@ classdef FileViewer < nansen.AbstractTabPageModule
             obj.handleDoubleClick(eventData)
         end
 
+        function onModernTreeSelectionChanged(obj, src, ~)
+        %onModernTreeSelectionChanged Track the selected MATLAB uitree node.
+            selectedNodes = src.SelectedNodes;
+            if isempty(selectedNodes)
+                obj.CurrentNode = [];
+            else
+                obj.CurrentNode = selectedNodes(1);
+            end
+        end
+
         function onModernContextMenuOpening(obj, ~, event)
         %onModernContextMenuOpening Prepare shared node menus before opening.
             treeNode = event.ContextObject;
@@ -1028,7 +1043,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
         end
 
         function createFileAdapterSubMenu(obj, filePath)
-            [fileAdapter, varName] = obj.detectFileAdapter(filePath, "all");
+            [fileAdapter, ~] = obj.detectFileAdapter(filePath, "all");
             
             if ~isempty(obj.ViewFileAdapterSubMenuItems)
                 delete(obj.ViewFileAdapterSubMenuItems)
@@ -1099,7 +1114,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
                     
                 case '.mat'
                     if ismac
-                        [status, ~] = unix(sprintf('open -a finder ''%s''', clickedNode.UserData.filePath));
+                        unix(sprintf('open -a finder ''%s''', clickedNode.UserData.filePath));
                     else
                         uiopen(clickedNode.UserData.filePath)
                     end
@@ -1107,7 +1122,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
                 case '.png'
                     if ismac
                         filepath = strrep(clickedNode.UserData.filePath, ' ', '\ ');
-                        [status, msg] = unix(sprintf('open -a Preview %s', filepath));
+                        unix(sprintf('open -a Preview %s', filepath));
                     else
                         error('Can not open this file type')
                     end
@@ -1128,7 +1143,6 @@ classdef FileViewer < nansen.AbstractTabPageModule
                                 strcmp(clickedNode.UserData.Type, 'nwb') && ...
                                 ~isempty(clickedNode.UserData.nwbNode)
 
-                            name = obj.TreeBackend.getNodeText(clickedNode);
                             name = clickedNode.UserData.nwbNodeName;
                             nwbObj = clickedNode.UserData.nwbNode;
                             previewNwbObject(name, nwbObj)
@@ -1245,7 +1259,6 @@ classdef FileViewer < nansen.AbstractTabPageModule
                 case 'Preview'
                     % Todo: This is for nwb datasets, but should be general
                     % also for files.
-                    name = obj.TreeBackend.getNodeText(nodeHandle);
                     name = nodeHandle.UserData.nwbNodeName;
                     nwbObj = nodeHandle.UserData.nwbNode;
                     previewNwbObject(name, nwbObj)

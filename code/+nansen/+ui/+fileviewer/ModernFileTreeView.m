@@ -10,6 +10,7 @@ classdef ModernFileTreeView < handle
             tree.FontSize = 14;
             tree.NodeExpandedFcn = @(src, event) onNodeExpanded(obj, src, event);
             tree.NodeCollapsedFcn = @(src, event) onNodeCollapsed(obj, src, event);
+            tree.SelectionChangedFcn = callbacks.SelectionChangedFcn;
             tree.DoubleClickedFcn = callbacks.DoubleClickedFcn;
         end
 
