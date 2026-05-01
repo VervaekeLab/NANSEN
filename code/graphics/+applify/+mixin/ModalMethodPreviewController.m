@@ -82,7 +82,7 @@ classdef ModalMethodPreviewController < handle
 
         function onOptionsEditorResumed(obj)
         %onOptionsEditorResumed Called when the editor closes or is confirmed.
-            if ~isvalid(obj.hOptionsEditor)
+            if isempty(obj.hOptionsEditor) || ~isvalid(obj.hOptionsEditor)
                 obj.hOptionsEditor = [];
                 return
             end
