@@ -89,8 +89,8 @@ classdef ButtonGroup < handle
         end
 
         function updateLineHeight(obj, s, e)
-            parentHeight = getpixelposition( obj.Parent );
-            obj.Parent.UserData.Separator.Size(2) = parentHeight(4);
+            parentPosition = uim.utility.getContentPixelPosition(obj.Parent);
+            obj.Parent.UserData.Separator.Size(2) = parentPosition(4);
         end
     end
 
@@ -121,7 +121,7 @@ classdef ButtonGroup < handle
             obj.createToolbar()
             obj.createButtons()
 
-            panelPos = getpixelposition(obj.Parent);
+            panelPos = uim.utility.getContentPixelPosition(obj.Parent);
             
             linePos([1,3]) = floor([obj.Width, obj.Width]+2);
             linePos([2,4]) = [1, panelPos(4)];
@@ -219,6 +219,7 @@ classdef ButtonGroup < handle
     
         function onParentSizeChanged(obj, src, evt)
             obj.updateLineHeight()
+            obj.updateLocation()
         end
     end
 

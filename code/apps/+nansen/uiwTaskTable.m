@@ -85,6 +85,10 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
         function selectedRows = get.selectedRows(obj)
             selectedRows = obj.Table.SelectedRows;
         end
+
+        function updateLayout(obj)
+            obj.updateTablePosition()
+        end
     end
     
     methods %Set/get
@@ -299,9 +303,11 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
         function updateTablePosition(obj)
                         
             MARGINS = [10, 10];
-            parentPos = getpixelposition(obj.Parent);
+            parentPos = uim.utility.getContentPixelPosition(obj.Parent);
 
-            newTablePosition = [MARGINS, parentPos(3:4) - MARGINS*2];
+            contentOrigin = max(parentPos(1:2), [1, 1]);
+            newTablePosition = [contentOrigin + MARGINS - 1, ...
+                parentPos(3:4) - MARGINS*2];
             obj.Table.Position = newTablePosition;
             
         end

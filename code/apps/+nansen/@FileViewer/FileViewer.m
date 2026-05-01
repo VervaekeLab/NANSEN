@@ -169,6 +169,11 @@ classdef FileViewer < nansen.AbstractTabPageModule
                 drawnow
             end
         end
+
+        function updateLayout(obj)
+            drawnow limitrate
+            obj.updateComponentLayout()
+        end
     end
     
     methods % Set/get
