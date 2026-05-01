@@ -34,6 +34,9 @@ classdef BatchProcessorUI < handle
             obj.createUiTables()
                         
             obj.TabGroup.Visible = 'on';
+            drawnow
+            obj.UITableQueue.updateLayout()
+            obj.UITableHistory.updateLayout()
             
             % Call refresh table to update table contents
             obj.refreshTable('queue')
@@ -43,6 +46,12 @@ classdef BatchProcessorUI < handle
         
         function delete(obj)
             delete(obj.TabGroup)
+        end
+
+        function updateLayout(obj)
+            drawnow limitrate
+            obj.UITableQueue.updateLayout()
+            obj.UITableHistory.updateLayout()
         end
     end
     
