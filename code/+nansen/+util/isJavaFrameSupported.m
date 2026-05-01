@@ -4,6 +4,8 @@ function tf = isJavaFrameSupported()
 %   This is a capability check for code paths that call the undocumented
 %   JavaFrame API directly or indirectly. It is intentionally narrower than
 %   useModernUiComponents, which describes NANSEN's preferred UI policy.
+%
+%   See also nansen.util.useModernUiComponents
 
     if exist('isMATLABReleaseOlderThan', 'file') == 2
         tf = isMATLABReleaseOlderThan("R2025a");

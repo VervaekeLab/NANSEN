@@ -5056,7 +5056,7 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
         
         if obj.isDrag; return; end
         
-        if obj.mouseDown && obj.ImageDragAndDropEnabled% Create a draggable thumbnail of current image
+        if obj.mouseDown && obj.ImageDragAndDropEnabled % Create a draggable thumbnail of current image
             obj.isDrag = true;
             
             % Abort if mousemode is set
@@ -5074,7 +5074,11 @@ methods (Access = {?applify.ModularApp, ?applify.DashBoard} )
             end
             
             if x > 1 && x < obj.imWidth && y > 1 && y < obj.imHeight
-                obj.createDraggableThumbnail()
+                if nansen.util.isJavaFrameSupported()
+                    obj.createDraggableThumbnail()
+                else
+                    % Currently no known substitute
+                end
             else
                 return
             end
