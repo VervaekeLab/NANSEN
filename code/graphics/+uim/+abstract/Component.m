@@ -484,7 +484,7 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
             elseif isa(obj.Parent, 'uim.abstract.Component')
                 parentSize = obj.Parent.Position(3:4);
             elseif isa(obj.Parent, 'matlab.graphics.Graphics')
-                parentPosition = getpixelposition(obj.Parent);
+                parentPosition = uim.utility.getContentPixelPosition(obj.Parent);
                 parentSize = parentPosition(3:4);
 % %             elseif isa(obj.Parent, 'matlab.graphics.axis.Axes')
 % %                 parentSize = obj.Parent.Position(3:4);
@@ -552,7 +552,7 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
                 locationPoint = obj.Parent.getLocationPoint(obj.Location);
                 
             elseif obj.isMatlabGraphicsParent(obj.Parent)
-                parentPos = getpixelposition(obj.Parent);
+                parentPos = uim.utility.getContentPixelPosition(obj.Parent);
                 parentSize = parentPos(3:4);
                 locationPoint = obj.location2point(parentSize, obj.Location);
             else

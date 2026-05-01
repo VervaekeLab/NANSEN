@@ -40,7 +40,7 @@ classdef MetaTableCatalog < uim.handle
             obj.fixCatalog()
         end
                 
-        function delete(obj)
+        function delete(~)
            % Todo: Check for unsaved changes.
         end
     end
@@ -68,16 +68,13 @@ classdef MetaTableCatalog < uim.handle
                 isMaster = false
                 isDefault = false
             end
-            
-            metatableFolder = fileparts(obj.FilePath);
 
-            tableInfo = struct();
-            tableInfo.MetaTableName = metaTable.createDefaultName();
-            tableInfo.SavePath = metatableFolder;
-            tableInfo.IsDefault = isMaster;
-            tableInfo.IsMaster = isDefault;
-            
-            metaTable.archive(tableInfo, obj);
+            options = struct();
+            options.MetaTableName = metaTable.createDefaultName();
+            options.IsDefault = isDefault;
+            options.IsMaster = isMaster;
+
+            obj.registerMetaTable(metaTable, options);
         end
 
         function fixCatalog(obj)
@@ -89,9 +86,8 @@ classdef MetaTableCatalog < uim.handle
                     numRows = size(obj.Table,1);
                     metaTableIdColumn = repmat({'sessionID'}, numRows, 1);
                     newTableColumn = cell2table(metaTableIdColumn, "VariableNames", {'MetaTableIdVarname'});
-                    newTable = cat(2, obj.Table, newTableColumn);
-                    columnOrder = [1:3, 8, 4:7]; % MetaTable.MTABVARS
-                    obj.Table = newTable(:, columnOrder);
+                    obj.Table = cat(2, obj.Table, newTableColumn);
+                    obj.Table = obj.orderCatalogColumns(obj.Table);
                     obj.save()
                 end
             end
@@ -113,8 +109,8 @@ classdef MetaTableCatalog < uim.handle
             if isfile(filePath)
                 S = load(filePath);
                 obj.Table = S.metaTableCatalog;
-                % All items should be located in the same folder as the catalog
-                obj.Table.SavePath = repmat( {obj.FolderPath}, height(obj.Table), 1 );
+                obj.Table = obj.removeSavePathColumn(obj.Table);
+                obj.Table = obj.orderCatalogColumns(obj.Table);
             else
                 obj.Table = [];
             end
@@ -123,6 +119,7 @@ classdef MetaTableCatalog < uim.handle
         function save(obj)
         %save Save the master table to file
         
+            obj.Table = obj.removeSavePathColumn(obj.Table);
             metaTableCatalog = obj.Table;
             save(obj.FilePath, 'metaTableCatalog');
         end
@@ -144,7 +141,7 @@ classdef MetaTableCatalog < uim.handle
                 isNamePresent = strcmp(obj.Table.MetaTableName, newEntry.MetaTableName);
                 
                 if any(isNamePresent)
-                    %error('A metatable with this name already exists')
+                    % error('A metatable with this name already exists')
                     obj.Table(isNamePresent,:) = newEntry;
                     fprintf('Metatable replaced\n')
                 else
@@ -180,7 +177,6 @@ classdef MetaTableCatalog < uim.handle
             end
 
             obj.save()
-            
         end
         
         function entry = getEntry(obj, entryName)
@@ -193,15 +189,24 @@ classdef MetaTableCatalog < uim.handle
             ind = find( strcmp(metaTableNames, entryName) );
             
             entry = table2struct(obj.Table(ind, :));
-            
+        end
+
+        function filePath = getMetaTableFilePath(obj, entryName)
+        %getMetaTableFilePath Get absolute file path for a registered MetaTable
+
+            entry = obj.getEntry(entryName);
+
+            if isempty(entry)
+                filePath = '';
+                return
+            end
+
+            filePath = fullfile(obj.FolderPath, entry.FileName);
         end
         
         function metaTable = getMetaTable(obj, entryName)
                                 
-            item = obj.getEntry(entryName);
-            
-            % Get database filepath
-            filePath = fullfile(obj.FolderPath, item.FileName);
+            filePath = obj.getMetaTableFilePath(entryName);
                     
             % Open database
             metaTable = nansen.metadata.MetaTable.open(filePath);
@@ -212,16 +217,10 @@ classdef MetaTableCatalog < uim.handle
         
             [~, oldFilename, extension] = fileparts(obj.FilePath);
             obj.FilePath = fullfile(newFilepath, [oldFilename, extension]);
-            
-            for i = 1:size(obj.Table, 1)
-                obj.Table{i, 'SavePath'} = {newFilepath};
-            end
         end
 
         function removeSavePathFromTable(obj)
-            varNames = obj.Table.Properties.VariableNames;
-            varNames = setdiff(varNames, 'SavePath');
-            obj.Table = obj.Table(:, varNames);
+            obj.Table = obj.removeSavePathColumn(obj.Table);
             obj.save()
         end
         
@@ -259,18 +258,18 @@ classdef MetaTableCatalog < uim.handle
             isMatch = obj.Table.IsMaster & contains( lower(obj.Table.MetaTableClass), metaTableType);
             idx = find(isMatch);
             
-            if numel(idx) > 1
+            if isscalar(idx)
+                % Continue
+            elseif numel(idx) > 1
                 warning('More than one master table is present. Selected first match.')
                 idx = idx(1);
-            elseif numel(idx) == 1
-                % Continue
             else
                 error('No master metatable of this type exists.')
             end
             
             mtItem = obj.Table(idx, :);
 
-            metatableFilepath = fullfile(mtItem.SavePath{1}, mtItem.FileName{1});
+            metatableFilepath = fullfile(obj.FolderPath, mtItem.FileName{1});
             metaTable = nansen.metadata.MetaTable.open(metatableFilepath);
         end
         
@@ -278,12 +277,142 @@ classdef MetaTableCatalog < uim.handle
         %HASDEFAULTOFTYPE Check if a default MetaTable of given class exists.
             isClassMatch = strcmp(className, obj.Table.MetaTableClass);
             isDefault = obj.Table.IsDefault;
-            
+
             S = table2struct( obj.Table(isClassMatch & isDefault, :) );
             tf = ~isempty(S);
         end
+
+        function registerMetaTable(obj, metaTable, options)
+        %registerMetaTable Register a new MetaTable in the catalog and save it
+        %
+        %   Assigns a MetaTableKey, sets the filepath, adds a catalog entry,
+        %   and saves the catalog and MetaTable file.
+        %
+        %   Input:
+        %     metaTable - A nansen.metadata.MetaTable instance
+        %     options   - struct with fields: MetaTableName, IsMaster,
+        %                 IsDefault. Legacy SavePath values are ignored.
+
+            arguments
+                obj (1,1) nansen.metadata.MetaTableCatalog
+                metaTable (1,1) nansen.metadata.MetaTable
+                options struct = struct()
+            end
+
+            S = metaTable.toStruct('metatable_catalog');
+
+            % Apply any provided options
+            optionFields = fieldnames(options);
+            for i = 1:numel(optionFields)
+                if strcmp(optionFields{i}, 'SavePath')
+                    continue
+                end
+                S.(optionFields{i}) = options.(optionFields{i});
+            end
+
+            if isempty(S.MetaTableName)
+                error('NANSEN:MetaTableCatalog:MissingName', ...
+                    'Cannot register MetaTable: MetaTableName is not set.')
+            end
+            if ~isfolder(obj.FolderPath)
+                error('NANSEN:MetaTableCatalog:FolderNotFound', ...
+                    'Cannot register MetaTable: save folder does not exist.')
+            end
+
+            if isempty(S.MetaTableKey) && S.IsMaster
+                S.MetaTableKey = nansen.util.getuuid();
+            elseif isempty(S.MetaTableKey) && ~S.IsMaster
+                error('NANSEN:MetaTableCatalog:MasterKeyNotSet', ...
+                    ['Cannot register a dummy MetaTable without a MetaTableKey. ', ...
+                     'Assign the master MetaTable''s key to MetaTableKey first.'])
+            end
+
+            S.FileName = nansen.metadata.MetaTable.createFileName(S);
+            S.filepath = fullfile(obj.FolderPath, S.FileName);
+            metaTable.fromStruct(S);
+
+            catalogEntry = metaTable.toStruct('metatable_catalog');
+            catalogEntry.IsDefault = S.IsDefault;
+            obj.addEntry(catalogEntry)
+
+            if catalogEntry.IsDefault
+                obj.setDefaultMetaTable(metaTable)
+            else
+                obj.save()
+            end
+
+            metaTable.save(true)
+        end
+
+        function setDefaultMetaTable(obj, metaTable)
+        %setDefaultMetaTable Mark the given MetaTable as default in the catalog
+
+            MT = obj.Table;
+            isClass = strcmp(MT.MetaTableClass, metaTable.MetaTableClass);
+            isKey   = strcmp(MT.MetaTableKey,   metaTable.MetaTableKey);
+            isName  = strcmp(MT.MetaTableName,  metaTable.MetaTableName);
+
+            MT(isClass, 'IsDefault') = {false};
+            MT(isClass & isKey & isName, 'IsDefault') = {true};
+
+            obj.Table = MT;
+            obj.save();
+        end
+
+        function masterFilePath = getMasterFilePath(obj, metaTableKey)
+        %getMasterFilePath Get the filepath of the master MetaTable for a given key
+
+            anyKeyMatched = strcmp(obj.Table.MetaTableKey, metaTableKey);
+            isMasterAndKeyMatch = obj.Table.IsMaster & anyKeyMatched;
+
+            if ~any(isMasterAndKeyMatch)
+                masterFilePath = '';
+            elseif sum(isMasterAndKeyMatch) > 1
+                error('NANSEN:MetaTableCatalog:MultipleMasters', ...
+                    'Multiple master MetaTables found for key "%s".', metaTableKey)
+            else
+                masterFilePath = fullfile(obj.FolderPath, obj.Table{isMasterAndKeyMatch, 'FileName'}{:});
+            end
+        end
+
+        function synchronizeToMaster(obj, dummyMetaTable, S)
+        %synchronizeToMaster Synchronize dummy MetaTable entries to the master
+        %
+        %   Entries present in both are updated in master from dummy.
+        %   Entries only in dummy are appended to master.
+
+            masterFilePath = obj.getMasterFilePath(dummyMetaTable.MetaTableKey);
+            if isempty(masterFilePath)
+                error('NANSEN:MetaTableCatalog:MasterNotFound', ...
+                    'No master MetaTable found for key "%s"', dummyMetaTable.MetaTableKey)
+            end
+
+            masterMetaTable = nansen.metadata.MetaTable.open(masterFilePath);
+            wasMerged = masterMetaTable.mergeEntries(S.MetaTableEntries, S.MetaTableMembers);
+            if wasMerged
+                masterMetaTable.save(true)
+            end
+        end
+
+        function synchronizeFromMaster(obj, dummyMetaTable)
+        %synchronizeFromMaster Pull entries from master into a dummy MetaTable
+
+            masterFilePath = obj.getMasterFilePath(dummyMetaTable.MetaTableKey);
+
+            if isempty(masterFilePath)
+                error('NANSEN:MetaTableCatalog:MasterNotFound', ...
+                    ['No master MetaTable found for key "%s". ', ...
+                     'The dummy MetaTable''s MetaTableKey may be stale or the ', ...
+                     'master may have been deleted.'], dummyMetaTable.MetaTableKey)
+            end
+
+            sMaster = load(masterFilePath);
+            iA = ismember(sMaster.MetaTableMembers, dummyMetaTable.MetaTableMembers);
+            S = struct('MetaTableEntries', sMaster.MetaTableEntries(iA, :));
+            dummyMetaTable.fromStruct(S);
+        end
     end
-     
+
     methods (Access = private)
         function folderPath = getFolder(obj)
             folderPath = fileparts(obj.FilePath);
@@ -310,7 +439,6 @@ classdef MetaTableCatalog < uim.handle
 % %             % Alternatively:
 % %             token = 'MetaTableCatalog'
 % %             pathString = nansen.ProjectManager.getProjectSubPath(token);
-            
         end
         
         function MT = quickload(filePath)
@@ -327,8 +455,36 @@ classdef MetaTableCatalog < uim.handle
                 MT = [];
             end
             if ~isempty(MT)
-                MT.SavePath = repmat( {fileparts(filePath)}, height(MT), 1 );
+                MT = nansen.metadata.MetaTableCatalog.removeSavePathColumn(MT);
+                MT = nansen.metadata.MetaTableCatalog.orderCatalogColumns(MT);
             end
+        end
+
+        function T = removeSavePathColumn(T)
+        %removeSavePathColumn Remove legacy SavePath catalog column
+
+            if ~isempty(T) && any(strcmp(T.Properties.VariableNames, 'SavePath'))
+                T.SavePath = [];
+            end
+        end
+
+        function T = orderCatalogColumns(T)
+        %orderCatalogColumns Keep catalog columns in canonical order
+
+            preferredOrder = { ...
+                'IsMaster', ...
+                'MetaTableName', ...
+                'MetaTableClass', ...
+                'ItemClassName', ...
+                'MetaTableIdVarname', ...
+                'MetaTableKey', ...
+                'FileName', ...
+                'IsDefault'};
+
+            existingPreferred = preferredOrder( ...
+                ismember(preferredOrder, T.Properties.VariableNames));
+            remaining = setdiff(T.Properties.VariableNames, existingPreferred, 'stable');
+            T = T(:, [existingPreferred, remaining]);
         end
         
         function quicksave(MT, filePath)
@@ -338,8 +494,9 @@ classdef MetaTableCatalog < uim.handle
                 filePath = nansen.metadata.MetaTableCatalog.getFilePath();
             end
 
-            %Save master table to file
-            metaTableCatalog = MT; %#ok<NASGU>
+            % Save master table to file
+            MT = nansen.metadata.MetaTableCatalog.removeSavePathColumn(MT);
+            metaTableCatalog = MT;
             save(filePath, 'metaTableCatalog');
         end
         
@@ -351,7 +508,7 @@ classdef MetaTableCatalog < uim.handle
         end
         
         function quickremove(entryName)
-        %QUICKADD Static method for removing entries without constructing class
+        %QUICKREMOVE Static method for removing entries without constructing class
             if nargin == 0; entryName = ''; end
             MT = nansen.metadata.MetaTableCatalog();
             MT.removeEntry(entryName)
@@ -394,10 +551,9 @@ classdef MetaTableCatalog < uim.handle
             % Add a callback upon closing figure and pass on the jTable
             % handle
             f.CloseRequestFcn = @(s,e,jH) nansen.metadata.MetaTableCatalog.closeTableView(s,e,jTable);
-            
         end
         
-        function closeTableView(src, evtData, jTable)
+        function closeTableView(src, ~, jTable)
         %closeTableView Save the table column widths to preferences
         
             th = jTable.getTableHeader();
@@ -413,11 +569,6 @@ classdef MetaTableCatalog < uim.handle
             
             setpref('MetaTableCatalog', 'TableColumnWidths', columnWidths)
             delete(src)
-            
-        end
-        
-        function isMetaTableInCatalog(S)
-            
         end
         
         function checkMetaTableCatalog(S)

@@ -249,10 +249,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             obj.assignPVPairs(varargin{:});
             obj.parseStruct(S)
             
-            % Use static method of AppWindow to turn off all java related
-            % warnings. (Should be inherited at some point)
-            applify.AppWindow.switchJavaWarnings('off')
-            
             obj.customizeFigure()
             
             % Start GUI initialization
@@ -294,11 +290,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 %             obj.Figure.Position(1:2) = screenSize(3:4)/2 - obj.Figure.Position(3:4)/2;
 
             % Make size fixed, and add close callback
-            
+
             obj.createScrollBar();
-            
-            applify.AppWindow.switchJavaWarnings('on')
-            
+
             obj.pleaseWaitTxt.Parent = obj.main.constructionCurtain;
             obj.pleaseWaitTxt.Position(3) = obj.pleaseWaitTxt.Extent(3);
             obj.pleaseWaitTxt.Position(1) = 0.5 - obj.pleaseWaitTxt.Position(3)/2;
@@ -714,20 +708,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 newColor = [13,13,13] ./ 255;
             end
 
-            rgb = num2cell(newColor);
-
-            warning('off', 'MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
-            warning('off', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
-
-            % Its disappearing any day now!
-            jFrame = get(handle(obj.Figure), 'JavaFrame');
-            jWindow = jFrame.getFigurePanelContainer.getTopLevelAncestor;
-            javaColor = javax.swing.plaf.ColorUIResource(rgb{:});
-            set(jWindow, 'Background', javaColor)
-
-            warning('on', 'MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
-            warning('on', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
-
+            nansen.ui.legacy.setJavaWindowBackgroundColor(obj.Figure, newColor)
         end
 
         function createPanels(obj)
@@ -803,22 +784,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             set(allPanels, 'BorderType',  'none')
 
             obj.main.disablePanel.BackgroundColor = 'w';
-            
-% % %             %[output, jPanel, ~, ~, ~] = evalc( findjobj(obj.main.disablePanel) );
-% % %             jPanel = findjobj(obj.main.disablePanel);
-% % %
-% % %             jColor = java.awt.Color(1,1,1,0.3);
-% % %             jPanel.setBackground(jColor)
-% % %             h1 = jPanel.getComponent(0);
-% % %             set(h1, 'Opaque', false);
-% % %             h2 = h1.getComponent(0);
-% % %             set(h2, 'Opaque', false);
-% % %
-% % %             h0 = jPanel.getParent();
-% % %             set(h0, 'Opaque', false);
-
             obj.main.disablePanel.Visible = 'off';
-            %get(jPanel, 'Opaque')
             
             % Set up/configure individual panels.
             obj.createHeaderComponents()
@@ -2088,6 +2054,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         function styleControls(obj, panelNum)
         %styleControls Style ui controls
         
+            if ~nansen.util.isJavaFrameSupported()
+                % Styling uses legacy JavaFrame/Javacomponent internals.
+                return
+            end
+
             if obj.isStandalone
                 set(obj.Figure, 'Visible', 'on')
             end
@@ -2106,11 +2077,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             hUic = findobj(hPanel, 'type', 'uicontrol');
             
-% %             hUic = struct2cell( obj.hControls );
-% %             hUic = hUic(keep);
-% %
-% %             isUic = cellfun(@(c) isa(c, 'matlab.ui.control.UIControl'), hUic);
-% %             hUic = [hUic{isUic}];
+            warnCleanup = nansen.ui.legacy.tempDisableJavaFrameWarnings();
+            warnCleanup(end+1) = nansen.ui.legacy.tempDisableJavaComponentWarning(); %#ok<NASGU>
             
             % Make them look good.
             if ~isempty(hUic)
@@ -2953,7 +2921,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             % Create panel if it is opened for the first time.
             if ~obj.isTabCreated(panelNum)
                 obj.main.hPanel(panelNum).Visible = 'on';
-                applify.AppWindow.switchJavaWarnings('off')
 
                  % Create components
                 obj.addComponents(panelNum)
@@ -2969,8 +2936,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 end
                 
                 obj.main.constructionCurtain.Visible = 'off';
-                
-                applify.AppWindow.switchJavaWarnings('on')
             else
                 %obj.moveElementsToRight()
                 obj.adjustFigureWidthToComponents()
@@ -2981,9 +2946,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             obj.main.hPanel(panelNum).Visible = 'on';
             drawnow
 
-            obj.UIControlSchemer(panelNum).stripAllUIControls()
-            if obj.showFooter
-                obj.UIControlSchemerFooter.stripAllUIControls()
+            if ~isempty(obj.UIControlSchemer)
+                obj.UIControlSchemer(panelNum).stripAllUIControls()
+                if obj.showFooter
+                    obj.UIControlSchemerFooter.stripAllUIControls()
+                end
             end
 
             % Update scrollbar.

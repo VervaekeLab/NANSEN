@@ -60,8 +60,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     end
 
     properties (Access = private) % App / gui components
-        % Heartbeat - Timer that periodically runs internal updates 
-        Heartbeat timer
+        % MetaTableFileChangedListener - Listener for external changes to
+        % cached MetaTable files.
+        MetaTableFileChangedListener event.listener
 
         % MessageDisplay - A message display interface for displaying
         % information to users.
@@ -72,7 +73,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         % for updating the content status messages.
         StatusText applify.StatusText
 
-        % AllowStatusUpdate - Should act as a gatekeeper for allowing status 
+        % AllowStatusUpdate - Should act as a gatekeeper for allowing status
         % updates. Some event listeners might attempt to update status (i.e
         % save table) while a task is running, this flag is used to prevent
         % this
@@ -119,9 +120,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     end
     
     properties (Hidden, Access = private) % Event listeners
-        % WindowKeyPressedListener event.listener 
+        % WindowKeyPressedListener event.listener
         TaskInitializationListener event.listener
         SessionTaskMenuUpdatedListener event.listener
+    end
+
+    properties (Access = private) % Metatable listeners
+        MetaTableIsModifiedListener event.listener
+        MetaTableTableEntryChangedListener event.listener
+        MetaTableEntryAddedListener event.listener
+        MetaTableEntryRemovedListener event.listener
+        MetaTableReloadedFromDiskListener event.listener
     end
     
     methods % Structors
@@ -187,7 +196,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             app.configFigureCallbacks() % Do this last
 
-            app.initializeHeartbeat()
+            app.initializeMetaTableCacheListener()
             app.setIdle()
 
             if app.settings.General.MonitorDrives
@@ -210,13 +219,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 delete(PipelineViewer); PipelineViewer = [];
             end
 
-            if ~isempty(app.Heartbeat)
-                stop(app.Heartbeat)
-                delete(app.Heartbeat)
-            end
-
             if ~isempty(app.DiskConnectionMonitor)
                 delete(app.DiskConnectionMonitor)
+            end
+
+            app.deleteMetaTableListeners()
+
+            if ~isempty(app.MetaTableFileChangedListener)
+                delete(app.MetaTableFileChangedListener)
             end
             
             app.settings.Session.SessionTaskDebug = false; % Reset debugging on quit
@@ -263,8 +273,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 app.ApplicationState = nansen.enum.ApplicationState.ShuttingDown;
             end
 
-            % This function is called twice if the figure's close button is 
-            % pressed. First when pressing the close button, and then when the 
+            % This function is called twice if the figure's close button is
+            % pressed. First when pressing the close button, and then when the
             % figure handle is deleted, because of the way onExit is set up in
             % uiw.abstract.BaseFigure
 
@@ -369,10 +379,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.hLayout.MainPanel = uipanel('Parent', app.Figure, 'Tag', 'Main Panel');
             app.hLayout.MainPanel.BorderType = 'none';
             
-            % Not implemented. 
+            % Not implemented.
             % Idea: add a drawer panel on the right side of the app. (nansen.DrawerPanel)
             app.hLayout.SidePanel = uipanel('Parent', app.Figure, 'Tag', 'Side Panel');
-            %app.hLayout.SidePanel.BorderType = 'none';
+            % app.hLayout.SidePanel.BorderType = 'none';
             app.hLayout.SidePanel.Units = 'pixels';
             app.hLayout.SidePanel.Visible = 'off';
             
@@ -535,7 +545,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             menuSubItem = uimenu( mitem, 'Text', 'Create...', 'Tag', 'core.metatable.new_variable.create');
             menuSubItem.MenuSelectedFcn = @(s,e) app.menuCallback_CreateTableVariable;
             
-            menuSubItem = uimenu( mitem, 'Text', 'Import...', 'Tag', 'core.metatable.new_variable.import'); 
+            menuSubItem = uimenu( mitem, 'Text', 'Import...', 'Tag', 'core.metatable.new_variable.import');
             menuSubItem.MenuSelectedFcn = @(s,e) app.menuCallback_ImportTableVariable;
             
             % Menu with submenus for editing table variable definition:
@@ -697,7 +707,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function createMenu_Figure(app)
         % NOT IMPLEMENTED YET - Add menu for multipart figures.
         
-        % Developer notes: 
+        % Developer notes:
         %  - The multipart figure functionality needs to be updated and added
         %    to projects.
         %  - This menu must be updated on project change
@@ -746,7 +756,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 try
                     hMenu(2) = findobj(app.Figure, 'Text', 'Assign Pipeline');
                 catch
-                    hMenu(2) = findobj(app.SessionContextMenu, 'Text', 'Assign Pipeline'); 
+                    hMenu(2) = findobj(app.SessionContextMenu, 'Text', 'Assign Pipeline');
                 end
             end
             
@@ -848,7 +858,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 thisName = strrep(mSubItem.Text, ' (master)', '');
                 thisName = strrep(thisName, ' (default)', '');
                 
-                if strcmp( thisName, app.MetaTable.getName() )
+                if strcmp( thisName, app.MetaTable.MetaTableName )
                     mSubItem.Checked = 'on';
                 end
             end
@@ -885,7 +895,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         function updateRelatedInventoryLists(app, mItem)
-        % updateRelatedInventoryLists - Update submenus holding metatable lists   
+        % updateRelatedInventoryLists - Update submenus holding metatable lists
             if nargin < 2
                 mItem = findobj(app.Figure, 'Tag', 'core.metatable.open');
                 try
@@ -1252,7 +1262,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.updateAvailableTableTypes()
 
             metatableTypes = app.ItemTypes;
-            isSelected = strcmp(metatableTypes, class(app.MetaTable));
+            isSelected = strcmp(metatableTypes, app.MetaTable.MetaTableClass);
 
             if numel(unique(metatableTypes)) > 1
                 metatableTypes = utility.string.getSimpleClassName(cellstr(metatableTypes));
@@ -1346,15 +1356,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             h = nansen.BatchProcessorUI(app.BatchProcessor, hContainer);
             app.BatchProcessorUI = h;
         end
-        
-        function initializeHeartbeat(app)
-            app.Heartbeat = timer('Name', 'Nansen App Timer');
-            app.Heartbeat.ExecutionMode = 'fixedRate';
-            app.Heartbeat.Period = 30; % Consider setting from preference
-            app.Heartbeat.TimerFcn = @(timer, event) app.onHeartbeat();
-            start(app.Heartbeat)
+
+        function initializeMetaTableCacheListener(app)
+        %initializeMetaTableCacheListener Subscribe to MetaTable disk changes
+
+            cache = nansen.metadata.MetaTableCache.instance();
+            cache.startFileChangeMonitoring()
+            app.MetaTableFileChangedListener = addlistener(cache, ...
+                'FileChangedOnDisk', @(~, evt) app.onMetaTableFileChangedOnDisk(evt));
         end
-    
+        
         function initializeDiskConnectionMonitor(app)
         
             app.DiskConnectionMonitor = nansen.internal.system.DiskConnectionMonitor();
@@ -1373,7 +1384,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
 
         function updateCurrentTableType(app)
-
         end
 
         function updateItemSpecificMenus(app, metaTableType)
@@ -1494,23 +1504,33 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.refreshTable()
         end
 
-        function onHeartbeat(app)
-        %onHeartbeat - Manage periodic internal update 
+        function onMetaTableFileChangedOnDisk(app, evt)
+        %onMetaTableFileChangedOnDisk Resolve external changes to the table file
 
-            % Check that we have the newest version of the metatable
-            if ~isempty(app.MetaTable) && ~app.TableIsUpdating
-                if ~app.MetaTable.isLatestVersion()
-                    stop(app.Heartbeat) % Stop timer while waiting for user's response
-                    discardNewest = app.MetaTable.resolveCurrentVersion();
-                    if discardNewest
-                        app.reloadMetaTable()
-                    else
-                        app.saveMetaTable([], [], true) % true = force-save current version
-                    end
-                    start(app.Heartbeat)
-                end
+            if isempty(app.MetaTable) || app.TableIsUpdating
+                return
+            end
+
+            if evt.MetaTable ~= app.MetaTable
+                return
+            end
+
+            cache = nansen.metadata.MetaTableCache.instance();
+            cache.pauseFileChangeMonitoring()
+            resumeMonitoring = onCleanup(@() cache.resumeFileChangeMonitoring());
+
+            choice = app.promptToResolveMetaTableFileConflict();
+            switch choice
+                case "reload"
+                    app.discardMetaTableChanges()
+                case "overwrite"
+                    app.saveMetaTable([], [], true)
+                otherwise
+                    % The cache is edge-triggered, so a cancelled choice
+                    % will not re-prompt until the disk version changes.
             end
         end
+
     end
     
     methods
@@ -1638,7 +1658,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             % Close Menu Customization Dialog if it is open:
             if ~isempty(app.MenuCustomizationDialogApp) && isvalid(app.MenuCustomizationDialogApp)
-                delete(app.MenuCustomizationDialogApp); 
+                delete(app.MenuCustomizationDialogApp);
                 app.MenuCustomizationDialogApp = [];
             end
 
@@ -1707,7 +1727,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function [metaObjects, rowIndices] = getVisibleMetaObjects(app, useCache)
             if nargin < 2; useCache = true; end
 
-            visibleTableRows = app.UiMetaTableViewer.DisplayedRows;            
+            visibleTableRows = app.UiMetaTableViewer.DisplayedRows;
             [metaObjects, status] = app.getMetaObjects(visibleTableRows, useCache);
             
             if nargout == 2
@@ -1738,8 +1758,36 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         function onMetaTableEntryChanged(app, ~, evt)
-            app.UiMetaTableViewer.updateCells(...
-                evt.RowIndex, evt.ColumnIndex, evt.NewValue)
+            if numel(evt.RowIndex) > 20
+                selectedEntries = app.UiMetaTableViewer.getSelectedEntries();
+                app.UiMetaTableViewer.refreshTable(app.MetaTable)
+                app.UiMetaTableViewer.setSelectedEntries(selectedEntries);
+            else
+                newValue = nansen.metadata.utility.formatTableForDisplay(...
+                    app.MetaTable, evt.ColumnIndex, evt.RowIndex);
+                newValue = table2cell(newValue);
+
+                app.UiMetaTableViewer.updateCells(...
+                    evt.RowIndex, evt.ColumnIndex, newValue)
+            end
+        end
+
+        function onMetaTableReloadedFromDisk(app, src, ~)
+            if isempty(app.MetaTable) || isempty(app.UiMetaTableViewer) ...
+                    || app.TableIsUpdating || src ~= app.MetaTable
+                return
+            end
+            if ~app.isMetaTableCurrentSelection(src)
+                return
+            end
+
+            app.onNewMetaTableSet()
+            if ~isempty(app.StatusText)
+                app.StatusText.Status = sprintf( ...
+                    'Status: Reloaded metadata table from disk: %s', ...
+                    app.MetaTable.filepath);
+                app.clearStatusIn(5)
+            end
         end
 
         function onTaskAddedEventTriggered(app, ~, evt) %#ok<INUSD>
@@ -1778,8 +1826,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         %   Inputs:
         %       app - instance of this app
         %       tableRowIndices - Indices (or logical mask) for table rows to get objects for
-        %       options (name-value pairs) 
-        %           - useCache - (optional) - flag determining if objects should 
+        %       options (name-value pairs)
+        %           - useCache - (optional) - flag determining if objects should
         %                                     be retrieved from a cache
         %   Outputs:
         %       metaObjects - An array of metadata objects
@@ -1864,16 +1912,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     end
                     
                     if isempty(app.UiFileViewer) % Create file viewer
-                    	thisTab = evt.NewValue;
+                        thisTab = evt.NewValue;
                         app.initializeFileViewer(thisTab)
                     end
-        
+
                     app.ActiveTabModule = app.UiFileViewer;
 
                     rowInd = app.UiMetaTableViewer.DisplayedRows;
                     sessionIDs = app.MetaTable.entries{rowInd, 'sessionID'};
                     app.UiFileViewer.SessionIDList = sessionIDs;
-                                        
+                    app.UiFileViewer.updateLayout()
+
                     selectedRows = app.UiMetaTableViewer.getSelectedEntries();
                     if isempty(selectedRows); return; end
                     
@@ -1921,6 +1970,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         app.initializeBatchProcessorUI(evt.NewValue)
                     end
 
+                    app.BatchProcessorUI.updateLayout()
                     app.ActiveTabModule = app.BatchProcessorUI;
                 
                 otherwise
@@ -2020,13 +2070,19 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 %             app.hLayout.TopBorder.Position(2) = 1-normalizedHeight;
 %             app.hLayout.TopBorder.Position(4) = normalizedHeight;
             
-            app.hLayout.TabGroup.Position = [10,6,figPosPix(3)-20,figPosPix(4)-30];
+            if nansen.util.useModernUiComponents()
+                mainPanelPosition = getpixelposition(app.hLayout.MainPanel);
+                app.hLayout.TabGroup.Position = [10, 6, ...
+                    mainPanelPosition(3)-20, mainPanelPosition(4)-12];
+            else
+                app.hLayout.TabGroup.Position = [10,6,figPosPix(3)-20,figPosPix(4)-30];
+            end
         end
         
     %%% Methods for updating statusfield (Q: Should this be a separate class?)
 
         function updateFigureTitle(app)
-            fileName = app.MetaTable.getName();
+            fileName = app.MetaTable.MetaTableName;
 
             if app.isIdle()
                 status = 'idle';
@@ -2189,7 +2245,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 end
 
                 itemName = lower(app.CurrentItemType);
-                if numItemsTotal > 1 
+                if numItemsTotal > 1
                     itemName = itemName + "s"; % plural
                 end
                 
@@ -2263,14 +2319,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 evt.NewValue.TimeZone = '';
             end
             
-            % Todo: make this more robust. I.e What are the rules/
-            % conditions for when a cell can be put directly into the table
-            % versus when it needs to be put into a cell of the table?
-            try
-                app.MetaTable.entries(evt.Indices(1), evt.Indices(2)) = {evt.NewValue};
-            catch
-                app.MetaTable.entries{evt.Indices(1), evt.Indices(2)} = {evt.NewValue};
-            end
+            variableName = app.MetaTable.getVariableName(evt.Indices(2));
+            app.MetaTable.editEntriesFromTable(evt.Indices(1), variableName, evt.NewValue);
+
             % The following is hopefully a temporary solution. If user
             % ticks the ignore checkbox for a session, and the settings are
             % set to hide ignored sessions, the table should be updated and
@@ -2473,7 +2524,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 % effect of having decided to set metatable of
                 % metatableviewer to type table...
                 columnIndex = app.MetaTable.getColumnIndex(variableName);
-                columnData = app.MetaTable.getFormattedTableData(columnIndex);
+                columnData = nansen.metadata.utility.formatTableForDisplay(app.MetaTable, columnIndex);
                 app.UiMetaTableViewer.updateFormattedTableColumnData(variableName, columnData)
 
                 app.UiMetaTableViewer.refreshColumnModel();
@@ -2690,28 +2741,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             if isempty(rows); return; end
             
-            % Update values in the metatable..
+            % Update values in the metatable. The table viewer is updated
+            % through MetaTable's TableEntryChanged event.
             app.MetaTable.editEntries(rows, varName, updatedValues);
-
-            % Need to keep selected entries before refreshing table.
-            if numSessions < 20
-                % Unfortunately, this is very slow for many rows.
-                colIdx = find(strcmp(app.MetaTable.entries.Properties.VariableNames, varName));
-
-                % Need to insert formatted table data in the MetaTable
-                % viewer
-                updatedValuesDisplay = app.MetaTable.getFormattedTableData(colIdx, rows);
-                updatedValuesDisplay = table2cell(updatedValuesDisplay);
-                app.UiMetaTableViewer.updateCells(rows, colIdx, updatedValuesDisplay)
-                
-            else % Update whole table
-                selectedEntries = app.UiMetaTableViewer.getSelectedEntries();
-            
-                app.UiMetaTableViewer.refreshTable(app.MetaTable)
-            
-                % Make sure selection is preserved.
-                app.UiMetaTableViewer.setSelectedEntries(selectedEntries);
-            end
 
             if numSessions > 5 && ~reset
                 clear waitbarCleanup
@@ -2894,7 +2926,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if any(strcmp(metaTable.entries.Properties.VariableNames, 'DataLocation'))
                 dataLocationStructs = metaTable.entries.DataLocation;
                 dataLocationStructs = app.DataLocationModel.validateDataLocationPaths(dataLocationStructs);
-                metaTable.entries.DataLocation = dataLocationStructs;
+
+                if ~iscell(dataLocationStructs)
+                    [numRows, numDataLocations] = size(dataLocationStructs);
+                    dataLocationStructs = mat2cell(dataLocationStructs, ...
+                        ones(1, numRows), numDataLocations);
+                end
+
+                metaTable.replaceDataColumn('DataLocation', dataLocationStructs);
                 metaTable.markClean() % This change does not make the table dirty.
             end
 
@@ -2947,7 +2986,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                             nansen.ProjectManager()
                         otherwise
                             % pass
-                    end                    
+                    end
                     app.forceQuit(errorMessage)
                 end
 
@@ -2985,8 +3024,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 end
                 
                 % Checks if metatable matches with custom table variables
-                metaTable.checkIfMetaTableComplete("MessageDisplay", app.MessageDisplay)
-
+                app.CurrentProject.synchronizeMetaTableVariables(metaTable, 'MessageDisplay', app.MessageDisplay)
                 
                 % Temp fix. Todo: remove
                 metaTable = nansen.metadata.temp.fixMetaTableDataLocations(metaTable, app.DataLocationModel);
@@ -3002,14 +3040,23 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 % operating system.
                 metaTable = app.updateDataLocationFromModel(metaTable);
 
+                app.deleteMetaTableListeners()
                 app.MetaTable = metaTable;
 
-                addlistener(app.MetaTable, 'IsModified', 'PostSet', ...
+                app.MetaTableIsModifiedListener = addlistener(app.MetaTable, 'IsModified', 'PostSet', ...
                     @app.onMetaTableModifiedChanged);
 
-                % todo: do we need to store listener?
-                addlistener(app.MetaTable, 'TableEntryChanged', ...
+                app.MetaTableTableEntryChangedListener = addlistener(app.MetaTable, 'TableEntryChanged', ...
                     @app.onMetaTableEntryChanged);
+
+                app.MetaTableEntryAddedListener = addlistener(app.MetaTable, 'EntryAdded', ...
+                    @(~,~) app.refreshTable());
+
+                app.MetaTableEntryRemovedListener = addlistener(app.MetaTable, 'EntryRemoved', ...
+                    @(~,~) app.refreshTable());
+
+                app.MetaTableReloadedFromDiskListener = addlistener(app.MetaTable, 'TableReloadedFromDisk', ...
+                    @app.onMetaTableReloadedFromDisk);
                                 
 % %                 if app.isInitialized() % Todo: implement this
 % %                     app.updateRelatedInventoryLists()
@@ -3018,6 +3065,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 titleStr = 'Could Not Load Session Table'; % Todo: generalize string, i.e session should depend on current table type
                 app.MessageDisplay.alert(ME.message, "Title", titleStr)
                 disp(getReport(ME, 'extended'))
+                return
             end
             
             % Add name of loaded inventory to figure title
@@ -3028,12 +3076,25 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.updateMetaTableMenu()
         end
         
-        function saveMetaTable(app, ~, ~, forceSave)
+        function wasSaved = saveMetaTable(app, ~, ~, forceSave)
             
             if nargin < 4; forceSave = false; end
+            wasSaved = false;
 
             if app.settings.MetadataTable.AllowTableEdits
-                wasSaved = app.MetaTable.save(forceSave);
+                try
+                    if ~forceSave && ~app.MetaTable.isLatestVersion()
+                        wasSaved = app.resolveStaleMetaTableSave();
+                    else
+                        wasSaved = app.MetaTable.save(forceSave);
+                    end
+                catch ME
+                    if strcmp(ME.identifier, 'NANSEN:VersionedFile:StaleFile')
+                        wasSaved = app.resolveStaleMetaTableSave();
+                    else
+                        rethrow(ME)
+                    end
+                end
                 
                 if wasSaved && app.AllowStatusUpdate
                     app.StatusText.Status = sprintf('Status: Saved metadata table to %s', app.MetaTable.filepath);
@@ -3042,17 +3103,107 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             else
                 error('Can not save metatable because access is read only')
             end
+
+            if ~nargout; clear wasSaved; end
         end
         
         function reloadMetaTable(app)
             currentTablePath = app.MetaTable.filepath;
+            if ~isempty(currentTablePath)
+                cache = nansen.metadata.MetaTableCache.instance();
+                cache.remove(currentTablePath)
+            end
             app.loadMetaTable(currentTablePath)
+        end
+
+        function discardMetaTableChanges(app, options)
+        %discardMetaTableChanges Reload the current table from disk
+
+            arguments
+                app
+                options.RefreshView (1,1) logical = true
+            end
+
+            if isempty(app.MetaTable)
+                return
+            end
+
+            app.MetaTable.markClean()
+            if options.RefreshView
+                app.MetaTable.reloadFromDisk()
+            else
+                wasUpdating = app.TableIsUpdating;
+                app.TableIsUpdating = true;
+                try
+                    app.MetaTable.reloadFromDisk()
+                catch ME
+                    app.TableIsUpdating = wasUpdating;
+                    rethrow(ME)
+                end
+                app.TableIsUpdating = wasUpdating;
+            end
+        end
+
+        function wasSaved = resolveStaleMetaTableSave(app)
+        %resolveStaleMetaTableSave Ask how to handle a stale save attempt
+
+            wasSaved = false;
+            choice = app.promptToResolveMetaTableFileConflict();
+            switch choice
+                case "reload"
+                    app.discardMetaTableChanges()
+                case "overwrite"
+                    wasSaved = app.MetaTable.save(true);
+                otherwise
+                    % User cancelled; leave the in-memory table untouched.
+            end
+        end
+
+        function choice = promptToResolveMetaTableFileConflict(app)
+        %promptToResolveMetaTableFileConflict Ask how to handle disk changes
+
+            question = sprintf([ ...
+                'The metadata table file has changed on disk:\n\n%s\n\n', ...
+                'Reload the newer file and discard local changes, ', ...
+                'or overwrite the file with the current table?'], ...
+                app.MetaTable.filepath);
+
+            answer = questdlg(question, 'Metadata Table Changed', ...
+                'Reload File', 'Overwrite File', 'Cancel', 'Cancel');
+
+            switch answer
+                case 'Reload File'
+                    choice = "reload";
+                case 'Overwrite File'
+                    choice = "overwrite";
+                otherwise
+                    choice = "cancel";
+            end
+        end
+
+        function deleteMetaTableListeners(app)
+        %deleteMetaTableListeners Remove listeners attached to app.MetaTable
+
+            listenerNames = { ...
+                'MetaTableIsModifiedListener', ...
+                'MetaTableTableEntryChangedListener', ...
+                'MetaTableEntryAddedListener', ...
+                'MetaTableEntryRemovedListener', ...
+                'MetaTableReloadedFromDiskListener'};
+
+            for i = 1:numel(listenerNames)
+                listenerHandle = app.(listenerNames{i});
+                if ~isempty(listenerHandle)
+                    delete(listenerHandle(isvalid(listenerHandle)))
+                    app.(listenerNames{i}) = event.listener.empty;
+                end
+            end
         end
         
         function metatable = createMetaTable(app, ~, ~)
             
             metatable = [];
-            currentTableClass = class(app.MetaTable);
+            currentTableClass = app.MetaTable.MetaTableClass;
             if ~strcmp(currentTableClass, 'nansen.metadata.type.Session') %#ok<STISA>
                 errordlg(sprintf('This operation is not supported for tables with "%s" items yet...', currentTableClass))
                 return
@@ -3076,7 +3227,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             S_.MetaTableName = S.MetaTableName;
             S_.IsDefault = S.MakeDefault;
             S_.IsMaster = false;
-            S_.SavePath = app.CurrentProject.getProjectPackagePath('Metadata Tables');
                         
             metaTableCatalog = app.CurrentProject.MetaTableCatalog;
             catalogTable = metaTableCatalog.Table;
@@ -3087,7 +3237,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             S_.MetaTableClass = catalogTable{isMaster, 'MetaTableClass'}{1};
             
             metatable = nansen.metadata.MetaTable();
-            metatable.archive(S_)
+            metaTableCatalog.registerMetaTable(metatable, S_)
             
             if S.AddSelectedSessions
                 sessionEntries = app.getSelectedMetaObjects;
@@ -3149,6 +3299,25 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     end
             end
         end
+
+        function tf = isMetaTableCurrentSelection(app, metaTable)
+        %isMetaTableCurrentSelection Check if a MetaTable matches the selector
+
+            if isempty(app.UiMetaTableSelector)
+                tf = true;
+                return
+            end
+
+            currentSelection = app.UiMetaTableSelector.CurrentSelection;
+            if isempty(currentSelection)
+                tf = true;
+                return
+            end
+
+            selectedType = string(currentSelection);
+            selectedType = selectedType(1);
+            tf = strcmpi(metaTable.getTableType(), selectedType);
+        end
         
         function onNewMetaTableSet(app)
             if isempty(app.UiMetaTableViewer);    return;    end
@@ -3159,6 +3328,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             else
                 app.UiMetaTableViewer.refreshTable(app.MetaTable)
             end
+            app.updateTableItemCount()
         end
         
         function onFileViewerSessionChanged(app, metaObjectID)
@@ -3314,7 +3484,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % should preserving of selection be part of the refreshTable
             % method?
             selectedEntries = app.UiMetaTableViewer.getSelectedEntries();
-            app.refreshTable()            
+            app.refreshTable()
             app.UiMetaTableViewer.setSelectedEntries(selectedEntries);
         end
         
@@ -3532,39 +3702,39 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % % figName = sprintf( 'List of %s Tasks', mode);
             % % f = figure('MenuBar', 'none', 'Name', figName, 'NumberTitle', 'off', 'Visible', 'off');
             % % % h = nansen.TaskProcessor('Parent', f)
-            % % 
+            % %
             % % h = nansen.uiwTaskTable('Parent', f, ...
             % %     'ColumnNames', {'SessionID', 'MethodName', 'Parameters', 'Comment'}, ...
             % %     'ColumnEditable', [false, false, false, true] );
-            % % 
+            % %
             % % sessionObjects = app.getSelectedMetaObjects();
             % % count = 0;
-            % % 
+            % %
             % % for i = 1:numel(sessionObjects)
-            % % 
+            % %
             % %     pipelineObj = nansen.pipeline.Pipeline(sessionObjects(i).Progress); % Class does not exist
-            % % 
+            % %
             % %     taskList = pipelineObj.getTaskList(mode);
-            % % 
+            % %
             % %     for j = 1:numel(taskList)
-            % % 
+            % %
             % %         newTaskDisplay = struct();
             % %         newTaskDisplay.SessionID = sessionObjects(i).sessionID;
             % %         newTaskDisplay.MethodName = taskList(j).TaskName;
             % %         newTaskDisplay.Parameters = taskList.OptionsName;
             % %         newTaskDisplay.Comment = '';
             % %         newTaskDisplay = struct2table(newTaskDisplay, 'AsArray', true);
-            % % 
+            % %
             % %         % Add the task to the uitable.
             % %         h.addTask(newTaskDisplay, 'end')
-            % % 
+            % %
             % %         count = count+1;
             % %         if count == 1
             % %             f.Visible = 'on';
             % %         end
             % %     end
             % % end
-            % % 
+            % %
             % % if count == 0
             % %     close(f)
             % %     message = 'No tasks were found';
@@ -3754,7 +3924,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Initialize a MetaTable using the given session schema and the
             % detected session folders.
             tmpMetaTable = nansen.metadata.MetaTable.new(newSessionObjects);
-            tmpMetaTable.addMissingVarsToMetaTable('session');
+            app.CurrentProject.synchronizeMetaTableVariables(tmpMetaTable);
             
             % Find all that are not part of existing metatable
             app.MetaTable.addTable(tmpMetaTable.entries)
@@ -3808,7 +3978,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
 
         function menuCallback_SetDefaultMetaTable(app, ~, ~)
-            app.MetaTable.setDefault()
+            catalog = nansen.metadata.MetaTableCatalog();
+            catalog.setDefaultMetaTable(app.MetaTable)
             app.updateRelatedInventoryLists()
         end
                 
@@ -3868,9 +4039,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             % Update metatable entries
             app.MetaTable.editEntries(':', 'Progress', pipelineStructs)
-            
-            % Update uitable
-            app.UiMetaTableViewer.refreshTable(app.MetaTable)
         end
         
         function menuCallback_ConfigurePipelineAssignment(app, ~, ~) %#ok<INUSD>
@@ -3990,7 +4158,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % % fcn = figurePackage2Function(packageName, figureName); Is this function part
             % of the multipart figure package?
             % % hFigure = fcn();
-            % % 
+            % %
             % % tabNames = {app.hLayout.TabGroup.Children.Title};
             % % isFigureTab = strcmp(tabNames, 'Figures');
             % % hFigure.reparent(app.hLayout.TabGroup.Children(isFigureTab))
@@ -4077,12 +4245,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             switch answer
                 case 'Save'
-                    app.saveMetaTable()
+                    wasSaved = app.saveMetaTable();
+                    if ~wasSaved && ~app.MetaTable.isClean()
+                        wasCanceled = true;
+                    end
                 case 'Don''t Save'
-                    % Continue without saving (mark as clean to avoid
-                    % entering current method again, i.e when changing
-                    % project)
-                    app.MetaTable.markClean()
+                    app.discardMetaTableChanges('RefreshView', false)
                 otherwise % Cancel or no answer.
                     wasCanceled = true;
                     return

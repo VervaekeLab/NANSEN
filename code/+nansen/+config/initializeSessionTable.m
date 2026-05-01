@@ -98,23 +98,19 @@ function wasAborted = initializeSessionTable(dataLocationModel, sessionConstruct
     % detected session folders.
     metaTable = nansen.metadata.MetaTable.new(sessionArray);
 
-    currentProject = nansen.getCurrentProject();
-
     % Add default information for saving the metatable to a struct
     S = struct();
     S.MetaTableName = metaTable.createDefaultName;
-    S.SavePath = currentProject.getProjectPackagePath('Metadata Tables');
     S.IsDefault = true;
     S.IsMaster = true;
     
-    % Save the metatable in the current project
+    % Register the metatable in the catalog and save to disk
     try
-        metaTable.archive(S);
+        currentProject = nansen.getCurrentProject();
+        metaTableCatalog = currentProject.MetaTableCatalog;
+        metaTableCatalog.registerMetaTable(metaTable, S);
     catch ME
         throwAsCaller(ME)
-        % Todo: have some error handling here.
-% %                 title = 'Could not save metadata table';
-% %                 uialert(app.NansenSetupUIFigure, ME.message, title)
     end
     
     uiWaitbar.Message = 'Implementing project specifications...';

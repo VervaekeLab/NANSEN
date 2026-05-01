@@ -107,9 +107,8 @@ classdef MetaTableAdvancedTest < matlab.unittest.TestCase
                 'MetaTableClass', 'table', ...
                 'MetaTableIdVarname', 'sessionID');
             
-            % Note: Event is triggered through meta object property change
-            % For basic table edits, the event needs to be manually triggered
-            % or we need a meta object. This tests the infrastructure exists.
+            % This test verifies that the event is part of MetaTable's
+            % public event surface.
             events = metaclass(mt).EventList;
             eventNames = {events.Name};
             testCase.verifyTrue(any(strcmp(eventNames, 'TableEntryChanged')));
@@ -184,7 +183,7 @@ classdef MetaTableAdvancedTest < matlab.unittest.TestCase
                 'MetaTableIdVarname', 'sessionID');
             
             % Get formatted table data
-            formatted = mt.getFormattedTableData();
+            formatted = nansen.metadata.utility.formatTableForDisplay(mt);
             
             % Categorical should be converted to char
             testCase.verifyClass(formatted.Category{1}, 'char');
@@ -197,7 +196,7 @@ classdef MetaTableAdvancedTest < matlab.unittest.TestCase
                 'MetaTableIdVarname', 'sessionID');
             
             % Get formatted table data
-            formatted = mt.getFormattedTableData();
+            formatted = nansen.metadata.utility.formatTableForDisplay(mt);
             
             % Struct should be converted to display string
             testCase.verifyClass(formatted.Metadata{1}, 'char');
@@ -214,7 +213,7 @@ classdef MetaTableAdvancedTest < matlab.unittest.TestCase
             testCase.verifyTrue(isdatetime(mt.entries.Date));
             
             % Get formatted data
-            formatted = mt.getFormattedTableData();
+            formatted = nansen.metadata.utility.formatTableForDisplay(mt);
             
             % Should maintain datetime type or convert appropriately
             testCase.verifyTrue(isdatetime(formatted.Date) || ischar(formatted.Date{1}));
@@ -431,22 +430,19 @@ classdef MetaTableAdvancedTest < matlab.unittest.TestCase
             testCase.verifyEqual(name, 'Session');
         end
         
-        function testGetKey(testCase)
-            % Test getting MetaTable key
+        function testMetaTableKeyFromStruct(testCase)
+            % Test MetaTableKey assignment from persisted state
             mt = nansen.metadata.MetaTable(testCase.TestEntries, ...
                 'MetaTableClass', 'table', ...
                 'MetaTableIdVarname', 'sessionID');
             
-            % Initially empty
-            key = mt.getKey();
-            testCase.verifyEmpty(key);
+            testCase.verifyEmpty(mt.MetaTableKey);
             
             % Set a key via struct (MetaTableKey is private)
             S = mt.toStruct('metatable_file');
             S.MetaTableKey = 'test-key-12345';
             mt.fromStruct(S);
-            key = mt.getKey();
-            testCase.verifyEqual(key, 'test-key-12345');
+            testCase.verifyEqual(mt.MetaTableKey, 'test-key-12345');
         end
     end
 end
