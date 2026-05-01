@@ -2946,9 +2946,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             obj.main.hPanel(panelNum).Visible = 'on';
             drawnow
 
-            obj.UIControlSchemer(panelNum).stripAllUIControls()
-            if obj.showFooter
-                obj.UIControlSchemerFooter.stripAllUIControls()
+            if ~isempty(obj.UIControlSchemer)
+                obj.UIControlSchemer(panelNum).stripAllUIControls()
+                if obj.showFooter
+                    obj.UIControlSchemerFooter.stripAllUIControls()
+                end
             end
 
             % Update scrollbar.
