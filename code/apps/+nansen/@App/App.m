@@ -60,6 +60,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
     end
 
     properties (Access = private) % App / gui components
+        % MetaTableFileChangedListener - Listener for external changes to
+        % cached MetaTable files.
+        MetaTableFileChangedListener event.listener
+
         % MessageDisplay - A message display interface for displaying
         % information to users.
         MessageDisplay (1,1) nansen.MessageDisplay
@@ -119,6 +123,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         % WindowKeyPressedListener event.listener
         TaskInitializationListener event.listener
         SessionTaskMenuUpdatedListener event.listener
+    end
+
+    properties (Access = private) % Metatable listeners
+        MetaTableIsModifiedListener event.listener
+        MetaTableTableEntryChangedListener event.listener
+        MetaTableEntryAddedListener event.listener
+        MetaTableEntryRemovedListener event.listener
+        MetaTableReloadedFromDiskListener event.listener
     end
     
     methods % Structors
@@ -184,6 +196,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             app.configFigureCallbacks() % Do this last
 
+            app.initializeMetaTableCacheListener()
             app.setIdle()
 
             if app.settings.General.MonitorDrives
@@ -208,6 +221,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             if ~isempty(app.DiskConnectionMonitor)
                 delete(app.DiskConnectionMonitor)
+            end
+
+            app.deleteMetaTableListeners()
+
+            if ~isempty(app.MetaTableFileChangedListener)
+                delete(app.MetaTableFileChangedListener)
             end
             
             app.settings.Session.SessionTaskDebug = false; % Reset debugging on quit
@@ -1337,6 +1356,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             h = nansen.BatchProcessorUI(app.BatchProcessor, hContainer);
             app.BatchProcessorUI = h;
         end
+
+        function initializeMetaTableCacheListener(app)
+        %initializeMetaTableCacheListener Subscribe to MetaTable disk changes
+
+            cache = nansen.metadata.MetaTableCache.instance();
+            cache.startFileChangeMonitoring()
+            app.MetaTableFileChangedListener = addlistener(cache, ...
+                'FileChangedOnDisk', @(~, evt) app.onMetaTableFileChangedOnDisk(evt));
+        end
         
         function initializeDiskConnectionMonitor(app)
         
@@ -1475,6 +1503,34 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % - [ ] Refresh table on these events
             app.refreshTable()
         end
+
+        function onMetaTableFileChangedOnDisk(app, evt)
+        %onMetaTableFileChangedOnDisk Resolve external changes to the table file
+
+            if isempty(app.MetaTable) || app.TableIsUpdating
+                return
+            end
+
+            if evt.MetaTable ~= app.MetaTable
+                return
+            end
+
+            cache = nansen.metadata.MetaTableCache.instance();
+            cache.pauseFileChangeMonitoring()
+            resumeMonitoring = onCleanup(@() cache.resumeFileChangeMonitoring());
+
+            choice = app.promptToResolveMetaTableFileConflict();
+            switch choice
+                case "reload"
+                    app.discardMetaTableChanges()
+                case "overwrite"
+                    app.saveMetaTable([], [], true)
+                otherwise
+                    % The cache is edge-triggered, so a cancelled choice
+                    % will not re-prompt until the disk version changes.
+            end
+        end
+
     end
     
     methods
@@ -1702,8 +1758,36 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         function onMetaTableEntryChanged(app, ~, evt)
-            app.UiMetaTableViewer.updateCells(...
-                evt.RowIndex, evt.ColumnIndex, evt.NewValue)
+            if numel(evt.RowIndex) > 20
+                selectedEntries = app.UiMetaTableViewer.getSelectedEntries();
+                app.UiMetaTableViewer.refreshTable(app.MetaTable)
+                app.UiMetaTableViewer.setSelectedEntries(selectedEntries);
+            else
+                newValue = nansen.metadata.utility.formatTableForDisplay(...
+                    app.MetaTable, evt.ColumnIndex, evt.RowIndex);
+                newValue = table2cell(newValue);
+
+                app.UiMetaTableViewer.updateCells(...
+                    evt.RowIndex, evt.ColumnIndex, newValue)
+            end
+        end
+
+        function onMetaTableReloadedFromDisk(app, src, ~)
+            if isempty(app.MetaTable) || isempty(app.UiMetaTableViewer) ...
+                    || app.TableIsUpdating || src ~= app.MetaTable
+                return
+            end
+            if ~app.isMetaTableCurrentSelection(src)
+                return
+            end
+
+            app.onNewMetaTableSet()
+            if ~isempty(app.StatusText)
+                app.StatusText.Status = sprintf( ...
+                    'Status: Reloaded metadata table from disk: %s', ...
+                    app.MetaTable.filepath);
+                app.clearStatusIn(5)
+            end
         end
 
         function onTaskAddedEventTriggered(app, ~, evt) %#ok<INUSD>
@@ -2228,7 +2312,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
             
             variableName = app.MetaTable.getVariableName(evt.Indices(2));
-            app.MetaTable.editEntries(evt.Indices(1), variableName, evt.NewValue);
+            app.MetaTable.editEntriesFromTable(evt.Indices(1), variableName, evt.NewValue);
 
             % The following is hopefully a temporary solution. If user
             % ticks the ignore checkbox for a session, and the settings are
@@ -2649,28 +2733,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             if isempty(rows); return; end
             
-            % Update values in the metatable..
+            % Update values in the metatable. The table viewer is updated
+            % through MetaTable's TableEntryChanged event.
             app.MetaTable.editEntries(rows, varName, updatedValues);
-
-            % Need to keep selected entries before refreshing table.
-            if numSessions < 20
-                % Unfortunately, this is very slow for many rows.
-                colIdx = find(strcmp(app.MetaTable.entries.Properties.VariableNames, varName));
-
-                % Need to insert formatted table data in the MetaTable
-                % viewer
-                updatedValuesDisplay = nansen.metadata.utility.formatTableForDisplay(app.MetaTable, colIdx, rows);
-                updatedValuesDisplay = table2cell(updatedValuesDisplay);
-                app.UiMetaTableViewer.updateCells(rows, colIdx, updatedValuesDisplay)
-                
-            else % Update whole table
-                selectedEntries = app.UiMetaTableViewer.getSelectedEntries();
-            
-                app.UiMetaTableViewer.refreshTable(app.MetaTable)
-            
-                % Make sure selection is preserved.
-                app.UiMetaTableViewer.setSelectedEntries(selectedEntries);
-            end
 
             if numSessions > 5 && ~reset
                 clear waitbarCleanup
@@ -2967,14 +3032,23 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 % operating system.
                 metaTable = app.updateDataLocationFromModel(metaTable);
 
+                app.deleteMetaTableListeners()
                 app.MetaTable = metaTable;
 
-                addlistener(app.MetaTable, 'IsModified', 'PostSet', ...
+                app.MetaTableIsModifiedListener = addlistener(app.MetaTable, 'IsModified', 'PostSet', ...
                     @app.onMetaTableModifiedChanged);
 
-                % todo: do we need to store listener?
-                addlistener(app.MetaTable, 'TableEntryChanged', ...
+                app.MetaTableTableEntryChangedListener = addlistener(app.MetaTable, 'TableEntryChanged', ...
                     @app.onMetaTableEntryChanged);
+
+                app.MetaTableEntryAddedListener = addlistener(app.MetaTable, 'EntryAdded', ...
+                    @(~,~) app.refreshTable());
+
+                app.MetaTableEntryRemovedListener = addlistener(app.MetaTable, 'EntryRemoved', ...
+                    @(~,~) app.refreshTable());
+
+                app.MetaTableReloadedFromDiskListener = addlistener(app.MetaTable, 'TableReloadedFromDisk', ...
+                    @app.onMetaTableReloadedFromDisk);
                                 
 % %                 if app.isInitialized() % Todo: implement this
 % %                     app.updateRelatedInventoryLists()
@@ -2994,12 +3068,25 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.updateMetaTableMenu()
         end
         
-        function saveMetaTable(app, ~, ~, forceSave)
+        function wasSaved = saveMetaTable(app, ~, ~, forceSave)
             
             if nargin < 4; forceSave = false; end
+            wasSaved = false;
 
             if app.settings.MetadataTable.AllowTableEdits
-                wasSaved = app.MetaTable.save(forceSave);
+                try
+                    if ~forceSave && ~app.MetaTable.isLatestVersion()
+                        wasSaved = app.resolveStaleMetaTableSave();
+                    else
+                        wasSaved = app.MetaTable.save(forceSave);
+                    end
+                catch ME
+                    if strcmp(ME.identifier, 'NANSEN:VersionedFile:StaleFile')
+                        wasSaved = app.resolveStaleMetaTableSave();
+                    else
+                        rethrow(ME)
+                    end
+                end
                 
                 if wasSaved && app.AllowStatusUpdate
                     app.StatusText.Status = sprintf('Status: Saved metadata table to %s', app.MetaTable.filepath);
@@ -3008,11 +3095,101 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             else
                 error('Can not save metatable because access is read only')
             end
+
+            if ~nargout; clear wasSaved; end
         end
         
         function reloadMetaTable(app)
             currentTablePath = app.MetaTable.filepath;
+            if ~isempty(currentTablePath)
+                cache = nansen.metadata.MetaTableCache.instance();
+                cache.remove(currentTablePath)
+            end
             app.loadMetaTable(currentTablePath)
+        end
+
+        function discardMetaTableChanges(app, options)
+        %discardMetaTableChanges Reload the current table from disk
+
+            arguments
+                app
+                options.RefreshView (1,1) logical = true
+            end
+
+            if isempty(app.MetaTable)
+                return
+            end
+
+            app.MetaTable.markClean()
+            if options.RefreshView
+                app.MetaTable.reloadFromDisk()
+            else
+                wasUpdating = app.TableIsUpdating;
+                app.TableIsUpdating = true;
+                try
+                    app.MetaTable.reloadFromDisk()
+                catch ME
+                    app.TableIsUpdating = wasUpdating;
+                    rethrow(ME)
+                end
+                app.TableIsUpdating = wasUpdating;
+            end
+        end
+
+        function wasSaved = resolveStaleMetaTableSave(app)
+        %resolveStaleMetaTableSave Ask how to handle a stale save attempt
+
+            wasSaved = false;
+            choice = app.promptToResolveMetaTableFileConflict();
+            switch choice
+                case "reload"
+                    app.discardMetaTableChanges()
+                case "overwrite"
+                    wasSaved = app.MetaTable.save(true);
+                otherwise
+                    % User cancelled; leave the in-memory table untouched.
+            end
+        end
+
+        function choice = promptToResolveMetaTableFileConflict(app)
+        %promptToResolveMetaTableFileConflict Ask how to handle disk changes
+
+            question = sprintf([ ...
+                'The metadata table file has changed on disk:\n\n%s\n\n', ...
+                'Reload the newer file and discard local changes, ', ...
+                'or overwrite the file with the current table?'], ...
+                app.MetaTable.filepath);
+
+            answer = questdlg(question, 'Metadata Table Changed', ...
+                'Reload File', 'Overwrite File', 'Cancel', 'Cancel');
+
+            switch answer
+                case 'Reload File'
+                    choice = "reload";
+                case 'Overwrite File'
+                    choice = "overwrite";
+                otherwise
+                    choice = "cancel";
+            end
+        end
+
+        function deleteMetaTableListeners(app)
+        %deleteMetaTableListeners Remove listeners attached to app.MetaTable
+
+            listenerNames = { ...
+                'MetaTableIsModifiedListener', ...
+                'MetaTableTableEntryChangedListener', ...
+                'MetaTableEntryAddedListener', ...
+                'MetaTableEntryRemovedListener', ...
+                'MetaTableReloadedFromDiskListener'};
+
+            for i = 1:numel(listenerNames)
+                listenerHandle = app.(listenerNames{i});
+                if ~isempty(listenerHandle)
+                    delete(listenerHandle(isvalid(listenerHandle)))
+                    app.(listenerNames{i}) = event.listener.empty;
+                end
+            end
         end
         
         function metatable = createMetaTable(app, ~, ~)
@@ -3114,6 +3291,25 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     end
             end
         end
+
+        function tf = isMetaTableCurrentSelection(app, metaTable)
+        %isMetaTableCurrentSelection Check if a MetaTable matches the selector
+
+            if isempty(app.UiMetaTableSelector)
+                tf = true;
+                return
+            end
+
+            currentSelection = app.UiMetaTableSelector.CurrentSelection;
+            if isempty(currentSelection)
+                tf = true;
+                return
+            end
+
+            selectedType = string(currentSelection);
+            selectedType = selectedType(1);
+            tf = strcmpi(metaTable.getTableType(), selectedType);
+        end
         
         function onNewMetaTableSet(app)
             if isempty(app.UiMetaTableViewer);    return;    end
@@ -3124,6 +3320,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             else
                 app.UiMetaTableViewer.refreshTable(app.MetaTable)
             end
+            app.updateTableItemCount()
         end
         
         function onFileViewerSessionChanged(app, metaObjectID)
@@ -3834,9 +4031,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             % Update metatable entries
             app.MetaTable.editEntries(':', 'Progress', pipelineStructs)
-            
-            % Update uitable
-            app.UiMetaTableViewer.refreshTable(app.MetaTable)
         end
         
         function menuCallback_ConfigurePipelineAssignment(app, ~, ~) %#ok<INUSD>
@@ -4043,12 +4237,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             switch answer
                 case 'Save'
-                    app.saveMetaTable()
+                    wasSaved = app.saveMetaTable();
+                    if ~wasSaved && ~app.MetaTable.isClean()
+                        wasCanceled = true;
+                    end
                 case 'Don''t Save'
-                    % Continue without saving (mark as clean to avoid
-                    % entering current method again, i.e when changing
-                    % project)
-                    app.MetaTable.markClean()
+                    app.discardMetaTableChanges('RefreshView', false)
                 otherwise % Cancel or no answer.
                     wasCanceled = true;
                     return

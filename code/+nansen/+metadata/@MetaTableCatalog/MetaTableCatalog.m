@@ -40,7 +40,7 @@ classdef MetaTableCatalog < uim.handle
             obj.fixCatalog()
         end
                 
-        function delete(obj)
+        function delete(~)
            % Todo: Check for unsaved changes.
         end
     end
@@ -190,13 +190,23 @@ classdef MetaTableCatalog < uim.handle
             
             entry = table2struct(obj.Table(ind, :));
         end
+
+        function filePath = getMetaTableFilePath(obj, entryName)
+        %getMetaTableFilePath Get absolute file path for a registered MetaTable
+
+            entry = obj.getEntry(entryName);
+
+            if isempty(entry)
+                filePath = '';
+                return
+            end
+
+            filePath = fullfile(obj.FolderPath, entry.FileName);
+        end
         
         function metaTable = getMetaTable(obj, entryName)
                                 
-            item = obj.getEntry(entryName);
-            
-            % Get database filepath
-            filePath = fullfile(obj.FolderPath, item.FileName);
+            filePath = obj.getMetaTableFilePath(entryName);
                     
             % Open database
             metaTable = nansen.metadata.MetaTable.open(filePath);
@@ -248,11 +258,11 @@ classdef MetaTableCatalog < uim.handle
             isMatch = obj.Table.IsMaster & contains( lower(obj.Table.MetaTableClass), metaTableType);
             idx = find(isMatch);
             
-            if numel(idx) > 1
+            if isscalar(idx)
+                % Continue
+            elseif numel(idx) > 1
                 warning('More than one master table is present. Selected first match.')
                 idx = idx(1);
-            elseif numel(idx) == 1
-                % Continue
             else
                 error('No master metatable of this type exists.')
             end
@@ -486,7 +496,7 @@ classdef MetaTableCatalog < uim.handle
 
             % Save master table to file
             MT = nansen.metadata.MetaTableCatalog.removeSavePathColumn(MT);
-            metaTableCatalog = MT; %#ok<NASGU>
+            metaTableCatalog = MT;
             save(filePath, 'metaTableCatalog');
         end
         
@@ -543,7 +553,7 @@ classdef MetaTableCatalog < uim.handle
             f.CloseRequestFcn = @(s,e,jH) nansen.metadata.MetaTableCatalog.closeTableView(s,e,jTable);
         end
         
-        function closeTableView(src, evtData, jTable)
+        function closeTableView(src, ~, jTable)
         %closeTableView Save the table column widths to preferences
         
             th = jTable.getTableHeader();
@@ -559,9 +569,6 @@ classdef MetaTableCatalog < uim.handle
             
             setpref('MetaTableCatalog', 'TableColumnWidths', columnWidths)
             delete(src)
-        end
-        
-        function isMetaTableInCatalog(S)
         end
         
         function checkMetaTableCatalog(S)
