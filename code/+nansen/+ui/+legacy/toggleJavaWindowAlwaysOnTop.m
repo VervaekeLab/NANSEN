@@ -5,8 +5,8 @@ function toggleJavaWindowAlwaysOnTop(figureHandle, newState)
         newState (1,1) logical
     end
 
-    if nansen.util.useModernUiComponents()
-        % MATLAB R2025a removed JAVA support, abort.
+    if ~nansen.util.isJavaFrameSupported()
+        % MATLAB R2025a removed JavaFrame support, abort.
         return
     end
 

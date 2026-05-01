@@ -944,8 +944,8 @@ methods % App initialization & creation
 
     function addDragAndDropFunctionality(obj)
 
-        if nansen.util.useModernUiComponents()
-            % MATLAB R2025a removed JAVA support, abort
+        if ~nansen.util.isJavaFrameSupported()
+            % MATLAB R2025a removed JavaFrame support, abort.
             return
         end
         drawnow()
@@ -3007,14 +3007,14 @@ methods % Handle user actions
     
     function pinWindow(obj, src, ~)
     %pinWindow Set window to always on top
-        if nansen.util.useModernUiComponents()
+        if nansen.util.isJavaFrameSupported()
+            nansen.ui.legacy.toggleJavaWindowAlwaysOnTop(obj.Figure, src.Value)
+        else
             if src.Value
                 obj.Figure.WindowStyle = "alwaysontop";
             else
                 obj.Figure.WindowStyle = "normal";
             end
-        else
-            nansen.ui.legacy.toggleJavaWindowAlwaysOnTop(obj.Figure, src.Value)
         end
     end
 end
@@ -4313,7 +4313,7 @@ methods % Misc, most can be outsourced
         helpfig.Position(4) = helpfig.Position(4) - (1-y)*helpfig.Position(4);
         helpfig.Visible = 'on';
         
-        if ~nansen.util.useModernUiComponents()
+        if nansen.util.isJavaFrameSupported()
             warningCleanupObj = nansen.ui.legacy.tempDisableJavaFrameWarnings(); %#ok<NASGU>
             % Close help window if it loses focus
             jframe = getjframe(helpfig);

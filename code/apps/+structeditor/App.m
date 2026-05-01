@@ -708,20 +708,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 newColor = [13,13,13] ./ 255;
             end
 
-            rgb = num2cell(newColor);
-
-            warning('off', 'MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
-            warning('off', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
-
-            % Its disappearing any day now!
-            jFrame = get(handle(obj.Figure), 'JavaFrame');
-            jWindow = jFrame.getFigurePanelContainer.getTopLevelAncestor;
-            javaColor = javax.swing.plaf.ColorUIResource(rgb{:});
-            set(jWindow, 'Background', javaColor)
-
-            warning('on', 'MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
-            warning('on', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
-
+            nansen.ui.legacy.setJavaWindowBackgroundColor(obj.Figure, newColor)
         end
 
         function createPanels(obj)
@@ -2067,8 +2054,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         function styleControls(obj, panelNum)
         %styleControls Style ui controls
         
-            if nansen.util.useModernUiComponents()
-                % Abort, requires MATLAB R2024b or older
+            if ~nansen.util.isJavaFrameSupported()
+                % Styling uses legacy JavaFrame/Javacomponent internals.
                 return
             end
 

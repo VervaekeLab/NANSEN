@@ -6,8 +6,8 @@ function setJavaWindowBackgroundColor(figureHandle, newColor)
         newColor (1,3) double
     end
 
-    if nansen.util.useModernUiComponents()
-        % MATLAB R2025a removed JAVA support, abort.
+    if ~nansen.util.isJavaFrameSupported()
+        % MATLAB R2025a removed JavaFrame support, abort.
         return
     end
 

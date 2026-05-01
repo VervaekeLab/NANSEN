@@ -1,8 +1,8 @@
 function dndObject = activateDragAndDrop(figureHandle, callbackFunction)
     dndObject = [];
 
-    if nansen.util.useModernUiComponents()
-        % MATLAB R2025a removed JAVA support, abort
+    if ~nansen.util.isJavaFrameSupported()
+        % MATLAB R2025a removed JavaFrame support, abort.
         return
     end
 

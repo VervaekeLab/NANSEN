@@ -127,7 +127,7 @@ classdef AppWindow < uim.handle
             minWidth = obj.MINIMUM_FIGURE_SIZE(1);
             minHeight = obj.MINIMUM_FIGURE_SIZE(2);
 
-            if ~nansen.util.useModernUiComponents()
+            if nansen.util.isJavaFrameSupported()
                 warningCleanup = nansen.ui.legacy.tempDisableJavaFrameWarnings(); %#ok<NASGU>
                 LimitFigSize(obj.Figure, 'min', [minWidth, minHeight]) % FEX
             else
