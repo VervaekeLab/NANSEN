@@ -14,10 +14,10 @@ classdef RoiClassifier < applify.mixin.AppBridgePlugin
 
     methods
         
-        function obj = RoiClassifier(imviewerApp)
+        function obj = RoiClassifier(imviewerApp, varargin)
         %openRoiClassifier Open roiClassifier on request from imviewer
 
-            obj@applify.mixin.AppBridgePlugin(imviewerApp)
+            obj@applify.mixin.AppBridgePlugin(imviewerApp, varargin{:})
             
             % Find roimanager handle
             success=false;
