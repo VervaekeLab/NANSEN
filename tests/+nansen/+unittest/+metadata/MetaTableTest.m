@@ -76,6 +76,8 @@ classdef MetaTableTest < matlab.unittest.TestCase
 
     methods (TestMethodTeardown)
         function cleanupTempFiles(testCase)
+            nansen.metadata.MetaTableCache.instance("reset");
+
             % Clean up any temporary files created during tests
             for i = 1:numel(testCase.TempFiles)
                 if isfile(testCase.TempFiles{i})
@@ -224,6 +226,7 @@ classdef MetaTableTest < matlab.unittest.TestCase
             % Test removing entries
             testCase.createTestMetaTable();
             initialCount = height(testCase.TestMetaTable.entries);
+            testCase.TestMetaTable.markClean();
 
             % Remove first entry
             idToRemove = testCase.TestMetaTable.members{1};
@@ -232,6 +235,7 @@ classdef MetaTableTest < matlab.unittest.TestCase
             % Verify
             testCase.verifyEqual(height(testCase.TestMetaTable.entries), initialCount - 1);
             testCase.verifyFalse(ismember(idToRemove, testCase.TestMetaTable.members));
+            testCase.verifyFalse(testCase.TestMetaTable.isClean());
         end
 
         function testRemoveMultipleEntries(testCase)
@@ -385,9 +389,210 @@ classdef MetaTableTest < matlab.unittest.TestCase
 
             mt = nansen.metadata.MetaTable.open(testFilePath);
 
-            testCase.verifyEqual(mt.filepath, testFilePath);
+            expectedFilePath = nansen.metadata.MetaTableCache.canonicalizeFilePath(testFilePath);
+            testCase.verifyEqual(mt.filepath, expectedFilePath);
             testCase.verifyEqual(mt.MetaTableName, 'OpenMetaTable');
             testCase.verifyEqual(mt.entries, testCase.TestMetaTable.entries);
+        end
+
+        function testOpenReturnsCachedMetaTableHandle(testCase)
+            testCase.createTestMetaTable();
+
+            testFilePath = fullfile(testCase.TestDir, 'cached_open.mat');
+            testCase.TestMetaTable.setFilepath(testFilePath);
+            S = testCase.TestMetaTable.toStruct('metatable_file');
+            S.MetaTableName = 'CachedOpenMetaTable';
+            testCase.TestMetaTable.fromStruct(S);
+            testCase.TempFiles{end+1} = testFilePath;
+            testCase.TestMetaTable.save();
+
+            mt1 = nansen.metadata.MetaTable.open(testFilePath);
+            mt2 = nansen.metadata.MetaTable.open(testFilePath);
+
+            testCase.verifyTrue(mt1 == mt2);
+        end
+
+        function testOpenDoesNotStartPollingTimer(testCase)
+            testCase.createTestMetaTable();
+
+            testFilePath = fullfile(testCase.TestDir, 'cached_open_no_timer.mat');
+            testCase.TestMetaTable.setFilepath(testFilePath);
+            S = testCase.TestMetaTable.toStruct('metatable_file');
+            S.MetaTableName = 'CachedOpenNoTimerMetaTable';
+            testCase.TestMetaTable.fromStruct(S);
+            testCase.TempFiles{end+1} = testFilePath;
+            testCase.TestMetaTable.save();
+
+            nansen.metadata.MetaTable.open(testFilePath);
+
+            timers = timerfind('Name', 'MetaTableCache Polling Timer');
+            testCase.verifyEmpty(timers);
+        end
+
+        function testMetaTableCacheCanonicalizeRequiresExistingFile(testCase)
+            missingFilePath = fullfile(testCase.TestDir, 'missing_metatable.mat');
+
+            testCase.verifyError( ...
+                @() nansen.metadata.MetaTableCache.canonicalizeFilePath(missingFilePath), ...
+                'NANSEN:MetaTableCache:FileNotFound');
+        end
+
+        function testOpenReloadsCleanStaleCachedMetaTable(testCase)
+            testCase.createTestMetaTable();
+
+            testFilePath = fullfile(testCase.TestDir, 'cached_clean_stale.mat');
+            testCase.TestMetaTable.setFilepath(testFilePath);
+            S = testCase.TestMetaTable.toStruct('metatable_file');
+            S.MetaTableName = 'CachedCleanStaleMetaTable';
+            testCase.TestMetaTable.fromStruct(S);
+            testCase.TempFiles{end+1} = testFilePath;
+            testCase.TestMetaTable.save();
+
+            mt1 = nansen.metadata.MetaTable.open(testFilePath);
+            eventCount = 0;
+            listener = addlistener(mt1, 'TableReloadedFromDisk', @(~,~) incrementEventCount());
+            testCase.addTeardown(@() delete(listener))
+
+            fileStruct = load(testFilePath);
+            fileStruct.MetaTableEntries.Value(1) = 777;
+            fileStruct.VersionNumber = fileStruct.VersionNumber + 1;
+            save(testFilePath, '-struct', 'fileStruct')
+
+            mt2 = nansen.metadata.MetaTable.open(testFilePath);
+
+            testCase.verifyTrue(mt1 == mt2);
+            testCase.verifyEqual(mt2.entries.Value(1), 777);
+            testCase.verifyEqual(eventCount, 1);
+
+            function incrementEventCount()
+                eventCount = eventCount + 1;
+            end
+        end
+
+        function testMetaTableCacheEvictionForcesFreshLoad(testCase)
+            testCase.createTestMetaTable();
+
+            testFilePath = fullfile(testCase.TestDir, 'cached_evict.mat');
+            testCase.TestMetaTable.setFilepath(testFilePath);
+            S = testCase.TestMetaTable.toStruct('metatable_file');
+            S.MetaTableName = 'CachedEvictMetaTable';
+            testCase.TestMetaTable.fromStruct(S);
+            testCase.TempFiles{end+1} = testFilePath;
+            testCase.TestMetaTable.save();
+
+            mt1 = nansen.metadata.MetaTable.open(testFilePath);
+            cache = nansen.metadata.MetaTableCache.instance();
+            cache.remove(testFilePath)
+            mt2 = nansen.metadata.MetaTable.open(testFilePath);
+
+            testCase.verifyFalse(mt1 == mt2);
+        end
+
+        function testMetaTableCacheFileChangedNotificationIsEdgeTriggered(testCase)
+            testCase.createTestMetaTable();
+
+            testFilePath = fullfile(testCase.TestDir, 'cached_change_event.mat');
+            testCase.TestMetaTable.setFilepath(testFilePath);
+            S = testCase.TestMetaTable.toStruct('metatable_file');
+            S.MetaTableName = 'CachedChangeMetaTable';
+            testCase.TestMetaTable.fromStruct(S);
+            testCase.TempFiles{end+1} = testFilePath;
+            testCase.TestMetaTable.save();
+
+            cache = nansen.metadata.MetaTableCache.instance();
+            cache.pauseFileChangeMonitoring()
+            cachedMetaTable = nansen.metadata.MetaTable.open(testFilePath);
+            cachedMetaTable.editEntries(1, 'Value', 555);
+
+            eventCount = 0;
+            listener = addlistener(cache, 'FileChangedOnDisk', @(~, evt) onFileChanged(evt));
+            testCase.addTeardown(@() delete(listener))
+
+            incrementDiskVersion()
+            cache.checkForFileChanges()
+            testCase.verifyEqual(eventCount, 1);
+
+            cache.checkForFileChanges()
+            testCase.verifyEqual(eventCount, 1);
+
+            incrementDiskVersion()
+            cache.checkForFileChanges()
+            testCase.verifyEqual(eventCount, 2);
+
+            function onFileChanged(evt)
+                eventCount = eventCount + 1;
+                testCase.verifyTrue(evt.MetaTable == cachedMetaTable);
+            end
+
+            function incrementDiskVersion()
+                fileStruct = load(testFilePath);
+                fileStruct.VersionNumber = fileStruct.VersionNumber + 1;
+                save(testFilePath, '-struct', 'fileStruct')
+            end
+        end
+
+        function testMetaTableCacheReloadsCleanStaleTableOnPoll(testCase)
+            testCase.createTestMetaTable();
+
+            testFilePath = fullfile(testCase.TestDir, 'cached_clean_poll.mat');
+            testCase.TestMetaTable.setFilepath(testFilePath);
+            S = testCase.TestMetaTable.toStruct('metatable_file');
+            S.MetaTableName = 'CachedCleanPollMetaTable';
+            testCase.TestMetaTable.fromStruct(S);
+            testCase.TempFiles{end+1} = testFilePath;
+            testCase.TestMetaTable.save();
+
+            cache = nansen.metadata.MetaTableCache.instance();
+            cache.pauseFileChangeMonitoring()
+            cachedMetaTable = nansen.metadata.MetaTable.open(testFilePath);
+
+            reloadCount = 0;
+            conflictCount = 0;
+            reloadListener = addlistener(cachedMetaTable, 'TableReloadedFromDisk', @(~,~) incrementReloadCount());
+            conflictListener = addlistener(cache, 'FileChangedOnDisk', @(~,~) incrementConflictCount());
+            testCase.addTeardown(@() delete(reloadListener))
+            testCase.addTeardown(@() delete(conflictListener))
+
+            fileStruct = load(testFilePath);
+            fileStruct.MetaTableEntries.Value(1) = 888;
+            fileStruct.VersionNumber = fileStruct.VersionNumber + 1;
+            save(testFilePath, '-struct', 'fileStruct')
+
+            cache.checkForFileChanges()
+
+            testCase.verifyEqual(cachedMetaTable.entries.Value(1), 888);
+            testCase.verifyTrue(cachedMetaTable.isLatestVersion());
+            testCase.verifyEqual(reloadCount, 1);
+            testCase.verifyEqual(conflictCount, 0);
+
+            function incrementReloadCount()
+                reloadCount = reloadCount + 1;
+            end
+
+            function incrementConflictCount()
+                conflictCount = conflictCount + 1;
+            end
+        end
+
+        function testMetaTableCacheDropsMissingFileOnPoll(testCase)
+            testCase.createTestMetaTable();
+
+            testFilePath = fullfile(testCase.TestDir, 'cached_missing_poll.mat');
+            testCase.TestMetaTable.setFilepath(testFilePath);
+            S = testCase.TestMetaTable.toStruct('metatable_file');
+            S.MetaTableName = 'CachedMissingPollMetaTable';
+            testCase.TestMetaTable.fromStruct(S);
+            testCase.TempFiles{end+1} = testFilePath;
+            testCase.TestMetaTable.save();
+
+            cache = nansen.metadata.MetaTableCache.instance();
+            cache.pauseFileChangeMonitoring()
+            nansen.metadata.MetaTable.open(testFilePath);
+
+            delete(testFilePath)
+
+            testCase.verifyWarningFree(@() cache.checkForFileChanges());
+            testCase.verifyWarningFree(@() cache.checkForFileChanges());
         end
 
         function testStaleNonForcedSaveErrors(testCase)
@@ -411,6 +616,32 @@ classdef MetaTableTest < matlab.unittest.TestCase
                 'NANSEN:VersionedFile:StaleFile');
         end
 
+        function testLegacyVersionZeroDetectsNewerDiskVersion(testCase)
+            testCase.createTestMetaTable();
+
+            testFilePath = fullfile(testCase.TestDir, 'legacy_stale_save.mat');
+            testCase.TestMetaTable.setFilepath(testFilePath);
+            S = testCase.TestMetaTable.toStruct('metatable_file');
+            S.MetaTableName = 'LegacyStaleSaveTable';
+            testCase.TestMetaTable.fromStruct(S);
+            testCase.TempFiles{end+1} = testFilePath;
+            testCase.TestMetaTable.save();
+
+            fileStruct = load(testFilePath);
+            fileStruct.VersionNumber = int64(0);
+            save(testFilePath, '-struct', 'fileStruct')
+
+            legacyMetaTable = nansen.metadata.MetaTable.open(testFilePath);
+
+            fileStruct.MetaTableEntries.Value(1) = 123;
+            fileStruct.VersionNumber = int64(1);
+            save(testFilePath, '-struct', 'fileStruct')
+
+            legacyMetaTable.editEntries(1, 'Value', 456);
+            testCase.verifyError(@() legacyMetaTable.save(), ...
+                'NANSEN:VersionedFile:StaleFile');
+        end
+
         function testRegisterMetaTablePersistsNonDefaultCatalogEntry(testCase)
             catalogPath = fullfile(testCase.TestDir, 'metatable_catalog.mat');
             catalog = nansen.metadata.MetaTableCatalog(catalogPath);
@@ -426,6 +657,8 @@ classdef MetaTableTest < matlab.unittest.TestCase
 
             catalog.registerMetaTable(metaTable, options);
             reloadedCatalog = nansen.metadata.MetaTableCatalog(catalogPath);
+            expectedFilePath = fullfile(testCase.TestDir, ...
+                reloadedCatalog.Table.FileName{1});
 
             testCase.verifyEqual(height(reloadedCatalog.Table), 1);
             testCase.verifyEqual(reloadedCatalog.Table.MetaTableName{1}, ...
@@ -433,8 +666,9 @@ classdef MetaTableTest < matlab.unittest.TestCase
             testCase.verifyFalse(reloadedCatalog.Table.IsDefault(1));
             testCase.verifyFalse(ismember('SavePath', ...
                 reloadedCatalog.Table.Properties.VariableNames));
-            testCase.verifyTrue(isfile(fullfile(testCase.TestDir, ...
-                reloadedCatalog.Table.FileName{1})));
+            testCase.verifyEqual(reloadedCatalog.getMetaTableFilePath( ...
+                'NonDefaultTestTable'), expectedFilePath);
+            testCase.verifyTrue(isfile(expectedFilePath));
         end
 
         function testMetaTableCatalogIgnoresLegacySavePathOnLoad(testCase)
@@ -460,6 +694,8 @@ classdef MetaTableTest < matlab.unittest.TestCase
 
             testCase.verifyFalse(ismember('SavePath', ...
                 reloadedCatalog.Table.Properties.VariableNames));
+            testCase.verifyEqual(reloadedCatalog.getMetaTableFilePath( ...
+                'LegacySavePathTable'), metaTable.filepath);
             testCase.verifyEqual(reloadedCatalog.getMetaTable( ...
                 'LegacySavePathTable').filepath, metaTable.filepath);
         end
@@ -556,10 +792,12 @@ classdef MetaTableTest < matlab.unittest.TestCase
                 'IsMaster', false);
             catalog.registerMetaTable(dummyTable, dummyOptions);
 
+            cachedDummy = nansen.metadata.MetaTable.open(dummyTable.filepath);
             masterTable.editEntries(1, 'Value', 333);
             masterTable.save();
 
             reloadedDummy = nansen.metadata.MetaTable.open(dummyTable.filepath);
+            testCase.verifyTrue(cachedDummy == reloadedDummy);
             testCase.verifyEqual(reloadedDummy.entries.Value(1), 333);
 
             reloadedDummy.editEntries(1, 'Value', 444);
@@ -592,6 +830,126 @@ classdef MetaTableTest < matlab.unittest.TestCase
             testCase.verifyFalse(testCase.TestMetaTable.isClean());
         end
 
+        function testEditEntriesNotifiesTableEntryChanged(testCase)
+            testCase.createTestMetaTable();
+
+            eventCount = 0;
+            lastEvent = [];
+            listener = addlistener(testCase.TestMetaTable, 'TableEntryChanged', ...
+                @(~, evt) onEntryChanged(evt));
+            testCase.addTeardown(@() delete(listener))
+
+            testCase.TestMetaTable.editEntries(1, 'Value', 999);
+
+            testCase.verifyEqual(eventCount, 1);
+            testCase.verifyEqual(lastEvent.RowIndex, 1);
+            testCase.verifyEqual(lastEvent.ColumnIndex, ...
+                testCase.TestMetaTable.getColumnIndex('Value'));
+            testCase.verifyEqual(lastEvent.NewValue, {999});
+
+            function onEntryChanged(evt)
+                eventCount = eventCount + 1;
+                lastEvent = evt;
+            end
+        end
+
+        function testEditEntriesSupportsBulkChangeEvent(testCase)
+            testCase.createTestMetaTable();
+
+            eventCount = 0;
+            lastEvent = [];
+            listener = addlistener(testCase.TestMetaTable, 'TableEntryChanged', ...
+                @(~, evt) onEntryChanged(evt));
+            testCase.addTeardown(@() delete(listener))
+
+            rows = [1 2];
+            values = [111; 222];
+            testCase.TestMetaTable.editEntries(rows, 'Value', values);
+
+            testCase.verifyEqual(eventCount, 1);
+            testCase.verifyEqual(lastEvent.RowIndex, rows);
+            testCase.verifyEqual(lastEvent.NewValue, num2cell(values));
+
+            function onEntryChanged(evt)
+                eventCount = eventCount + 1;
+                lastEvent = evt;
+            end
+        end
+
+        function testReplaceDataColumnNotifiesTableEntryChanged(testCase)
+            testCase.createTestMetaTable();
+
+            eventCount = 0;
+            lastEvent = [];
+            listener = addlistener(testCase.TestMetaTable, 'TableEntryChanged', ...
+                @(~, evt) onEntryChanged(evt));
+            testCase.addTeardown(@() delete(listener))
+
+            values = num2cell((1:testCase.NUM_TEST_ENTRIES)' * 10);
+            testCase.TestMetaTable.replaceDataColumn('Value', values);
+
+            testCase.verifyEqual(eventCount, 1);
+            testCase.verifyEqual(lastEvent.RowIndex, 1:testCase.NUM_TEST_ENTRIES);
+            testCase.verifyEqual(lastEvent.ColumnIndex, ...
+                testCase.TestMetaTable.getColumnIndex('Value'));
+            testCase.verifyEqual(lastEvent.NewValue, values);
+
+            function onEntryChanged(evt)
+                eventCount = eventCount + 1;
+                lastEvent = evt;
+            end
+        end
+
+        function testMergeEntriesNotifiesChangedExistingEntries(testCase)
+            testCase.createTestMetaTable();
+
+            eventCount = 0;
+            lastEvent = [];
+            listener = addlistener(testCase.TestMetaTable, 'TableEntryChanged', ...
+                @(~, evt) onEntryChanged(evt));
+            testCase.addTeardown(@() delete(listener))
+
+            sourceEntries = testCase.TestMetaTable.entries;
+            sourceMembers = testCase.TestMetaTable.members;
+            sourceEntries.Value(1) = 999;
+
+            wasMerged = testCase.TestMetaTable.mergeEntries(sourceEntries, sourceMembers);
+
+            testCase.verifyTrue(wasMerged);
+            testCase.verifyEqual(eventCount, 1);
+            testCase.verifyEqual(lastEvent.RowIndex, 1);
+            testCase.verifyEqual(lastEvent.ColumnIndex, ...
+                testCase.TestMetaTable.getColumnIndex('Value'));
+            testCase.verifyEqual(lastEvent.NewValue, {999});
+
+            function onEntryChanged(evt)
+                eventCount = eventCount + 1;
+                lastEvent = evt;
+            end
+        end
+
+        function testMergeEntriesNotifiesEntryAddedForNewEntries(testCase)
+            testCase.createTestMetaTable();
+
+            entryAddedCount = 0;
+            listener = addlistener(testCase.TestMetaTable, 'EntryAdded', ...
+                @(~, ~) incrementEntryAddedCount());
+            testCase.addTeardown(@() delete(listener))
+
+            sourceEntries = testCase.TestMetaTable.entries(1, :);
+            sourceEntries.sessionID = {'new_test_id'};
+            sourceMembers = sourceEntries.sessionID;
+
+            wasMerged = testCase.TestMetaTable.mergeEntries(sourceEntries, sourceMembers);
+
+            testCase.verifyTrue(wasMerged);
+            testCase.verifyEqual(entryAddedCount, 1);
+
+            function incrementEntryAddedCount()
+                entryAddedCount = entryAddedCount + 1;
+            end
+        end
+
         function testVersioning(testCase)
             % Test version number tracking
             testCase.createTestMetaTable();
@@ -608,6 +966,7 @@ classdef MetaTableTest < matlab.unittest.TestCase
             testCase.TestMetaTable.save();
             versionInfo = load(testFilePath, 'VersionNumber');
             version1 = versionInfo.VersionNumber;
+            testCase.verifyEqual(testCase.TestMetaTable.getVersionNumberOnDisk(), version1);
 
             % Modify and save again
             testCase.TestMetaTable.editEntries(1, 'Value', 888);

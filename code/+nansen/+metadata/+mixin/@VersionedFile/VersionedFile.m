@@ -126,12 +126,14 @@ classdef VersionedFile < handle
         function tf = isLatestVersion(obj)
         %isLatestVersion Return true if in-memory version matches the file
 
-            if obj.VersionNumber == 0
-                tf = true;
-                return
-            end
             versionNumberInFile = obj.loadVersionNumber();
             tf = versionNumberInFile == obj.VersionNumber;
+        end
+
+        function versionNumber = getVersionNumberOnDisk(obj)
+        %getVersionNumberOnDisk Read the persisted version number
+
+            versionNumber = obj.loadVersionNumber();
         end
     end
 

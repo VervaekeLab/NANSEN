@@ -107,9 +107,8 @@ classdef MetaTableAdvancedTest < matlab.unittest.TestCase
                 'MetaTableClass', 'table', ...
                 'MetaTableIdVarname', 'sessionID');
             
-            % Note: Event is triggered through meta object property change
-            % For basic table edits, the event needs to be manually triggered
-            % or we need a meta object. This tests the infrastructure exists.
+            % This test verifies that the event is part of MetaTable's
+            % public event surface.
             events = metaclass(mt).EventList;
             eventNames = {events.Name};
             testCase.verifyTrue(any(strcmp(eventNames, 'TableEntryChanged')));

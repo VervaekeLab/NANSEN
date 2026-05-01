@@ -89,6 +89,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         TableEntryChanged
         EntryAdded
         EntryRemoved
+        TableReloadedFromDisk
     end
 
     methods % Structor
@@ -337,6 +338,10 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         %   addTableVariable(obj, variableName, initValue) adds a new
         %   variable to the table and initializes all column values to the
         %   initValue.
+        %
+        %   Note: This method changes the table structure and does not emit
+        %   a table-change event. Callers that maintain views should refresh
+        %   them after adding variables.
 
         % Todo: Make method for adding multiple variables in one go, i.e
         % allow "variableName" and "initValue" to be cell arrays.
@@ -353,6 +358,12 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         end
 
         function removeTableVariable(obj, variableName)
+        %removeTableVariable Remove a variable from the table
+        %
+        %   Note: This method changes the table structure and does not emit
+        %   a table-change event. Callers that maintain views should refresh
+        %   them after removing variables.
+
             obj.entries(:, variableName) = [];
         end
 
@@ -451,7 +462,59 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
 
         function editEntries(obj, rowInd, varName, newValue)
         %editEntries Edit entries given some parameters.
+
+            obj.assignEntries(rowInd, varName, newValue)
+            obj.notifyEntryChanged(rowInd, varName)
+        end
+
+        function replaceDataColumn(obj, columnName, columnValues)
+        %replaceDataColumn Replace all values of a data column.
+
+            assert( isa(columnValues, 'cell') && numel(columnValues) == size(obj.entries, 1), ...
+                'column values must be a cell array with one cell per table row')
             
+            % Convert to struct in order to assign values that does not
+            % match type or size of current values
+            tempS = table2struct(obj.entries);
+            [tempS(:).(columnName)] = deal( columnValues{:} );
+            obj.entries = struct2table(tempS, 'AsArray', true);
+            obj.notifyEntryChanged(':', columnName)
+        end
+    end
+
+    methods (Access = {?nansen.App})
+        function editEntriesFromTable(obj, rowInd, varName, newValue)
+        %editEntriesFromTable Apply an edit that already originated in a table UI
+
+            obj.assignEntries(rowInd, varName, newValue)
+        end
+    end
+
+    methods (Access = private)
+        function notifyEntryChanged(obj, rowInd, varName)
+        %notifyEntryChanged Notify listeners that table entries changed
+
+            if isequal(rowInd, ':')
+                rowInd = 1:height(obj.entries);
+            elseif islogical(rowInd)
+                rowInd = find(rowInd);
+            else
+                rowInd = rowInd(:)';
+            end
+
+            columnIndex = obj.getColumnIndex(varName);
+            newValue = table2cell(obj.entries(rowInd, columnIndex));
+
+            evtData = nansen.metadata.event.MetaTableCellChangedEventData(...
+                "RowIndex", rowInd, ...
+                "ColumnIndex", columnIndex, ...
+                "NewValue", newValue);
+            obj.notify('TableEntryChanged', evtData)
+        end
+
+        function assignEntries(obj, rowInd, varName, newValue)
+        %assignEntries Apply entry values without emitting view-sync events
+
             if isa( obj.entries{rowInd, varName}, 'cell')
                 try
                     obj.entries{rowInd, varName} = newValue;
@@ -463,30 +526,46 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             else
                 obj.entries{rowInd, varName} = newValue;
             end
+
+            obj.onEntriesChanged()
         end
-        
-        function replaceDataColumn(obj, columnName, columnValues)
-        %replaceDataColumn Replace all values of a data column.
-            
-            assert( isa(columnValues, 'cell') && numel(columnValues) == size(obj.entries, 1), ...
-                'column values must be a cell array with one cell per table row')
-            
-            % Convert to struct in order to assign values that does not
-            % match type or size of current values
-            tempS = table2struct(obj.entries);
-            [tempS(:).(columnName)] = deal( columnValues{:} );
-            obj.entries = struct2table(tempS, 'AsArray', true);
+
+        function changeNotifications = getChangedEntryNotifications(~, oldEntries, newEntries, rowIndices)
+        %getChangedEntryNotifications Find changed table cells by column
+
+            variableNames = newEntries.Properties.VariableNames;
+            changeNotifications = struct('RowIndex', {}, 'VariableName', {});
+
+            for iColumn = 1:numel(variableNames)
+                changedRows = false(1, height(newEntries));
+                for iRow = 1:height(newEntries)
+                    changedRows(iRow) = ~isequaln( ...
+                        oldEntries(iRow, iColumn), newEntries(iRow, iColumn));
+                end
+
+                if any(changedRows)
+                    changeNotifications(end+1).RowIndex = rowIndices(changedRows); %#ok<AGROW>
+                    changeNotifications(end).VariableName = variableNames{iColumn};
+                end
+            end
         end
+    end
+
+    methods
 
         function wasMerged = mergeEntries(obj, sourceEntries, sourceMembers)
         %mergeEntries Update or append entries from another MetaTable payload
 
             sourceMembers = nansen.metadata.MetaTable.normalizeIdentifier(sourceMembers);
             wasMerged = false;
+            didAppendEntries = false;
+            changedEntryNotifications = struct('RowIndex', {}, 'VariableName', {});
 
             [~, targetIdx, sourceIdx] = intersect(obj.MetaTableMembers, sourceMembers);
             updatedEntries = sourceEntries(sourceIdx, :);
-            if ~isequaln(obj.entries(targetIdx, :), updatedEntries)
+            targetEntries = obj.entries(targetIdx, :);
+            if ~isequaln(targetEntries, updatedEntries)
+                changedEntryNotifications = obj.getChangedEntryNotifications(targetEntries, updatedEntries, targetIdx);
                 obj.entries(targetIdx, :) = updatedEntries;
                 wasMerged = true;
             end
@@ -495,10 +574,22 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             if ~isempty(sourceIdx)
                 obj.entries(end+1:end+numel(sourceIdx), :) = sourceEntries(sourceIdx, :);
                 wasMerged = true;
+                didAppendEntries = true;
             end
 
             if wasMerged
                 obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
+                obj.onEntriesChanged()
+            end
+
+            for i = 1:numel(changedEntryNotifications)
+                obj.notifyEntryChanged( ...
+                    changedEntryNotifications(i).RowIndex, ...
+                    changedEntryNotifications(i).VariableName)
+            end
+
+            if didAppendEntries
+                obj.notify('EntryAdded')
             end
         end
         
@@ -520,7 +611,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             obj.entries(IND, :) = [];
             obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
 
-            % obj.IsModified = true;
+            obj.onEntriesChanged()
             obj.notify('EntryRemoved')
         end
 
@@ -529,6 +620,12 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         end
         
         function sort(obj)
+        %sort Sort entries by schema identifier
+        %
+        %   Note: This method reorders entries and does not emit a
+        %   table-change event. Callers that maintain views should refresh
+        %   them after sorting.
+
             if ~isempty(obj.entries)
                 [~, ind] = sort(obj.entries.(obj.SchemaIdName));
                 obj.entries = obj.entries(ind, :);
@@ -1009,17 +1106,6 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             end
             
             obj.editEntries(metaTableEntryIdx, evt.Property, evt.NewValue)
-
-            rowIdx = metaTableEntryIdx;
-            colIdx = find(strcmp(obj.entries.Properties.VariableNames, evt.Property));
-            newValue = nansen.metadata.utility.formatTableForDisplay(obj, colIdx, rowIdx);
-            newValue = table2cell(newValue);
-
-            evtData = nansen.metadata.event.MetaTableCellChangedEventData(...
-                "RowIndex", rowIdx, ...
-                "ColumnIndex", colIdx, ...
-                "NewValue", newValue);
-            obj.notify('TableEntryChanged', evtData)
         end
         
         function onMetaObjectDestroyed(obj, src, ~)
@@ -1038,7 +1124,25 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
     end
 
     methods (Hidden)
+        function reloadFromDisk(obj)
+        %reloadFromDisk Refresh this clean handle from its file
+
+            if ~obj.isClean()
+                error('NANSEN:MetaTable:CannotReloadDirtyTable', ...
+                    ['Cannot reload "%s" from disk because the in-memory ', ...
+                     'table has unsaved changes.'], obj.filepath)
+            end
+
+            obj.load();
+            notify(obj, 'TableReloadedFromDisk')
+        end
+
         function removeDuplicates(obj)
+        %removeDuplicates Remove duplicate entries by schema identifier
+        %
+        %   Note: This hidden maintenance method can remove and reorder
+        %   entries and does not emit table-change events.
+
             varName = obj.SchemaIdName;
             ids = obj.entries.(varName);
             [~, iA] = unique(ids);
@@ -1122,9 +1226,27 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 filePath = nansen.metadata.MetaTable.resolveNameToFilepath(nameOrFilepath);
             end
 
+            cache = nansen.metadata.MetaTableCache.instance();
+            metaTable = cache.get(filePath);
+            if ~isempty(metaTable)
+                if metaTable.isClean() && ~metaTable.IsMaster
+                    metaTable.reloadFromDisk()
+                    return
+                elseif metaTable.isLatestVersion()
+                    return
+                elseif metaTable.isClean()
+                    metaTable.reloadFromDisk()
+                    return
+                else
+                    return
+                end
+            end
+
+            filePath = nansen.metadata.MetaTableCache.canonicalizeFilePath(filePath);
             metaTable = nansen.metadata.MetaTable();
             metaTable.filepath = filePath;
             metaTable.load();
+            cache.add(filePath, metaTable)
         end
 
         function filename = createFileName(S)
