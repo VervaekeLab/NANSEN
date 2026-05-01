@@ -330,12 +330,10 @@ classdef SessionTaskMenu < handle
             
             % Create new menu item if menu with this label does not exist
             if isempty(hMenuItem)
+                hMenuItem = uimenu(hParent, 'Text', menuName, 'Tag', menuName);
                 if isa(hParent, 'matlab.ui.Figure')
-                    styledMenuName = obj.styleTopLevelMenuTitle(menuName);
-                else
-                    styledMenuName = menuName;
+                    obj.styleTopLevelMenuTitle(hMenuItem, menuName);
                 end
-                hMenuItem = uimenu(hParent, 'Text', styledMenuName, 'Tag', menuName);
                 obj.hMenuDirs(end+1) = hMenuItem;
             end
             
@@ -533,9 +531,33 @@ classdef SessionTaskMenu < handle
             end
         end
         
-        function menuName = styleTopLevelMenuTitle(obj, menuName)
-            menuName = sprintf('<HTML><FONT color="%s">%s</Font></HTML>', ...
-                obj.TitleColor, menuName);
+        function styleTopLevelMenuTitle(obj, hMenuItem, menuName)
+            if nansen.util.useModernUiComponents()
+                hMenuItem.Text = menuName;
+                if isprop(hMenuItem, 'ForegroundColor')
+                    hMenuItem.ForegroundColor = obj.getTitleColorRgb();
+                end
+            else
+                hMenuItem.Text = sprintf('<HTML><FONT color="%s">%s</Font></HTML>', ...
+                    obj.TitleColor, menuName);
+            end
+        end
+
+        function rgb = getTitleColorRgb(obj)
+            if isnumeric(obj.TitleColor)
+                rgb = obj.TitleColor;
+                return
+            end
+
+            hexColor = char(obj.TitleColor);
+            hexColor = strrep(hexColor, '#', '');
+            if numel(hexColor) ~= 6
+                rgb = [0 0 0];
+                return
+            end
+            rgb = [hex2dec(hexColor(1:2)), ...
+                   hex2dec(hexColor(3:4)), ...
+                   hex2dec(hexColor(5:6))] ./ 255;
         end
 
         function resetSkipRefreshFlag(obj)

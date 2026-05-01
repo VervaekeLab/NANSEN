@@ -26,7 +26,11 @@ classdef Time < nansen.metadata.abstract.TableVariable & nansen.metadata.abstrac
                 dtVector = [obj.Value];
                 dtVector.Format = obj.TimeFormat;
                 dtChar = char(dtVector);
-                dtChar = [repmat( sprintf('\t\t'), numel(obj), 1) , dtChar];
+                if ~nansen.util.useModernUiTable()
+                    % Java column content is tight when adjacent columns use
+                    % different alignment, so legacy tables keep tab padding.
+                    dtChar = [repmat( sprintf('\t\t'), numel(obj), 1) , dtChar];
+                end
                 str = mat2cell(dtChar, ones(numel(obj),1), size(dtChar,2) );
                 
             elseif isa(obj(1).Value, 'char')

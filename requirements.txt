@@ -15,3 +15,4 @@ fex://118460-file-downloader-uploader-with-progress-monitor
 fex://180185-matbox
 https://github.com/ehennestad/hierarchical-data-tree-matlab
 https://github.com/ehennestad/yamlmatlab
+https://github.com/ehennestad/entity-table

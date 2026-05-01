@@ -1062,14 +1062,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function hContextMenu = createSessionTableContextMenu(app)
         %createSessionTableContextMenu Create a context menu for sessions in table
             
-            hContextMenu = uicontextmenu(app.Figure);
+            hContextMenuParent = ancestor(app.UiMetaTableViewer.HTable, 'figure');
+            if isempty(hContextMenuParent)
+                hContextMenuParent = app.Figure;
+            end
+            hContextMenu = uicontextmenu(hContextMenuParent);
             % hContextMenu.ContextMenuOpeningFcn = @(s,e,m) disp('test');%onContextMenuOpening;
         
             % Delete context menu if it exists from before:
             if ~isempty(app.UiMetaTableViewer.TableContextMenu)
                 delete(app.UiMetaTableViewer.TableContextMenu)
             end
-            app.UiMetaTableViewer.TableContextMenu = hContextMenu;
             
             hMenuItem = gobjects(0);
             c = 1;
@@ -1155,8 +1158,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
             % Disable context menu if current type is not a session
             metaTableType = app.CurrentItemType;
-            if ~strcmpi(metaTableType, 'session')
-                app.disableSessionContextMenu()
+            if strcmpi(metaTableType, 'session')
+                app.UiMetaTableViewer.TableContextMenu = hContextMenu;
+            else
+                app.UiMetaTableViewer.TableContextMenu = [];
             end
         end
         
@@ -1245,18 +1250,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.UiMetaTableViewer = h;
             h.CellEditCallback = @app.onMetaTableDataChanged;
             
-            % Add keypress callback to uiw.Table object
-            h.HTable.KeyPressFcn = @app.onKeyPressed;
-            % h.HTable.MouseMotionFcn = @(s,e) onMouseMotionInTable(h, s, e);
-            
-            addlistener(h.HTable, 'MouseMotion', @app.onMouseMoveInTable);
+            h.setKeyPressFcn(@app.onKeyPressed);
+            h.addMouseMotionCallback(@app.onMouseMoveInTable);
             
             h.UpdateColumnFcn = @app.updateTableVariable;
             h.ResetColumnFcn = @app.resetTableVariable;
             h.DeleteColumnFcn = @app.removeTableVariable;
             h.EditColumnFcn = @app.editTableVariableFunction;
 
-            h.GetTableVariableAttributesFcn = @(s,e) app.getTableVariableAttributes();
+            h.GetTableVariableAttributesFcn = @(varargin) app.getTableVariableAttributes();
 
             h.MouseDoubleClickedFcn = @app.onMouseDoubleClickedInTable;
             
@@ -1320,13 +1322,36 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Todo: Get the padding value programmatically
             xPadding = 3;
             
-            parentPosition = getpixelposition(uiTable.HTable.Parent);
-            panelWidth = parentPosition(3);
+            parentPosition = app.getComponentParentContentPosition(uiTable.HTable);
 
-            tablePosition = getpixelposition(uiTable.HTable);
-            tablePosition(1) = w + xPadding;
-            tablePosition(3) = panelWidth - (w + xPadding + 1);
-            setpixelposition(uiTable.HTable, tablePosition)
+            tablePosition = parentPosition;
+            tablePosition(1) = parentPosition(1) + w + xPadding;
+            tablePosition(3) = max(1, ...
+                parentPosition(3) - (w + xPadding + 1));
+            app.setComponentPixelPosition(uiTable.HTable, tablePosition)
+            uiTable.fitColumnsToTableWidth()
+        end
+
+        function position = getComponentParentContentPosition(~, hComponent)
+            parent = hComponent.Parent;
+            if isa(parent, 'matlab.ui.container.Tab') ...
+                    && exist('uim.utility.getContentPixelPosition', 'file') == 2
+                position = uim.utility.getContentPixelPosition(parent);
+            elseif isprop(parent, 'Position')
+                position = [0, 0, parent.Position(3:4)];
+            else
+                position = getpixelposition(parent);
+                position(1:2) = [0, 0];
+            end
+            position(3:4) = max(1, position(3:4));
+        end
+
+        function setComponentPixelPosition(~, hComponent, position)
+            if isprop(hComponent, 'Units')
+                setpixelposition(hComponent, position)
+            else
+                hComponent.Position = position;
+            end
         end
 
         function initializeFileViewer(app, hTab)
@@ -1512,7 +1537,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 str = '';
             end
 
-            set(app.UiMetaTableViewer.HTable.JTable, 'ToolTipText', str)
+            app.UiMetaTableViewer.setTableTooltip(str)
         end
     
         function onAvailableDisksChanged(app)
@@ -1792,8 +1817,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 app.UiMetaTableViewer.refreshTable(app.MetaTable)
                 app.UiMetaTableViewer.setSelectedEntries(selectedEntries);
             else
-                newValue = nansen.metadata.utility.formatTableForDisplay(...
-                    app.MetaTable, evt.ColumnIndex, evt.RowIndex);
+                newValue = app.MetaTable.getFormattedTableData(...
+                    evt.ColumnIndex, evt.RowIndex, app.getMetaTableDisplayContext());
                 newValue = table2cell(newValue);
 
                 app.UiMetaTableViewer.updateCells(...
@@ -2564,7 +2589,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 % effect of having decided to set metatable of
                 % metatableviewer to type table...
                 columnIndex = app.MetaTable.getColumnIndex(variableName);
-                columnData = nansen.metadata.utility.formatTableForDisplay(app.MetaTable, columnIndex);
+                columnData = app.MetaTable.getFormattedTableData(...
+                    columnIndex, [], app.getMetaTableDisplayContext());
                 app.UiMetaTableViewer.updateFormattedTableColumnData(variableName, columnData)
 
                 app.UiMetaTableViewer.refreshColumnModel();
@@ -3361,13 +3387,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function onNewMetaTableSet(app)
             if isempty(app.UiMetaTableViewer);    return;    end
-            app.UiMetaTableViewer.refreshColumnModel()
+            refreshCleanup = app.UiMetaTableViewer.suspendRefresh();
+            app.UiMetaTableViewer.refreshColumnModel(false)
             if ~strcmpi(app.UiMetaTableViewer.MetaTableType, app.MetaTable.getTableType())
                 % If table type is changed, use the flush option.
                 app.UiMetaTableViewer.refreshTable(app.MetaTable, true)
             else
                 app.UiMetaTableViewer.refreshTable(app.MetaTable)
             end
+            delete(refreshCleanup)
+            app.updateMetaTableViewerPosition()
             app.updateTableItemCount()
         end
         
@@ -4251,6 +4280,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function saveMetatableColumnSettingsToProject(app)
             if isempty(app.UiMetaTableViewer); return; end
+            if ismethod(app.UiMetaTableViewer, 'flushColumnSettings')
+                app.UiMetaTableViewer.flushColumnSettings()
+            end
             columnSettings = app.UiMetaTableViewer.ColumnSettings;
             currentProjectName = app.ProjectManager.CurrentProject;
             projectObj = app.ProjectManager.getProjectObject(currentProjectName);
@@ -4264,6 +4296,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             projectObj = app.ProjectManager.getProjectObject(currentProjectName);
 
             columnSettings = projectObj.loadData('MetatableColumnSettings', "LoadFromJson", true);
+        end
+
+        function displayContext = getMetaTableDisplayContext(app)
+            displayContext = 'legacy';
+            if ~isempty(app.UiMetaTableViewer) && app.UiMetaTableViewer.usesModernBackend()
+                displayContext = 'modern';
+            end
         end
     end
 
