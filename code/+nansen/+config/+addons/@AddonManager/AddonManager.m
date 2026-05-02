@@ -124,7 +124,14 @@ classdef AddonManager < handle
                 addonEntry = addonEntries(i);
                 if ~addonEntry.IsInstalled
                     obj.downloadAddon(addonEntry.Name)
-                    numAddonsInstalled = numAddonsInstalled + 1;
+
+                    obj.refreshManagedAddons("SelectedModules", modules);
+                    addonEntries = obj.getManagedAddonsForModules(modules);
+                    matchIdx = find(arrayfun(@(x) x.Name == addonEntry.Name, addonEntries), 1);
+
+                    if ~isempty(matchIdx) && addonEntries(matchIdx).IsInstalled
+                        numAddonsInstalled = numAddonsInstalled + 1;
+                    end
                 end
             end
             obj.saveAddonList()
