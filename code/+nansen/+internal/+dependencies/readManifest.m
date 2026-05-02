@@ -55,7 +55,13 @@ function dependencies = readManifest(manifestFilePath)
 end
 
 function validateManifestStructure(manifestData)
-%validateManifestStructure Verify top-level manifest fields exist.
+%validateManifestStructure Verify top-level manifest fields exist and the
+%schema version is supported.
+    persistent supportedSchemaVersion
+    if isempty(supportedSchemaVersion)
+        supportedSchemaVersion = "1.0";
+    end
+
     manifestFields = string(fieldnames(manifestData));
     % jsondecode mangles leading underscores, so _schema_version becomes
     % x_schema_version in the resulting struct.
@@ -65,6 +71,13 @@ function validateManifestStructure(manifestData)
     if ~hasPayloadFields || ~hasVersionField
         error("NANSEN:Dependencies:InvalidManifest", ...
             "Manifest is missing required top-level fields.");
+    end
+
+    schemaVersion = string(manifestData.x_schema_version);
+    if schemaVersion ~= supportedSchemaVersion
+        error("NANSEN:Dependencies:UnsupportedSchemaVersion", ...
+            "Manifest schema version '%s' is not supported. Expected '%s'.", ...
+            schemaVersion, supportedSchemaVersion);
     end
 end
 
