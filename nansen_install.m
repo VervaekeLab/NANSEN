@@ -26,6 +26,9 @@ function nansen_install(options)
     end
 
     if ismissing(options.AddonFolder)
+        if isempty(userpath())
+            nansen.internal.setup.resolveEmptyUserpath()
+        end
         options.AddonFolder = nansen.config.addons.getDefaultAddonFolder();
     end
 
