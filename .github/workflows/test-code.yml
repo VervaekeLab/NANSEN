@@ -6,8 +6,8 @@ on:
     paths-ignore:
       - '*md'
       - '.github/**'
-
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     branches: [ "main", "dev" ]
     paths-ignore:
       - '*md'
