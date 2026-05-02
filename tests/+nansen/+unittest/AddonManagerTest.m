@@ -61,8 +61,7 @@ classdef AddonManagerTest < matlab.unittest.TestCase
             % Reset with same storage paths to reload persisted data
             reloadedManager = nansen.config.addons.AddonManager.instance( ...
                 "reset", ...
-                testCase.Fixture.InstallationFolder, ...
-                testCase.Fixture.ManifestFilePath);
+                testCase.Fixture.InstallationFolder);
             % Refresh from same test manifests
             reloadedManager.refreshManagedAddons( ...
                 "ManifestPaths", [testCase.CoreManifestPath, testCase.ModuleManifestPath]);
@@ -181,7 +180,10 @@ classdef AddonManagerTest < matlab.unittest.TestCase
             temporaryFolderFixture = testCase.applyFixture(TemporaryFolderFixture);
             installationFolder = fullfile(temporaryFolderFixture.Folder, 'Add-Ons');
             mkdir(installationFolder);
-            manifestFilePath = fullfile(temporaryFolderFixture.Folder, 'installed_addons.json');
+            manifestFilePath = nansen.config.addons.getAddonManifestFilePath( ...
+                installationFolder);
+            manifestFolder = fileparts(manifestFilePath);
+            if ~isfolder(manifestFolder); mkdir(manifestFolder); end
 
             % Create a fake installed addon folder
             fakeAddonFolder = fullfile(installationFolder, 'TestToolboxA');
@@ -208,7 +210,7 @@ classdef AddonManagerTest < matlab.unittest.TestCase
 
             % Create singleton from pre-seeded manifest (no discovery)
             manager = nansen.config.addons.AddonManager.instance( ...
-                "reset", installationFolder, manifestFilePath);
+                "reset", installationFolder);
             % Refresh from test manifest — should preserve install state
             manager.refreshManagedAddons( ...
                 "ManifestPaths", testCase.CoreManifestPath);
@@ -279,6 +281,68 @@ classdef AddonManagerTest < matlab.unittest.TestCase
             manager.saveAddonList();
             testCase.verifyFalse(manager.IsDirty, ...
                 'Manager should be clean after save')
+        end
+
+        function defaultManifestPathIsInsideDefaultAddonFolder(testCase)
+        %defaultManifestPathIsInsideDefaultAddonFolder Default folder owns its manifest.
+            addonFolder = nansen.config.addons.getDefaultAddonFolder();
+            manifestFilePath = nansen.config.addons.getAddonManifestFilePath( ...
+                addonFolder);
+
+            testCase.verifyEqual(manifestFilePath, ...
+                string(fullfile(addonFolder, 'installed_addons.json')))
+        end
+
+        function customManifestPathIsNamespaced(testCase)
+        %customManifestPathIsNamespaced Custom folders keep NANSEN metadata separate.
+            import matlab.unittest.fixtures.TemporaryFolderFixture
+            temporaryFolderFixture = testCase.applyFixture(TemporaryFolderFixture);
+            addonFolder = fullfile(temporaryFolderFixture.Folder, 'SharedAddons');
+            manifestFilePath = nansen.config.addons.getAddonManifestFilePath( ...
+                addonFolder);
+
+            testCase.verifyEqual(manifestFilePath, ...
+                string(fullfile(addonFolder, '.nansen', 'installed_addons.json')))
+        end
+
+        function uninstallRemovesTrackedAddonsFromCustomFolder(testCase)
+        %uninstallRemovesTrackedAddonsFromCustomFolder Custom root folder is preserved.
+            import matlab.unittest.fixtures.TemporaryFolderFixture
+            temporaryFolderFixture = testCase.applyFixture(TemporaryFolderFixture);
+            addonFolder = fullfile(temporaryFolderFixture.Folder, 'SharedAddons');
+            fakeAddonFolder = fullfile(addonFolder, 'TestToolboxA');
+            mkdir(fakeAddonFolder);
+            addpath(fakeAddonFolder)
+
+            manifestFilePath = nansen.config.addons.getAddonManifestFilePath( ...
+                addonFolder);
+            manifestFolder = fileparts(manifestFilePath);
+            mkdir(manifestFolder);
+
+            addonEntry = nansen.config.addons.AddonManager.DefaultAddonEntry;
+            addonEntry.Name = 'TestToolboxA';
+            addonEntry.IsInstalled = true;
+            addonEntry.FilePath = char(fakeAddonFolder);
+            savedData = struct( ...
+                'type', 'Nansen Configuration: List of Installed Addons', ...
+                'description', 'Test manifest', ...
+                'AddonList', addonEntry);
+
+            fileIdentifier = fopen(manifestFilePath, 'w');
+            fwrite(fileIdentifier, jsonencode(savedData, 'PrettyPrint', true), 'char');
+            fclose(fileIdentifier);
+
+            nansen.uninstall( ...
+                "AddonFolder", addonFolder, ...
+                "DeleteAddons", true, ...
+                "DeletePreferences", false)
+
+            testCase.verifyTrue(isfolder(addonFolder), ...
+                'Custom add-on root folder should not be deleted')
+            testCase.verifyFalse(isfolder(fakeAddonFolder), ...
+                'Tracked add-on folder should be deleted')
+            testCase.verifyFalse(isfolder(manifestFolder), ...
+                'NANSEN metadata folder should be deleted')
         end
     end
 

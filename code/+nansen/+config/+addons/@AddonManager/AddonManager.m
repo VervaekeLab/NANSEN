@@ -46,13 +46,13 @@ classdef AddonManager < handle
     end
 
     methods (Access = private) % Constructor (private -> singleton)
-        function obj = AddonManager(installationFolder, manifestFilePath)
+        function obj = AddonManager(installationFolder)
             arguments
                 installationFolder (1,1) string
-                manifestFilePath (1,1) string
             end
             obj.InstallationFolder = installationFolder;
-            obj.ManifestFilePath = manifestFilePath;
+            obj.ManifestFilePath = nansen.config.addons.getAddonManifestFilePath( ...
+                installationFolder);
             obj.loadAddonManifest()
             obj.ensureAddonDependenciesOnPath()
             obj.checkAddonDuplication()
@@ -60,7 +60,7 @@ classdef AddonManager < handle
     end
 
     methods (Static, Hidden) % Get singleton instance
-        function obj = instance(mode, installationFolder, manifestFilePath)
+        function obj = instance(mode, installationFolder)
         %instance Get the singleton AddonManager instance.
         %
         %   obj = AddonManager.instance() returns the singleton instance,
@@ -69,12 +69,11 @@ classdef AddonManager < handle
         %   obj = AddonManager.instance("reset") resets the singleton.
         %   obj = AddonManager.instance("clear") clears the singleton.
         %
-        %   obj = AddonManager.instance("reset", installationFolder, manifestFilePath)
-        %   resets the singleton with custom paths (useful for testing).
+        %   obj = AddonManager.instance("reset", installationFolder)
+        %   resets the singleton with a custom add-on folder.
             arguments
                 mode (1,1) string {mustBeMember(mode, ["normal", "reset", "clear"])} = "normal"
                 installationFolder (1,1) string = missing
-                manifestFilePath (1,1) string = missing
             end
             persistent singletonInstance
             if mode == "clear"
@@ -83,14 +82,11 @@ classdef AddonManager < handle
                 return
             end
             if ismissing(installationFolder)
-                installationFolder = nansen.config.addons.AddonManager.getDefaultInstallationDir();
-            end
-            if ismissing(manifestFilePath)
-                manifestFilePath = nansen.config.addons.AddonManager.getPathForAddonManifest();
+                installationFolder = nansen.config.addons.getDefaultAddonFolder();
             end
             if isempty(singletonInstance) || ~isvalid(singletonInstance) || mode == "reset"
                 singletonInstance = nansen.config.addons.AddonManager( ...
-                    installationFolder, manifestFilePath);
+                    installationFolder);
             end
             obj = singletonInstance;
         end
@@ -601,16 +597,9 @@ classdef AddonManager < handle
     end
 
     methods (Static, Hidden)
-        function pathStr = getDefaultInstallationDir()
-        %getDefaultInstallationDir Get default addon installation directory.
-            nansen.config.addons.AddonManager.ensureUserpathAvailable()
-            pathStr = fullfile(userpath, 'Nansen', 'Add-Ons');
-        end
-
         function checkIfAddonsAreOnPath() % Todo: Needs improvement, not urgent
         %checkIfAddonsAreOnPath Prompt user to add missing addon folders to path.
-            import nansen.config.addons.AddonManager
-            addonDir = AddonManager.getDefaultInstallationDir();
+            addonDir = nansen.config.addons.getDefaultAddonFolder();
             subfolders = utility.path.listSubDir(addonDir, '', {}, 2);
             isOnPath = true(size(subfolders));
             if ~isempty(subfolders)
@@ -648,12 +637,6 @@ classdef AddonManager < handle
             addonEntry(1) = [];
         end
         
-        function ensureUserpathAvailable()
-            if isempty(userpath)
-                nansen.internal.setup.resolveEmptyUserpath()
-            end
-        end
-
         function newAddonList = migrateLegacyAddonList(oldAddonList)
         %migrateLegacyAddonList Remap legacy addon struct fields to new names.
         %   Handles old addon lists that have DownloadUrl, WebUrl,
@@ -709,14 +692,6 @@ classdef AddonManager < handle
     end
 
     methods (Static, Access = private)
-
-        function pathStr = getPathForAddonManifest()
-        %getPathForAddonManifest Get path where local addon list is saved.
-            nansen.config.addons.AddonManager.ensureUserpathAvailable()
-            nansenDirectory = fullfile(userpath, 'Nansen');
-            if ~isfolder(nansenDirectory); mkdir(nansenDirectory); end
-            pathStr = fullfile(nansenDirectory, 'installed_addons.json');
-        end
 
         function installResult = createInstallResult(filePath, installationType, toolboxIdentifier)
             if nargin < 3

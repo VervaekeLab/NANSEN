@@ -48,8 +48,8 @@ classdef AddonManagerFixture < matlab.unittest.fixtures.Fixture
             temporaryFolderFixture = fixture.applyFixture(TemporaryFolderFixture);
             fixture.InstallationFolder = fullfile(temporaryFolderFixture.Folder, 'Add-Ons');
             mkdir(fixture.InstallationFolder);
-            fixture.ManifestFilePath = fullfile( ...
-                temporaryFolderFixture.Folder, 'installed_addons.json');
+            fixture.ManifestFilePath = nansen.config.addons.getAddonManifestFilePath( ...
+                fixture.InstallationFolder);
 
             dependencyManifestPaths = fixture.DependencyManifestPaths;
             if isempty(dependencyManifestPaths)
@@ -58,7 +58,7 @@ classdef AddonManagerFixture < matlab.unittest.fixtures.Fixture
 
             % Create singleton with clean state (no manifest discovery)
             fixture.AddonManager = nansen.config.addons.AddonManager.instance( ...
-                "reset", fixture.InstallationFolder, fixture.ManifestFilePath);
+                "reset", fixture.InstallationFolder);
 
             % Populate from test manifests only
             fixture.AddonManager.refreshManagedAddons( ...

@@ -23,7 +23,7 @@ function addpath()
     nansenRootPath = nansen.toolboxdir();
     if isequal( firstPathOnPath, nansenRootPath ); return; end
 
-    nansenAddonPath = nansen.common.constant.DefaultAddonPath;
+    nansenAddonPath = nansen.config.addons.getDefaultAddonFolder();
     
     warning('off', 'MATLAB:rmpath:DirNotFound')
     rmpath(genpath(nansenRootPath))

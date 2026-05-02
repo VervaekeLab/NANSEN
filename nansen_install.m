@@ -2,7 +2,8 @@
 %
 % Please note:
 %
-%   1) If the userpath is empty, this script will update userpath
+%   1) If the default add-on folder is used and userpath is empty, this
+%      script will update userpath
 %   2) This script will download dependencies for NANSEN
 %   3) This script will add NANSEN and dependencies to the search path
 
@@ -12,6 +13,7 @@ function nansen_install(options)
         options.SavePath (1,1) logical = true
         options.Modules (1,:) string = string.empty
         options.Update (1,1) logical = false
+        options.AddonFolder (1,1) string = missing
     end
 
     nansenProjectFolder = fileparts(mfilename('fullpath')); % Path to nansen codebase
@@ -23,17 +25,17 @@ function nansen_install(options)
               'Could not find folder with code for Nansen')
     end
 
-    % Check that userpath is not empty (can happen on linux platforms)
-    if isempty(userpath)
-        nansen.internal.setup.resolveEmptyUserpath()
+    if ismissing(options.AddonFolder)
+        options.AddonFolder = nansen.config.addons.getDefaultAddonFolder();
     end
 
     % Suppress a warning which is not relevant for users
     warningIdentifier = 'MATLAB:javaclasspath:jarAlreadySpecified';
     warningCleanup = nansen.common.suppressWarning(warningIdentifier); %#ok<NASGU>
 
-    % Get the AddonManager singleton
-    addonManager = nansen.AddonManager();
+    % Get the AddonManager singleton for the selected add-on folder.
+    addonManager = nansen.config.addons.AddonManager.instance( ...
+        "reset", options.AddonFolder);
 
     % We need MatBox first to install other dependencies
     addonManager.downloadAndInstallMatBox()
