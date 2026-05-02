@@ -1,5 +1,8 @@
 name: Generate requirements.txt from manifest
 
+# Only the core manifest feeds requirements.txt. Module manifests are
+# opt-in dependencies installed via nansen_install(Modules=...) and are
+# intentionally not part of the top-level requirements file.
 on:
   push:
     paths:
