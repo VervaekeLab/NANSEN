@@ -121,17 +121,16 @@ classdef AddonManager < handle
 
             numAddonsInstalled = 0;
             for i = 1:numel(addonEntries)
-                addonEntry = addonEntries(i);
-                if ~addonEntry.IsInstalled
-                    obj.downloadAddon(addonEntry.Name)
-
-                    obj.refreshManagedAddons("SelectedModules", modules);
-                    addonEntries = obj.getManagedAddonsForModules(modules);
-                    matchIdx = find(arrayfun(@(x) x.Name == addonEntry.Name, addonEntries), 1);
-
-                    if ~isempty(matchIdx) && addonEntries(matchIdx).IsInstalled
-                        numAddonsInstalled = numAddonsInstalled + 1;
-                    end
+                if addonEntries(i).IsInstalled
+                    continue
+                end
+                % downloadAddon swallows install errors as warnings; the
+                % AddonList entry is only marked IsInstalled on success,
+                % so we read it back to count actual successes.
+                addonIdx = obj.getAddonIndex(addonEntries(i).Name);
+                obj.downloadAddon(addonIdx)
+                if obj.AddonList(addonIdx).IsInstalled
+                    numAddonsInstalled = numAddonsInstalled + 1;
                 end
             end
             obj.saveAddonList()
