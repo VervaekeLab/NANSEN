@@ -5,11 +5,15 @@
 % of what is installed, and adding them to the MATLAB path.
 %
 % Files
-%   AddonPreferences  - Preferences for addon management
+%   AddonPreferences          - Preferences for addon management
+%
+% Functions
+%   getDefaultAddonFolder     - Default folder for NANSEN add-ons (under userpath)
+%   getAddonManifestFilePath  - Manifest path for a given add-on folder
 %
 % Classes
-%   AddonManager      - Install, update and activate addons
-%   AddonManagerUI    - Table UI for managing addons
-%   AddonManagerApp   - App wrapper for AddonManagerUI
+%   AddonManager              - Install, update and activate addons
+%   AddonManagerUI            - Table UI for managing addons
+%   AddonManagerApp           - App wrapper for AddonManagerUI
 %
 % See also nansen.internal.dependencies

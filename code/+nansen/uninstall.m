@@ -1,4 +1,19 @@
 function uninstall(options)
+%uninstall Remove dependencies installed by NANSEN
+%
+%   nansen.uninstall() removes tracked add-ons from the default add-on
+%   folder. NANSEN preferences are kept.
+%
+%   nansen.uninstall(Name=Value) options:
+%       AddonFolder        - Folder to uninstall from. Default: NANSEN's
+%                            default add-on folder.
+%       DeleteAddons       - Remove tracked add-on folders (default: true).
+%       DeletePreferences  - Also delete NANSEN preferences in prefdir
+%                            (default: false).
+%
+%   For the default folder the entire folder is removed. For a custom
+%   folder only paths tracked in the manifest are removed; the custom
+%   root folder is preserved.
 
     arguments
         options.AddonFolder (1,1) string = missing
@@ -6,7 +21,6 @@ function uninstall(options)
         options.DeletePreferences (1,1) logical = false
     end
 
-    % Remove dependencies installed by NANSEN.
     if options.DeleteAddons
         if ismissing(options.AddonFolder)
             options.AddonFolder = nansen.config.addons.getDefaultAddonFolder();
