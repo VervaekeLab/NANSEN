@@ -1,9 +1,5 @@
 # `nansen.internal.setup`
 
-This namespace environment setup helpers for NANSEN.
-
-Its responsibilities are:
-
-- resolve setup prerequisites such as `userpath`
-- configure Java class path dependencies
-- host setup-time environment utilities
+Helpers for preparing the MATLAB environment for NANSEN — fixing things
+like an empty `userpath`, getting required jars onto the Java class path,
+and checking that bundled toolboxes are at the right version.

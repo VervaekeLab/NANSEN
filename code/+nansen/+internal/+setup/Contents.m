@@ -1,12 +1,11 @@
-% Overview of nansen.internal.setup namespace
-% Environment setup utilities for NANSEN.
+% NANSEN.INTERNAL.SETUP - Helpers for preparing the MATLAB environment for NANSEN
 %
-% This package contains setup-time helpers for preparing the MATLAB
-% environment, userpath, Java class path, and other runtime prerequisites.
+% Things we have to fix up before NANSEN can run cleanly: an empty
+% userpath, missing jars on the Java class path, a too-old Widgets Toolbox.
 %
 % Functions
-%   resolveEmptyUserpath            - Resolve missing MATLAB userpath.
-%   addYamlJarToJavaClassPath       - Add YAML jar to Java class path.
-%   addUiwidgetsJarToJavaClassPath  - Add Widgets Toolbox jar to Java path.
-%   isUiwidgetsOnJavapath           - Check Widgets Toolbox Java path setup.
-%   checkWidgetsToolboxVersion      - Check Widgets Toolbox version.
+%   resolveEmptyUserpath            - Set userpath if it is empty (Linux)
+%   addYamlJarToJavaClassPath       - Add the YAML-Matlab jar to the Java class path
+%   addUiwidgetsJarToJavaClassPath  - Add the Widgets Toolbox jar to the Java class path
+%   isUiwidgetsOnJavapath           - True if the Widgets Toolbox jar is on the Java class path
+%   checkWidgetsToolboxVersion      - Verify the installed Widgets Toolbox version

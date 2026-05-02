@@ -1,20 +1,15 @@
 # `nansen.config.addons`
 
-This namespace contains the stateful addon-management layer for NANSEN.
+Handles the side of NANSEN dependency management that touches disk and
+MATLAB's path: downloading and updating community toolboxes, keeping a
+record of what's installed, and exposing UI for users who want to manage
+their addons themselves.
 
-Its responsibilities are:
-
-- persist enriched addon records in `AddonList`
-- install, update, and locate managed addons
-- activate addons for the current MATLAB session
-- provide addon-management UI
-
-It consumes resolved dependency information from
-`nansen.internal.dependencies`, but it owns installation side effects and
-persisted addon state.
+Pairs with `nansen.internal.dependencies`, which works out *what* should
+be installed; this namespace acts on those decisions.
 
 Main entry points:
 
-- `AddonManager`
-- `AddonManagerUI`
-- `AddonManagerApp`
+- `AddonManager` — the singleton most callers should use
+- `AddonManagerUI` — table UI showing the current addon list
+- `AddonManagerApp` — app wrapper around the UI

@@ -1,16 +1,15 @@
-% Overview of nansen.config.addons namespace
-% Managed addon installation and configuration for NANSEN.
+% NANSEN.CONFIG.ADDONS - Install and track community toolboxes used by NANSEN
 %
-% This package contains the stateful addon-management layer. It tracks
-% managed addons, persists enriched addon records, installs and updates
-% community toolboxes, and provides addon-management UI components.
+% Reads the resolved dependency list from nansen.internal.dependencies and
+% handles the side that touches disk: downloading addons, keeping a record
+% of what is installed, and adding them to the MATLAB path.
 %
 % Files
-%   AddonPreferences  - Preferences for addon management.
+%   AddonPreferences  - Preferences for addon management
 %
 % Classes
-%   AddonManager      - Track, install, update, and activate managed addons.
-%   AddonManagerUI    - UI table for addon management.
-%   AddonManagerApp   - App wrapper for the addon manager UI.
+%   AddonManager      - Install, update and activate addons
+%   AddonManagerUI    - Table UI for managing addons
+%   AddonManagerApp   - App wrapper for AddonManagerUI
 %
 % See also nansen.internal.dependencies

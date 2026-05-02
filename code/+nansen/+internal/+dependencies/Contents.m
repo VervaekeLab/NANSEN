@@ -1,13 +1,13 @@
-% Overview for nansen.internal.dependencies namespace.
-% Dependency manifest utilities for NANSEN.
+% NANSEN.INTERNAL.DEPENDENCIES - Read manifests and work out what is needed
 %
-% This package is the stateless dependency layer. It reads dependency
-% manifests, resolves dependencies across scopes, and computes dependency
-% status for the current MATLAB session.
+% Reads dependencies.nansen.json files and works out which dependencies
+% apply for a given set of modules and workflows, what is already
+% installed, and what is missing. Pure inspection — nothing here downloads
+% or writes user state. The install side lives in nansen.config.addons.
 %
 % Functions
-%   readManifest                    - Parse a dependencies.nansen.json file.
-%   resolveRequirements             - Resolve, deduplicate, and filter dependencies.
-%   checkInstallationStatus         - Compute IsInstalled and IsOnPath status.
-%   getRequiredMathworksProducts    - List required MathWorks products.
-%   checkRequiredMathworksProducts  - Warn or error on missing MathWorks products.
+%   readManifest                    - Parse a dependencies.nansen.json file
+%   resolveRequirements             - Combine core + module manifests, dedupe and filter
+%   checkInstallationStatus         - Check IsInstalled and IsOnPath for a list of dependencies
+%   getRequiredMathworksProducts    - List required MathWorks products
+%   checkRequiredMathworksProducts  - Warn or error if required MathWorks products are missing
