@@ -1,7 +1,7 @@
 % Prepare environment and run tutorial initialization 
     
 % run install if nansen dependencies are missing
-deps = nansen.internal.dependencies.resolveRequirements('MissingOnly', false);
+deps = nansen.internal.dependencies.resolveRequirements('MissingOnly', true);
 if ~isempty(deps)
     nansen_install()
 end
