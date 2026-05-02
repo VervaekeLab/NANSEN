@@ -2,16 +2,21 @@ function dependencies = readManifest(manifestFilePath)
 %readManifest Parse a dependencies.nansen.json manifest file.
 %
 %   dependencies = nansen.internal.dependencies.readManifest(manifestFilePath)
-%   reads the manifest at the given path and returns a struct array of
-%   dependency entries, validated against the schema.
+%   reads the manifest at the given path and returns a normalized struct
+%   array of dependency entries.
+%
+%   The manifest is checked for required top-level fields, and each
+%   dependency entry is converted to the expected output shape. Missing
+%   optional fields are filled with defaults.
 %
 %   Input:
 %       manifestFilePath (1,1) string - Absolute path to a
 %           dependencies.nansen.json file.
 %
 %   Output:
-%       dependencies - struct array where each element has all schema
-%           fields. Missing optional fields are filled with defaults.
+%       dependencies - struct array where each element contains the
+%           expected manifest fields. Missing optional fields are filled
+%           with defaults.
 %
 %   Errors:
 %       Throws if the file does not exist, is not valid JSON, or if
