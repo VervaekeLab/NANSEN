@@ -28,7 +28,7 @@ function nansen_install(options)
         nansen.internal.setup.resolveEmptyUserpath()
     end
 
-    % Supress a warning which is not relevant for users
+    % Suppress a warning which is not relevant for users
     warningIdentifier = 'MATLAB:javaclasspath:jarAlreadySpecified';
     warningCleanup = nansen.common.suppressWarning(warningIdentifier); %#ok<NASGU>
 
