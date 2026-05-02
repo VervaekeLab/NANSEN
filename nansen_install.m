@@ -34,13 +34,12 @@ function nansen_install(options)
 
     % Get the AddonManager singleton
     addonManager = nansen.AddonManager();
-    
+
     % We need MatBox first to install other dependencies
     addonManager.downloadAndInstallMatBox()
 
-    % Install core requirements
-    addonManager.installMissingAddons();
-
+    % installMissingAddons / updateAddons both include core requirements
+    % alongside any selected modules (the resolver defaults to IncludeCore).
     if options.Update
         addonManager.updateAddons(options.Modules);
     else
