@@ -89,7 +89,7 @@ function manifestPaths = collectManifestPaths(includeCore, selectedModules)
                 continue
             elseif numel(moduleInfo) > 1
                 warning('NANSEN:Dependencies:MultipleModulesFound', ...
-                    'Multiple modules with name "%s" was found on MATLAB''s search path', selectedModules(i))
+                    'Multiple modules with name "%s" were found on MATLAB''s search path', selectedModules(i))
             end
             currentModuleManifestPath = fullfile(moduleInfo(1).path, 'dependencies.nansen.json');
             if isfile(currentModuleManifestPath)
