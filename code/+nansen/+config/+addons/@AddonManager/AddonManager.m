@@ -276,7 +276,7 @@ classdef AddonManager < handle
         %isAddonInstalled Check if addon is tracked as installed.
             
             tf = false;
-            if any(strcmp({obj.AddonList.Name}, addonName))
+            if any(strcmpi({obj.AddonList.Name}, addonName))
                 addonIndex = obj.getAddonIndex(addonName);
                 tf = obj.AddonList(addonIndex).IsInstalled;
             end

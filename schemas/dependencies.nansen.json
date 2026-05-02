@@ -4,7 +4,7 @@
   "title": "NANSEN Dependency Manifest",
   "description": "Schema for dependencies.nansen.json files that declare dependencies for NANSEN core and modules.",
   "type": "object",
-  "required": ["_schema_version", "_type", "scope", "scopeId", "dependencies"],
+  "required": ["_schema_id", "_schema_version", "_type", "scope", "scopeId", "dependencies"],
   "properties": {
     "_schema_id": {
       "type": "string",
