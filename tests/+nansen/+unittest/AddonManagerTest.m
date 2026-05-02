@@ -287,16 +287,21 @@ classdef AddonManagerTest < matlab.unittest.TestCase
     methods (Test)
         function isAddonInstalledCaseInsensitive(testCase)
         %isAddonInstalledCaseInsensitive Addon lookup by name is case-insensitive.
-        %   isAddonInstalled uses case-sensitive strcmp for the name check,
-        %   so this test documents the current behavior.
+        %   Both the existence check and getAddonIndex use strcmpi, so a
+        %   name that differs only in case must still resolve.
             manager = testCase.Fixture.AddonManager;
             testCase.assumeTrue(any(strcmp({manager.AddonList.Name}, 'TestToolboxA')))
 
-            % isAddonInstalled checks exact name match first, then uses
-            % getAddonIndex (case-insensitive). With exact name, lookup works.
+            % Exact case: addon is in the list, but not installed.
             resultExact = manager.isAddonInstalled('TestToolboxA');
             testCase.verifyFalse(resultExact, ...
                 'TestToolboxA is not installed but name should be found')
+
+            % Case-mismatched lookup must reach the same entry (and not
+            % short-circuit to false because of a case-sensitive miss).
+            resultLower = manager.isAddonInstalled('testtoolboxa');
+            testCase.verifyEqual(resultLower, resultExact, ...
+                'isAddonInstalled should be case-insensitive')
         end
 
         function downloadUnknownAddonThrowsError(testCase)
