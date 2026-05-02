@@ -42,7 +42,6 @@ classdef AddonManager < handle
             'InstallCheck', '', ...
             'InstallationType', '', ...
             'ToolboxIdentifier', '', ...
-            'AddToPathOnInit', false, ...
             'HasMultipleInstancesOnPath', false)
     end
 
@@ -216,7 +215,6 @@ classdef AddonManager < handle
             obj.AddonList(addonIdx).FilePath = pkgInstallationDir;
             obj.AddonList(addonIdx).InstallationType = 'folder';
             obj.AddonList(addonIdx).ToolboxIdentifier = '';
-            obj.AddonList(addonIdx).AddToPathOnInit = true;
             obj.addAddonToMatlabPath(addonIdx)
             obj.AddonList(addonIdx).IsOnPath = true;
             obj.saveAddonList();
@@ -252,7 +250,6 @@ classdef AddonManager < handle
             obj.AddonList(addonIdx).FilePath = obj.getCharOrEmpty(installResult.FilePath);
             obj.AddonList(addonIdx).InstallationType = char(installResult.InstallationType);
             obj.AddonList(addonIdx).ToolboxIdentifier = char(installResult.ToolboxIdentifier);
-            obj.AddonList(addonIdx).AddToPathOnInit = true;
             obj.AddonList(addonIdx).IsInstalled = true;
             obj.AddonList(addonIdx).IsOnPath = true;
             obj.AddonList(addonIdx).DateInstalled = char(datetime("now"));
@@ -298,18 +295,6 @@ classdef AddonManager < handle
             end
         end
 
-        function restoreAddToPathOnInitFlags(obj)
-        %restoreAddToPathOnInitFlags Clear session path flags after permanent save.
-            for i = 1:numel(obj.AddonList)
-                if obj.AddonList(i).IsInstalled
-                    if obj.AddonList(i).AddToPathOnInit
-                        obj.AddonList(i).AddToPathOnInit = false;
-                    end
-                end
-            end
-            obj.saveAddonList()
-        end
-
         function markDirty(obj)
             obj.IsDirty = true;
         end
@@ -336,7 +321,7 @@ classdef AddonManager < handle
 
             managedAddons = removevars(managedAddons, ...
                 ["Source", "DocsSource", "SetupFunctionName", "InstallCheck", ...
-                "ToolboxIdentifier","AddToPathOnInit", "HasMultipleInstancesOnPath"]);
+                "ToolboxIdentifier", "HasMultipleInstancesOnPath"]);
             managedAddons.Name = string(managedAddons.Name);
             managedAddons.Description = string(managedAddons.Description);
             managedAddons = movevars(managedAddons, "IsOnPath", "After", "IsInstalled");
@@ -363,7 +348,6 @@ classdef AddonManager < handle
     methods (Hidden)
         function downloadAndInstallMatBox(obj)
             installResult = obj.createInstallResult("", "folder", "");
-            wasInstalledNow = false;
 
             obj.ensureAddonDefinitionExists('MatBox')
 
@@ -372,7 +356,6 @@ classdef AddonManager < handle
                 filePath = websave('installMatBox.m', sourceFile);
                 [installationFolder, installationMethod] = installMatBox('commit');
                 installResult = obj.createInstallResult(installationFolder, installationMethod, "");
-                wasInstalledNow = true;
                 rehash()
                 delete(filePath);
             else
@@ -408,10 +391,6 @@ classdef AddonManager < handle
             end
             if ~strcmp(addonEntry.ToolboxIdentifier, '')
                 obj.AddonList(addonIdx).ToolboxIdentifier = '';
-                hasChanges = true;
-            end
-            if wasInstalledNow && ~addonEntry.AddToPathOnInit
-                obj.AddonList(addonIdx).AddToPathOnInit = true;
                 hasChanges = true;
             end
             if ~addonEntry.IsInstalled || ...
@@ -590,7 +569,6 @@ classdef AddonManager < handle
             addonEntry.InstallCheck = char(entry.InstallCheck);
             addonEntry.InstallationType = '';
             addonEntry.ToolboxIdentifier = '';
-            addonEntry.AddToPathOnInit = false;
             addonEntry.HasMultipleInstancesOnPath = false;
             
             if entry.IsInstalled

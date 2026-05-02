@@ -424,9 +424,8 @@ classdef AddonManagerUI < applify.apptable
             if strcmp(selection, 'Cancel'); return; end
             
             savepath()
-            
+
             obj.AddonManager.markClean()
-            obj.AddonManager.restoreAddToPathOnInitFlags()
         end
 
         function openAddonWebsite(obj, addonEntry)
