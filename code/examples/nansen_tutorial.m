@@ -9,7 +9,7 @@ catch
 end
 
 % Check whether required Mathworks products are installed.
-nansen.internal.setup.checkRequiredMathworksProducts('error')
+nansen.internal.dependencies.checkRequiredMathworksProducts('error')
 
 try
     nansen.App.getInstance();

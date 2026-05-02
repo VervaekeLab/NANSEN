@@ -40,14 +40,20 @@ addonManager = nansen.AddonManager();
 
 if startsWith(S(selection), 'Allen Brain Observatory')
 
+    addonManager.refreshManagedAddons( ...
+        "SelectedModules", "nansen.module.ophys.twophoton")
     names = {addonManager.AddonList.Name};
-    S = addonManager.AddonList(strcmp(names, "Brain Observatory Toolbox"));
-    if ~S.IsInstalled
-        fprintf('Downloading %s...', S.Name)
-        addonManager.downloadAddon(S.Name)
+    addonEntry = addonManager.AddonList(strcmp(names, "Brain Observatory Toolbox"));
+    if isempty(addonEntry)
+        error('NANSEN:Tutorial:MissingAddonDefinition', ...
+            'Could not find the Brain Observatory Toolbox dependency definition.')
+    end
+    if ~addonEntry.IsInstalled
+        fprintf('Downloading %s...', addonEntry.Name)
+        addonManager.downloadAddon(addonEntry.Name)
         fprintf('Finished.\n')
     end
-    
+
 elseif startsWith(S(selection), 'Nansen - Two-photon Quickstart')
     warnState = warning('off', 'MATLAB:RMDIR:RemovedFromPath');
     warnCleanup = onCleanup(@() warning(warnState));

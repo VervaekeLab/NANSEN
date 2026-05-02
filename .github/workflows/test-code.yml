@@ -22,7 +22,7 @@ concurrency:
 jobs:
   test-code:
     name: Analyse and test code
-    uses: ehennestad/matbox-actions/.github/workflows/test-code-workflow.yml@v1
+    uses: ehennestad/matbox-actions/.github/workflows/test-code-workflow.yml@v1.4
     with:
       source_directory: code
       tests_directory: tests

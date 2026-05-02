@@ -68,17 +68,27 @@ classdef AddonManager < handle
         %   creating it with default paths if needed.
         %
         %   obj = AddonManager.instance("reset") resets the singleton.
+        %   obj = AddonManager.instance("clear") clears the singleton.
         %
         %   obj = AddonManager.instance("reset", installationFolder, manifestFilePath)
         %   resets the singleton with custom paths (useful for testing).
             arguments
-                mode (1,1) string {mustBeMember(mode, ["normal", "reset"])} = "normal"
-                installationFolder (1,1) string = ...
-                    nansen.config.addons.AddonManager.getDefaultInstallationDir()
-                manifestFilePath (1,1) string = ...
-                    nansen.config.addons.AddonManager.getPathForAddonManifest()
+                mode (1,1) string {mustBeMember(mode, ["normal", "reset", "clear"])} = "normal"
+                installationFolder (1,1) string = missing
+                manifestFilePath (1,1) string = missing
             end
             persistent singletonInstance
+            if mode == "clear"
+                singletonInstance = [];
+                obj = [];
+                return
+            end
+            if ismissing(installationFolder)
+                installationFolder = nansen.config.addons.AddonManager.getDefaultInstallationDir();
+            end
+            if ismissing(manifestFilePath)
+                manifestFilePath = nansen.config.addons.AddonManager.getPathForAddonManifest();
+            end
             if isempty(singletonInstance) || ~isvalid(singletonInstance) || mode == "reset"
                 singletonInstance = nansen.config.addons.AddonManager( ...
                     installationFolder, manifestFilePath);
@@ -349,6 +359,8 @@ classdef AddonManager < handle
             installResult = obj.createInstallResult("", "folder", "");
             wasInstalledNow = false;
 
+            obj.ensureAddonDefinitionExists('MatBox')
+
             if ~exist('+matbox/installRequirements', 'file')
                 sourceFile = 'https://raw.githubusercontent.com/ehennestad/matbox-actions/refs/heads/main/install-matbox/installMatBox.m';
                 filePath = websave('installMatBox.m', sourceFile);
@@ -410,6 +422,32 @@ classdef AddonManager < handle
     
         function viewFullAddonListAsTable(obj)
             disp( struct2table(obj.AddonList) )
+        end
+    end
+
+    methods
+
+        function addAddonToMatlabPath(obj, addonIdx)
+        %addAddonToMatlabPath Activate an installed addon for this MATLAB session.
+            addonIdx = obj.getAddonIndex(addonIdx);
+            addonEntry = obj.AddonList(addonIdx);
+            installationType = string(addonEntry.InstallationType);
+
+            if installationType == "mltbx"
+                obj.enableToolboxAddon(addonEntry)
+                return
+            end
+
+            addonFilePath = addonEntry.FilePath;
+            if isempty(addonFilePath) || ~isfolder(addonFilePath)
+                return
+            end
+            pathList = genpath(addonFilePath);
+            pathListCell = strsplit(pathList, pathsep);
+            keep = ~contains(pathListCell, '.git');
+            pathListCell = pathListCell(keep);
+            pathListNoGit = strjoin(pathListCell, pathsep);
+            addpath(pathListNoGit);
         end
     end
 
@@ -488,29 +526,6 @@ classdef AddonManager < handle
             end
         end
 
-        function addAddonToMatlabPath(obj, addonIdx)
-        %addAddonToMatlabPath Activate an installed addon for this MATLAB session.
-            addonIdx = obj.getAddonIndex(addonIdx);
-            addonEntry = obj.AddonList(addonIdx);
-            installationType = string(addonEntry.InstallationType);
-
-            if installationType == "mltbx"
-                obj.enableToolboxAddon(addonEntry)
-                return
-            end
-
-            addonFilePath = addonEntry.FilePath;
-            if isempty(addonFilePath) || ~isfolder(addonFilePath)
-                return
-            end
-            pathList = genpath(addonFilePath);
-            pathListCell = strsplit(pathList, pathsep);
-            keep = ~contains(pathListCell, '.git');
-            pathListCell = pathListCell(keep);
-            pathListNoGit = strjoin(pathListCell, pathsep);
-            addpath(pathListNoGit);
-        end
-
         function addonIdx = getAddonIndex(obj, addonIdx)
         %getAddonIndex Get index of addon by name or pass through numeric index.
             if ischar(addonIdx) || isstring(addonIdx)
@@ -536,6 +551,15 @@ classdef AddonManager < handle
             assert( isfield(installResult, 'FilePath') && ...
                 isfield(installResult, 'InstallationType') && ...
                 isfield(installResult, 'ToolboxIdentifier'))  
+        end
+
+        function ensureAddonDefinitionExists(obj, addonName)
+        %ensureAddonDefinitionExists Populate core addon definitions if needed.
+            if any(strcmpi({obj.AddonList.Name}, addonName))
+                return
+            end
+
+            obj.refreshManagedAddons();
         end
     end
 

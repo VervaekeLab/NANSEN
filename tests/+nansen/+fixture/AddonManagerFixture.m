@@ -64,7 +64,7 @@ classdef AddonManagerFixture < matlab.unittest.fixtures.Fixture
             fixture.AddonManager.refreshManagedAddons( ...
                 "ManifestPaths", dependencyManifestPaths);
 
-            fixture.addTeardown(@() nansen.config.addons.AddonManager.instance("reset"));
+            fixture.addTeardown(@() nansen.config.addons.AddonManager.instance("clear"));
         end
     end
 

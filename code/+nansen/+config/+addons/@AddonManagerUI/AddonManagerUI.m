@@ -147,7 +147,12 @@ classdef AddonManagerUI < applify.apptable
             hS.IsInstalledImage.Position = [X(i) y W(i) 20];
             obj.centerComponent(hS.IsInstalledImage, y)
             
-            if rowData.IsDoubleInstalled
+            isDoubleInstalled = isfield(rowData, 'IsDoubleInstalled') && ...
+                rowData.IsDoubleInstalled;
+            hasMultipleInstances = isfield(rowData, 'HasMultipleInstancesOnPath') && ...
+                rowData.HasMultipleInstancesOnPath;
+
+            if isDoubleInstalled || hasMultipleInstances
                 hS.IsInstalledImage.ImageSource = nansen.internal.getIconPathName('warn.png');
                 hS.IsInstalledImage.Tooltip = 'Warning: Multiple instances of toolbox was found';
             elseif rowData.IsInstalled
@@ -325,7 +330,7 @@ classdef AddonManagerUI < applify.apptable
                     return
             end
             
-            tf = obj.AddonManager.browseAddonPath(addonName);
+            tf = obj.AddonManager.locateAddonPath(addonName);
             
             % Bring figure app back into focus.
             hFigure = ancestor(obj.Parent, 'figure');
@@ -365,7 +370,7 @@ classdef AddonManagerUI < applify.apptable
         
         function onOpenWebsiteButtonPushed(obj, addonName, iRow)
             S = obj.AddonManager.AddonList(iRow);
-            web(S.WebUrl, '-browser')
+            obj.openAddonWebsite(S)
         end
         
         function onToolbarButtonPushed(obj, src, evt)
@@ -386,7 +391,7 @@ classdef AddonManagerUI < applify.apptable
                 case 'Open Addon Website'
                     addonIndices = obj.SelectedRows;
                     S = obj.AddonManager.AddonList(addonIndices(1));
-                    web(S.WebUrl, '-browser')
+                    obj.openAddonWebsite(S)
                     return
             end
         end
@@ -422,6 +427,23 @@ classdef AddonManagerUI < applify.apptable
             
             obj.AddonManager.markClean()
             obj.AddonManager.restoreAddToPathOnInitFlags()
+        end
+
+        function openAddonWebsite(obj, addonEntry)
+        %openAddonWebsite Open documentation URL, falling back to source URL.
+            url = "";
+            if isfield(addonEntry, 'DocsSource') && ~isempty(addonEntry.DocsSource)
+                url = string(addonEntry.DocsSource);
+            elseif isfield(addonEntry, 'WebUrl') && ~isempty(addonEntry.WebUrl)
+                url = string(addonEntry.WebUrl);
+            elseif isfield(addonEntry, 'Source') && ~isempty(addonEntry.Source)
+                url = string(addonEntry.Source);
+            end
+
+            if strlength(url) == 0
+                return
+            end
+            web(char(url), '-browser')
         end
     end
 
