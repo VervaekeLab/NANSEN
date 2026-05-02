@@ -40,10 +40,10 @@ function generateRequirementsTxt(manifestFilePath, outputFilePath)
     % Write output file
     fileContent = strjoin(sourceLines, newline) + newline;
     fileId = fopen(outputFilePath, 'w');
-    cleanupObj = onCleanup(@() fclose(fileId));
     if fileId == -1
         error("NANSEN:Dependencies:FileWriteError", ...
             "Could not open '%s' for writing.", outputFilePath);
     end
+    cleanupObj = onCleanup(@() fclose(fileId));
     fprintf(fileId, '%s', fileContent);
 end
