@@ -1,4 +1,4 @@
-function issues = codecheckToolbox()
+function issues = codecheckToolbox(varargin)
 % codecheckToolbox - Identify code issues for openMINDS_MATLAB toolbox
 
     projectRootDirectory = nansentools.projectdir();
@@ -6,6 +6,7 @@ function issues = codecheckToolbox()
     codeAnalysisFileList = getCodeAnalysisFileList(fullfile(projectRootDirectory)); % local function
 
     issues = matbox.tasks.codecheckToolbox(projectRootDirectory, ...
+        varargin{:}, ...
         "CreateBadge", true, ...
         "FilesToCheck", codeAnalysisFileList);
 end
