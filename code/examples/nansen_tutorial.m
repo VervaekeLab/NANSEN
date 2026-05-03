@@ -1,15 +1,12 @@
-S = ver("widgets");
-if isempty(S)
-    nansen.internal.setup.installWidgetsToolbox()
+% Prepare environment and run tutorial initialization 
+    
+% install core nansen dependencies if missing
+deps = nansen.internal.dependencies.resolveRequirements('MissingOnly', true);
+if ~isempty(deps)
+    nansen.install()
+else
+    nansen.internal.setup.verifyInstallation()
 end
-try
-    nansen.internal.setup.checkWidgetsToolboxVersion();
-catch
-    nansen.internal.setup.installWidgetsToolbox();
-end
-
-% Check whether required Mathworks products are installed.
-nansen.internal.setup.checkRequiredMathworksProducts('error')
 
 try
     nansen.App.getInstance();

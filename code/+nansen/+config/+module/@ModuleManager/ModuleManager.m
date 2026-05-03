@@ -108,6 +108,12 @@ classdef ModuleManager < handle
                 modules{i}.PackageName = modulePackageName;
                 modules{i}.isCoreModule = strcmp(modules{i}.ModuleCategory, 'general');
                 modules{i}.FolderPath = fileparts( moduleSpecFiles{i});
+                requirementManifestPath = fullfile(modules{i}.FolderPath, 'dependencies.nansen.json');
+                if isfile(requirementManifestPath)
+                    modules{i}.RequirementManifestPath = requirementManifestPath;
+                else
+                    modules{i}.RequirementManifestPath = "";
+                end
             end
 
             obj.ModuleList = cat(1, modules{:});

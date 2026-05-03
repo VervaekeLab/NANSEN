@@ -2,7 +2,8 @@
 %
 % Please note:
 %
-%   1) If the userpath is empty, this script will update userpath
+%   1) If the default add-on folder is used and userpath is empty, this
+%      script will update userpath
 %   2) This script will download dependencies for NANSEN
 %   3) This script will add NANSEN and dependencies to the search path
 
@@ -10,6 +11,9 @@ function nansen_install(options)
 
     arguments
         options.SavePath (1,1) logical = true
+        options.Modules (1,:) string = string.empty
+        options.Update (1,1) logical = false
+        options.AddonFolder (1,1) string = missing
     end
 
     nansenProjectFolder = fileparts(mfilename('fullpath')); % Path to nansen codebase
@@ -20,38 +24,60 @@ function nansen_install(options)
         error('NANSEN:Setup:CodeFolderNotFound', ...
               'Could not find folder with code for Nansen')
     end
-    
-    % Check that userpath is not empty (can happen on linux platforms)
-    if isempty(userpath)
-        nansen.internal.setup.resolveEmptyUserpath()
+
+    if ismissing(options.AddonFolder)
+        if isempty(userpath())
+            nansen.internal.setup.resolveEmptyUserpath()
+        end
+        options.AddonFolder = nansen.config.addons.getDefaultAddonFolder();
     end
-        
-    warnState = warning('off', 'MATLAB:javaclasspath:jarAlreadySpecified');
-    warningCleanup = onCleanup(@(state) warning(warnState));
-    
-    % Use MatBox to install dependencies/requirements
-    downloadAndInstallMatBox();
 
-    requirementsInstallationFolder = fullfile(userpath, 'NANSEN', 'Requirements');
-    matbox.installRequirements(nansenProjectFolder, 'u', ...
-        'InstallationLocation', requirementsInstallationFolder)
+    % Suppress a warning which is not relevant for users
+    warningIdentifier = 'MATLAB:javaclasspath:jarAlreadySpecified';
+    warningCleanup = nansen.common.suppressWarning(warningIdentifier); %#ok<NASGU>
 
-    % Add NANSEN toolbox folder to path if it was not added already 
+    % Get the AddonManager singleton for the selected add-on folder.
+    % The singleton resets itself if the folder differs from the current instance.
+    addonManager = nansen.config.addons.AddonManager.instance( ...
+        "AddonFolder", options.AddonFolder);
+
+    disp('Installing dependencies...')
+
+    % We need MatBox first to install other dependencies
+    addonManager.downloadAndInstallMatBox()
+
+    % installMissingAddons / updateAddons both include core requirements
+    % alongside any selected modules (the resolver defaults to IncludeCore).
+    if options.Update
+        addonManager.updateAddons(options.Modules);
+    else
+        numAddonsInstalled = addonManager.installMissingAddons(options.Modules);
+        if numAddonsInstalled == 0
+            disp([ ...
+                'All dependencies are installed. ', ...
+                'Use nansen_install(Update=true) to update dependencies.'])
+        end
+    end
+
+    % Add NANSEN toolbox folder to path if it was not added already
     if ~contains(path(), nansenToolboxFolder)
         addpath(genpath(nansenToolboxFolder))
-        savepath()
     end
-    if options.SavePath
-        savepath()
-    end
-end
 
-function downloadAndInstallMatBox()
-    if ~exist('+matbox/installRequirements', 'file')
-        sourceFile = 'https://raw.githubusercontent.com/ehennestad/matbox-actions/refs/heads/main/install-matbox/installMatBox.m';
-        filePath = websave('installMatBox.m', sourceFile);
-        installMatBox('commit')
-        rehash()
-        delete(filePath);
+    if options.SavePath
+        status = savepath();
+        if status ~= 0
+            warning('NANSEN:Setup:SavePathFailed', ...
+                ['Could not save the MATLAB path. NANSEN is available for this session, ', ...
+                 'but you may need to save the path manually.'])
+        end
     end
+
+    fprintf('Verifying installation... ')
+    try
+        nansen.internal.setup.verifyInstallation()
+    catch exception
+        throwAsCaller(exception)
+    end
+    disp('Success!')
 end

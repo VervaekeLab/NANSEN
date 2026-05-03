@@ -147,7 +147,12 @@ classdef AddonManagerUI < applify.apptable
             hS.IsInstalledImage.Position = [X(i) y W(i) 20];
             obj.centerComponent(hS.IsInstalledImage, y)
             
-            if rowData.IsDoubleInstalled
+            isDoubleInstalled = isfield(rowData, 'IsDoubleInstalled') && ...
+                rowData.IsDoubleInstalled;
+            hasMultipleInstances = isfield(rowData, 'HasMultipleInstancesOnPath') && ...
+                rowData.HasMultipleInstancesOnPath;
+
+            if isDoubleInstalled || hasMultipleInstances
                 hS.IsInstalledImage.ImageSource = nansen.internal.getIconPathName('warn.png');
                 hS.IsInstalledImage.Tooltip = 'Warning: Multiple instances of toolbox was found';
             elseif rowData.IsInstalled
@@ -276,23 +281,11 @@ classdef AddonManagerUI < applify.apptable
                 d = uiprogressdlg(hFig, 'Title', title, 'Message', message, 'Indeterminate', 'on');
             end
             
-            try
-                obj.AddonManager.downloadAddon(addonName, false, true)
-                close(d)
+            installResult = obj.AddonManager.downloadAddon(addonName, false, false);
+            close(d)
 
-            catch ME
-                try
-                    errorMessage =  ME.message;
-                    if ~isempty(ME.cause)
-                        errorMessage = sprintf('%s\nCaused by:\n%s\n\nSee command window for more details.', errorMessage, ME.cause{1}.message);
-                    end
-                    answer = uiconfirm(hFig, errorMessage, "Something went wrong", ...
-                        'Icon', 'error', 'Options', {'Ok'}, 'Interpreter', 'html');
-                catch
-                    answer = uiconfirm(hFig, 'Title', "Something went wrong", ...
-                        'Message', ME.message, 'Icon', 'error', 'Options', {'Ok'});
-                end
-                close(d)
+            if strcmp(installResult.Status, 'failed')
+                obj.showInstallFailureDialog(hFig, installResult)
                 return
             end
             
@@ -325,7 +318,7 @@ classdef AddonManagerUI < applify.apptable
                     return
             end
             
-            tf = obj.AddonManager.browseAddonPath(addonName);
+            tf = obj.AddonManager.locateAddonPath(addonName);
             
             % Bring figure app back into focus.
             hFigure = ancestor(obj.Parent, 'figure');
@@ -365,7 +358,7 @@ classdef AddonManagerUI < applify.apptable
         
         function onOpenWebsiteButtonPushed(obj, addonName, iRow)
             S = obj.AddonManager.AddonList(iRow);
-            web(S.WebUrl, '-browser')
+            obj.openAddonWebsite(S)
         end
         
         function onToolbarButtonPushed(obj, src, evt)
@@ -386,7 +379,7 @@ classdef AddonManagerUI < applify.apptable
                 case 'Open Addon Website'
                     addonIndices = obj.SelectedRows;
                     S = obj.AddonManager.AddonList(addonIndices(1));
-                    web(S.WebUrl, '-browser')
+                    obj.openAddonWebsite(S)
                     return
             end
         end
@@ -419,9 +412,47 @@ classdef AddonManagerUI < applify.apptable
             if strcmp(selection, 'Cancel'); return; end
             
             savepath()
-            
+
             obj.AddonManager.markClean()
-            obj.AddonManager.restoreAddToPathOnInitFlags()
+        end
+
+        function showInstallFailureDialog(~, hFig, installResult)
+        %showInstallFailureDialog Surface a friendly install failure dialog.
+        %   Uses the InstallationResult.Message produced by the
+        %   AddonManager. The full traceback was already written to a log
+        %   file (LogFilePath); we link to it from the command window via
+        %   InstallationReporter.warn so the user gets a clickable entry.
+
+            dialogMessage = installResult.Message;
+            if ~isempty(installResult.LogFilePath)
+                dialogMessage = sprintf( ...
+                    '%s\n\nDetails written to:\n%s', ...
+                    dialogMessage, installResult.LogFilePath);
+            end
+
+            uiconfirm(hFig, dialogMessage, 'Installation failed', ...
+                'Icon', 'error', 'Options', {'Ok'});
+
+            % Also emit a clickable command-window entry so the user can
+            % open the log file directly.
+            nansen.config.addons.InstallationReporter.warn(installResult)
+        end
+
+        function openAddonWebsite(obj, addonEntry)
+        %openAddonWebsite Open documentation URL, falling back to source URL.
+            url = "";
+            if isfield(addonEntry, 'DocsSource') && ~isempty(addonEntry.DocsSource)
+                url = string(addonEntry.DocsSource);
+            elseif isfield(addonEntry, 'WebUrl') && ~isempty(addonEntry.WebUrl)
+                url = string(addonEntry.WebUrl);
+            elseif isfield(addonEntry, 'Source') && ~isempty(addonEntry.Source)
+                url = string(addonEntry.Source);
+            end
+
+            if strlength(url) == 0
+                return
+            end
+            web(char(url), '-browser')
         end
     end
 

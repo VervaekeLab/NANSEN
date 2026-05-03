@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/VervaekeLab/NANSEN/dev/schemas/dependencies.nansen.json",
+  "title": "NANSEN Dependency Manifest",
+  "description": "Schema for dependencies.nansen.json files that declare dependencies for NANSEN core and modules.",
+  "type": "object",
+  "required": ["_schema_id", "_schema_version", "_type", "scope", "scopeId", "dependencies"],
+  "properties": {
+    "_schema_id": {
+      "type": "string",
+      "description": "Canonical URI of the schema that validates this manifest. Used for runtime type-checking by MATLAB and Python."
+    },
+    "_schema_version": {
+      "type": "string",
+      "description": "Version of this schema format.",
+      "const": "1.0"
+    },
+    "_type": {
+      "type": "string",
+      "description": "Type of this manifest.",
+      "const": "NANSEN Dependency Manifest"
+    },
+    "scope": {
+      "type": "string",
+      "enum": ["core", "module"],
+      "description": "Whether this manifest belongs to core NANSEN or a module."
+    },
+    "scopeId": {
+      "type": "string",
+      "description": "Unique identifier for the scope. 'core' for core NANSEN, or a dot-separated module package name (e.g. 'nansen.module.ophys.twophoton')."
+    },
+    "dependencies": {
+      "type": "array",
+      "description": "List of dependency entries.",
+      "items": {
+        "$ref": "#/$defs/dependency"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "dependency": {
+      "type": "object",
+      "required": ["name", "dependencyType", "requirementLevel"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Display name of the dependency."
+        },
+        "dependencyType": {
+          "type": "string",
+          "enum": ["mathworks-product", "community-toolbox"],
+          "description": "Whether this is a MathWorks product or a community toolbox."
+        },
+        "requirementLevel": {
+          "type": "string",
+          "enum": ["required", "optional"],
+          "description": "'required' means NANSEN or the module will not work without it. 'optional' means only specific workflows need it."
+        },
+        "scope": {
+          "type": "string",
+          "enum": ["core", "module", "workflow"],
+          "description": "Overrides the manifest-level scope for this entry. Use 'workflow' for dependencies that belong to a specific workflow within a module. If omitted, inherits from the manifest."
+        },
+        "scopeId": {
+          "type": "string",
+          "description": "Overrides the manifest-level scopeId for this entry. Use a workflow-specific identifier like 'nansen.module.ophys.twophoton.workflow.suite2p'. If omitted, inherits from the manifest."
+        },
+        "source": {
+          "type": "string",
+          "description": "Install URI for community toolboxes. Supports 'fex://' for FileExchange and 'https://github.com/...' for GitHub. Used to generate requirements.txt."
+        },
+        "docsSource": {
+          "type": "string",
+          "description": "URL pointing to installation or usage documentation."
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable summary of what the dependency provides."
+        },
+        "reason": {
+          "type": "string",
+          "description": "Why this dependency is needed. Shown to users for optional dependencies."
+        },
+        "workflowNotes": {
+          "type": "string",
+          "description": "Extra context shown when scope is 'workflow'. Explains which workflow requires this dependency."
+        },
+        "setupHook": {
+          "type": "string",
+          "description": "Callable to invoke once after installation (e.g. a MATLAB function name or Python entry point). Run during nansen_install or equivalent."
+        },
+        "startupHook": {
+          "type": "string",
+          "description": "Callable to invoke on NANSEN startup after the dependency is installed and registered."
+        },
+        "installCheck": {
+          "type": "string",
+          "description": "Symbol name used to verify the dependency is installed (e.g. a function, class, or module name). Checked via language-appropriate introspection."
+        },
+        "versionConstraint": {
+          "type": "string",
+          "description": "Version requirement string. Reserved for future use."
+        }
+      },
+      "if": {
+        "properties": { "dependencyType": { "const": "community-toolbox" } }
+      },
+      "then": {
+        "required": ["source"]
+      },
+      "additionalProperties": false
+    }
+  }
+}

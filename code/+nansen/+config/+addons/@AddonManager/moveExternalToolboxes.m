@@ -6,14 +6,11 @@ function moveExternalToolboxes(obj)
 %   will therefore be moved to MATLAB's userpath.
 
     legacyInstallationDirectory = obj.getDefaultInstallationDirLegacy();
-    %legacyInstallationDirectory = AM.getDefaultInstallationDir();
 
     if isfolder(legacyInstallationDirectory)
         
         % Inform user that addons will be moved to the userpath.
-        newInstallationDirectory = obj.getDefaultInstallationDir();
-        %newInstallationDirectory = AM.getDefaultInstallationDirLegacy();
-
+        newInstallationDirectory = nansen.config.addons.getDefaultAddonFolder();
         msg = sprintf( ...
             "External toolboxes are currently located in the " + ...
             "NANSEN code repository. They will now be moved to the " + ...

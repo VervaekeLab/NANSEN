@@ -1,0 +1,155 @@
+{
+  "_schema_id": "https://raw.githubusercontent.com/VervaekeLab/NANSEN/dev/schemas/dependencies.nansen.json",
+  "_schema_version": "1.0",
+  "_type": "NANSEN Dependency Manifest",
+  "scope": "module",
+  "scopeId": "nansen.module.ophys.twophoton",
+  "dependencies": [
+    {
+      "name": "Image Processing Toolbox",
+      "dependencyType": "mathworks-product",
+      "requirementLevel": "required",
+      "reason": "Needed for two-photon image processing and ROI analysis"
+    },
+    {
+      "name": "Signal Processing Toolbox",
+      "dependencyType": "mathworks-product",
+      "requirementLevel": "optional",
+      "reason": "Used by some motion correction and signal extraction workflows"
+    },
+    {
+      "name": "Statistics and Machine Learning Toolbox",
+      "dependencyType": "mathworks-product",
+      "requirementLevel": "optional",
+      "reason": "Used by EXTRACT for signal decontamination"
+    },
+    {
+      "name": "Parallel Computing Toolbox",
+      "dependencyType": "mathworks-product",
+      "requirementLevel": "optional",
+      "reason": "Speeds up motion correction and ROI extraction"
+    },
+    {
+      "name": "TIFFStack",
+      "dependencyType": "community-toolbox",
+      "requirementLevel": "required",
+      "source": "https://github.com/DylanMuir/TIFFStack",
+      "description": "Virtual TIFF stack for efficient reading of ScanImage TIFF files",
+      "installCheck": "TIFFStack"
+    },
+    {
+      "name": "CaImAn-MATLAB",
+      "dependencyType": "community-toolbox",
+      "scope": "workflow",
+      "scopeId": "nansen.module.ophys.twophoton.workflow.caiman",
+      "requirementLevel": "optional",
+      "source": "https://github.com/flatironinstitute/CaImAn-MATLAB",
+      "description": "Computational toolbox for large scale calcium imaging data analysis",
+      "workflowNotes": "Needed for the CaImAn ROI extraction workflow",
+      "installCheck": "CNMFSetParms"
+    },
+    {
+      "name": "Suite2P-MATLAB",
+      "dependencyType": "community-toolbox",
+      "scope": "workflow",
+      "scopeId": "nansen.module.ophys.twophoton.workflow.suite2p",
+      "requirementLevel": "optional",
+      "source": "https://github.com/cortex-lab/Suite2P",
+      "description": "Fast, accurate and complete two-photon pipeline",
+      "workflowNotes": "Needed for the Suite2P ROI extraction workflow",
+      "installCheck": "build_ops3"
+    },
+    {
+      "name": "EXTRACT",
+      "dependencyType": "community-toolbox",
+      "scope": "workflow",
+      "scopeId": "nansen.module.ophys.twophoton.workflow.extract",
+      "requirementLevel": "optional",
+      "source": "https://github.com/schnitzer-lab/EXTRACT-public",
+      "description": "Tractable and robust automated cell extraction tool for calcium imaging",
+      "workflowNotes": "Needed for the EXTRACT ROI extraction workflow",
+      "installCheck": "run_extract"
+    },
+    {
+      "name": "Bioinformatics Toolbox",
+      "dependencyType": "mathworks-product",
+      "scope": "workflow",
+      "scopeId": "nansen.module.ophys.twophoton.workflow.extract",
+      "requirementLevel": "required",
+      "reason": "Required by the EXTRACT algorithm",
+      "workflowNotes": "Required when using the EXTRACT workflow"
+    },
+    {
+      "name": "Econometrics Toolbox",
+      "dependencyType": "mathworks-product",
+      "scope": "workflow",
+      "scopeId": "nansen.module.ophys.twophoton.workflow.extract",
+      "requirementLevel": "required",
+      "reason": "Required by the EXTRACT algorithm",
+      "workflowNotes": "Required when using the EXTRACT workflow"
+    },
+    {
+      "name": "Wavelet Toolbox",
+      "dependencyType": "mathworks-product",
+      "scope": "workflow",
+      "scopeId": "nansen.module.ophys.twophoton.workflow.extract",
+      "requirementLevel": "required",
+      "reason": "Required by the EXTRACT algorithm",
+      "workflowNotes": "Required when using the EXTRACT workflow"
+    },
+    {
+      "name": "NoRMCorre",
+      "dependencyType": "community-toolbox",
+      "scope": "workflow",
+      "scopeId": "nansen.module.ophys.twophoton.workflow.normcorre",
+      "requirementLevel": "optional",
+      "source": "https://github.com/ehennestad/NoRMCorre",
+      "docsSource": "https://github.com/flatironinstitute/NoRMCorre",
+      "description": "Non-rigid motion correction for calcium imaging data",
+      "installCheck": "normcorre_batch"
+    },
+    {
+      "name": "Flow Registration",
+      "dependencyType": "community-toolbox",
+      "scope": "workflow",
+      "scopeId": "nansen.module.ophys.twophoton.workflow.flowreg",
+      "requirementLevel": "optional",
+      "source": "https://github.com/phflot/flow_registration",
+      "docsSource": "https://github.com/phflot/flow_registration",
+      "description": "Optical flow based motion correction for calcium imaging data",
+      "setupHook": "nansen.wrapper.flowreg.install",
+      "installCheck": "OF_Options"
+    },
+    {
+      "name": "SEUDO",
+      "dependencyType": "community-toolbox",
+      "scope": "workflow",
+      "scopeId": "nansen.module.ophys.twophoton.workflow.seudo",
+      "requirementLevel": "optional",
+      "source": "https://github.com/adamshch/SEUDO",
+      "docsSource": "https://github.com/adamshch/SEUDO",
+      "description": "Calcium signal decontamination",
+      "workflowNotes": "Needed only for the SEUDO signal decontamination workflow",
+      "installCheck": "globalSEUDOWrapper"
+    },
+    {
+      "name": "Neurodata Without Borders",
+      "dependencyType": "community-toolbox",
+      "requirementLevel": "optional",
+      "source": "https://github.com/ehennestad/matnwb",
+      "docsSource": "https://matnwb.readthedocs.io/en/latest/",
+      "description": "MATLAB interface for reading and writing NWB files",
+      "reason": "Required for NWB file export",
+      "installCheck": "nwbRead"
+    },
+    {
+      "name": "Brain Observatory Toolbox",
+      "dependencyType": "community-toolbox",
+      "requirementLevel": "optional",
+      "source": "https://github.com/emeyers/Brain-Observatory-Toolbox",
+      "description": "MATLAB toolbox for interacting with the Allen Brain Observatory",
+      "reason": "Required for Allen Brain Observatory data access",
+      "installCheck": "bot.getSessions"
+    }
+  ]
+}

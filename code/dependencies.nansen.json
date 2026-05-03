@@ -1,0 +1,158 @@
+{
+  "_schema_id": "https://raw.githubusercontent.com/VervaekeLab/NANSEN/dev/schemas/dependencies.nansen.json",
+  "_schema_version": "1.0",
+  "_type": "NANSEN Dependency Manifest",
+  "scope": "core",
+  "scopeId": "core",
+  "dependencies": [
+    {
+      "name": "Image Processing Toolbox",
+      "dependencyType": "mathworks-product",
+      "requirementLevel": "required",
+      "reason": "Needed for basic NANSEN image handling"
+    },
+    {
+      "name": "Parallel Computing Toolbox",
+      "dependencyType": "mathworks-product",
+      "requirementLevel": "optional",
+      "reason": "Enables parallel batch processing of sessions"
+    },
+    {
+      "name": "Widgets Toolbox - Compatibility Support",
+      "dependencyType": "community-toolbox",
+      "requirementLevel": "required",
+      "source": "fex://66235-widgets-toolbox-compatibility-support/1.3.330",
+      "description": "UI widget components used throughout NANSEN",
+      "installCheck": "uiw.widget.Table"
+    },
+    {
+      "name": "Recursively list files and folders",
+      "dependencyType": "community-toolbox",
+      "requirementLevel": "required",
+      "source": "fex://160058-recursively-list-files-and-folders",
+      "description": "Recursive directory listing utility",
+      "installCheck": "recursiveDir"
+    },
+    {
+      "name": "Scalebar for images and plots",
+      "dependencyType": "community-toolbox",
+      "requirementLevel": "required",
+      "source": "fex://109114-scalebar-for-images-and-plots",
+      "description": "Adds scalebars to image and plot axes",
+      "installCheck": "scalebar"
+    },
+    {
+      "name": "Limit figure size",
+      "dependencyType": "community-toolbox",
+      "requirementLevel": "required",
+      "source": "fex://38527-limit-figure-size",
+      "description": "Constrains figure window dimensions",
+      "installCheck": "limitFigSize"
+    },
+    {
+      "name": "cmocean - Perceptually-uniform colormaps",
+      "dependencyType": "community-toolbox",
+      "requirementLevel": "required",
+      "source": "fex://57773-cmocean-perceptually-uniform-colormaps",
+      "description": "Perceptually-uniform colormaps for scientific visualization",
+      "installCheck": "cmocean"
+    },
+    {
+      "name": "Spectral and XYZ Color Functions",
+      "dependencyType": "community-toolbox",
+      "requirementLevel": "required",
+      "source": "fex://7021-spectral-and-xyz-color-functions",
+      "description": "Spectral color conversion functions",
+      "installCheck": "spectrumRGB"
+    },
+    {
+      "name": "Drag & Drop functionality for Java GUI components",
+      "dependencyType": "community-toolbox",
+      "requirementLevel": "required",
+      "source": "fex://53511-drag-drop-functionality-for-java-gui-components",
+      "description": "Drag and drop support for MATLAB Java-based UIs",
+      "installCheck": "dndcontrol"
+    },
+    {
+      "name": "Get structure field names in recursive manner",
+      "dependencyType": "community-toolbox",
+      "requirementLevel": "required",
+      "source": "fex://33262-get-structure-field-names-in-recursive-manner",
+      "description": "Recursively retrieves field names from nested structs",
+      "installCheck": "fieldnamesr"
+    },
+    {
+      "name": "plotboxpos",
+      "dependencyType": "community-toolbox",
+      "requirementLevel": "required",
+      "source": "fex://9615-plotboxpos",
+      "description": "Returns the visible position of a plot box",
+      "installCheck": "plotboxpos"
+    },
+    {
+      "name": "findjobj - Find java handles of Matlab graphic objects",
+      "dependencyType": "community-toolbox",
+      "requirementLevel": "required",
+      "source": "fex://14317-findjobj-find-java-handles-of-matlab-graphic-objects",
+      "description": "Finds underlying Java objects for MATLAB graphics",
+      "installCheck": "findjobj"
+    },
+    {
+      "name": "getjframe - Retrieves a figure's underlying Java frame",
+      "dependencyType": "community-toolbox",
+      "requirementLevel": "required",
+      "source": "fex://15830-getjframe-retrieves-a-figure-s-underlying-java-frame",
+      "description": "Retrieves the Java frame for a MATLAB figure",
+      "installCheck": "getjframe"
+    },
+    {
+      "name": "undecorateFig",
+      "dependencyType": "community-toolbox",
+      "requirementLevel": "required",
+      "source": "fex://50111-undecoratefig-remove-restore-figure-border-and-title-bar",
+      "description": "Removes or restores figure border and title bar",
+      "installCheck": "undecorateFig"
+    },
+    {
+      "name": "Catalog",
+      "dependencyType": "community-toolbox",
+      "requirementLevel": "required",
+      "source": "fex://158241-catalog",
+      "description": "Collection for unique, named and ordered items",
+      "installCheck": "PersistentCatalog"
+    },
+    {
+      "name": "File downloader/uploader with progress monitor",
+      "dependencyType": "community-toolbox",
+      "requirementLevel": "required",
+      "source": "fex://118460-file-downloader-uploader-with-progress-monitor",
+      "description": "Downloads and uploads files with progress indication",
+      "installCheck": "downloadFile"
+    },
+    {
+      "name": "MatBox",
+      "dependencyType": "community-toolbox",
+      "requirementLevel": "required",
+      "source": "fex://180185-matbox",
+      "description": "MATLAB package manager for requirements installation",
+      "installCheck": "matbox.VersionNumber"
+    },
+    {
+      "name": "Hierarchical Data Tree",
+      "dependencyType": "community-toolbox",
+      "requirementLevel": "required",
+      "source": "https://github.com/ehennestad/hierarchical-data-tree-matlab",
+      "description": "Tree data structure for hierarchical data",
+      "installCheck": "datatree.model.TreeNodeProvider"
+    },
+    {
+      "name": "YAML-Matlab",
+      "dependencyType": "community-toolbox",
+      "requirementLevel": "required",
+      "source": "https://github.com/ehennestad/yamlmatlab",
+      "description": "Reading and writing YAML files in MATLAB",
+      "setupHook": "nansen.internal.setup.addYamlJarToJavaClassPath",
+      "installCheck": "yaml.WriteYaml"
+    }
+  ]
+}

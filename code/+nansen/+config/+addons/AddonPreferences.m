@@ -6,7 +6,7 @@ classdef AddonPreferences < nansen.external.fex.utility.Preferences
 
     properties
         % Directory to save Nansen Addons
-        AddonDirectory = fullfile(userpath, 'Nansen-Addons')
+        AddonDirectory = nansen.config.addons.getDefaultAddonFolder()
     end
 
     methods (Access = ?nansen.external.fex.utility.Preferences)

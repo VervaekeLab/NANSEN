@@ -10,6 +10,16 @@ function hApp = nansen(userName, flags)
         flags (1,1) string
     end
 
+    nansen.internal.introspection.assertSingleVersionOnPath('nansen')
+    
+    % Java classpath setup is a recurring pain. Verify that everything is
+    % set up correctly before continuing.
+    try
+        nansen.internal.setup.verifyJavaDependencies() 
+    catch exception
+        throwAsCaller(exception)
+    end
+
     userName = char(userName);
     openApp = ~any(strcmp(string(flags), '-nogui'));
 

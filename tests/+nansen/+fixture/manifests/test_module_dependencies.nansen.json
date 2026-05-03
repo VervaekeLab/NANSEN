@@ -1,0 +1,42 @@
+{
+  "_schema_id": "https://raw.githubusercontent.com/VervaekeLab/NANSEN/dev/schemas/dependencies.nansen.json",
+  "_schema_version": "1.0",
+  "_type": "NANSEN Dependency Manifest",
+  "scope": "module",
+  "scopeId": "test.module.alpha",
+  "dependencies": [
+    {
+      "name": "TestToolboxC",
+      "dependencyType": "community-toolbox",
+      "requirementLevel": "required",
+      "source": "https://github.com/test-org/TestToolboxC",
+      "description": "Required module community toolbox for testing",
+      "installCheck": "TestToolboxCCheck"
+    },
+    {
+      "name": "TestToolboxA",
+      "dependencyType": "community-toolbox",
+      "requirementLevel": "optional",
+      "source": "https://github.com/test-org/TestToolboxA",
+      "description": "Duplicate of core dependency at module scope (optional here)",
+      "installCheck": "TestToolboxACheck"
+    },
+    {
+      "name": "TestWorkflowTool",
+      "dependencyType": "community-toolbox",
+      "requirementLevel": "optional",
+      "scope": "workflow",
+      "scopeId": "test.module.alpha.workflow.beta",
+      "source": "https://github.com/test-org/TestWorkflowTool",
+      "description": "Workflow-scoped community toolbox for testing",
+      "installCheck": "TestWorkflowToolCheck",
+      "reason": "Needed for beta workflow"
+    },
+    {
+      "name": "Signal Processing Toolbox",
+      "dependencyType": "mathworks-product",
+      "requirementLevel": "optional",
+      "reason": "Optional MathWorks product at module scope"
+    }
+  ]
+}
