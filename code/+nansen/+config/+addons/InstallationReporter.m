@@ -121,7 +121,7 @@ classdef InstallationReporter
             logFilePath = fullfile(logFolder, sprintf('%s_%s.log', ...
                 timestamp, addonSlug));
 
-            fileIdentifier = fopen(logFilePath, 'w');
+            fileIdentifier = fopen(logFilePath, 'wt');
             if fileIdentifier == -1
                 logFilePath = '';
                 return
