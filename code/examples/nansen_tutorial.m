@@ -1,9 +1,11 @@
 % Prepare environment and run tutorial initialization 
     
-% run install if nansen dependencies are missing
+% install core nansen dependencies if missing
 deps = nansen.internal.dependencies.resolveRequirements('MissingOnly', true);
 if ~isempty(deps)
-    nansen_install()
+    addonManager = nansen.config.addons.AddonManager.instance();
+    addonManager.downloadAndInstallMatBox();
+    addonManager.installMissingAddons();
 end
 
 S = ver("widgets"); % NB: should be handled via nansen_install
