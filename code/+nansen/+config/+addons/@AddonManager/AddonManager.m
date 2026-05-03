@@ -91,13 +91,22 @@ classdef AddonManager < handle
                 return
             end
 
+            % If AddonFolder is missing, keep the existing singleton as-is
+            % (regardless of which folder it points to). Only fall back to
+            % the default folder when no singleton exists yet, or when the
+            % caller forces a reset.
+            singletonExists = ~isempty(singletonInstance) && isvalid(singletonInstance);
             if ismissing(options.AddonFolder)
+                if singletonExists && mode ~= "reset"
+                    obj = singletonInstance;
+                    return
+                end
                 options.AddonFolder = nansen.config.addons.getDefaultAddonFolder();
             end
 
-            folderChanged = ~isempty(singletonInstance) && isvalid(singletonInstance) && ...
+            folderChanged = singletonExists && ...
                 ~singletonInstance.isSameFolder(options.AddonFolder);
-            if isempty(singletonInstance) || ~isvalid(singletonInstance) || mode == "reset" || folderChanged
+            if ~singletonExists || mode == "reset" || folderChanged
                 singletonInstance = nansen.config.addons.AddonManager( ...
                     options.AddonFolder);
             end
@@ -877,13 +886,6 @@ classdef AddonManager < handle
                 value = '';
             else
                 value = char(stringValue);
-            end
-        end
-
-        function folderPath = stripTrailingFilesep(folderPath)
-            folderPath = char(folderPath);
-            while numel(folderPath) > 1 && endsWith(folderPath, filesep)
-                folderPath = folderPath(1:end-1);
             end
         end
     end
