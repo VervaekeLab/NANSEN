@@ -281,23 +281,11 @@ classdef AddonManagerUI < applify.apptable
                 d = uiprogressdlg(hFig, 'Title', title, 'Message', message, 'Indeterminate', 'on');
             end
             
-            try
-                obj.AddonManager.downloadAddon(addonName, false, true)
-                close(d)
+            installResult = obj.AddonManager.downloadAddon(addonName, false, false);
+            close(d)
 
-            catch ME
-                try
-                    errorMessage =  ME.message;
-                    if ~isempty(ME.cause)
-                        errorMessage = sprintf('%s\nCaused by:\n%s\n\nSee command window for more details.', errorMessage, ME.cause{1}.message);
-                    end
-                    answer = uiconfirm(hFig, errorMessage, "Something went wrong", ...
-                        'Icon', 'error', 'Options', {'Ok'}, 'Interpreter', 'html');
-                catch
-                    answer = uiconfirm(hFig, 'Title', "Something went wrong", ...
-                        'Message', ME.message, 'Icon', 'error', 'Options', {'Ok'});
-                end
-                close(d)
+            if strcmp(installResult.Status, 'failed')
+                obj.showInstallFailureDialog(hFig, installResult)
                 return
             end
             
@@ -426,6 +414,28 @@ classdef AddonManagerUI < applify.apptable
             savepath()
 
             obj.AddonManager.markClean()
+        end
+
+        function showInstallFailureDialog(~, hFig, installResult)
+        %showInstallFailureDialog Surface a friendly install failure dialog.
+        %   Uses the InstallationResult.Message produced by the
+        %   AddonManager. The full traceback was already written to a log
+        %   file (LogFilePath); we link to it from the command window via
+        %   InstallationReporter.warn so the user gets a clickable entry.
+
+            dialogMessage = installResult.Message;
+            if ~isempty(installResult.LogFilePath)
+                dialogMessage = sprintf( ...
+                    '%s\n\nDetails written to:\n%s', ...
+                    dialogMessage, installResult.LogFilePath);
+            end
+
+            uiconfirm(hFig, dialogMessage, 'Installation failed', ...
+                'Icon', 'error', 'Options', {'Ok'});
+
+            % Also emit a clickable command-window entry so the user can
+            % open the log file directly.
+            nansen.config.addons.InstallationReporter.warn(installResult)
         end
 
         function openAddonWebsite(obj, addonEntry)
