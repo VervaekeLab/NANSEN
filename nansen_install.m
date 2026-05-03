@@ -41,6 +41,8 @@ function nansen_install(options)
     addonManager = nansen.config.addons.AddonManager.instance( ...
         "AddonFolder", options.AddonFolder);
 
+    disp('Installing dependencies...')
+
     % We need MatBox first to install other dependencies
     addonManager.downloadAndInstallMatBox()
 
@@ -62,8 +64,6 @@ function nansen_install(options)
         addpath(genpath(nansenToolboxFolder))
     end
 
-    nansen.internal.setup.verifyInstallation()
-
     if options.SavePath
         status = savepath();
         if status ~= 0
@@ -72,4 +72,12 @@ function nansen_install(options)
                  'but you may need to save the path manually.'])
         end
     end
+
+    fprintf('Verifying installation... ')
+    try
+        nansen.internal.setup.verifyInstallation()
+    catch exception
+        throwAsCaller(exception)
+    end
+    disp('Success!')
 end
