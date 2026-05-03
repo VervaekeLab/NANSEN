@@ -3,20 +3,10 @@
 % install core nansen dependencies if missing
 deps = nansen.internal.dependencies.resolveRequirements('MissingOnly', true);
 if ~isempty(deps)
-    addonManager = nansen.config.addons.AddonManager.instance();
-    addonManager.downloadAndInstallMatBox();
-    addonManager.installMissingAddons();
+    nansen.install()
+else
+    nansen.internal.setup.verifyInstallation()
 end
-
-S = ver("widgets"); % NB: should be handled via nansen_install
-if isempty(S)
-    nansen.internal.setup.installWidgetsToolbox()
-end
-
-nansen.internal.setup.checkWidgetsToolboxVersion();
-
-% Check whether required Mathworks products are installed.
-nansen.internal.dependencies.checkRequiredMathworksProducts('error')
 
 try
     nansen.App.getInstance();
