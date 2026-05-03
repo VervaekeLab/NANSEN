@@ -61,6 +61,9 @@ function nansen_install(options)
     if ~contains(path(), nansenToolboxFolder)
         addpath(genpath(nansenToolboxFolder))
     end
+
+    nansen.internal.setup.verifyInstallation()
+
     if options.SavePath
         status = savepath();
         if status ~= 0
