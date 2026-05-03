@@ -20,18 +20,12 @@ function tf = isDefaultAddonFolder(addonFolder)
 
     defaultAddonFolder = nansen.config.addons.getDefaultAddonFolder();
 
-    addonFolder = stripTrailingFilesep(char(addonFolder));
-    defaultAddonFolder = stripTrailingFilesep(char(defaultAddonFolder));
+    addonFolder = nansen.internal.utility.stripTrailingFilesep(addonFolder);
+    defaultAddonFolder = nansen.internal.utility.stripTrailingFilesep(defaultAddonFolder);
 
     if ispc
         tf = strcmpi(addonFolder, defaultAddonFolder);
     else
         tf = strcmp(addonFolder, defaultAddonFolder);
-    end
-end
-
-function folderPath = stripTrailingFilesep(folderPath)
-    while numel(folderPath) > 1 && endsWith(folderPath, filesep)
-        folderPath = folderPath(1:end-1);
     end
 end

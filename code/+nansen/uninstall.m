@@ -52,7 +52,7 @@ function uninstallAddons(addonFolder)
 
     addonPaths = getTrackedAddonPaths(manifestFilePath);
     addonPaths = addonPaths(isPathInsideFolder(addonPaths, addonFolder));
-    addonPaths = addonPaths(addonPaths ~= stripTrailingFilesep(addonFolder));
+    addonPaths = addonPaths(addonPaths ~= nansen.internal.utility.stripTrailingFilesep(addonFolder));
     addonPaths = sort(addonPaths, "descend");
 
     for i = 1:numel(addonPaths)
@@ -70,8 +70,8 @@ end
 
 function tf = isDefaultAddonFolder(addonFolder, manifestFilePath)
     tf = strcmp( ...
-        stripTrailingFilesep(fileparts(manifestFilePath)), ...
-        stripTrailingFilesep(addonFolder));
+        nansen.internal.utility.stripTrailingFilesep(fileparts(manifestFilePath)), ...
+        nansen.internal.utility.stripTrailingFilesep(addonFolder));
 end
 
 function addonPaths = getTrackedAddonPaths(manifestFilePath)
@@ -95,12 +95,12 @@ function addonPaths = getTrackedAddonPaths(manifestFilePath)
 
     addonPaths = string({addonList.FilePath});
     addonPaths(addonPaths == "" | ismissing(addonPaths)) = [];
-    addonPaths = unique(stripTrailingFilesep(addonPaths));
+    addonPaths = unique(nansen.internal.utility.stripTrailingFilesep(addonPaths));
 end
 
 function tf = isPathInsideFolder(pathList, parentFolder)
-    pathList = stripTrailingFilesep(pathList);
-    parentFolder = stripTrailingFilesep(parentFolder);
+    pathList = nansen.internal.utility.stripTrailingFilesep(pathList);
+    parentFolder = nansen.internal.utility.stripTrailingFilesep(parentFolder);
 
     if ispc
         pathList = lower(pathList);
@@ -118,13 +118,4 @@ function removeFolderFromPath(folderPath)
     warningState = warning("off", "MATLAB:rmpath:DirNotFound");
     cleanup = onCleanup(@() warning(warningState)); %#ok<NASGU>
     rmpath(genpath(folderPath))
-end
-
-function folderPath = stripTrailingFilesep(folderPath)
-    folderPath = string(folderPath);
-    for i = 1:numel(folderPath)
-        while strlength(folderPath(i)) > 1 && endsWith(folderPath(i), filesep)
-            folderPath(i) = extractBefore(folderPath(i), strlength(folderPath(i)));
-        end
-    end
 end
