@@ -60,7 +60,7 @@ classdef AddonManager < handle
     end
 
     methods (Static, Hidden) % Get singleton instance
-        function obj = instance(mode, installationFolder)
+        function obj = instance(mode, options)
         %instance Get the singleton AddonManager instance.
         %
         %   obj = AddonManager.instance() returns the singleton instance,
@@ -69,24 +69,33 @@ classdef AddonManager < handle
         %   obj = AddonManager.instance("reset") resets the singleton.
         %   obj = AddonManager.instance("clear") clears the singleton.
         %
-        %   obj = AddonManager.instance("reset", installationFolder)
-        %   resets the singleton with a custom add-on folder.
+        %   obj = AddonManager.instance("AddonFolder", folder) returns the
+        %   singleton, creating or resetting it if the folder differs.
+        %
+        %   obj = AddonManager.instance("reset", "AddonFolder", folder)
+        %   forces a reset with a specific add-on folder.
+
             arguments
                 mode (1,1) string {mustBeMember(mode, ["normal", "reset", "clear"])} = "normal"
-                installationFolder (1,1) string = missing
+                options.AddonFolder (1,1) string = missing
             end
+
             persistent singletonInstance
             if mode == "clear"
                 singletonInstance = [];
                 obj = [];
                 return
             end
-            if ismissing(installationFolder)
-                installationFolder = nansen.config.addons.getDefaultAddonFolder();
+
+            if ismissing(options.AddonFolder)
+                options.AddonFolder = nansen.config.addons.getDefaultAddonFolder();
             end
-            if isempty(singletonInstance) || ~isvalid(singletonInstance) || mode == "reset"
+
+            folderChanged = ~isempty(singletonInstance) && isvalid(singletonInstance) && ...
+                ~singletonInstance.isSameFolder(options.AddonFolder);
+            if isempty(singletonInstance) || ~isvalid(singletonInstance) || mode == "reset" || folderChanged
                 singletonInstance = nansen.config.addons.AddonManager( ...
-                    installationFolder);
+                    options.AddonFolder);
             end
             obj = singletonInstance;
         end
@@ -546,6 +555,17 @@ classdef AddonManager < handle
 
             obj.refreshManagedAddons();
         end
+    
+        function tf = isSameFolder(obj, folderB)
+            folderA = nansen.internal.utility.stripTrailingFilesep(obj.InstallationFolder);
+            folderB = nansen.internal.utility.stripTrailingFilesep(folderB);
+
+            if ispc
+                tf = strcmpi(folderA, folderB);
+            else
+                tf = strcmp(folderA, folderB);
+            end
+        end
     end
 
     methods (Access = private)
@@ -724,6 +744,13 @@ classdef AddonManager < handle
                 value = '';
             else
                 value = char(stringValue);
+            end
+        end
+
+        function folderPath = stripTrailingFilesep(folderPath)
+            folderPath = char(folderPath);
+            while numel(folderPath) > 1 && endsWith(folderPath, filesep)
+                folderPath = folderPath(1:end-1);
             end
         end
     end

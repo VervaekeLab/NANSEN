@@ -37,8 +37,9 @@ function nansen_install(options)
     warningCleanup = nansen.common.suppressWarning(warningIdentifier); %#ok<NASGU>
 
     % Get the AddonManager singleton for the selected add-on folder.
+    % The singleton resets itself if the folder differs from the current instance.
     addonManager = nansen.config.addons.AddonManager.instance( ...
-        "reset", options.AddonFolder);
+        "AddonFolder", options.AddonFolder);
 
     % We need MatBox first to install other dependencies
     addonManager.downloadAndInstallMatBox()

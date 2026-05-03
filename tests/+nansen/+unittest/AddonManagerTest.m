@@ -49,6 +49,33 @@ classdef AddonManagerTest < matlab.unittest.TestCase
                 'Installation folder should be in a temporary location')
         end
 
+        function instanceReusesSameAddonFolderAndSwitchesDifferentFolder(testCase)
+        %instanceReusesSameAddonFolderAndSwitchesDifferentFolder AddonFolder controls reuse.
+            import matlab.unittest.fixtures.TemporaryFolderFixture
+            temporaryFolderFixture = testCase.applyFixture(TemporaryFolderFixture);
+
+            addonFolder1 = fullfile(temporaryFolderFixture.Folder, 'Add-Ons-1');
+            addonFolder2 = fullfile(temporaryFolderFixture.Folder, 'Add-Ons-2');
+            mkdir(addonFolder1);
+            mkdir(addonFolder2);
+
+            manager1 = nansen.config.addons.AddonManager.instance( ...
+                "reset", "AddonFolder", addonFolder1);
+            manager1.markDirty();
+
+            sameFolderManager = nansen.config.addons.AddonManager.instance( ...
+                "AddonFolder", addonFolder1);
+            testCase.verifyTrue(sameFolderManager.IsDirty, ...
+                'Existing singleton should be reused for the same add-on folder')
+
+            differentFolderManager = nansen.config.addons.AddonManager.instance( ...
+                "AddonFolder", addonFolder2);
+            testCase.verifyEqual( ...
+                differentFolderManager.InstallationFolder, string(addonFolder2))
+            testCase.verifyFalse(differentFolderManager.IsDirty, ...
+                'A different add-on folder should create a new singleton')
+        end
+
         function persistAndReloadManifest(testCase)
         %persistAndReloadManifest Save, reset, and reload round-trip.
             manager = testCase.Fixture.AddonManager;
@@ -60,8 +87,7 @@ classdef AddonManagerTest < matlab.unittest.TestCase
 
             % Reset with same storage paths to reload persisted data
             reloadedManager = nansen.config.addons.AddonManager.instance( ...
-                "reset", ...
-                testCase.Fixture.InstallationFolder);
+                "reset", "AddonFolder", testCase.Fixture.InstallationFolder);
             % Refresh from same test manifests
             reloadedManager.refreshManagedAddons( ...
                 "ManifestPaths", [testCase.CoreManifestPath, testCase.ModuleManifestPath]);
@@ -210,7 +236,7 @@ classdef AddonManagerTest < matlab.unittest.TestCase
 
             % Create singleton from pre-seeded manifest (no discovery)
             manager = nansen.config.addons.AddonManager.instance( ...
-                "reset", installationFolder);
+                "reset", "AddonFolder", installationFolder);
             % Refresh from test manifest — should preserve install state
             manager.refreshManagedAddons( ...
                 "ManifestPaths", testCase.CoreManifestPath);

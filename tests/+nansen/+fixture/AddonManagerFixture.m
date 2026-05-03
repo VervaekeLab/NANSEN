@@ -58,7 +58,7 @@ classdef AddonManagerFixture < matlab.unittest.fixtures.Fixture
 
             % Create singleton with clean state (no manifest discovery)
             fixture.AddonManager = nansen.config.addons.AddonManager.instance( ...
-                "reset", fixture.InstallationFolder);
+                "reset", "AddonFolder", fixture.InstallationFolder);
 
             % Populate from test manifests only
             fixture.AddonManager.refreshManagedAddons( ...
