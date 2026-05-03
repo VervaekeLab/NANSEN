@@ -10,6 +10,8 @@ function hApp = nansen(userName, flags)
         flags (1,1) string
     end
 
+    nansen.internal.introspection.assertSingleVersionOnPath('nansen')
+
     userName = char(userName);
     openApp = ~any(strcmp(string(flags), '-nogui'));
 
