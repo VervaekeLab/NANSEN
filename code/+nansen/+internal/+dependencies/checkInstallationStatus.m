@@ -42,7 +42,12 @@ function statusResults = checkInstallationStatus(resolvedRequirements, trackedAd
             isOnPath = isInstalled;
         else
             isOnPath = isDependencyOnPath(entry);
-            isInstalled = isOnPath || isTrackedAddonInstalled(trackedEntry, installedAddonTable);
+            if isTrackedAddonSetupIncomplete(entry, trackedEntry)
+                isInstalled = false;
+            else
+                isInstalled = isOnPath || ...
+                    isTrackedAddonInstalled(trackedEntry, installedAddonTable);
+            end
         end
 
         statusResults(i).IsInstalled = isInstalled;
@@ -90,6 +95,19 @@ function trackedEntry = getTrackedAddonEntry(entry, trackedAddons)
     if ~isempty(matchIndex)
         trackedEntry = trackedAddons(matchIndex);
     end
+end
+
+function tf = isTrackedAddonSetupIncomplete(entry, trackedEntry)
+%isTrackedAddonSetupIncomplete Check whether setup must be retried.
+    tf = false;
+    if isempty(trackedEntry) || ~isfield(entry, 'SetupHook') || ...
+            strlength(string(entry.SetupHook)) == 0
+        return
+    end
+
+    setupStatus = string(getStructFieldOrDefault( ...
+        trackedEntry, 'SetupStatus', ""));
+    tf = any(setupStatus == ["", "pending", "failed"]);
 end
 
 function tf = isTrackedAddonInstalled(trackedEntry, installedAddonTable)

@@ -39,6 +39,10 @@ classdef AddonManager < handle
             'Source', '', ...
             'DocsSource', '', ...
             'SetupFunctionName', '', ...
+            'SetupStatus', '', ...
+            'SetupErrorIdentifier', '', ...
+            'SetupErrorMessage', '', ...
+            'SetupLogFilePath', '', ...
             'InstallCheck', '', ...
             'InstallationType', '', ...
             'ToolboxIdentifier', '', ...
@@ -113,34 +117,53 @@ classdef AddonManager < handle
             cd(obj.InstallationFolder)
         end
 
-        function numAddonsInstalled = installMissingAddons(obj, modules)
+        function [numAddonsInstalled, installationReport] = installMissingAddons(obj, modules, options)
         % installMissingAddons - Install add-ons that are not installed.
             arguments
                 obj (1,1) nansen.config.addons.AddonManager
                 modules (1,:) string = string.empty
+                options.ShowSummary (1,1) logical = false
             end
 
             obj.refreshManagedAddons("SelectedModules", modules);
             addonEntries = obj.getManagedAddonsForModules(modules);
 
             numAddonsInstalled = 0;
+            installationResultCells = cell(1, numel(addonEntries));
+            numInstallationResults = 0;
             for i = 1:numel(addonEntries)
                 if addonEntries(i).IsInstalled
+                    numInstallationResults = numInstallationResults + 1;
+                    installationResultCells{numInstallationResults} = ...
+                        nansen.config.addons.InstallationResult.create( ...
+                            addonEntries(i), "skipped", "already_installed", ...
+                            "Already installed.");
                     continue
                 end
-                % downloadAddon swallows install errors as warnings; the
-                % AddonList entry is only marked IsInstalled on success,
-                % so we read it back to count actual successes.
                 addonIdx = obj.getAddonIndex(addonEntries(i).Name);
-                obj.downloadAddon(addonIdx)
-                if obj.AddonList(addonIdx).IsInstalled
+                installResult = obj.downloadAddon(addonIdx);
+                numInstallationResults = numInstallationResults + 1;
+                installationResultCells{numInstallationResults} = installResult;
+                if strcmp(installResult.Status, 'succeeded')
                     numAddonsInstalled = numAddonsInstalled + 1;
                 end
             end
             obj.saveAddonList()
+            if numInstallationResults == 0
+                installationResults = ...
+                    nansen.config.addons.InstallationResult.createEmptyResultList();
+            else
+                installationResults = [installationResultCells{1:numInstallationResults}];
+            end
+            installationReport = nansen.config.addons.InstallationResult.createReport( ...
+                installationResults, obj.InstallationFolder);
+
+            if installationReport.HasFailures && (options.ShowSummary || nargout == 0)
+                nansen.config.addons.InstallationReporter.show(installationReport)
+            end
 
             if ~nargout
-                clear numAddonsInstalled
+                clear numAddonsInstalled installationReport
             end
         end
 
@@ -220,6 +243,10 @@ classdef AddonManager < handle
             obj.AddonList(addonIdx).FilePath = pkgInstallationDir;
             obj.AddonList(addonIdx).InstallationType = 'folder';
             obj.AddonList(addonIdx).ToolboxIdentifier = '';
+            obj.AddonList(addonIdx).SetupStatus = 'manual';
+            obj.AddonList(addonIdx).SetupErrorIdentifier = '';
+            obj.AddonList(addonIdx).SetupErrorMessage = '';
+            obj.AddonList(addonIdx).SetupLogFilePath = '';
             obj.addAddonToMatlabPath(addonIdx)
             obj.AddonList(addonIdx).IsOnPath = true;
             obj.saveAddonList();
@@ -227,7 +254,7 @@ classdef AddonManager < handle
         end
 
         % Download (and install) specified Add-On
-        function downloadAddon(obj, addonIdx, updateFlag, throwErrorIfFails)
+        function installResult = downloadAddon(obj, addonIdx, updateFlag, throwErrorIfFails)
         %downloadAddon Install an addon via matbox.
             if nargin < 3; updateFlag = false; end
             if nargin < 4; throwErrorIfFails = false; end
@@ -240,24 +267,36 @@ classdef AddonManager < handle
             sourceUri = string(addonEntry.Source);
 
             try
-                installResult = obj.installViaMatbox( ...
+                matboxResult = obj.installViaMatbox( ...
                     sourceUri, updateFlag);
             catch ME
+                installResult = nansen.config.addons.InstallationResult.create( ...
+                    addonEntry, "failed", "download", ...
+                    nansen.config.addons.InstallationReporter.createUserMessage( ...
+                        addonEntry, "download", ME), ME);
+                installResult.LogFilePath = ...
+                    nansen.config.addons.InstallationReporter.writeErrorLog( ...
+                    installResult, ME, obj.InstallationFolder);
                 if throwErrorIfFails
                     rethrow(ME)
                 else
-                    warning('NANSEN:AddonManager:InstallFailed', ...
-                        'Failed to install %s: %s', addonEntry.Name, ME.message)
+                    if nargout == 0
+                        nansen.config.addons.InstallationReporter.warn( ...
+                            installResult)
+                    end
                     return
                 end
             end
 
-            obj.AddonList(addonIdx).FilePath = obj.getCharOrEmpty(installResult.FilePath);
-            obj.AddonList(addonIdx).InstallationType = char(installResult.InstallationType);
-            obj.AddonList(addonIdx).ToolboxIdentifier = char(installResult.ToolboxIdentifier);
-            obj.AddonList(addonIdx).IsInstalled = true;
+            obj.AddonList(addonIdx).FilePath = obj.getCharOrEmpty(matboxResult.FilePath);
+            obj.AddonList(addonIdx).InstallationType = char(matboxResult.InstallationType);
+            obj.AddonList(addonIdx).ToolboxIdentifier = char(matboxResult.ToolboxIdentifier);
+            obj.AddonList(addonIdx).IsInstalled = false;
             obj.AddonList(addonIdx).IsOnPath = true;
-            obj.AddonList(addonIdx).DateInstalled = char(datetime("now"));
+            obj.AddonList(addonIdx).SetupStatus = obj.getInitialSetupStatus(addonEntry);
+            obj.AddonList(addonIdx).SetupErrorIdentifier = '';
+            obj.AddonList(addonIdx).SetupErrorMessage = '';
+            obj.AddonList(addonIdx).SetupLogFilePath = '';
             obj.addAddonToMatlabPath(addonIdx)
             obj.markDirty()
 
@@ -267,16 +306,48 @@ classdef AddonManager < handle
                     feval(addonEntry.SetupFunctionName)
                 end
             catch MECause
+                installResult = nansen.config.addons.InstallationResult.create( ...
+                    obj.AddonList(addonIdx), "failed", "setup", ...
+                    nansen.config.addons.InstallationReporter.createUserMessage( ...
+                        addonEntry, "setup", MECause), MECause);
+                installResult.LogFilePath = ...
+                    nansen.config.addons.InstallationReporter.writeErrorLog( ...
+                    installResult, MECause, obj.InstallationFolder);
+                obj.AddonList(addonIdx).SetupStatus = 'failed';
+                obj.AddonList(addonIdx).SetupErrorIdentifier = ...
+                    installResult.ErrorIdentifier;
+                obj.AddonList(addonIdx).SetupErrorMessage = ...
+                    installResult.ErrorMessage;
+                obj.AddonList(addonIdx).SetupLogFilePath = ...
+                    installResult.LogFilePath;
+                obj.markDirty()
                 if throwErrorIfFails
                     ME = MException("Nansen:AddonInstallFailed", ...
                         'Setup of the toolbox %s failed.', addonEntry.Name);
                     ME = ME.addCause(MECause);
                     throw(ME)
                 else
-                    warning('Setup of the toolbox %s failed with the following error:', addonEntry.Name)
-                    disp(getReport(MECause, 'extended'))
+                    if nargout == 0
+                        nansen.config.addons.InstallationReporter.warn( ...
+                            installResult)
+                    end
+                    return
                 end
             end
+
+            obj.AddonList(addonIdx).IsInstalled = true;
+            obj.AddonList(addonIdx).IsOnPath = true;
+            obj.AddonList(addonIdx).DateInstalled = char(datetime("now"));
+            obj.AddonList(addonIdx).SetupStatus = obj.getSuccessfulSetupStatus( ...
+                addonEntry);
+            obj.AddonList(addonIdx).SetupErrorIdentifier = '';
+            obj.AddonList(addonIdx).SetupErrorMessage = '';
+            obj.AddonList(addonIdx).SetupLogFilePath = '';
+            obj.markDirty()
+
+            installResult = nansen.config.addons.InstallationResult.create( ...
+                obj.AddonList(addonIdx), "succeeded", "complete", ...
+                sprintf('Installed %s.', addonEntry.Name));
         end
 
         % Check if specified Add-On is installed
@@ -326,7 +397,9 @@ classdef AddonManager < handle
 
             managedAddons = removevars(managedAddons, ...
                 ["Source", "DocsSource", "SetupFunctionName", "InstallCheck", ...
-                "ToolboxIdentifier", "HasMultipleInstancesOnPath"]);
+                "SetupErrorIdentifier", "SetupErrorMessage", ...
+                "SetupLogFilePath", "ToolboxIdentifier", ...
+                "HasMultipleInstancesOnPath"]);
             managedAddons.Name = string(managedAddons.Name);
             managedAddons.Description = string(managedAddons.Description);
             managedAddons = movevars(managedAddons, "IsOnPath", "After", "IsInstalled");
@@ -474,6 +547,10 @@ classdef AddonManager < handle
                 return
             end
 
+            if ~isempty(obj.AddonList)
+                obj.ensureAddonEntryHasSetupFields(1)
+            end
+
             resolvedNames = string({resolvedRequirements.Name});
             currentAddonNames = string({obj.AddonList.Name});
 
@@ -494,7 +571,9 @@ classdef AddonManager < handle
                 obj.AddonList(addonIdx).DocsSource = char(entry.DocsSource);
                 obj.AddonList(addonIdx).SetupFunctionName = char(entry.SetupHook);
                 obj.AddonList(addonIdx).InstallCheck = char(entry.InstallCheck);
-                obj.AddonList(addonIdx).IsInstalled = entry.IsInstalled;
+                obj.ensureAddonEntryHasSetupFields(addonIdx)
+                obj.AddonList(addonIdx).IsInstalled = entry.IsInstalled && ...
+                    ~obj.isAddonSetupIncomplete(addonIdx);
                 obj.AddonList(addonIdx).IsOnPath = entry.IsOnPath;
 
                 if obj.AddonList(addonIdx).IsInstalled && strcmp(obj.AddonList(addonIdx).DateInstalled, 'N/A')
@@ -514,6 +593,38 @@ classdef AddonManager < handle
                     obj.AddonList(i).HasMultipleInstancesOnPath = true;
                 end
             end
+        end
+
+        function ensureAddonEntryHasSetupFields(obj, addonIdx)
+        %ensureAddonEntryHasSetupFields Add setup tracking fields if absent.
+            defaultEntry = obj.getDefaultAddonEntry();
+            setupFields = ["SetupStatus", "SetupErrorIdentifier", ...
+                "SetupErrorMessage", "SetupLogFilePath"];
+
+            for i = 1:numel(setupFields)
+                fieldName = char(setupFields(i));
+                if ~isfield(obj.AddonList, fieldName)
+                    for j = 1:numel(obj.AddonList)
+                        obj.AddonList(j).(fieldName) = defaultEntry.(fieldName);
+                    end
+                end
+            end
+
+            if isempty(obj.AddonList(addonIdx).SetupStatus)
+                if isempty(obj.AddonList(addonIdx).SetupFunctionName)
+                    obj.AddonList(addonIdx).SetupStatus = 'not_required';
+                else
+                    obj.AddonList(addonIdx).SetupStatus = 'pending';
+                end
+            end
+        end
+
+        function tf = isAddonSetupIncomplete(obj, addonIdx)
+        %isAddonSetupIncomplete True when setup must be retried.
+            obj.ensureAddonEntryHasSetupFields(addonIdx)
+
+            setupStatus = string(obj.AddonList(addonIdx).SetupStatus);
+            tf = any(setupStatus == ["", "pending", "failed"]);
         end
 
         function addonIdx = getAddonIndex(obj, addonIdx)
@@ -544,6 +655,24 @@ classdef AddonManager < handle
                 error("NANSEN:AddonManager:UnexpectedInstallResult", ...
                     "matbox.setup.installFromSourceUri returned a result without the expected fields: %s", ...
                     strjoin(missingFields, ", "));
+            end
+        end
+
+        function setupStatus = getInitialSetupStatus(~, addonEntry)
+        %getInitialSetupStatus Status after download and before setup hook.
+            if isempty(addonEntry.SetupFunctionName)
+                setupStatus = 'not_required';
+            else
+                setupStatus = 'pending';
+            end
+        end
+
+        function setupStatus = getSuccessfulSetupStatus(~, addonEntry)
+        %getSuccessfulSetupStatus Status after a completed setup step.
+            if isempty(addonEntry.SetupFunctionName)
+                setupStatus = 'not_required';
+            else
+                setupStatus = 'succeeded';
             end
         end
 
@@ -582,6 +711,10 @@ classdef AddonManager < handle
             addonEntry.Source = char(entry.Source);
             addonEntry.DocsSource = char(entry.DocsSource);
             addonEntry.SetupFunctionName = char(entry.SetupHook);
+            addonEntry.SetupStatus = '';
+            addonEntry.SetupErrorIdentifier = '';
+            addonEntry.SetupErrorMessage = '';
+            addonEntry.SetupLogFilePath = '';
             addonEntry.InstallCheck = char(entry.InstallCheck);
             addonEntry.InstallationType = '';
             addonEntry.ToolboxIdentifier = '';
