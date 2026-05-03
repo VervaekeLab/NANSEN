@@ -11,6 +11,10 @@ function resolvedRequirements = resolveRequirements(options)
 %       IncludeCore (logical) - Include core dependencies. Default: true.
 %       SelectedModules (string array) - Module package names to include.
 %       SelectedWorkflows (string array) - Workflow ScopeIds to include.
+%           Overrides InstallAllWorkflows when non-empty.
+%       InstallAllWorkflows (logical) - Include all workflow-scoped
+%           dependencies for selected modules when SelectedWorkflows is
+%           empty. Default: true.
 %       DependencyTypes (string array) - Filter by DependencyType.
 %           Empty means all types.
 %       RequirementLevels (string array) - Filter by RequirementLevel.
@@ -34,6 +38,7 @@ function resolvedRequirements = resolveRequirements(options)
         options.IncludeCore (1,1) logical = true
         options.SelectedModules (1,:) string = string.empty
         options.SelectedWorkflows (1,:) string = string.empty
+        options.InstallAllWorkflows (1,1) logical = true
         options.DependencyTypes (1,:) string = string.empty
         options.RequirementLevels (1,:) string = string.empty
         options.MissingOnly (1,1) logical = false
@@ -50,7 +55,10 @@ function resolvedRequirements = resolveRequirements(options)
 
     % Filter by scope inclusion
     allDependencies = filterByScope(allDependencies, ...
-        options.IncludeCore, options.SelectedModules, options.SelectedWorkflows);
+        options.IncludeCore, ...
+        options.SelectedModules, ...
+        options.SelectedWorkflows, ...
+        options.InstallAllWorkflows);
 
     % Deduplicate
     resolvedRequirements = deduplicateDependencies(allDependencies);
@@ -117,7 +125,7 @@ function allDependencies = readAllDependencies(manifestPaths)
     end
 end
 
-function dependencies = filterByScope(dependencies, includeCore, selectedModules, selectedWorkflows)
+function dependencies = filterByScope(dependencies, includeCore, selectedModules, selectedWorkflows, installAllWorkflows)
 %filterByScope Keep only dependencies matching the requested scopes.
     if isempty(dependencies)
         return
@@ -131,11 +139,35 @@ function dependencies = filterByScope(dependencies, includeCore, selectedModules
                 keepMask(i) = ~isempty(selectedModules) && ...
                     any(dependencies(i).ScopeId == selectedModules);
             case "workflow"
-                keepMask(i) = ~isempty(selectedWorkflows) && ...
-                    any(dependencies(i).ScopeId == selectedWorkflows);
+                keepMask(i) = shouldIncludeWorkflow( ...
+                    dependencies(i).ScopeId, ...
+                    selectedModules, ...
+                    selectedWorkflows, ...
+                    installAllWorkflows);
         end
     end
     dependencies = dependencies(keepMask);
+end
+
+function tf = shouldIncludeWorkflow(scopeId, selectedModules, selectedWorkflows, installAllWorkflows)
+%shouldIncludeWorkflow Decide whether a workflow-scoped dependency applies.
+    if ~isempty(selectedWorkflows)
+        tf = any(scopeId == selectedWorkflows);
+        return
+    end
+
+    tf = false;
+    if ~installAllWorkflows
+        return
+    end
+
+    for i = 1:numel(selectedModules)
+        workflowScopePrefix = selectedModules(i) + ".workflow.";
+        if startsWith(scopeId, workflowScopePrefix)
+            tf = true;
+            return
+        end
+    end
 end
 
 function resolved = deduplicateDependencies(dependencies)

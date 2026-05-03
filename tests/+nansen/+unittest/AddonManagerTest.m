@@ -411,16 +411,16 @@ classdef AddonManagerTest < matlab.unittest.TestCase
                 'ManagedAddons table should have Name column')
         end
 
-        function workflowScopedDepsRequireWorkflowSelection(testCase)
-        %workflowScopedDepsRequireWorkflowSelection Workflow deps excluded without selection.
+        function moduleRefreshIncludesWorkflowScopedDeps(testCase)
+        %moduleRefreshIncludesWorkflowScopedDeps Module installs include workflow deps.
             manager = testCase.Fixture.AddonManager;
             manager.refreshManagedAddons( ...
                 "ManifestPaths", [testCase.CoreManifestPath, testCase.ModuleManifestPath], ...
                 "SelectedModules", "test.module.alpha");
 
             addonNames = string({manager.AddonList.Name});
-            testCase.verifyFalse(ismember("TestWorkflowTool", addonNames), ...
-                'Workflow-scoped deps should not appear without SelectedWorkflows')
+            testCase.verifyTrue(ismember("TestWorkflowTool", addonNames), ...
+                'Workflow-scoped deps should appear when installing module dependencies')
         end
     end
 end
