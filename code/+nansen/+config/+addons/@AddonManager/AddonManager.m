@@ -330,6 +330,9 @@ classdef AddonManager < handle
                 obj.AddonList(addonIdx).SetupLogFilePath = ...
                     installResult.LogFilePath;
                 obj.markDirty()
+                % Persist failure state so single-addon callers (e.g. UI)
+                % don't lose the retry signal when they catch the throw.
+                obj.saveAddonList()
                 if throwErrorIfFails
                     ME = MException("Nansen:AddonInstallFailed", ...
                         'Setup of the toolbox %s failed.', addonEntry.Name);
