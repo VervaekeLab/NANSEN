@@ -247,7 +247,7 @@ classdef LocalRootPathManager < handle
             
             import nansen.external.fex.sysutil.listMountedDrives
             if nargin < 2
-                volumeInfo = listPhysicalDrives();
+                volumeInfo = listMountedDrives();
             end
             obj.VolumeInfo = volumeInfo;
         end
