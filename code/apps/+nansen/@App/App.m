@@ -368,9 +368,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 app.Figure.Position = prefScreenPos{screenNumber};
             end
 
-            % Configure figure window to have a minimum allowed size.
-            minimumFigureSize = app.getPreference('MinimumFigureSize');
-            LimitFigSize(app.Figure, 'min', minimumFigureSize) % FEX
+            if nansen.util.isJavaFrameSupported()
+                % Configure figure window to have a minimum allowed size.
+                minimumFigureSize = app.getPreference('MinimumFigureSize');
+                LimitFigSize(app.Figure, 'min', minimumFigureSize) % FEX
+            end
         end
         
         function lockWindowPosition(app)
@@ -388,9 +390,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.Figure.WindowKeyPressFcn = @app.onKeyPressed;
             app.Figure.WindowKeyReleaseFcn = @app.onKeyReleased;
             
-            [~, hJ] = evalc('findjobj(app.Figure)');
-            hJ(2).KeyPressedCallback = @app.onKeyPressed;
-            hJ(2).KeyReleasedCallback = @app.onKeyReleased;
+            if nansen.util.isJavaFrameSupported
+                warnCleanup = nansen.ui.legacy.tempDisableJavaFrameWarnings(); %#ok<NASGU>
+                [~, hJ] = evalc('findjobj(app.Figure)');
+                hJ(2).KeyPressedCallback = @app.onKeyPressed;
+                hJ(2).KeyReleasedCallback = @app.onKeyReleased;
+            end
         end
                 
         function createLayout(app)
