@@ -240,7 +240,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
             M = 0; % Margin
 
             if ~isempty(obj.hStatusLabel)
-                parentPosition = getpixelposition(obj.Parent);
+                parentPosition = uim.utility.getContentPixelPosition(obj.Parent);
                 centerPosition = parentPosition(1:2) + parentPosition(3:4) / 2;
                 if obj.UseModernUi
                     newPosition = obj.hStatusLabel(1).Position;
@@ -258,15 +258,16 @@ classdef FileViewer < nansen.AbstractTabPageModule
                 end
             end
 
-            parentPosition = getpixelposition(obj.TabGroup.SelectedTab);
+            parentPosition = uim.utility.getContentPixelPosition(obj.TabGroup.SelectedTab);
 
-            [X, W] = subdividePosition(M, parentPosition(3), [200, 1]);
+            [X, W] = subdividePosition(parentPosition(1)-1, parentPosition(3), [200, 1]);
             H = parentPosition(4);
+            Y = parentPosition(2);
             
             if ~isempty(obj.SessionListBox)
                 if obj.UseModernUi
                     for i = 1:numel(obj.SessionListBox)
-                        obj.SessionListBox(i).Position = [X(1), 1, W(1), H];
+                        obj.SessionListBox(i).Position = [X(1), Y, W(1), H];
                     end
                 else
                     arrayfun(@(h)setpixelposition(h, [X(1), 1, W(1), H]), obj.SessionListBox)
@@ -276,7 +277,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
                 if obj.UseModernUi
                     treeList = struct2cell(obj.hFolderTree);
                     for i = 1:numel(treeList)
-                        treeList{i}.Position = [X(2), 0, W(2)+1, H+2];
+                        treeList{i}.Position = [X(2), Y, W(2), H];
                     end
                 else
                     structfun(@(h) setpixelposition(h, [X(2), 0, W(2)+1, H+2]), obj.hFolderTree);

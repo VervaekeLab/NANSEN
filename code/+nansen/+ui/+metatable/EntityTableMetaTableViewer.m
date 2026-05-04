@@ -795,8 +795,7 @@ classdef EntityTableMetaTableViewer < handle
 
         function position = getParentContentPixelPosition(obj)
             parent = obj.HTable.Parent;
-            if isa(parent, 'matlab.ui.container.Tab') ...
-                    && exist('uim.utility.getContentPixelPosition', 'file') == 2
+            if isa(parent, 'matlab.ui.container.Tab')
                 position = uim.utility.getContentPixelPosition(parent);
             elseif isprop(parent, 'Position')
                 position = [0, 0, parent.Position(3:4)];

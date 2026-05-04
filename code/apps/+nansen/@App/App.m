@@ -1339,8 +1339,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
         function position = getComponentParentContentPosition(~, hComponent)
             parent = hComponent.Parent;
-            if isa(parent, 'matlab.ui.container.Tab') ...
-                    && exist('uim.utility.getContentPixelPosition', 'file') == 2
+            if isa(parent, 'matlab.ui.container.Tab')
                 position = uim.utility.getContentPixelPosition(parent);
             else
                 try
