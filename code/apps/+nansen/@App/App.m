@@ -478,6 +478,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             menuSubItem = uimenu(mitem, 'Text', 'Create File Adapter...', 'Tag', 'core.nansen.configure.file_adapter');
             menuSubItem.MenuSelectedFcn = @(s,e) app.menuCallback_CreateFileAdapter;
 
+            importSubMenu = uimenu(mitem, 'Text', 'Import File Adapter', 'Tag', 'core.nansen.configure.import_file_adapter');
+            menuSubItem = uimenu(importSubMenu, 'Text', 'From File...', 'Tag', 'core.nansen.configure.import_file_adapter.file');
+            menuSubItem.MenuSelectedFcn = @(s,e) app.menuCallback_ImportFileAdapterFromFile;
+            menuSubItem = uimenu(importSubMenu, 'Text', 'From Folder...', 'Tag', 'core.nansen.configure.import_file_adapter.folder');
+            menuSubItem.MenuSelectedFcn = @(s,e) app.menuCallback_ImportFileAdapterFromFolder;
+
             menuSubItem = uimenu(mitem, 'Text', 'Watch Folders...', 'Enable', 'off', 'Tag', 'core.nansen.configure.watch_folders');
             menuSubItem.MenuSelectedFcn = @(s,e) nansen.config.watchfolder.WatchFolderManagerApp;
 
@@ -4080,7 +4086,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
             % Todo: Trigger update?
         end
-        
+
+        function menuCallback_ImportFileAdapterFromFile(app)
+            targetFolder = app.ProjectManager.getCurrentProject().getFileAdapterFolder();
+            nansen.plugin.fileadapter.importFileAdaptersFromFiles(targetFolder);
+        end
+
+        function menuCallback_ImportFileAdapterFromFolder(app)
+            targetFolder = app.ProjectManager.getCurrentProject().getFileAdapterFolder();
+            nansen.plugin.fileadapter.importFileAdaptersFromFolder(targetFolder);
+        end
+
         function menuCallback_RefreshSessionMethod(app)
             app.SessionTaskMenu.refresh()
         end
