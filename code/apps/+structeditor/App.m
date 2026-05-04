@@ -2119,12 +2119,15 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             controlColor = min([1, 1, 1; panelColor + 0.08]);
             buttonColor = min([1, 1, 1; panelColor + 0.12]);
             foregroundColor = obj.Theme.FigureFgColor .* 0.85;
+            popupBackgroundColor = [0.78, 0.78, 0.78];
+            popupForegroundColor = [0.05, 0.05, 0.05];
 
             for i = 1:numel(hUic)
                 if ~isvalid(hUic(i)); continue; end
 
                 hControl = hUic(i);
                 style = lower(hControl.Style);
+                currentForegroundColor = foregroundColor;
 
                 if isprop(hControl.Parent, 'BackgroundColor')
                     parentColor = hControl.Parent.BackgroundColor;
@@ -2135,8 +2138,14 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 switch style
                     case {'text', 'checkbox', 'radiobutton'}
                         hControl.BackgroundColor = parentColor;
-                    case {'edit', 'popupmenu', 'listbox'}
+                    case {'edit', 'listbox'}
                         hControl.BackgroundColor = controlColor;
+                    case 'popupmenu'
+                        % Native popup menus are partly OS-rendered; a
+                        % light surface keeps both closed and opened states
+                        % readable when Java styling is unavailable.
+                        hControl.BackgroundColor = popupBackgroundColor;
+                        currentForegroundColor = popupForegroundColor;
                     case {'pushbutton', 'togglebutton'}
                         hControl.BackgroundColor = buttonColor;
                     otherwise
@@ -2146,7 +2155,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 end
 
                 if isprop(hControl, 'ForegroundColor')
-                    hControl.ForegroundColor = foregroundColor;
+                    hControl.ForegroundColor = currentForegroundColor;
                 end
             end
         end
