@@ -1327,14 +1327,24 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Todo: Get the padding value programmatically
             xPadding = 3;
             
-            parentPosition = app.getComponentParentContentPosition(uiTable.HTable);
+            if uiTable.usesModernBackend()
+                parentPosition = app.getComponentParentContentPosition(uiTable.HTable);
 
-            tablePosition = parentPosition;
-            tablePosition(1) = parentPosition(1) + w + xPadding;
-            tablePosition(3) = max(1, ...
-                parentPosition(3) - (w + xPadding + 1));
-            app.setComponentPixelPosition(uiTable.HTable, tablePosition)
-            uiTable.fitColumnsToTableWidth()
+                tablePosition = parentPosition;
+                tablePosition(1) = parentPosition(1) + w + xPadding;
+                tablePosition(3) = max(1, ...
+                    parentPosition(3) - (w + xPadding + 1));
+                app.setComponentPixelPosition(uiTable.HTable, tablePosition)
+                uiTable.fitColumnsToTableWidth()
+            else
+                parentPosition = getpixelposition(uiTable.HTable.Parent);
+
+                tablePosition = getpixelposition(uiTable.HTable);
+                tablePosition(1) = w + xPadding;
+                tablePosition(3) = max(1, ...
+                    parentPosition(3) - (w + xPadding + 1));
+                setpixelposition(uiTable.HTable, tablePosition)
+            end
         end
 
         function position = getComponentParentContentPosition(~, hComponent)
@@ -2300,7 +2310,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     if isempty(app.UiMetaTableViewer)
                         numItemsTotal = size(app.MetaTable.entries, 1);
                     else
-                        numItemsTotal = size(app.UiMetaTableViewer.HTable.Data, 1);
+                        numItemsTotal = app.UiMetaTableViewer.getDisplayedRowCount();
                     end
                 end
 
@@ -2313,7 +2323,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     if isempty(app.UiMetaTableViewer)
                         numItemsSelected = 0;
                     else
-                        numItemsSelected = numel(app.UiMetaTableViewer.HTable.SelectedRows);
+                        numItemsSelected = app.UiMetaTableViewer.getSelectedRowCount();
                     end
                 end
 
@@ -2379,7 +2389,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function onTableItemSelectionChanged(app, src, evt)
         %onTableItemSelectionChanged Callback for meta table
             numItemsSelected = numel(evt.SelectedRows);
-            numItemsTotal = size(src.HTable.Data, 1);
+            numItemsTotal = src.getDisplayedRowCount();
             
             app.updateTableItemCount(numItemsTotal, numItemsSelected)
             app.updateCustomRowSelectionStatus()
