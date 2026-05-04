@@ -397,12 +397,30 @@ classdef ProjectManagerUI < handle
         %setProjectTablePosition Position the table within the UI
         
             margin = 10;
-            drawnow
-            pause(0.05)
 
-            parentPosition = obj.TabList(2).InnerPosition;
-            tablePosition = parentPosition + [1, 1, -2, -2] * margin;
-            obj.UIControls.ProjectTable.Position = tablePosition;
+            % We need the figure to draw before we position the table in
+            % the parent panel. Do a small polling loop 
+            numTries = 5;
+            lastException = [];
+            
+            for iTry = 1:numTries
+                try
+                    parentPosition = obj.TabList(2).InnerPosition;
+                    tablePosition = parentPosition + [1, 1, -2, -2] * margin;
+                    obj.UIControls.ProjectTable.Position = tablePosition;
+                    break
+            
+                catch exception
+                    lastException = exception;
+            
+                    if iTry == numTries
+                        rethrow(lastException)
+                    end
+            
+                    drawnow
+                    pause(0.05)
+                end
+            end
 
             maxTableWidth = sum( [obj.DefaultColumnWidth{:}] );
             
