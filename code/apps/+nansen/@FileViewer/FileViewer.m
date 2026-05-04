@@ -958,7 +958,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
             mitem = uimenu(m, 'Text', 'Create New Variable from File...', 'Separator', 'on');
             mitem.Callback = @(s, e) obj.onCreateVariableMenuItemClicked();
             
-            importMenu = uimenu(m, 'Text', 'Import File Adapter...');
+            importMenu = uimenu(m, 'Text', 'Import File Adapter');
             mitem = uimenu(importMenu, 'Text', 'From File...');
             mitem.Callback = @(s, e) obj.onImportFileAdapterFromFile();
             mitem = uimenu(importMenu, 'Text', 'From Folder...');
