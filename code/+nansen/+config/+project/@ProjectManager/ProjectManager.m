@@ -144,6 +144,13 @@ classdef ProjectManager < handle
             % Add project to project manager.
             projectInfo = obj.createProjectInfo(name, description, projectRootDir);
             
+            % Add check for whether project folder already exists
+            projectDirectoryPath = char( projectInfo.Path );
+            if isfolder(projectDirectoryPath)
+                error('NANSEN:ProjectManager:ProjectFolderExists', ...
+                    'Can not create project because a folder already exist in this location')
+            end
+
             nansen.config.project.Project.initializeProjectDirectory(projectInfo)
             
             nansen.config.project.Project.updateProjectConfiguration(projectRootDir, projectInfo)
