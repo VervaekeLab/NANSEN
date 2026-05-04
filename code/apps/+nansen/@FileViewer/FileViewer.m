@@ -958,8 +958,11 @@ classdef FileViewer < nansen.AbstractTabPageModule
             mitem = uimenu(m, 'Text', 'Create New Variable from File...', 'Separator', 'on');
             mitem.Callback = @(s, e) obj.onCreateVariableMenuItemClicked();
             
-            mitem = uimenu(m, 'Text', 'Import File Adapter...');
-            mitem.Callback = @(s, e) obj.onCreateFileAdapterMenuItemClicked();
+            importMenu = uimenu(m, 'Text', 'Import File Adapter...');
+            mitem = uimenu(importMenu, 'Text', 'From File...');
+            mitem.Callback = @(s, e) obj.onImportFileAdapterFromFile();
+            mitem = uimenu(importMenu, 'Text', 'From Folder...');
+            mitem.Callback = @(s, e) obj.onImportFileAdapterFromFolder();
             
             mitem = uimenu(m, 'Text', 'Create File Adapter for File...');
             mitem.Callback = @(s, e) obj.onCreateFileAdapterMenuItemClicked();
@@ -1356,6 +1359,18 @@ classdef FileViewer < nansen.AbstractTabPageModule
             
             fileAdapterMetadata.ImplementationType = 'Class';
             nansen.plugin.fileadapter.createFileAdapter(targetPath, fileAdapterMetadata, adapterType)
+        end
+
+        function onImportFileAdapterFromFile(~)
+            project = nansen.getCurrentProject();
+            nansen.plugin.fileadapter.importFileAdaptersFromFiles( ...
+                project.getFileAdapterFolder());
+        end
+
+        function onImportFileAdapterFromFolder(~)
+            project = nansen.getCurrentProject();
+            nansen.plugin.fileadapter.importFileAdaptersFromFolder( ...
+                project.getFileAdapterFolder());
         end
 
         function setNodeFilePath(~, treeNode, filePath)
