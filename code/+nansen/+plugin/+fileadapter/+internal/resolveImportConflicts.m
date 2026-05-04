@@ -17,7 +17,7 @@ function conflictAction = resolveImportConflicts(destNames, targetFolder)
     end
 
     displayNames = regexprep(existingNames, '^[+@]+', '');
-    displayNames = cellfun(@(n) strrep(n, '.m', ''), displayNames, 'uni', 0);
+    displayNames = regexprep(displayNames, '\.m$', '');
 
     answer = questdlg( ...
         sprintf('The following already exist in this project:\n\n  %s\n', ...

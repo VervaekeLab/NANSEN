@@ -6,7 +6,7 @@ function showImportResultsDialog(names, success, messages)
 %   imported adapters, and shows per-item error messages for any failures.
 
     displayNames = regexprep(names, '^[+@]+', '');
-    displayNames = cellfun(@(n) strrep(n, '.m', ''), displayNames, 'uni', 0);
+    displayNames = regexprep(displayNames, '\.m$', '');
 
     skipped  = cellfun(@(m) strcmp(m, 'Skipped'), messages);
     nSuccess = sum(success);
