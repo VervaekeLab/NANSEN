@@ -264,11 +264,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             obj.addComponents(1)
             obj.updateHeaderTitle()
 
-            if exist('applify.uicontrolSchemer', 'class')==8
-                obj.styleControls(1)
-                
-                if obj.showFooter
-                    h = applify.uicontrolSchemer(obj.OptionsManagerControls);
+            obj.styleControls(1)
+
+            if obj.showFooter
+                h = obj.styleUiControls(obj.OptionsManagerControls);
+                if ~isempty(h)
                     obj.UIControlSchemerFooter = h;
                     addlistener(obj, 'ObjectBeingDestroyed', @(src,evt) delete(h));
                     drawnow
@@ -280,8 +280,10 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             % Make them look good.
             if ~isempty(hUic)
-                h = applify.uicontrolSchemer(hUic);
-                obj.UIControlSchemerHeader = h;
+                h = obj.styleUiControls(hUic);
+                if ~isempty(h)
+                    obj.UIControlSchemerHeader = h;
+                end
                 %el = addlistener(obj, 'ObjectBeingDestroyed', @(src,evt) delete(h));
             end
             
@@ -692,6 +694,12 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
             allPanels = [obj.header.hPanel, obj.sidebar.hPanel, obj.main.hPanel];
             set(allPanels, 'BackgroundColor', obj.Theme.FigureBgColor)
+            if ~isempty(obj.headerSubtitle) && isvalid(obj.headerSubtitle)
+                obj.headerSubtitle.BackgroundColor = obj.Theme.FigureBgColor;
+            end
+            if ~obj.canUseLegacyControlStyler()
+                obj.applyNativeControlTheme(findobj(obj.Panel, 'type', 'uicontrol'));
+            end
             
             if obj.showSidePanel
                 bgColor = min( [1,1,1 ; obj.Theme.FigureBgColor+0.01] );
@@ -850,6 +858,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             obj.headerSubtitle.String = '';
             obj.headerSubtitle.HorizontalAlignment = 'center';
             obj.headerSubtitle.ForegroundColor = obj.Theme.FigureFgColor;
+            obj.headerSubtitle.BackgroundColor = obj.Theme.FigureBgColor;
             obj.headerSubtitle.FontUnits = 'pixels';
             obj.headerSubtitle.FontSize = 10;
             obj.headerSubtitle.Position = [2,3,48,15];
@@ -2053,12 +2062,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
         function styleControls(obj, panelNum)
         %styleControls Style ui controls
-        
-            if ~nansen.util.isJavaFrameSupported()
-                % Styling uses legacy JavaFrame/Javacomponent internals.
-                return
-            end
-
             if obj.isStandalone
                 set(obj.Figure, 'Visible', 'on')
             end
@@ -2068,30 +2071,84 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             else
                 hPanel = obj.main.hPanel(panelNum);
             end
-            
-% %             % Find handles of all uicontrols.
-% %             fieldNamesPage = fieldnames(obj.dataOrig{panelNum});
-% %             fieldNamesControls = fieldnames(obj.hControls);
-% %
-% %             keep = ismember(fieldNamesControls, fieldNamesPage);
-            
+
             hUic = findobj(hPanel, 'type', 'uicontrol');
-            
+            h = obj.styleUiControls(hUic);
+            if ~isempty(h)
+                obj.UIControlSchemer(panelNum) = h;
+            elseif obj.canUseLegacyControlStyler()
+                warnCleanup = nansen.ui.legacy.tempDisableJavaFrameWarnings();
+                warnCleanup(end+1) = nansen.ui.legacy.tempDisableJavaComponentWarning(); %#ok<NASGU>
+                obj.UIControlSchemer(panelNum) = applify.uicontrolSchemer();
+            end
+        end
+
+        function h = styleUiControls(obj, hUic)
+        %styleUiControls Style controls using Java styler or native fallback.
+            h = [];
+            if isempty(hUic); return; end
+
+            if ~obj.canUseLegacyControlStyler()
+                obj.applyNativeControlTheme(hUic)
+                return
+            end
+
             warnCleanup = nansen.ui.legacy.tempDisableJavaFrameWarnings();
             warnCleanup(end+1) = nansen.ui.legacy.tempDisableJavaComponentWarning(); %#ok<NASGU>
-            
-            % Make them look good.
-            if ~isempty(hUic)
-                h = applify.uicontrolSchemer(hUic);
-                obj.UIControlSchemer(panelNum) = h;
 
-                el = addlistener(obj, 'ObjectBeingDestroyed', @(src,evt,hObj) delete(h));
-            else
-                h = applify.uicontrolSchemer();
-                obj.UIControlSchemer(panelNum) = h;
+            try
+                h = applify.uicontrolSchemer(hUic);
+                addlistener(obj, 'ObjectBeingDestroyed', @(src,evt,hObj) delete(h));
+            catch
+                obj.applyNativeControlTheme(hUic)
+                h = [];
             end
-            %drawnow
-            
+        end
+
+        function tf = canUseLegacyControlStyler(~)
+        %canUseLegacyControlStyler True when Java-backed control styling can run.
+            tf = nansen.util.isJavaFrameSupported() && ...
+                exist('applify.uicontrolSchemer', 'class') == 8;
+        end
+
+        function applyNativeControlTheme(obj, hUic)
+        %applyNativeControlTheme Keep controls readable without Java styling.
+            if isempty(hUic); return; end
+
+            panelColor = obj.Theme.FigureBgColor;
+            controlColor = min([1, 1, 1; panelColor + 0.08]);
+            buttonColor = min([1, 1, 1; panelColor + 0.12]);
+            foregroundColor = obj.Theme.FigureFgColor .* 0.85;
+
+            for i = 1:numel(hUic)
+                if ~isvalid(hUic(i)); continue; end
+
+                hControl = hUic(i);
+                style = lower(hControl.Style);
+
+                if isprop(hControl.Parent, 'BackgroundColor')
+                    parentColor = hControl.Parent.BackgroundColor;
+                else
+                    parentColor = panelColor;
+                end
+
+                switch style
+                    case {'text', 'checkbox', 'radiobutton'}
+                        hControl.BackgroundColor = parentColor;
+                    case {'edit', 'popupmenu', 'listbox'}
+                        hControl.BackgroundColor = controlColor;
+                    case {'pushbutton', 'togglebutton'}
+                        hControl.BackgroundColor = buttonColor;
+                    otherwise
+                        if isprop(hControl, 'BackgroundColor')
+                            hControl.BackgroundColor = controlColor;
+                        end
+                end
+
+                if isprop(hControl, 'ForegroundColor')
+                    hControl.ForegroundColor = foregroundColor;
+                end
+            end
         end
         
         function showFigure(obj)
@@ -2925,9 +2982,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                  % Create components
                 obj.addComponents(panelNum)
 
-                if exist('applify.uicontrolSchemer', 'class')==8
-                    obj.styleControls(panelNum)
-                end
+                obj.styleControls(panelNum)
                 
                 % Scroll to top, or align elements to top if all comps are
                 % visible
