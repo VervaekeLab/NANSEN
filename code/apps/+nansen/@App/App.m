@@ -1337,11 +1337,15 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if isa(parent, 'matlab.ui.container.Tab') ...
                     && exist('uim.utility.getContentPixelPosition', 'file') == 2
                 position = uim.utility.getContentPixelPosition(parent);
-            elseif isprop(parent, 'Position')
-                position = [0, 0, parent.Position(3:4)];
             else
-                position = getpixelposition(parent);
-                position(1:2) = [0, 0];
+                try
+                    % MATLAB R2024 tab Position can be normalized [0 0 1 1].
+                    % Use pixel geometry so legacy Java tables are not collapsed.
+                    position = getpixelposition(parent);
+                    position(1:2) = [0, 0];
+                catch
+                    position = [0, 0, parent.Position(3:4)];
+                end
             end
             position(3:4) = max(1, position(3:4));
         end
