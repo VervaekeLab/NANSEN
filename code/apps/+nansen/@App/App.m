@@ -108,6 +108,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         ItemTypes (1,:) string
         ApplicationState nansen.enum.ApplicationState = "Initializing";
         TableIsUpdating (1,1) logical = false
+        QuitRequestInProgress (1,1) logical = false
     end
 
     properties (Constant, Hidden = true) % move to appwindow superclass
@@ -257,28 +258,50 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         function onExit(app, h)
-            
-            if app.isShuttingDown()
-                % Skip check for whether app is busy.
-            else
-                if ~isempty(app.BatchProcessor) && isvalid(app.BatchProcessor)
-                    doExit = app.BatchProcessor.promptQuit();
-                    if ~doExit; return; end
+
+            if app.QuitRequestInProgress
+                if app.isShuttingDown()
+                    app.onExit@uiw.abstract.AppWindow(h);
                 end
-                
-                if ~app.isIdle() && ~app.isShuttingDown()
-                    doExit = app.promptQuitIfBusy();
-                    if ~doExit; return; end
-                end
-                app.ApplicationState = nansen.enum.ApplicationState.ShuttingDown;
+                return
             end
 
-            % This function is called twice if the figure's close button is
-            % pressed. First when pressing the close button, and then when the
-            % figure handle is deleted, because of the way onExit is set up in
-            % uiw.abstract.BaseFigure
+            app.QuitRequestInProgress = true;
 
-            app.onExit@uiw.abstract.AppWindow(h);
+            try
+                if app.isShuttingDown()
+                    % Skip check for whether app is busy.
+                else
+                    if ~isempty(app.BatchProcessor) && isvalid(app.BatchProcessor)
+                        doExit = app.BatchProcessor.promptQuit();
+                        if ~doExit
+                            app.QuitRequestInProgress = false;
+                            return
+                        end
+                    end
+
+                    if ~app.isIdle()
+                        doExit = app.promptQuitIfBusy();
+                        if ~doExit
+                            app.QuitRequestInProgress = false;
+                            return
+                        end
+                    end
+                    app.ApplicationState = nansen.enum.ApplicationState.ShuttingDown;
+                end
+
+                % This function is called twice if the figure's close button is
+                % pressed. First when pressing the close button, and then when the
+                % figure handle is deleted, because of the way onExit is set up in
+                % uiw.abstract.BaseFigure
+
+                app.onExit@uiw.abstract.AppWindow(h);
+            catch ME
+                if isvalid(app)
+                    app.QuitRequestInProgress = false;
+                end
+                rethrow(ME)
+            end
             % delete(app) % Not necessary, happens in superclass' onExit method
         end
     
@@ -510,7 +533,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem.MenuSelectedFcn = @app.menuCallback_CloseAll;
             
             mitem = uimenu(hMenu, 'Text', 'Quit', 'Tag', 'core.nansen.quit');
-            mitem.MenuSelectedFcn = @(s, e) app.delete;
+            mitem.MenuSelectedFcn = @(s, e) app.onExit(app.Figure);
         end
 
         function createMenu_MetaTable(app, hMenu)
@@ -2124,6 +2147,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 app.StatusItems.remove(statusId);
             end
 
+            if app.isShuttingDown()
+                return
+            end
+
             if ~isempty(app.StatusItems)
                 return; % Other tasks are busy.
             end
@@ -2142,6 +2169,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 app
                 statusStr
                 options.AllowInterrupt (1,1) logical = true
+            end
+
+            if app.isShuttingDown()
+                if nargout
+                    finishup = function_handle.empty;
+                end
+                return
             end
 
             if app.ApplicationState == nansen.enum.ApplicationState.Busy
