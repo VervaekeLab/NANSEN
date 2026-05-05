@@ -542,33 +542,17 @@ classdef MetaTableCatalog < uim.handle
                 hTable.ColumnWidth = num2cell(repmat(colWidth, 1, size(MT,2)));
             end
             
-            % Make some configurations on underlying java object
-            jScrollPane = findjobj(hTable);
- 
-            % We got the scrollpane container - get its actual contained table control
-            jTable = jScrollPane.getViewport.getComponent(0);
-            
-            % Add a callback upon closing figure and pass on the jTable
-            % handle
-            f.CloseRequestFcn = @(s,e,jH) nansen.metadata.MetaTableCatalog.closeTableView(s,e,jTable);
-        end
-        
-        function closeTableView(src, ~, jTable)
-        %closeTableView Save the table column widths to preferences
-        
-            th = jTable.getTableHeader();
-            tcm = th.getColumnModel();
-            
-            numCols = tcm.getColumnCount();
-
-            columnWidths = zeros(1, numCols);
-            for i = 1:numCols
-                tc = tcm.getColumn(i-1);        % Java indexing starts at 0
-                columnWidths(i) = tc.getWidth();
+            if nansen.util.isJavaFrameSupported()
+                % Make some configurations on underlying java object
+                jScrollPane = findjobj(hTable);
+     
+                % We got the scrollpane container - get its actual contained table control
+                jTable = jScrollPane.getViewport.getComponent(0);
+                
+                % Add a callback upon closing figure and pass on the jTable
+                % handle
+                f.CloseRequestFcn = @(s,e,jH) nansen.metadata.MetaTableCatalog.closeTableView(s,e,jTable);
             end
-            
-            setpref('MetaTableCatalog', 'TableColumnWidths', columnWidths)
-            delete(src)
         end
         
         function checkMetaTableCatalog(S)
@@ -603,6 +587,26 @@ classdef MetaTableCatalog < uim.handle
                 warning(['Multiple cases of this MetaTable is present ', ...
                     'in the MetaTableCatalog'])
             end
+        end
+    end
+
+    methods (Static, Access=private)
+        function closeTableView(src, ~, jTable)
+        %closeTableView Save the table column widths to preferences
+        
+            th = jTable.getTableHeader();
+            tcm = th.getColumnModel();
+            
+            numCols = tcm.getColumnCount();
+
+            columnWidths = zeros(1, numCols);
+            for i = 1:numCols
+                tc = tcm.getColumn(i-1);        % Java indexing starts at 0
+                columnWidths(i) = tc.getWidth();
+            end
+            
+            setpref('MetaTableCatalog', 'TableColumnWidths', columnWidths)
+            delete(src)
         end
     end
 end
