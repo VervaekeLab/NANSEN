@@ -86,6 +86,7 @@ classdef SessionTaskMenu < handle
     end
     
     events
+        ModeChanged
         MenuUpdated
         MethodSelected
     end
@@ -156,6 +157,7 @@ classdef SessionTaskMenu < handle
             if ~isequal(newMode, obj.Mode)
                 obj.Mode = newMode;
                 obj.refreshMenuLabels()
+                obj.notify('ModeChanged', event.EventData)
             end
         end
                
@@ -203,6 +205,7 @@ classdef SessionTaskMenu < handle
             
             obj.SessionTasks = struct('Name', {}, 'Attributes', {});
             obj.buildMenuFromDirectory(obj.ParentApp.Figure);
+            obj.refreshMenuLabels()
 
             obj.notify('MenuUpdated', event.EventData)
         end

@@ -88,6 +88,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         % set of session / items tasks on the main figure menu
         SessionTaskMenu nansen.SessionTaskMenu
 
+        % SessionTaskModeMenu - Top level menu for choosing the mode used
+        % when selecting dynamic session task menu items.
+        SessionTaskModeMenu matlab.ui.container.Menu
+
         % DiskConnectionMonitor - Monitors disk connections. This is used
         % for nansen to update states for data location indicators.
         DiskConnectionMonitor (1,1) nansen.internal.system.DiskConnectionMonitor
@@ -124,6 +128,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         % WindowKeyPressedListener event.listener
         TaskInitializationListener event.listener
         SessionTaskMenuUpdatedListener event.listener
+        SessionTaskMenuModeChangedListener event.listener
     end
 
     properties (Access = private) % Metatable listeners
@@ -388,7 +393,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.Figure.WindowKeyPressFcn = @app.onKeyPressed;
             app.Figure.WindowKeyReleaseFcn = @app.onKeyReleased;
             
-            if nansen.util.isJavaFrameSupported
+            if nansen.util.isJavaFrameSupported()
                 warnCleanup = nansen.ui.legacy.tempDisableJavaFrameWarnings(); %#ok<NASGU>
                 [~, hJ] = evalc('findjobj(app.Figure)');
                 hJ(2).KeyPressedCallback = @app.onKeyPressed;
@@ -450,17 +455,145 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             uimenu(app.Figure, 'Text', '|', 'Enable', 'off'); % Separator
 
+            app.createMenu_SessionTaskMode()
+
             app.SessionTaskMenu = nansen.SessionTaskMenu(app, app.CurrentProject, app.CurrentItemType);
             app.SessionTaskMenuUpdatedListener = addlistener(...
                 app.SessionTaskMenu, 'MenuUpdated', @app.onSessionTaskMenuUpdated);
+            app.SessionTaskMenuModeChangedListener = addlistener(...
+                app.SessionTaskMenu, 'ModeChanged', @app.onSessionTaskModeChanged);
             
             app.TaskInitializationListener = listener(...
                 app.SessionTaskMenu, 'MethodSelected', @app.onSessionTaskSelected);
+            app.updateMenu_SessionTaskMode()
 
             % Create a help menu:
             app.createMenu_Help()
             
             % app.createMenu_Figure() - Not implemented
+        end
+
+        function createMenu_SessionTaskMode(app)
+        %createMenu_SessionTaskMode Create menu for selecting task mode.
+
+            hMenu = findobj(app.Figure, 'Type', 'uimenu', '-and', ...
+                'Tag', 'core.session_task_mode', '-depth', 1);
+
+            if isempty(hMenu)
+                hMenu = uimenu(app.Figure, ...
+                    'Text', 'Mode (Default)', ...
+                    'Tag', 'core.session_task_mode');
+            else
+                hMenu = hMenu(1);
+                delete(hMenu.Children)
+            end
+
+            app.SessionTaskModeMenu = hMenu;
+
+            modeInfo = app.getSessionTaskModeInfo();
+            for i = 1:numel(modeInfo)
+                modeValue = modeInfo(i).Mode;
+                mitem = uimenu(hMenu, ...
+                    'Text', modeInfo(i).MenuText, ...
+                    'Tag', sprintf('core.session_task_mode.%s', lower(modeValue)), ...
+                    'UserData', modeValue);
+                mitem.MenuSelectedFcn = @(~, ~) app.setSessionTaskMode(modeValue);
+            end
+
+            app.updateMenu_SessionTaskMode()
+        end
+
+        function updateMenu_SessionTaskMode(app)
+        %updateMenu_SessionTaskMode Update checked mode and top label.
+
+            hMenu = app.SessionTaskModeMenu;
+            if isempty(hMenu) || ~isvalid(hMenu)
+                hMenu = findobj(app.Figure, 'Type', 'uimenu', '-and', ...
+                    'Tag', 'core.session_task_mode', '-depth', 1);
+                if isempty(hMenu); return; end
+                hMenu = hMenu(1);
+                app.SessionTaskModeMenu = hMenu;
+            end
+
+            currentMode = app.getSessionTaskMode();
+            hMenu.Text = sprintf('Mode (%s)', ...
+                app.getSessionTaskModeLabel(currentMode));
+
+            for i = 1:numel(hMenu.Children)
+                if strcmp(hMenu.Children(i).UserData, currentMode)
+                    hMenu.Children(i).Checked = 'on';
+                else
+                    hMenu.Children(i).Checked = 'off';
+                end
+            end
+        end
+
+        function setSessionTaskMode(app, modeName)
+        %setSessionTaskMode Set mode used by dynamic session task menus.
+
+            if isempty(app.SessionTaskMenu) || ~isvalid(app.SessionTaskMenu)
+                app.updateMenu_SessionTaskMode()
+                return
+            end
+
+            app.SessionTaskMenu.Mode = modeName;
+            app.updateMenu_SessionTaskMode()
+        end
+
+        function modeName = getSessionTaskMode(app)
+        %getSessionTaskMode Get current dynamic session task menu mode.
+
+            if isempty(app.SessionTaskMenu) || ~isvalid(app.SessionTaskMenu)
+                modeName = 'Default';
+            else
+                modeName = app.SessionTaskMenu.Mode;
+            end
+        end
+
+        function label = getSessionTaskModeLabel(app, modeName)
+        %getSessionTaskModeLabel Get display label for a task mode.
+
+            modeInfo = app.getSessionTaskModeInfo();
+            modeNames = {modeInfo.Mode};
+            matchIdx = find(strcmp(modeNames, modeName), 1, 'first');
+
+            if isempty(matchIdx)
+                label = modeName;
+            else
+                label = modeInfo(matchIdx).Label;
+            end
+        end
+
+        function modeInfo = getSessionTaskModeInfo(app) %#ok<MANU>
+        %getSessionTaskModeInfo Definitions for task mode menu/key map.
+
+            modeInfo = struct( ...
+                'Mode', {'Default', 'Preview', 'TaskQueue', 'Edit', 'Restart', 'Help'}, ...
+                'Label', {'Default', 'Preview', 'Queue', 'Edit', 'Restart', 'Help'}, ...
+                'MenuText', {'Default (Esc)', 'Preview (Shift)', 'Queue (q)', ...
+                    'Edit (e)', 'Restart (r)', 'Help (h)'}, ...
+                'Key', {'escape', 'shift', 'q', 'e', 'r', 'h'} );
+        end
+
+        function wasHandled = setSessionTaskModeFromKey(app, keyName)
+        %setSessionTaskModeFromKey Set sticky task mode from a key press.
+
+            wasHandled = false;
+            keyName = char(string(keyName));
+            if numel(keyName) == 1 && double(keyName) == 27
+                keyName = 'escape';
+            else
+                keyName = lower(keyName);
+            end
+
+            modeInfo = app.getSessionTaskModeInfo();
+            keyNames = {modeInfo.Key};
+            matchIdx = find(strcmp(keyNames, keyName), 1, 'first');
+
+            if isempty(matchIdx); return; end
+
+            app.setSessionTaskMode(modeInfo(matchIdx).Mode)
+            wasHandled = true;
         end
 
         function createMenu_Nansen(app, hMenu)
@@ -1962,6 +2095,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             uiMenuHelp = findobj(app.Figure, 'Type', 'uimenu',  '-and', '-regexp', 'Tag', 'Help', '-depth', 1);
             delete(uiMenuHelp)
             app.createMenu_Help()
+            app.updateMenu_SessionTaskMode()
+        end
+
+        function onSessionTaskModeChanged(app, ~, ~)
+            app.updateMenu_SessionTaskMode()
         end
 
         function onTabChanged(app, ~, evt)
@@ -2076,32 +2214,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 end
             end
             
+            if app.setSessionTaskModeFromKey(evt.Key)
+                return
+            end
+
             switch evt.Key
-        
-                case {'shift', 'q', 'e', 'r', 'h'}
-
-% % %                     timeSinceLastPress = toc(lastKeyPressTime);
-% % %                     timeSinceLastPress
-% % %                     if timeSinceLastPress < 0.1
-% % %                         lastKeyPressTime = tic;
-% % %                         return;
-% % %                     end
-
-                    switch evt.Key
-                        case 'shift'
-                            app.SessionTaskMenu.Mode = 'Preview';
-                        case 'q'
-                            app.SessionTaskMenu.Mode = 'TaskQueue';
-                        case 'e'
-                            app.SessionTaskMenu.Mode = 'Edit';
-                        case 'r'
-                            app.SessionTaskMenu.Mode = 'Restart';
-                        case 'h'
-                            app.SessionTaskMenu.Mode = 'Help';
-                    end
-
-% % %                     lastKeyPressTime = tic;
-
                 case 'w'
                     app.sendToWorkspace()
             end
@@ -2113,10 +2230,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 evt = uim.event.javaKeyEventToMatlabKeyData(evt);
             end
             
-            switch evt.Key
-                case {'shift', 'q', 'e', 'r', 'h'}
-                    app.SessionTaskMenu.Mode = 'Default';
-            end
+            % Session task modes are sticky for compatibility with native
+            % uifigure menus, which do not forward key events while open.
+            % Press Escape to return to default mode.
         end
         
         function updateLayoutPositions(app)
