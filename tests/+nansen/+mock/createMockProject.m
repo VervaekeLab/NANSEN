@@ -41,9 +41,6 @@ function createMockProject(projectName, projectDirectory, datasetDirectory)
     
     % Create the project directory if it doesn't exist
     projectPath = fullfile(projectDirectory, projectName);
-    if ~exist(projectPath, 'dir')
-        mkdir(projectPath);
-    end
     
     % Create the project
     description = sprintf('Mock project for testing NANSEN with dataset in %s', datasetDirectory);

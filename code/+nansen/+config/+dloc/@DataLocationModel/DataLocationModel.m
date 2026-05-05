@@ -851,13 +851,14 @@ classdef DataLocationModel < utility.data.StorableCatalog
             % datalocation model always belong to the current project?
             project = nansen.getCurrentProject();
 
-            if isempty(project)
-                error('NANSEN:DataLocationModel:OrphanedModel', ...
-                    ['Unexpected error when initializing DataLocationModel. ', ...
-                    'Please report'])
-            end
 
             for i = 1:obj.NumDataLocations
+                if isempty(project)
+                    error('NANSEN:DataLocationModel:OrphanedModel', ...
+                        ['Unexpected error when initializing DataLocationModel. ', ...
+                        'Please report'])
+                end
+                
                 for j = 1:numel(obj.Data(i).MetaDataDef)
                     functionName = sprintf('%s.datalocation.get%s', project.Name, variableNames{j});
                     obj.Data(i).MetaDataDef(j).FunctionName = functionName;

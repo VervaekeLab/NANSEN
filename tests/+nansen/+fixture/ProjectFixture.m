@@ -25,6 +25,9 @@ classdef ProjectFixture < matlab.unittest.fixtures.Fixture
             fixture.addTeardown( ...
                 @() fixture.deleteUserProfile(userProfileName) )
             
+            warnState = warning('off', 'Nansen:NoProjectsAvailable');
+            warningCleanup = onCleanup(@() warning(warnState));
+
             fixture.UserSession = ...
                 nansen.internal.user.NansenUserSession.instance(...
                 userProfileName, "force");
@@ -44,8 +47,12 @@ classdef ProjectFixture < matlab.unittest.fixtures.Fixture
     methods (Access = private)
         function deleteUserProfile(~, profileName)
 
-            project = nansen.getCurrentProject();
-            project.removeFromSearchPath();
+            projectManager = nansen.ProjectManager();
+            currentProjectName = projectManager.CurrentProject;
+
+            if ~isempty(currentProjectName)
+                projectManager.removeProject(currentProjectName, true, true)
+            end
 
             nansen.internal.user.NansenUserSession.instance(profileName, "reset");
             rmdir(fullfile(prefdir, 'Nansen', profileName), "s")
