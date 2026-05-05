@@ -26,4 +26,10 @@ classdef TableColumnFormatter
         str = getCellTooltipString(obj)
         
     end
+
+    methods
+        function str = getCellDisplayStringForContext(obj, displayContext) %#ok<INUSD>
+            str = obj.getCellDisplayString();
+        end
+    end
 end

@@ -90,12 +90,10 @@ function helpDialog(functionName)
     uim.utility.centerFigureOnScreen(helpfig)
     helpfig.Visible = 'on';
     
-    warning('off', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
-    
-    % Close help window if it loses focus
-    jframe = getjframe(helpfig);
-    set(jframe, 'WindowDeactivatedCallback', @(s, e) delete(helpfig))
-    
-    warning('on', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
-
+    if nansen.util.isJavaFrameSupported()
+        % Close help window if it loses focus
+        warnCleanup = nansen.ui.legacy.tempDisableJavaFrameWarnings(); %#ok<NASGU>    
+        jframe = getjframe(helpfig);
+        set(jframe, 'WindowDeactivatedCallback', @(s, e) delete(helpfig))
+    end
 end

@@ -94,12 +94,17 @@ classdef MessageDisplay < handle
         end
 
         function formattedMessage = getFormattedMessage(obj, message)
-            % Prepend specifier with fontsize
-            formatSpec = sprintf('\\fontsize{%d}', obj.FontSize);
-            formattedMessage = strcat(formatSpec, message);
-            
-            % Fix some characters that are interpreted as tex markup
-            formattedMessage = strrep(formattedMessage, '_', '\_');
+            if nansen.util.isJavaFrameSupported()
+                % For javaframe backed figures, the fontsize of modal
+                % dialogs is small, so we increase it via text formatting.
+                formatSpec = sprintf('\\fontsize{%d}', obj.FontSize);
+                formattedMessage = strcat(formatSpec, message);
+                
+                % Fix some characters that are interpreted as tex markup
+                formattedMessage = strrep(formattedMessage, '_', '\_');
+            else
+                formattedMessage = message;
+            end
         end
     end
 end

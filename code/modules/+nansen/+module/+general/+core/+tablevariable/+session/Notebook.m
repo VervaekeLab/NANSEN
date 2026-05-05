@@ -82,6 +82,58 @@ classdef Notebook < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
                 str{i} = formattedStr;
             end
         end
+
+        function str = getCellDisplayStringForContext(obj, displayContext)
+            if nargin < 2 || isempty(displayContext)
+                displayContext = "legacy";
+            end
+            displayContext = lower(string(displayContext));
+            if displayContext == "modern"
+                str = obj.getEmojiCellDisplayString();
+            else
+                str = obj.getCellDisplayString();
+            end
+        end
+
+        function str = getEmojiCellDisplayString(obj)
+        %getEmojiCellDisplayString Get HTML text display using emoji entities.
+
+            str = cell(1, numel(obj));
+
+            for i = 1:numel(obj)
+                noteStruct = obj(i).Value;
+
+                if iscell(noteStruct)
+                    noteStruct = noteStruct{1};
+                end
+
+                str{i} = sprintf('%d Notes', numel(noteStruct));
+                if isempty(noteStruct)
+                    continue
+                end
+
+                formattedStr = sprintf('<html>%s&nbsp;', str{i});
+                noteTypes = string({noteStruct.Type});
+
+                if any(strcmpi(noteTypes, "Informal"))
+                    formattedStr = strcat(formattedStr, obj.getEmojiHtmlString('informal'));
+                end
+
+                if any(strcmpi(noteTypes, "Important"))
+                    formattedStr = strcat(formattedStr, obj.getEmojiHtmlString('important'));
+                end
+
+                if any(strcmpi(noteTypes, "Question"))
+                    formattedStr = strcat(formattedStr, obj.getEmojiHtmlString('question'));
+                end
+
+                if any(strcmpi(noteTypes, "Todo"))
+                    formattedStr = strcat(formattedStr, obj.getEmojiHtmlString('todo'));
+                end
+
+                str{i} = formattedStr;
+            end
+        end
        
         function str = getCellTooltipString(obj)
            
@@ -146,6 +198,25 @@ classdef Notebook < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
             iconPath = sprintf( '/Applications/MATLAB_R2017b.app/toolbox/matlab/uitools/private/icon_%s_32.png', iconName);
             str = sprintf('<img src="file:%s" width="10" height="10" margin="0">', iconPath);
             
+        end
+
+        function str = getEmojiHtmlString(noteType)
+        %getEmojiHtmlString Return HTML entity for notebook note types.
+
+            switch lower(noteType)
+                case 'informal'
+                    htmlEntity = '&#8505;&#65039;'; % information
+                case 'important'
+                    htmlEntity = '&#9888;&#65039;'; % warning
+                case 'question'
+                    htmlEntity = '&#10067;'; % question mark
+                case 'todo'
+                    htmlEntity = '&#128221;'; % memo
+                otherwise
+                    htmlEntity = '';
+            end
+
+            str = sprintf('%s&nbsp;', htmlEntity);
         end
     end
 end

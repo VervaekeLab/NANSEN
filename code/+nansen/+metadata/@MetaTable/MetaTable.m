@@ -325,6 +325,16 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                     'Column with name "%s" does not exist in table', columnName)
             end
         end
+
+        function T = getFormattedTableData(obj, columnIndices, rowIndices, displayContext)
+        %getFormattedTableData Format table cells for UI display.
+            if nargin < 2 || isempty(columnIndices); columnIndices = 1:size(obj.entries, 2); end
+            if nargin < 3 || isempty(rowIndices); rowIndices = 1:size(obj.entries, 1); end
+            if nargin < 4; displayContext = 'legacy'; end
+
+            T = nansen.metadata.utility.formatTableForDisplay(...
+                obj, columnIndices, rowIndices, displayContext);
+        end
         
 % % % % Methods for modifying entries
 

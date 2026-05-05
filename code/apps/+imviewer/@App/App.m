@@ -260,9 +260,7 @@ methods % Structors
         % function will change dramatically later...
         % obj.parseVarargin(varargin{:})
         
-        warning('off', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
         obj.initializeViewer()
-        warning('on', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
         
         setappdata(obj.Figure, 'ViewerObject', obj)
         

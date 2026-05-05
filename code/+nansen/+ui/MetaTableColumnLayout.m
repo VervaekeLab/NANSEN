@@ -233,8 +233,17 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             % Also, need to call this whenever a table variable was edited in 
             % sessionbrowser/nansen and when new tables are loaded.
             
-            p = nansen.getCurrentProject();
-            % Return early if no project is active.
+            try
+                p = nansen.getCurrentProject();
+            catch ME
+                if strcmp(ME.identifier, 'NANSEN:NoActiveUserSession')
+                    % Standalone metatable viewers keep their existing
+                    % default editability when no project metadata exists.
+                    return
+                else
+                    rethrow(ME)
+                end
+            end
             if isempty(p); return; end
 
             tableVariableAttributes = p.getTable('TableVariable');
@@ -482,9 +491,40 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
                     
             obj.updateUiTableEditor()
         end
+
+        function setNewColumnVariableOrder(obj, newVariableOrder)
+        %setNewColumnVariableOrder Update visible column order by variable name.
+            IND = getIndicesToShowInMetaTable(obj);
+            if isempty(IND); return; end
+
+            currentVariableNames = string({obj.settings(IND).VariableName});
+            newVariableOrder = string(newVariableOrder(:)).';
+            if numel(newVariableOrder) ~= numel(currentVariableNames)
+                return
+            end
+
+            [isVisibleVariable, newPosition] = ismember( ...
+                currentVariableNames, newVariableOrder);
+            if ~all(isVisibleVariable) || any(newPosition == 0)
+                return
+            end
+
+            visibleOrder = sort([obj.settings(IND).ColumnOrder]);
+            for i = 1:numel(IND)
+                obj.settings_(IND(i)).ColumnOrder = visibleOrder(newPosition(i));
+            end
+
+            obj.updateUiTableEditor()
+        end
         
         function updateJavaColumnModel(obj)
             
+            if ~obj.hasJavaColumnModel()
+                obj.JColumnModel = [];
+                obj.JColumnModelIndices = 1:numel(obj.getColumnIndices());
+                return
+            end
+
             if isempty(obj.JColumnModel)
                 obj.JColumnModel = obj.MetaTableUi.HTable.JTable.getTableHeader.getColumnModel;
             end
@@ -501,6 +541,10 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         
         function idx = getColumnIdx(obj, idx)
             
+            if ~obj.hasJavaColumnModel()
+                return
+            end
+
             numColumns = get(obj.JColumnModel, 'ColumnCount');
             for i = 1:numColumns
                 jColumn = obj.JColumnModel.getColumn(i-1);
@@ -514,6 +558,15 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
         
         function [colIndex, colNames] = getColumnModelIndexOrder(obj)
             
+            if ~obj.hasJavaColumnModel()
+                colIndex = 1:numel(obj.getColumnIndices());
+                colNames = obj.getColumnNames();
+                if nargout == 1
+                    clear colNames
+                end
+                return
+            end
+
             numColumns = get(obj.JColumnModel, 'ColumnCount');
             colIndex = zeros(1, numColumns);
             colNames = cell(1, numColumns);
@@ -567,27 +620,37 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             tmpF.NumberTitle = 'off';
             tmpF.Name = 'Edit Column Layout';
             tmpF.MenuBar = 'none';
-            tmpF.Resize = 'off';
+            tmpF.Resize = 'on';
             
             % Create table
             tmpTable = uitable('Parent', tmpF);
             tmpTable.FontSize = 12;
             tmpTable.FontName = 'Avenir New';
-            tmpTable.ColumnWidth = {150, 150, 100, 100};
+            columnWidths = {170, 220, 90, 110, 90};
+            tmpTable.ColumnWidth = columnWidths;
             tmpTable.Data = table2cell(T);
             tmpTable.ColumnName = T.Properties.VariableNames;
-            tmpTable.ColumnEditable = [false true true true];
-            tmpTable.Position = tmpTable.Extent;
+            tmpTable.ColumnEditable = [false true true true true];
+            tmpTable.Units = 'normalized';
+            tmpTable.Position = [0 0 1 1];
             tmpTable.CellEditCallback = @obj.onSettingsChanged;
             
             obj.UIEditorFigure = tmpF;
             obj.UIEditorTable = tmpTable;
             
-            % Set figure position same as figure extent and make visible
-            tmpF.Position(3:4) = tmpTable.Extent(3:4);
+            % Size the editor to show all rows when it fits on screen.
+            screenSize = get(0, 'ScreenSize');
+            rowHeight = 24;
+            headerHeight = 38;
+            margin = 24;
+            preferredWidth = sum([columnWidths{:}]) + 80;
+            preferredHeight = headerHeight + height(T) * rowHeight + margin;
+            figureWidth = min(max(preferredWidth, 720), floor(screenSize(3) * 0.9));
+            figureHeight = min(max(preferredHeight, 320), floor(screenSize(4) * 0.85));
+            figureX = screenSize(1) + round((screenSize(3) - figureWidth) / 2);
+            figureY = screenSize(2) + round((screenSize(4) - figureHeight) / 2);
+            tmpF.Position = [figureX, figureY, figureWidth, figureHeight];
             tmpF.Visible = 'on';
-
-            % Todo: Make sure figure is not taller than the screen size.
             
             % Wait for figure...
             uiwait(tmpF)
@@ -598,6 +661,21 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             if ~isempty(obj.UIEditorTable)
                 T = getTableDataForUiEditor(obj);
                 obj.UIEditorTable.Data = table2cell(T);
+            end
+        end
+
+        function tf = hasJavaColumnModel(obj)
+            tf = false;
+            if isempty(obj.MetaTableUi) || isempty(obj.MetaTableUi.HTable)
+                return
+            end
+            if ~isprop(obj.MetaTableUi.HTable, 'JTable')
+                return
+            end
+            try
+                tf = ~isempty(obj.MetaTableUi.HTable.JTable);
+            catch
+                tf = false;
             end
         end
     end
@@ -851,7 +929,15 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             
             tf = false;
             
-            customVarNames = getCustomTableVariableNames();
+            try
+                customVarNames = getCustomTableVariableNames();
+            catch ME
+                if strcmp(ME.identifier, 'NANSEN:NoActiveUserSession')
+                    return
+                else
+                    rethrow(ME)
+                end
+            end
             
             if ~contains(variableName, customVarNames)
                 return

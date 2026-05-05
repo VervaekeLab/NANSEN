@@ -77,6 +77,64 @@ classdef Progress < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
                     '</HTML>'], hexColorDark.(mode), str1, hexColorLight.(mode), str2);
             end
         end
+
+        function progressBarString = getCellDisplayStringForContext(obj, displayContext)
+            if nargin < 2 || isempty(displayContext)
+                displayContext = "legacy";
+            end
+
+            if strcmpi(string(displayContext), "modern")
+                progressBarString = obj.getModernCellDisplayString();
+            else
+                progressBarString = obj.getCellDisplayString();
+            end
+        end
+
+        function progressBarString = getModernCellDisplayString(obj)
+        %getModernCellDisplayString Format progress using HTML block glyphs.
+
+            persistent hexColorDark hexColorLight
+
+            if isempty(hexColorDark) || isempty(hexColorLight)
+                [hexColorLight, hexColorDark] = obj.getProgressBarColors();
+            end
+
+            progressBarString = cell(1, numel(obj));
+
+            for i = 1:numel(obj)
+
+                if isstruct(obj(i).Value) && isfield(obj(i).Value, 'TaskList')
+                    thisTaskList = obj(i).Value.TaskList;
+                else
+                    progressBarString{i} = 'N/A'; continue
+                end
+
+                if isstruct(thisTaskList) && isfield(thisTaskList, 'IsFinished')
+                    isDone = [ thisTaskList.IsFinished ] ;
+                    mode = 'Standard';
+                else
+                    progressBarString{i} = 'N/A'; continue
+                end
+
+                pctProgress = mean(isDone);
+                if isnan(pctProgress)
+                    pctProgress = 0;
+                end
+
+                nSegments = 20;
+                nDone = ceil(nSegments * pctProgress);
+                nRemaining = nSegments - nDone;
+
+                doneStr = repmat('&#9608;', 1, nDone);
+                remainingStr = repmat('&#9608;', 1, nRemaining);
+
+                progressBarString{i} = sprintf(['<html>', ...
+                    '<font color="%s">%s</font>', ...
+                    '<font color="%s">%s</font>'], ...
+                    hexColorDark.(mode), doneStr, ...
+                    hexColorLight.(mode), remainingStr);
+            end
+        end
         
         function progressTooltipString = getCellTooltipString(obj)
             

@@ -1,4 +1,4 @@
-function T = formatTableForDisplay(metaTable, columnIndices, rowIndices)
+function T = formatTableForDisplay(metaTable, columnIndices, rowIndices, displayContext)
 %formatTableForDisplay Format a MetaTable's cells for UI display
 %
 %   T = formatTableForDisplay(metaTable) formats all cells.
@@ -12,11 +12,14 @@ function T = formatTableForDisplay(metaTable, columnIndices, rowIndices)
 
     import nansen.metadata.utility.getColumnFormatter
 
-    if nargin < 2 % Get all columns
+    if nargin < 2 || isempty(columnIndices) % Get all columns
         columnIndices = 1:size(metaTable.entries, 2);
     end
-    if nargin < 3 % Get all rows
+    if nargin < 3 || isempty(rowIndices) % Get all rows
         rowIndices = 1:size(metaTable.entries, 1);
+    end
+    if nargin < 4
+        displayContext = 'legacy';
     end
 
     if isempty(metaTable.entries)
@@ -103,6 +106,8 @@ function T = formatTableForDisplay(metaTable, columnIndices, rowIndices)
                 tmpObj = thisFormatter( jColumnValues );
                 if isa(tmpObj, 'cell')
                     formattedValue = tmpObj;
+                elseif ismethod(tmpObj, 'getCellDisplayStringForContext')
+                    formattedValue = tmpObj.getCellDisplayStringForContext(displayContext);
                 else
                     formattedValue = tmpObj.getCellDisplayString();
                 end

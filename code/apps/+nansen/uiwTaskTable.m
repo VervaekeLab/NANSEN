@@ -150,7 +150,8 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
 
         function setKeyPressFcn(obj, keyPressFcn)
             obj.KeyPressFcn = keyPressFcn;
-            if ~isempty(obj.Table) && isvalid(obj.Table) && isprop(obj.Table, 'KeyPressFcn')
+            if ~isempty(keyPressFcn) && ~isempty(obj.Table) && ...
+                    isvalid(obj.Table) && isprop(obj.Table, 'KeyPressFcn')
                 obj.Table.KeyPressFcn = keyPressFcn;
             end
         end
@@ -215,7 +216,7 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
                 tableHandle.Multiselect = 'on';
                 tableHandle.CellEditCallback = @obj.onCellEdited;
                 tableHandle.SelectionChangedFcn = @obj.onModernSelectionChanged;
-                if isprop(tableHandle, 'KeyPressFcn')
+                if ~isempty(obj.KeyPressFcn) && isprop(tableHandle, 'KeyPressFcn')
                     tableHandle.KeyPressFcn = obj.KeyPressFcn;
                 end
 
@@ -236,7 +237,7 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
                 'MouseClickedCallback', @obj.onLegacyMouseClicked);
 
                 tableHandle.CellEditCallback = @obj.onCellEdited;
-                if isprop(tableHandle, 'KeyPressFcn')
+                if ~isempty(obj.KeyPressFcn) && isprop(tableHandle, 'KeyPressFcn')
                     tableHandle.KeyPressFcn = obj.KeyPressFcn;
                 end
 

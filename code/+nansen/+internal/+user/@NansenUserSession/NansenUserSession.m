@@ -223,7 +223,11 @@ classdef NansenUserSession < handle
         function onCurrentProjectChangedInPreferences(obj, src, evt)
         % Set new current project in project manager.
             if obj.isPreferenceListenerActive('CurrentProjectName')
-                newProjectName = obj.Preferences.CurrentProjectName;
+                newProjectName = char(string(obj.Preferences.CurrentProjectName));
+                currentProjectName = char(string(obj.ProjectManager.CurrentProject));
+                if strcmp(newProjectName, currentProjectName)
+                    return
+                end
                 obj.ProjectManager.setProject(newProjectName)
             end
         end
@@ -232,8 +236,8 @@ classdef NansenUserSession < handle
         % Update value for current project in preferences. Make sure that
         % this is not triggering an event, to avoid infinite update loop.
             obj.deactivatePreferenceListener('CurrentProjectName')
+            cleanupObj = onCleanup(@() obj.activatePreferenceListener('CurrentProjectName'));
             obj.Preferences.CurrentProjectName = evt.NewProjectName;
-            obj.activatePreferenceListener('CurrentProjectName')
         end
     end
 
