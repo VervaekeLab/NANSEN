@@ -92,8 +92,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         % when selecting dynamic session task menu items.
         SessionTaskModeMenu matlab.ui.container.Menu
 
-        % SessionTaskModeSeparator - Separator between the task mode menu
-        % and dynamic task menus.
+        % SessionTaskModeSeparator - Separator between dynamic task menus
+        % and the task mode menu.
         SessionTaskModeSeparator matlab.ui.container.Menu
 
         % DiskConnectionMonitor - Monitors disk connections. This is used
@@ -459,9 +459,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             uimenu(app.Figure, 'Text', '|', 'Enable', 'off'); % Separator
 
-            app.createMenu_SessionTaskMode()
-            app.createMenu_SessionTaskModeSeparator()
-
             app.SessionTaskMenu = nansen.SessionTaskMenu(app, app.CurrentProject, app.CurrentItemType);
             app.SessionTaskMenuUpdatedListener = addlistener(...
                 app.SessionTaskMenu, 'MenuUpdated', @app.onSessionTaskMenuUpdated);
@@ -470,6 +467,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             app.TaskInitializationListener = listener(...
                 app.SessionTaskMenu, 'MethodSelected', @app.onSessionTaskSelected);
+            app.createMenu_SessionTaskModeSeparator()
+            app.createMenu_SessionTaskMode()
             app.updateMenu_SessionTaskMode()
 
             % Create a help menu:
@@ -509,7 +508,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
 
         function createMenu_SessionTaskModeSeparator(app)
-        %createMenu_SessionTaskModeSeparator Create separator before tasks.
+        %createMenu_SessionTaskModeSeparator Create separator before mode.
 
             hMenu = findobj(app.Figure, 'Type', 'uimenu', '-and', ...
                 'Tag', 'core.session_task_mode.separator', '-depth', 1);
@@ -2112,11 +2111,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         function onSessionTaskMenuUpdated(app, ~, ~)
-            % Need to recreate the Help menu in order for it to stay to the
-            % right of session task menus (uistack is not a good option,
-            % god knows why...)
+            % Recreate app-owned menus that should stay to the right of
+            % dynamic session task menus.
             uiMenuHelp = findobj(app.Figure, 'Type', 'uimenu',  '-and', '-regexp', 'Tag', 'Help', '-depth', 1);
             delete(uiMenuHelp)
+            delete(app.SessionTaskModeSeparator)
+            delete(app.SessionTaskModeMenu)
+            app.createMenu_SessionTaskModeSeparator()
+            app.createMenu_SessionTaskMode()
             app.createMenu_Help()
             app.updateMenu_SessionTaskMode()
         end
