@@ -13,6 +13,20 @@ function listOut = multiLineListbox(listIn, varargin)
     
     originalList = listIn;
 
+    if nansen.util.useModernUiComponents()
+        [listOut, action] = uics.htmlListDialog("list-editor", listIn, params);
+        switch action
+            case "Save"
+                return
+            case "Cancel"
+                listOut = originalList;
+                return
+            otherwise
+                listOut = [];
+                return
+        end
+    end
+
     MARGINS = [20, 70, 20, 20];
     SPACING = [20, 20];
     

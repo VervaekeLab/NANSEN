@@ -13,6 +13,15 @@ function selectedValue = inputOrSelect(listIn, varargin)
     if nargin < 1
         listIn = {};
     end
+
+    if nansen.util.useModernUiComponents()
+        [selectedValue, action, hasResult] = uics.htmlListDialog(...
+            "input-or-select", listIn, params);
+        if action ~= "Ok" || ~hasResult
+            selectedValue = [];
+        end
+        return
+    end
     
     MARGINS = [20, 70, 20, 20];
     SPACING = [20, 20];

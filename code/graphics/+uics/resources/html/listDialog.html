@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <style>
+    :root {
+      --bg: #222222;
+      --fg: #eeeeee;
+      --muted: rgba(255, 255, 255, 0.58);
+      --accent: #3d7ab8;
+      --panel: rgba(255, 255, 255, 0.06);
+      --panel-strong: rgba(255, 255, 255, 0.12);
+      --border: rgba(255, 255, 255, 0.16);
+      --shadow: rgba(0, 0, 0, 0.20);
+      font-family: "Avenir Next", "Helvetica Neue", Arial, sans-serif;
+      font-size: 13px;
+      color: var(--fg);
+      background: var(--bg);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body,
+    #app {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .dialog {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 14px;
+      height: 100%;
+      padding: 18px;
+    }
+
+    .title {
+      min-height: 18px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--fg);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .content {
+      min-height: 0;
+    }
+
+    .list-editor {
+      display: grid;
+      grid-template-columns: 1fr 112px;
+      grid-template-rows: 30px 1fr;
+      gap: 12px;
+      height: 100%;
+    }
+
+    .input-select {
+      display: grid;
+      grid-template-rows: auto 30px auto 1fr;
+      gap: 9px;
+      height: 100%;
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 16px;
+    }
+
+    input {
+      width: 100%;
+      height: 30px;
+      padding: 5px 9px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      outline: none;
+      color: var(--fg);
+      background: var(--panel);
+    }
+
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+
+    .list {
+      min-height: 0;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--panel);
+      overflow: auto;
+      box-shadow: inset 0 1px 2px var(--shadow);
+    }
+
+    .row {
+      min-height: 28px;
+      padding: 6px 9px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      color: var(--fg);
+      cursor: default;
+      user-select: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .row:last-child {
+      border-bottom: 0;
+    }
+
+    .row:hover {
+      background: var(--panel-strong);
+    }
+
+    .row.selected {
+      background: var(--accent);
+      color: #ffffff;
+    }
+
+    .row.placeholder {
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .side-buttons {
+      display: grid;
+      grid-template-rows: repeat(5, 28px);
+      gap: 8px;
+      grid-row: 1 / span 2;
+      grid-column: 2;
+    }
+
+    .footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    button {
+      height: 28px;
+      min-width: 74px;
+      padding: 0 12px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--fg);
+      background: var(--panel);
+      cursor: default;
+      white-space: nowrap;
+    }
+
+    button:hover:enabled {
+      background: var(--panel-strong);
+    }
+
+    button.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #ffffff;
+    }
+
+    button:disabled {
+      opacity: 0.42;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script>
+    function setup(htmlComponent) {
+      const state = {
+        mode: "list-editor",
+        title: "",
+        items: [],
+        itemName: "value",
+        selectedIndex: -1,
+        inputText: "",
+        editingIndex: -1
+      };
+
+      const app = document.getElementById("app");
+
+      function asArray(value) {
+        if (!value) {
+          return [];
+        }
+        if (Array.isArray(value)) {
+          return value.map(String);
+        }
+        if (typeof value === "string") {
+          return value.length ? [value] : [];
+        }
+        return Object.keys(value).sort().map((key) => String(value[key]));
+      }
+
+      function applyData(data) {
+        if (!data) {
+          return;
+        }
+        if (data.Action) {
+          return;
+        }
+        state.mode = data.Mode || state.mode;
+        state.title = data.Title || "";
+        state.items = asArray(data.Items);
+        state.itemName = data.ItemName || "value";
+        state.selectedIndex = state.items.length ? 0 : -1;
+        state.inputText = "";
+        state.editingIndex = -1;
+
+        document.documentElement.style.setProperty("--bg", data.BackgroundColor || "#222222");
+        document.documentElement.style.setProperty("--fg", data.ForegroundColor || "#eeeeee");
+        document.documentElement.style.setProperty("--accent", data.AccentColor || "#3d7ab8");
+      }
+
+      function send(action, result, hasResult) {
+        htmlComponent.Data = {
+          Action: action,
+          Result: result,
+          HasResult: Boolean(hasResult)
+        };
+      }
+
+      function selectedItem() {
+        if (state.selectedIndex < 0 || state.selectedIndex >= state.items.length) {
+          return "";
+        }
+        return state.items[state.selectedIndex];
+      }
+
+      function clampSelection() {
+        if (!state.items.length) {
+          state.selectedIndex = -1;
+        } else if (state.selectedIndex < 0) {
+          state.selectedIndex = 0;
+        } else if (state.selectedIndex >= state.items.length) {
+          state.selectedIndex = state.items.length - 1;
+        }
+      }
+
+      function renderList(container, includeTextInputChoice) {
+        container.innerHTML = "";
+
+        const rows = includeTextInputChoice ? ["Use text input", ...state.items] : state.items;
+        if (!rows.length) {
+          const placeholder = document.createElement("div");
+          placeholder.className = "row placeholder";
+          placeholder.textContent = "No items";
+          container.appendChild(placeholder);
+          return;
+        }
+
+        rows.forEach((item, index) => {
+          const row = document.createElement("div");
+          row.className = "row";
+          if (index === state.selectedIndex) {
+            row.classList.add("selected");
+          }
+          row.textContent = item;
+          row.title = item;
+          row.addEventListener("click", () => {
+            state.selectedIndex = index;
+            render();
+          });
+          row.addEventListener("dblclick", () => {
+            if (state.mode === "list-editor") {
+              startEdit();
+            } else {
+              finishInputSelect();
+            }
+          });
+          container.appendChild(row);
+        });
+      }
+
+      function startEdit() {
+        if (state.selectedIndex < 0) {
+          return;
+        }
+        state.editingIndex = state.selectedIndex;
+        state.inputText = selectedItem();
+        render();
+        const input = document.getElementById("value-input");
+        input.focus();
+        input.select();
+      }
+
+      function finishEdit() {
+        const value = state.inputText.trim();
+        if (state.editingIndex < 0 || !value) {
+          return;
+        }
+        state.items[state.editingIndex] = value;
+        state.editingIndex = -1;
+        state.inputText = "";
+        render();
+      }
+
+      function addItem() {
+        const value = state.inputText.trim();
+        if (!value) {
+          return;
+        }
+        state.items.push(value);
+        state.selectedIndex = state.items.length - 1;
+        state.inputText = "";
+        render();
+      }
+
+      function removeItem() {
+        if (state.selectedIndex < 0) {
+          return;
+        }
+        state.items.splice(state.selectedIndex, 1);
+        clampSelection();
+        render();
+      }
+
+      function moveItem(offset) {
+        const nextIndex = state.selectedIndex + offset;
+        if (state.selectedIndex < 0 || nextIndex < 0 || nextIndex >= state.items.length) {
+          return;
+        }
+        const item = state.items[state.selectedIndex];
+        state.items.splice(state.selectedIndex, 1);
+        state.items.splice(nextIndex, 0, item);
+        state.selectedIndex = nextIndex;
+        render();
+      }
+
+      function finishInputSelect() {
+        if (state.selectedIndex === 0) {
+          const value = state.inputText.trim();
+          send("Ok", value, value.length > 0);
+        } else {
+          const value = state.items[state.selectedIndex - 1] || "";
+          send("Ok", value, value.length > 0);
+        }
+      }
+
+      function renderListEditor() {
+        app.innerHTML = `
+          <div class="dialog">
+            <div class="title"></div>
+            <div class="content list-editor">
+              <input id="value-input" type="text" autocomplete="off" />
+              <div id="items-list" class="list"></div>
+              <div class="side-buttons">
+                <button id="add-button">Add</button>
+                <button id="edit-button">Edit</button>
+                <button id="remove-button">Remove</button>
+                <button id="up-button">Move Up</button>
+                <button id="down-button">Move Down</button>
+              </div>
+            </div>
+            <div class="footer">
+              <button id="cancel-button">Cancel</button>
+              <button id="save-button" class="primary">Save</button>
+            </div>
+          </div>`;
+
+        app.querySelector(".title").textContent = state.title;
+        const input = document.getElementById("value-input");
+        input.value = state.inputText;
+        input.placeholder = "Enter item...";
+        input.addEventListener("input", (event) => {
+          state.inputText = event.target.value;
+          updateButtonState();
+        });
+        input.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            state.editingIndex >= 0 ? finishEdit() : addItem();
+          } else if (event.key === "Escape" && state.editingIndex >= 0) {
+            state.editingIndex = -1;
+            state.inputText = "";
+            render();
+          }
+        });
+
+        renderList(document.getElementById("items-list"), false);
+
+        document.getElementById("add-button").addEventListener("click", addItem);
+        document.getElementById("edit-button").addEventListener("click", () => {
+          state.editingIndex >= 0 ? finishEdit() : startEdit();
+        });
+        document.getElementById("remove-button").addEventListener("click", removeItem);
+        document.getElementById("up-button").addEventListener("click", () => moveItem(-1));
+        document.getElementById("down-button").addEventListener("click", () => moveItem(1));
+        document.getElementById("cancel-button").addEventListener("click", () => send("Cancel", [], false));
+        document.getElementById("save-button").addEventListener("click", () => send("Save", state.items, true));
+
+        updateButtonState();
+      }
+
+      function updateButtonState() {
+        const hasSelection = state.selectedIndex >= 0;
+        const hasText = state.inputText.trim().length > 0;
+        document.getElementById("add-button").disabled = state.editingIndex >= 0 || !hasText;
+        document.getElementById("edit-button").disabled = !hasSelection || (state.editingIndex >= 0 && !hasText);
+        document.getElementById("edit-button").textContent = state.editingIndex >= 0 ? "Finish" : "Edit";
+        document.getElementById("remove-button").disabled = !hasSelection || state.editingIndex >= 0;
+        document.getElementById("up-button").disabled = !hasSelection || state.selectedIndex === 0 || state.editingIndex >= 0;
+        document.getElementById("down-button").disabled = !hasSelection || state.selectedIndex === state.items.length - 1 || state.editingIndex >= 0;
+      }
+
+      function renderInputSelect() {
+        app.innerHTML = `
+          <div class="dialog">
+            <div class="title"></div>
+            <div class="content input-select">
+              <div class="label" id="input-label"></div>
+              <input id="value-input" type="text" autocomplete="off" />
+              <div class="label">... Or select from list</div>
+              <div id="items-list" class="list"></div>
+            </div>
+            <div class="footer">
+              <button id="cancel-button">Cancel</button>
+              <button id="ok-button" class="primary">Ok</button>
+            </div>
+          </div>`;
+
+        app.querySelector(".title").textContent = state.title;
+        document.getElementById("input-label").textContent = `Enter a ${state.itemName}...`;
+
+        const input = document.getElementById("value-input");
+        input.value = state.inputText;
+        input.addEventListener("input", (event) => {
+          state.inputText = event.target.value;
+          state.selectedIndex = 0;
+          renderList(document.getElementById("items-list"), true);
+        });
+        input.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            finishInputSelect();
+          }
+        });
+
+        renderList(document.getElementById("items-list"), true);
+        document.getElementById("cancel-button").addEventListener("click", () => send("Cancel", "", false));
+        document.getElementById("ok-button").addEventListener("click", finishInputSelect);
+      }
+
+      function render() {
+        if (state.mode === "input-or-select") {
+          renderInputSelect();
+        } else {
+          renderListEditor();
+        }
+      }
+
+      htmlComponent.addEventListener("DataChanged", () => {
+        applyData(htmlComponent.Data);
+        render();
+      });
+
+      applyData(htmlComponent.Data);
+      render();
+    }
+  </script>
+</body>
+</html>
