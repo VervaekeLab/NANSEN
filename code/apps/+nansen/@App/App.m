@@ -92,6 +92,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         % when selecting dynamic session task menu items.
         SessionTaskModeMenu matlab.ui.container.Menu
 
+        % SessionTaskModeSeparator - Separator between the task mode menu
+        % and dynamic task menus.
+        SessionTaskModeSeparator matlab.ui.container.Menu
+
         % DiskConnectionMonitor - Monitors disk connections. This is used
         % for nansen to update states for data location indicators.
         DiskConnectionMonitor (1,1) nansen.internal.system.DiskConnectionMonitor
@@ -456,6 +460,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             uimenu(app.Figure, 'Text', '|', 'Enable', 'off'); % Separator
 
             app.createMenu_SessionTaskMode()
+            app.createMenu_SessionTaskModeSeparator()
 
             app.SessionTaskMenu = nansen.SessionTaskMenu(app, app.CurrentProject, app.CurrentItemType);
             app.SessionTaskMenuUpdatedListener = addlistener(...
@@ -501,6 +506,24 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
 
             app.updateMenu_SessionTaskMode()
+        end
+
+        function createMenu_SessionTaskModeSeparator(app)
+        %createMenu_SessionTaskModeSeparator Create separator before tasks.
+
+            hMenu = findobj(app.Figure, 'Type', 'uimenu', '-and', ...
+                'Tag', 'core.session_task_mode.separator', '-depth', 1);
+
+            if isempty(hMenu)
+                hMenu = uimenu(app.Figure, ...
+                    'Text', '|', ...
+                    'Enable', 'off', ...
+                    'Tag', 'core.session_task_mode.separator');
+            else
+                hMenu = hMenu(1);
+            end
+
+            app.SessionTaskModeSeparator = hMenu;
         end
 
         function updateMenu_SessionTaskMode(app)
