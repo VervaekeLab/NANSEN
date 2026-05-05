@@ -16,10 +16,12 @@ function verifyJavaDependencies()
     javaDependencies(1).Name = 'YAML-Matlab';
     javaDependencies(1).MatlabProbe = 'yaml.WriteYaml';
     javaDependencies(1).JavaProbe = 'org.yaml.snakeyaml.Yaml';
+    javaDependencies(1).JavaSetup = @nansen.internal.setup.addYamlJarToJavaClassPath;
 
     javaDependencies(2).Name = 'Widgets Toolbox';
     javaDependencies(2).MatlabProbe = 'uiw.widget.Table';
     javaDependencies(2).JavaProbe = 'com.mathworks.consulting.widgets.table.Table';
+    javaDependencies(2).JavaSetup = @nansen.internal.setup.addUiwidgetsJarToJavaClassPath;
 
     for i = 1:numel(javaDependencies)
         dependency = javaDependencies(i);
@@ -32,18 +34,28 @@ function verifyJavaDependencies()
                 dependency.Name, dependency.MatlabProbe)
         end
 
-        try
-            javaObject(dependency.JavaProbe);
-        catch exception
-            if strcmp(exception.identifier, 'MATLAB:Java:ClassLoad')
-                % Static Java class path changes require a MATLAB restart.
-                error('NANSEN:setup:JavaClassNotFound', ...
-                    ['NANSEN relies on Java classes from the "%s" toolbox, ', ...
-                    'but "%s" could not be loaded in the current MATLAB ', ...
-                    'session. Please restart MATLAB and try again.'], ...
-                    dependency.Name, dependency.JavaProbe)
-            else
-                rethrow(exception)
+        for j = 1:2
+        % Try two times to catch edge case where the java dependency is on
+        % MATLABs search path, but not on the java class path. Can happen
+        % if user switches between MATLAB releases.
+            try
+                javaObject(dependency.JavaProbe);
+                break
+            catch exception
+                if strcmp(exception.identifier, 'MATLAB:Java:ClassLoad')
+                    if j == 1
+                        dependency.JavaSetup()
+                    else
+                        % Static Java class path changes require a MATLAB restart.
+                        error('NANSEN:setup:JavaClassNotFound', ...
+                            ['NANSEN relies on Java classes from the "%s" toolbox, ', ...
+                            'but "%s" could not be loaded in the current MATLAB ', ...
+                            'session. Please restart MATLAB and try again.'], ...
+                            dependency.Name, dependency.JavaProbe)
+                    end
+                else
+                    rethrow(exception)
+                end
             end
         end
     end
