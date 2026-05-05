@@ -102,29 +102,29 @@ classdef BatchProcessorUI < handle
                 'ColumnNames', obj.QueueTableVars, ...
                 'ColumnEditable', [false, false, false, false, false, true] );
             
-            % Todo, save these based on user settings...
-            obj.UITableQueue.Table.ColumnMaxWidth = [200, 500, 100, 200, 200, 500];
-            obj.UITableQueue.Table.ColumnMinWidth = [150, 100, 50, 120, 150, 100];
-            obj.UITableQueue.Table.ColumnPreferredWidth = [170, 200, 75, 135, 200, 200];
-            obj.UITableQueue.Table.CellEditCallback = @obj.onTableCellEdited;
+            obj.UITableQueue.setColumnWidths(...
+                [170, 200, 75, 135, 200, 200], ...
+                [150, 100, 50, 120, 150, 100], ...
+                [200, 500, 100, 200, 200, 500]);
+            obj.UITableQueue.CellEditCallback = @obj.onTableCellEdited;
 
             obj.UITableHistory = nansen.uiwTaskTable(...
                 'Parent', obj.UITabTaskHistory, ...
                 'ColumnNames', obj.HistoryTableVars, ...
                 'ColumnEditable', [false, false, false, false, false, true] );
             
-            % Todo, save these based on user settings...
-            obj.UITableHistory.Table.ColumnMaxWidth = [200, 500, 100, 200, 200, 500];
-            obj.UITableHistory.Table.ColumnMinWidth = [150, 100, 50, 120, 120, 100];
-            obj.UITableHistory.Table.ColumnPreferredWidth = [170, 200, 75, 135, 135, 200];
-            obj.UITableHistory.Table.CellEditCallback = @obj.onTableCellEdited;
-            obj.UITableHistory.Table.KeyPressFcn = @obj.onKeyPressedInTable;
+            obj.UITableHistory.setColumnWidths(...
+                [170, 200, 75, 135, 135, 200], ...
+                [150, 100, 50, 120, 120, 100], ...
+                [200, 500, 100, 200, 200, 500]);
+            obj.UITableHistory.CellEditCallback = @obj.onTableCellEdited;
+            obj.UITableHistory.setKeyPressFcn(@obj.onKeyPressedInTable);
             
             %obj.UITableQueue.Table.UIContextMenu = obj.createQueueContextMenu();
             %obj.UITableHistory.Table.UIContextMenu = obj.createHistoryContextMenu();
             
-            obj.UITableQueue.UIContextMenu = obj.createQueueContextMenu();
-            obj.UITableHistory.UIContextMenu = obj.createHistoryContextMenu();
+            obj.UITableQueue.setContextMenu(obj.createQueueContextMenu());
+            obj.UITableHistory.setContextMenu(obj.createHistoryContextMenu());
            
             obj.UITableQueue.MouseButtonRightPressCallbackFcn = ...
                 @obj.onMouseRightClickedInTable;
@@ -279,7 +279,7 @@ classdef BatchProcessorUI < handle
             for iRow = 1:numel(rowIdx)
                 for jCol = 1:numel(columnIdx)
                     newCellValue = newData(iRow, jCol);
-                    obj.UITableQueue.Table.setCell(rowIdx(iRow), ...
+                    obj.UITableQueue.setCell(rowIdx(iRow), ...
                         columnIdx(jCol), newCellValue)
                 end
             end
@@ -458,7 +458,7 @@ classdef BatchProcessorUI < handle
         end
 
         function onMoveTasksMenuItemClicked(obj, src)
-            selectedRows = obj.UITableQueue.SelectedRows;
+            selectedRows = obj.UITableQueue.selectedRows;
             obj.BatchProcessor.rearrangeQueuedTasks(selectedRows, src.Text)
         end
         
@@ -655,6 +655,9 @@ classdef BatchProcessorUI < handle
             
             tableType = obj.TabGroup.SelectedTab.Title;
             taskIdx = sort( obj.SelectedRowIndices );
+            if isempty(taskIdx)
+                return
+            end
             taskList = obj.getTaskList(tableType, taskIdx);
             hTable = obj.getUiTable(tableType);
             
@@ -667,7 +670,7 @@ classdef BatchProcessorUI < handle
                     
                     if evt.Cell(1) == 1
                         if strcmp(taskList(1).status, 'Running')
-                            obj.UITableQueue.Table.SelectedRows = 1;
+                            obj.UITableQueue.setSelectedRows(1);
                             taskList = taskList(1);
                         end
                     end
@@ -678,10 +681,7 @@ classdef BatchProcessorUI < handle
                     % Todo....
             end
             
-            % "Manually" open context menu
-            figurePos = hTable.Table.tablepoint2figurepoint(evt.Position);
-            hTable.UIContextMenu.Position(1:2) = figurePos + [0, 40]; % Correct y pos, 40 pixels, no idea why or if it is consistent across systems..
-            hTable.UIContextMenu.Visible = 'on';
+            hTable.showContextMenu(evt)
             
         end
         

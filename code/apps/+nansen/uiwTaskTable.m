@@ -25,16 +25,15 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
         TableMode = 'queue' % Or 'history'
         ColumnNames
         ColumnEditable
+        CellEditCallback = []
+        KeyPressFcn = []
         
         MouseButtonRightPressCallbackFcn = [] % Callback to use for modifying contextmenus based on the rightclick selection
         
         UIContextMenu
-%     end
-%
-%     properties (Access = private)
         Parent
         Table
-        jTable
+        BackendType
     end
     
     properties (Dependent)
@@ -57,7 +56,7 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
             
         end
         
-        function delete(obj)
+        function delete(~)
             
         end
     end
@@ -79,15 +78,81 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
         end
        
         function clearTable(obj)
-            obj.Table.Data = {}; % Reset Data.
+            obj.Table.Data = cell(0, numel(obj.ColumnNames));
         end
         
         function selectedRows = get.selectedRows(obj)
-            selectedRows = obj.Table.SelectedRows;
+            switch obj.BackendType
+                case 'modern'
+                    selectedRows = obj.getModernSelectedRows();
+                case 'legacy'
+                    selectedRows = obj.Table.SelectedRows;
+            end
+        end
+
+        function set.selectedRows(obj, selectedRows)
+            obj.setSelectedRows(selectedRows)
         end
 
         function updateLayout(obj)
             obj.updateTablePosition()
+        end
+
+        function setSelectedRows(obj, selectedRows)
+            switch obj.BackendType
+                case 'modern'
+                    obj.Table.Selection = selectedRows(:);
+                case 'legacy'
+                    obj.Table.SelectedRows = selectedRows;
+            end
+        end
+
+        function setCell(obj, rowIdx, columnIdx, newValue)
+            if strcmp(obj.BackendType, 'legacy') && ismethod(obj.Table, 'setCell')
+                obj.Table.setCell(rowIdx, columnIdx, newValue)
+                return
+            end
+
+            tableData = obj.Table.Data;
+            tableData(rowIdx, columnIdx) = newValue;
+            obj.Table.Data = tableData;
+        end
+
+        function setColumnWidths(obj, preferredWidth, minWidth, maxWidth)
+            switch obj.BackendType
+                case 'modern'
+                    obj.Table.ColumnWidth = num2cell(preferredWidth);
+                case 'legacy'
+                    if nargin >= 4
+                        obj.Table.ColumnMaxWidth = maxWidth;
+                    end
+                    if nargin >= 3
+                        obj.Table.ColumnMinWidth = minWidth;
+                    end
+                    obj.Table.ColumnPreferredWidth = preferredWidth;
+            end
+        end
+
+        function showContextMenu(obj, event)
+            if strcmp(obj.BackendType, 'modern') || isempty(obj.UIContextMenu)
+                return
+            end
+
+            figurePos = obj.Table.tablepoint2figurepoint(event.Position);
+            obj.UIContextMenu.Position(1:2) = figurePos + [0, 40]; % Correct y pos, 40 pixels, no idea why or if it is consistent across systems..
+            obj.UIContextMenu.Visible = 'on';
+        end
+
+        function setContextMenu(obj, contextMenu)
+            obj.UIContextMenu = contextMenu;
+            obj.onContextMenuSet()
+        end
+
+        function setKeyPressFcn(obj, keyPressFcn)
+            obj.KeyPressFcn = keyPressFcn;
+            if ~isempty(obj.Table) && isvalid(obj.Table) && isprop(obj.Table, 'KeyPressFcn')
+                obj.Table.KeyPressFcn = keyPressFcn;
+            end
         end
     end
     
@@ -99,15 +164,64 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
         function pos = get.Position(obj)
             pos = obj.Table.Position;
         end
+
     end
     
     methods (Access = private)
                 
         function create(obj)
-            
-            %uiw.widget.Table
-            % uim.widget.StylableTable
-            obj.Table = uim.widget.StylableTable('Parent', obj.Parent, ...
+
+            [obj.Table, obj.BackendType] = obj.createTableBackend();
+            obj.Table.ColumnName = obj.ColumnNames;
+            obj.updateTablePosition()
+
+            numColumns = numel(obj.ColumnNames);
+
+            if ~isempty(obj.ColumnEditable)
+                obj.Table.ColumnEditable = obj.ColumnEditable;
+            else
+                obj.Table.ColumnEditable = logical([0,0,0,0,0,1]);
+            end
+
+            if strcmp(obj.BackendType, 'modern')
+                obj.Table.ColumnFormat = repmat({'char'}, 1, numColumns);
+            else
+                obj.Table.ColumnFormat = {'char', 'char', 'char', 'char', 'popup', 'char'};
+            end
+
+            if strcmp(obj.BackendType, 'legacy')
+                % Specify empty data to draw the table with the numbered column
+                obj.Table.Data = cell(2, numColumns);
+
+                tablePixelPos = getpixelposition(obj.Table);
+                width = tablePixelPos(3);
+                obj.Table.ColumnPreferredWidth = arrayfun(...
+                    @(i) round(width/numColumns), 1:numColumns, 'uni', 1 );
+            end
+
+            obj.clearTable()
+        end
+
+        function [tableHandle, backendType] = createTableBackend(obj)
+            if nansen.util.useModernUiComponents()
+                tableHandle = uitable(obj.Parent, ...
+                    'Tag', obj.TableMode, ...
+                    'FontSize', 8, ...
+                    'FontName', 'avenir next', ...
+                    'Units', 'pixels', ...
+                    'Position', [0 0 1 1]);
+
+                tableHandle.SelectionType = 'row';
+                tableHandle.Multiselect = 'on';
+                tableHandle.CellEditCallback = @obj.onCellEdited;
+                tableHandle.SelectionChangedFcn = @obj.onModernSelectionChanged;
+                if isprop(tableHandle, 'KeyPressFcn')
+                    tableHandle.KeyPressFcn = obj.KeyPressFcn;
+                end
+
+                backendType = 'modern';
+            else
+                tableHandle = uim.widget.StylableTable('Parent', obj.Parent, ...
                 'Tag',obj.TableMode,...
                 'Editable', true, ...
                 'RowHeight', 20, ...
@@ -119,50 +233,15 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
                 'ColumnResizePolicy', 'subsequent', ...
                 'Units','pixels', ...
                 'Position',[0 0.0 1 1], ...
-                'MouseClickedCallback', @obj.tableMousePress, ...
-                'MouseMotionFcn', @obj.onMouseOver);
-            
-            obj.Table.ColumnName = obj.ColumnNames;
-            obj.updateTablePosition()
-            
-            numColumns = numel(obj.ColumnNames);
-            
-            if ~isempty(obj.ColumnEditable)
-                obj.Table.ColumnEditable = obj.ColumnEditable;
-                obj.Table.ColumnFormat = {'char', 'char', 'char', 'char', 'popup', 'char'};
-            else % Use defaults...
-                obj.Table.ColumnEditable = logical([0,0,0,0,0,1]);
-                obj.Table.ColumnFormat = {'char', 'char', 'char', 'char', 'popup', 'char'};
-            end
-                        
-            % Change appearance
-            %obj.Table.FontName = 'Avenir New';
-            %obj.Table.FontSize = 10;
-            
-            %obj.Table.CellSelectionCallback = @obj.onCellSelection;
-            
-            % Make some configurations on underlying java object
-            %jScrollPane = sbutil.findjobj(obj.Table);
- 
-            % We got the scrollpane container - get its actual contained table control
-            %obj.jTable = jScrollPane.getViewport.getComponent(0);
-            %obj.jTable = handle(obj.jTable, 'CallbackProperties');
-            
-            %set(obj.jTable, 'MousePressedCallback', @obj.tableMousePress);
-        
-            % Specify empty data to draw the table with the numbered column
-            obj.Table.Data = cell(2, numColumns);
-            
-            % Get size of visible table area.
-            %javaRect = get(jScrollPane, 'ViewportBorderBounds');
-            %width = javaRect.getWidth();
-            
-            % Set columnwidths
-            tablePixelPos = getpixelposition(obj.Table);
-            width = tablePixelPos(3);
-            obj.Table.ColumnPreferredWidth = arrayfun(@(i) round(width/numColumns), 1:numColumns, 'uni', 1 );
+                'MouseClickedCallback', @obj.onLegacyMouseClicked);
 
-            obj.Table.Data = {}; % Reset Data.
+                tableHandle.CellEditCallback = @obj.onCellEdited;
+                if isprop(tableHandle, 'KeyPressFcn')
+                    tableHandle.KeyPressFcn = obj.KeyPressFcn;
+                end
+
+                backendType = 'legacy';
+            end
         end
         
         function createListeners(obj)
@@ -171,18 +250,11 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
             addlistener(obj.Parent, 'SizeChanged', @(s,e) obj.onSizeChanged);
         end
         
-        function tableMousePress(obj, src, event)
-        %tableMousePress Callback for mousepress in table.
-        %
-        %   This function is primarily used for
-        %       1) Creating an action on doubleclick
-        %       2) Selecting cell on right click
+        function onLegacyMouseClicked(obj, src, event)
+        %onLegacyMouseClicked Select row and prepare context menu on right click.
 
             if ~exist('obj', 'var') || ~isvalid(obj); return; end
 
-            % Get the cell which is clicked using the awt.point and
-            % rowAtPoint method. NB! Indexing starts at 0 for java objects
-            %mousePos = java.awt.Point(event.getX, event.getY);
             cellNum = event.Cell;
             rowNum = cellNum(1);
             
@@ -196,13 +268,7 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
 
                 case 'open'
 
-%                     if isequal(get(event, 'button'), 3)
-%                         return
-%                     end
-
                 case {'alt'}
-                    % Change selection if new session is selected. Skip if
-                    % another column is selected.
                     if ~ismember(rowNum, obj.Table.SelectedRows)
                         obj.Table.SelectedRows = rowNum;
                     end
@@ -213,103 +279,90 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
             end
         end
         
-         % Cell selection callback: UITableSessionList
-        function onCellSelection(obj, src, event)
-            
-            % Is all this necessary for getting row selection??
-            
-            ii = transpose( unique( event.Indices(:, 1) ) );
-            
-            numCols = size(obj.Table.Data,2);
-            numColsSelected = histcounts(event.Indices(:, 1), 'BinMethod', 'integer', 'BinLimits', [1, numCols]);
-            
-            isRowSelected = find(numColsSelected == numCols);
-            
-            if all(ismember(ii, isRowSelected))
-                disp('debug')
-                return
-            end
-            
-%             return
-            
-            % Remove deleselected rows.
-            isDeselected = ~ismember(obj.selectedRows, ii);
-            if sum(isDeselected)>0
-                extend = true;
-            else
-                extend = true;
-            end
-            
-            isNew = ~ismember(ii, isRowSelected);
-            
-            if isempty(isNew)
-                isNew = true(size(ii));
-            end
-            
-%             isNew = true(size(ii));
-            
-            obj.selectedRows(isDeselected) = [];
-
-            if any(isNew)
-
-                for i = ii(isNew)
-                    
-                    obj.selectedRows(end+1) = i;
-                    jjInd = find(event.Indices(:, 1) == i);
-%                     jjTmp = 1:numCols;
-                    
-                    jSelected = event.Indices(jjInd, 2);
-                    
-%                     if jSelected == 1
-%                         jjTmp = [numCols, min([numCols,2])];
-%                     else
-%                         jjTmp = [numCols, jSelected+1, jSelected-1, 1];
-%                     end
-%
-%                     jjTmp = unique(jjTmp);
-
-                    if numel(jSelected) == numCols; continue; end
-                    
-                    if numel(jSelected) == 1
-                        
-                        if jSelected ~= 1 && jSelected ~= numCols
-                            obj.jTable.changeSelection(i-1, jSelected-1, true, false)
-                        end
-                        
-                    else
-                        continue
-                                            
-                    end
-                    
-                    jjTmp = setdiff([numCols, 1], jSelected, 'stable');
-                    
-                    for j = jjTmp
-                        obj.jTable.changeSelection(i-1, j-1, false, extend)  % 3rd = toggle, 4th = extend
-                        extend = true;
-                    end
-                end
-            end
-            
-            obj.selectedRows = unique(obj.selectedRows);
-            
-        end
-        
-        function onSizeChanged(obj, src, event)
+        function onSizeChanged(obj, ~, ~)
             
             obj.updateTablePosition()
             
         end
-        
+
         function updateTablePosition(obj)
-                        
+
             MARGINS = [10, 10];
             parentPos = uim.utility.getContentPixelPosition(obj.Parent);
 
             contentOrigin = max(parentPos(1:2), [1, 1]);
-            newTablePosition = [contentOrigin + MARGINS - 1, ...
-                parentPos(3:4) - MARGINS*2];
+            tableSize = max(parentPos(3:4) - MARGINS*2, [1, 1]);
+            newTablePosition = [contentOrigin + MARGINS - 1, tableSize];
             obj.Table.Position = newTablePosition;
             
+        end
+
+        function onContextMenuSet(obj)
+            if isempty(obj.Table) || ~isvalid(obj.Table) || isempty(obj.UIContextMenu)
+                return
+            end
+
+            if strcmp(obj.BackendType, 'modern')
+                obj.Table.ContextMenu = obj.UIContextMenu;
+                obj.UIContextMenu.ContextMenuOpeningFcn = @obj.onModernContextMenuOpening;
+            end
+        end
+
+        function onModernContextMenuOpening(obj, ~, ~)
+            selectedRowIndices = obj.selectedRows;
+            if isempty(selectedRowIndices) || isempty(obj.MouseButtonRightPressCallbackFcn)
+                return
+            end
+
+            evtData = uiw.event.EventData(...
+                'Cell', [selectedRowIndices(1), 1], ...
+                'SelectionType', 'alt', ...
+                'Button', 3, ...
+                'Position', [0, 0]);
+            obj.MouseButtonRightPressCallbackFcn(obj.Table, evtData)
+        end
+
+        function onModernSelectionChanged(~, ~, ~)
+            % Selection is read directly from the native table when needed.
+        end
+
+        function onCellEdited(obj, src, evt)
+            if isempty(obj.CellEditCallback)
+                return
+            end
+
+            newValue = obj.getEventValue(evt, {'NewValue', 'NewData'});
+            previousValue = obj.getEventValue(evt, {'PreviousValue', 'PreviousData'});
+            evtData = uiw.event.EventData(...
+                'Indices', evt.Indices, ...
+                'NewValue', newValue, ...
+                'PreviousValue', previousValue);
+            obj.CellEditCallback(src, evtData)
+        end
+
+        function rowIndices = getModernSelectedRows(obj)
+            selection = obj.Table.Selection;
+
+            if isempty(selection)
+                rowIndices = [];
+            elseif isvector(selection)
+                rowIndices = selection(:).';
+            elseif size(selection, 2) == 2
+                rowIndices = unique(selection(:,1).', 'stable');
+            else
+                rowIndices = selection(:).';
+            end
+        end
+
+        function value = getEventValue(~, evt, propertyNames)
+            value = [];
+
+            for i = 1:numel(propertyNames)
+                if isprop(evt, propertyNames{i})
+                    value = evt.(propertyNames{i});
+                    return
+                end
+            end
         end
         
     end % /methods (Access = private)
