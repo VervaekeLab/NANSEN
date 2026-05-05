@@ -11,10 +11,8 @@ function dndObject = activateDragAndDrop(figureHandle, callbackFunction)
     jFrame = get(figureHandle, 'JavaFrame'); %#ok<JAVFM>
     jWindow = jFrame.getFigurePanelContainer.getTopLevelAncestor;
 
-    % The initJava static method is not reliable, and will trigger
-    % warnings.
-    % warnState = warning('off', 'MATLAB:Java:DuplicateClass');
-    % warnCleanup = onCleanup(@(ws) warning(warnState));
+    % The initJava static method will try to overwrite the dynamic
+    % javaclasspath so we don't use this method.
     % % dndcontrol.initJava();
 
     % Adding dndcontrol only if it does not already exist on the
@@ -22,6 +20,12 @@ function dndObject = activateDragAndDrop(figureHandle, callbackFunction)
     dpathOrig = javaclasspath('-dynamic');
     dndcontrolPath = fileparts( which("dndcontrol") );
     if isempty(dpathOrig) || ~any(strcmp(dpathOrig, dndcontrolPath))
+        % Suppress warning sometimes happens after installation of NANSEN 
+        % on systems where the javaclasspath has not been properly cleaned 
+        % up. It is unrelated to adding this class to the javapath, so we
+        % suppress the warning to spare users from the noise.
+        warnState = warning('off', 'MATLAB:Java:DuplicateClass');
+        warnCleanup = onCleanup(@(ws) warning(warnState));
         javaclasspath(dpathOrig, dndcontrolPath)
     end
 
