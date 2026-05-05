@@ -16,8 +16,14 @@ classdef DraggableThumbnail < handle
     methods
         
         function obj = DraggableThumbnail(hFig, im, initPos, cMap)
-            warning('off', 'MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
-            warning('off', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
+
+            if ~nansen.util.isJavaFrameSupported()
+                error('NANSEN:Imviewer:DraggableThumbnailNotSupported', ...
+                    'This widget is not supported on the current MATLAB release')
+            end
+
+            warningCleanup = nansen.ui.legacy.tempDisableJavaFrameWarnings(); %#ok<NASGU>
+
             screenSize = get(0, 'ScreenSize');
             
             sz = [128, 128];
@@ -27,7 +33,7 @@ classdef DraggableThumbnail < handle
             x = hFig.Position(1) + hFig.Position(3)/2;
             y = hFig.Position(2) + hFig.Position(4)/2;
             
-            jFrame = get(hFig, 'JavaFrame');
+            jFrame = get(hFig, 'JavaFrame'); %#ok<JAVFM>
             jClient = jFrame.fHG2Client;
             jWindow = jClient.getWindow;
             jWindow.setAlwaysOnTop(true)
@@ -65,8 +71,6 @@ classdef DraggableThumbnail < handle
             obj.initPosJava = [x,y];
             
             %obj.startMoveWindow
-            warning('on', 'MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
-            warning('on', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
             
             obj.hFigure.WindowButtonUpFcn = @obj.stopMoveWindow;
 
