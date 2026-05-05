@@ -155,7 +155,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
 
             % % Start app construction
-            app.switchJavaWarnings('off')
             app.configureWindow()
             app.lockWindowPosition()
            
@@ -189,8 +188,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.StatusItems = containers.Map;
             
             app.unlockWindowPosition()
-
-            app.switchJavaWarnings('on')
             
             % Add this callback after every component is made
             app.Figure.SizeChangedFcn = @(s, e) app.onFigureSizeChanged;
@@ -371,6 +368,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if nansen.util.isJavaFrameSupported()
                 % Configure figure window to have a minimum allowed size.
                 minimumFigureSize = app.getPreference('MinimumFigureSize');
+                warningCleanup = nansen.ui.legacy.tempDisableJavaFrameWarnings(); %#ok<NASGU>
                 LimitFigSize(app.Figure, 'min', minimumFigureSize) % FEX
             end
         end
@@ -2067,7 +2065,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 % % %             persistent lastKeyPressTime
 % % %             if isempty(lastKeyPressTime); lastKeyPressTime = tic; end
 
-            if isa(evt, 'java.awt.event.KeyEvent')
+            if nansen.util.isJavaFrameSupported() && isa(evt, 'java.awt.event.KeyEvent')
                 evt = uim.event.javaKeyEventToMatlabKeyData(evt);
             end
 
@@ -2111,7 +2109,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function onKeyReleased(app, ~, evt)
 
-            if isa(evt, 'java.awt.event.KeyEvent')
+            if nansen.util.isJavaFrameSupported() && isa(evt, 'java.awt.event.KeyEvent')
                 evt = uim.event.javaKeyEventToMatlabKeyData(evt);
             end
             
@@ -4496,12 +4494,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     hApp.onExit(matchedFigure)
                 end
             end
-        end
-
-        function switchJavaWarnings(newState)
-        %switchJavaWarnings Turn warnings about java functionality on/off
-            warning(newState, 'MATLAB:ui:javaframe:PropertyToBeRemoved')
-            warning(newState, 'MATLAB:ui:javacomponent:FunctionToBeRemoved')
         end
 
         function pathStr = getIconPath()
