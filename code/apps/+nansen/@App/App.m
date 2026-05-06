@@ -598,7 +598,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
 
         function wasHandled = setSessionTaskModeFromKey(app, keyName)
-        %setSessionTaskModeFromKey Set sticky task mode from a key press.
+        %setSessionTaskModeFromKey Toggle sticky task mode from a key press.
 
             wasHandled = false;
             keyName = char(string(keyName));
@@ -614,7 +614,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             if isempty(matchIdx); return; end
 
-            app.setSessionTaskMode(modeInfo(matchIdx).Mode)
+            modeName = modeInfo(matchIdx).Mode;
+            if strcmp(app.getSessionTaskMode(), modeName)
+                app.setSessionTaskMode('Default')
+            else
+                app.setSessionTaskMode(modeName)
+            end
             wasHandled = true;
         end
 
@@ -2257,7 +2262,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             
             % Session task modes are sticky for compatibility with native
             % uifigure menus, which do not forward key events while open.
-            % Press Escape to return to default mode.
+            % Shortcut keys toggle modes, and Escape clears the mode.
         end
         
         function updateLayoutPositions(app)
