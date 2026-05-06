@@ -1,8 +1,8 @@
 classdef MessageDisplay < handle
 % MessageDisplay - Class interface for displaying messages to user.
 
-    properties (SetAccess = private) % Or immutable?
-        App % Placeholder for now
+    properties (SetAccess = protected) % Or immutable?
+        App = [] % Owning app or figure used for parented modern dialogs.
     end
 
     properties % Preferences
@@ -10,6 +10,14 @@ classdef MessageDisplay < handle
     end
 
     methods
+        function obj = MessageDisplay(app)
+            arguments
+                app = []
+            end
+
+            obj.App = app;
+        end
+
         function hFigure = inform(obj, message, options)
         % inform - Open a message box with info message
             
@@ -21,9 +29,16 @@ classdef MessageDisplay < handle
             end
 
             messageStr = obj.getFormattedMessage(message);
-            opts = obj.getDialogOptions();
-            
-            hFigure = msgbox(messageStr, options.Title, opts);
+            hFigure = [];
+
+            if obj.useModernDialog("uialert")
+                uialert(obj.getDialogParent(), message, options.Title, ...
+                    'Icon', obj.getAlertIcon(options.Icon, "info"))
+            else
+                opts = obj.getDialogOptions();
+                hFigure = msgbox(messageStr, options.Title, opts);
+            end
+
             if ~nargout
                 clear hFigure
             end
@@ -46,11 +61,22 @@ classdef MessageDisplay < handle
             if any( strcmp(options.Alternatives, options.DefaultAnswer) )
                 defaultAnswer = char(options.DefaultAnswer);
             else
-                defaultAnswer = options.Alternatives{1};
+                defaultAnswer = char(options.Alternatives(1));
             end
-            dlgOptions.Default = defaultAnswer;
-            answer = questdlg(promptStr, options.Title, ...
-                options.Alternatives{:}, dlgOptions);
+
+            if obj.useModernDialog("uiconfirm")
+                cancelOption = obj.getCancelOption(options.Alternatives);
+                answer = uiconfirm(obj.getDialogParent(), question, options.Title, ...
+                    'Options', cellstr(options.Alternatives), ...
+                    'DefaultOption', defaultAnswer, ...
+                    'CancelOption', cancelOption, ...
+                    'Icon', 'question');
+                answer = char(answer);
+            else
+                dlgOptions.Default = defaultAnswer;
+                answer = questdlg(promptStr, options.Title, ...
+                    options.Alternatives{:}, dlgOptions);
+            end
         end
 
         function warn(obj, message, options)
@@ -63,9 +89,14 @@ classdef MessageDisplay < handle
             end
 
             messageStr = obj.getFormattedMessage(message);
-            opts = obj.getDialogOptions();
-            
-            warndlg(messageStr, options.Title, opts)
+
+            if obj.useModernDialog("uialert")
+                uialert(obj.getDialogParent(), message, options.Title, ...
+                    'Icon', 'warning')
+            else
+                opts = obj.getDialogOptions();
+                warndlg(messageStr, options.Title, opts)
+            end
         end
 
         function alert(obj, message, options)
@@ -78,13 +109,64 @@ classdef MessageDisplay < handle
             end
             
             messageStr = obj.getFormattedMessage(message);
-            opts = obj.getDialogOptions();
-            
-            errordlg(messageStr, options.Title, opts)
+
+            if obj.useModernDialog("uialert")
+                uialert(obj.getDialogParent(), message, options.Title, ...
+                    'Icon', 'error')
+            else
+                opts = obj.getDialogOptions();
+                errordlg(messageStr, options.Title, opts)
+            end
         end
 
-        function wait(obj) %#ok<MANU>
-            % Not implemented yet
+        function hDialog = wait(obj, message, options)
+        % wait - Open an indeterminate progress dialog.
+
+            arguments
+                obj (1,1) nansen.MessageDisplay
+                message (1,1) string = "Please wait..."
+                options.Title (1,1) string = "Please Wait"
+                options.Value (1,1) double {mustBeGreaterThanOrEqual(options.Value, 0), mustBeLessThanOrEqual(options.Value, 1)} = 0
+                options.Indeterminate (1,1) matlab.lang.OnOffSwitchState = "on"
+            end
+
+            if obj.useModernDialog("uiprogressdlg")
+                hDialog = uiprogressdlg(obj.getDialogParent(), ...
+                    'Title', options.Title, ...
+                    'Message', message, ...
+                    'Value', options.Value, ...
+                    'Indeterminate', char(options.Indeterminate));
+            else
+                hDialog = waitbar(options.Value, message);
+            end
+        end
+
+        function updateProgress(~, hDialog, value, message)
+        % updateProgress - Update progress dialog value and optional message.
+
+            arguments
+                ~
+                hDialog
+                value (1,1) double {mustBeGreaterThanOrEqual(value, 0), mustBeLessThanOrEqual(value, 1)}
+                message (1,1) string = string(missing)
+            end
+
+            if isempty(hDialog) || ~isvalid(hDialog)
+                return
+            end
+
+            if isprop(hDialog, 'Value')
+                hDialog.Value = value;
+                if ~ismissing(message) && isprop(hDialog, 'Message')
+                    hDialog.Message = message;
+                end
+            else
+                if ismissing(message)
+                    waitbar(value, hDialog)
+                else
+                    waitbar(value, hDialog, message)
+                end
+            end
         end
     end
 
@@ -94,7 +176,7 @@ classdef MessageDisplay < handle
         end
 
         function formattedMessage = getFormattedMessage(obj, message)
-            if nansen.util.isJavaFrameSupported()
+            if ~obj.useModernDialog("uialert") && nansen.util.isJavaFrameSupported()
                 % For javaframe backed figures, the fontsize of modal
                 % dialogs is small, so we increase it via text formatting.
                 formatSpec = sprintf('\\fontsize{%d}', obj.FontSize);
@@ -105,6 +187,72 @@ classdef MessageDisplay < handle
             else
                 formattedMessage = message;
             end
+        end
+
+        function tf = useModernDialog(obj, functionName)
+            tf = obj.hasDialogFunction(functionName) && obj.hasUiFigureParent();
+        end
+
+        function tf = hasDialogFunction(~, functionName)
+            tf = exist(functionName, 'file') == 2 || exist(functionName, 'builtin') == 5;
+        end
+
+        function tf = hasUiFigureParent(obj)
+            hFigure = obj.getDialogParent();
+            tf = ~isempty(hFigure) && isvalid(hFigure) && ...
+                obj.isUiFigure(hFigure) && strcmp(hFigure.Visible, 'on');
+        end
+
+        function hFigure = getDialogParent(obj)
+            hFigure = [];
+
+            if isempty(obj.App)
+                return
+            elseif isa(obj.App, 'matlab.ui.Figure')
+                hFigure = obj.App;
+            elseif isobject(obj.App) && isprop(obj.App, 'Figure')
+                try
+                    hFigure = obj.App.Figure;
+                catch
+                    hFigure = [];
+                end
+            end
+
+            if isempty(hFigure) || ~isa(hFigure, 'matlab.ui.Figure')
+                hFigure = [];
+            end
+        end
+
+        function tf = isUiFigure(~, hFigure)
+            if verLessThan('matlab', '9.0')
+                tf = false;
+                return
+            end
+
+            try
+                if verLessThan('matlab', '9.5')
+                    tf = ~isempty(matlab.ui.internal.dialog.DialogHelper.getFigureID(hFigure));
+                else
+                    tf = matlab.ui.internal.isUIFigure(hFigure);
+                end
+            catch
+                tf = false;
+            end
+        end
+
+        function icon = getAlertIcon(~, icon, defaultIcon)
+            if strlength(icon) == 0
+                icon = defaultIcon;
+            end
+            icon = char(icon);
+        end
+
+        function cancelOption = getCancelOption(~, alternatives)
+            cancelIdx = find(strcmp(alternatives, "Cancel"), 1, 'first');
+            if isempty(cancelIdx)
+                cancelIdx = numel(alternatives);
+            end
+            cancelOption = char(alternatives(cancelIdx));
         end
     end
 end
