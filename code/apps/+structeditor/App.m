@@ -62,25 +62,18 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 %           Q: 1) How are these updated? Is there any way of making that
 %           simple, or not? True/false, enable/disable...
 %              2) Make data models?
-%      *[x] Make a struct with the same fields as the input struct
-%           containing the controls. Will be much easier to find things
-%           back and update things when needed.
 %       [ ] Fix onMouseMotion bug (if closing a docked structeditor??)
-%       [ ] Use toolbar_ for tabbuttons.
 %       [ ] Add separators with section titles.
 %       [ ] Improve disabling of pages! Or just find out how to best
 %           disable controls...
 %       [ ] Create own class for footer (preset selector)
 %       [ ] Add a star (*) next to default options in the list of names for preset options... 
 %       [ ] Create context menu for preset managing
-%       [x] Create functionality for tabbuttons in header (added dropdown)
-%       [ ] Replace eval with subsref and subsassign for nested structs.
+%       [ ] Replace eval-based nested value reads with subsref helper.
 %       [ ] Implement methods for creating controls, and for updating
 %           control values. I.e split up and generalize the newInputField
 %           method.
-%       [x] Add input parser.
 %       [ ] Better use of space in modular versions.
-%       [x] Resizing in modular version.
 %       [ ] Fix focus issue when using undecorateFig.
 
 %   Minor things to look into:
@@ -89,8 +82,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 %       [ ] Browse button is asymmetric
 %       [ ] Tickbox update can be very slow when pressing it to tick it. Try it
 %           in fovmanager for example. Think this was fixed at some point
-%       [ ] uicontrolSchemer might not be deleted. The objectBeingdestroyed
-%           listener is not saved anywhere, so its deleted
 
     properties (Constant) % Inherited from applify.ModularApp
         AppName = 'Options Editor'
@@ -440,23 +431,12 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                     obj.Figure.Name = obj.AppName;
                 else
                     obj.Figure.Name = sprintf('%s', obj.Title);
-                    %obj.Figure.Name = sprintf('%s (%s)', obj.AppName, obj.Title);
                 end
                 
             else
                 % Todo: Where do we plot name???
             end
         end
-        
-% %         function setDefaultFigureCallbacks(obj, hFig)
-% %             if nargin < 2 || isempty(hFig)
-% %                 hFig = obj.Figure;
-% %             end
-% %
-% %             hFig.WindowKeyPressFcn = @obj.onKeyPressed;
-% %             hFig.WindowKeyReleaseFcn = @obj.onKeyReleased;
-% %         end
-        
         function updateHeaderTitle(obj, pageNum)
             
             if nargin < 2
@@ -621,14 +601,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             else
                 newPosition(4) = obj.visibleHeight;
             end
-            
-% %             % Panel width should be same as virtual width.
-% %             if ~isnan(obj.virtualWidth(pageNum))
-% %                 newPosition(3) = obj.virtualWidth(pageNum);
-% %             else
-% %                 newPosition(3) = obj.visibleWidth;
-% %             end
-
             setpixelposition(obj.main.hPanel(pageNum), newPosition);
 
             if isfield(obj.main, 'hAxes')
@@ -986,32 +958,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         
         function createFinishButtons(obj)
         %createFinishButtons Create save and cancel buttons
-                
-% % %             hToolbar = uim.widget.toolbar_(obj.header.hPanel, ...
-% % %                 'Location', 'east', 'VerticalAlignment', 'middle', ...
-% % %                 'Margin', [0,0,10,20],'ComponentAlignment', 'left', ...
-% % %                 'BackgroundAlpha', 0, 'IsFixedSize', [false, true], ...
-% % %                 'Size', [inf, 24], ...
-% % %                 'NewButtonSize', [16,16], 'Padding', [0,0,0,0], ...
-% % %                 'Spacing', 0);
-% % %
-% % %             buttonConfig = {'FontSize', 15, 'FontName', obj.FontName, ...
-% % %                 'Padding', [2,2,2,2], 'CornerRadius', 2, ...
-% % %                 'Mode', 'pushbutton', 'Style', uim.style.buttonSymbol, ...
-% % %                 'IconSize', [16,16], 'IconTextSpacing', 7};
-% % %
-% % %             btnIcon = {obj.ICONS.save2, obj.ICONS.cancel2};
-% % %             btnName={'Save', 'Cancel'};
-% % %             for i = 1:2
-% % %                 hToolbar.addButton('Icon', btnIcon{i}, 'Tooltip', btnName{i}, ...
-% % %                     'Callback', @(s, e, action) obj.quit(btnName{i}), buttonConfig{:})
-% % %             end
-% % %
-% % %             % Update location after buttons are created..
-% % %             hToolbar.Location = 'east';
-% % %
-% % %             return
-        
+        % TODO: Revisit toolbar-based finish buttons if header actions need
+        % shared styling, layout, or action handling.
             xPos = [0.84, 0.94];
             yPos = 0.5;
             margin = [8, 8];
@@ -1043,10 +991,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 edgeCoords = edgeCoords - min(edgeCoords);
 
                 % Shift coordinates to be centered on xPos and yPos.
-% %                 if ~exist('range', 'file')
-% %                     range = @(x) max(x) - min(x);
-% %                 end
-                
                 edgeCoords = [xPos(i), yPos] + edgeCoords - nansen.util.range(edgeCoords)/2;
 
                 hBtn(i) = patch(edgeCoords(:,1), edgeCoords(:,2), 'w');
@@ -1079,16 +1023,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         function createTabPanel(obj)
         %createTabPanel Configure and add tab buttons to tabpanel
         
-
             xPad = 10;
-            
-            % % if contains(obj.TabMode, 'popup')
-            % %     xPad = 10;
-            % %     w = obj.Margins(1);
-            % % else
-            % %     xPad = 10;
-            % %     w = obj.Margins(1);
-            % % end
             
             % Mis-use header text for testing size of button text...
             fontSize = obj.headerTitle.FontSize;
@@ -1610,14 +1545,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                     end
                 end
             end
-
-% % %             % Alternative version:
-% % %             fieldIdx = strcmp(currentFieldName, allFieldNames);
-% % %             configIdx = strcmp([currentFieldName,'_'], allFieldNames);
-% % %
-% % %             if ~isempty(fieldIdx) && ~isempty(configIdx)
-% % %                 ind = configIdx;
-% % %             end
         end
         
         % Note inputbox belongs to guiPanel
@@ -1632,14 +1559,14 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             wasAborted = false;
             
             if strcmpi(obj.LabelPosition, 'Over')
-                xMargin = [18, 40]; % Old: 65
+                xMargin = [18, 40];
                 x = xMargin(1);
                 xSpacing = 7;
                 yTxt = y + obj.RowHeight-5;
                 textAlignment = 'left';
             
             elseif strcmpi(obj.LabelPosition, 'Left')
-                xMargin = [20, 50]; % Old: 65
+                xMargin = [20, 50];
                 %x = guiAxes.Position(3)/2-10;
                 x = obj.visibleWidthOrig/2-10;
 
@@ -1760,20 +1687,13 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                             ycorr = -3;
                             % padding is 3pix asymmetric... i think
                             % because of the way other uicontrols are positioned.
-% %
-% %                         case 'rangeslider'
-% %                             inputbox = uim.widget.rangeslider(guiAxes, ...
-% %                                 'Units', 'pixel', config.args{:}, 'Low', val(1), 'High', val(2), ...
-% %                                 'TextColor', obj.Theme.FigureFgColor, 'Padding', [0,9,3,9]);
-% %                             ycorr = -3;
-                            
+                            % TODO: Add rangeslider support if range-valued
+                            % options become part of the StructEditor
+                            % control contract.
                         case 'button'
                             inputbox = uicontrol(guiPanel, 'style', 'pushbutton', ...
                                 config.args{:} );
                             
-% % %                             inputbox = uim.control.Button_(guiPanel, ...
-% % %                                 'mode', 'pushbutton', config.args{:}, ...
-% % %                                 'HorizontalTextAlignment', 'center');
                             if strcmp(obj.LabelPosition, 'Over')
                                 ycorr = 0.5*obj.RowSpacing;
                             end
@@ -2220,19 +2140,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             setpixelposition( obj.main.hPanel(i), pixelPos);
             
             obj.lastScrollValue = 0;
-            %obj.hScroller.Value = 0;
-            
-            return
-            
-            %TODO: Remove this..
-            % Move elements to top:
-            difference = obj.main.hAxes(i).YLim(2) - obj.virtualHeight(i);
-            obj.main.hAxes(i).YLim = obj.main.hAxes(i).YLim - difference;
-
-            uic = findobj(obj.main.hPanel(i), 'Type', 'UIControl');
-            for i = 1:numel(uic)
-                uic(i).Position(2) = uic(i).Position(2) + difference;
-            end
         end
         
         function moveElementsToRight(obj)
@@ -2647,14 +2554,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             obj.setButtonEnableState('Save Options')
             
             newOpts = obj.OptionsManager.getOptions(newName);
-            
-% % %             % Todo: turn this into a method.
-% % %             if numel(obj.dataEdit) > 1
-% % %                 newOpts = struct2cell(newOpts);
-% % %             else
-% % %                 newOpts = {newOpts};
-% % %             end
-            
+
             obj.replaceEditedStruct(newOpts)
             %obj.refreshOptionsDropdown(src)
             
@@ -2894,21 +2794,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 fieldsControls = fieldnamesr(obj.hControls);
             
                 names = intersect(fieldsOptions, fieldsControls);
-                
-% %                 if isempty(newOpts{i})
-% %                     obj.disablePage(i)
-% %                     continue
-% %                 else
-% %                     if obj.isPageDisabled(i)
-% %                         obj.enablePage(i)
-% %                     end
-% %                 end
-                
                 obj.currentPanel = i;
                 
                 for j = 1:numel(names)
-                    %hControl = findobj(guiFig, 'Tag', names{j}, 'Type', 'uicontrol');
-                    
                     s = struct('type', {'.'}, 'subs', strsplit(names{j}, '.'));
                     hControl = subsref(obj.hControls, s);
                     
@@ -2983,13 +2871,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             set(obj.main.hPanel, 'Visible', 'off')
             drawnow
             obj.currentPanel = panelNum;
-            
-% %             if obj.isPageDisabled(panelNum)
-% %                 obj.main.disablePanel.Visible = 'on';
-% %             else
-% %                 obj.main.disablePanel.Visible = 'off';
-% %             end
-            
             obj.updateHeaderTitle()
             
             if obj.showSidePanel && contains(obj.TabMode, 'popup')
@@ -3099,19 +2980,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
             panelNum = obj.currentPanel;
         
-            % Get the fraction which the scrollbar has moved
-            %fractionMoved = (scroller.Value - obj.lastScrollValue) / 100;
             obj.lastScrollValue = scroller.Value;
 
-            % Get text fields of panel
-            %hUicTmp = findobj(obj.main.hPanel(panelNum), 'Type', 'UIControl');
-
-            % Calculate the shift of components in pixels %Todo: remove,
-            % this was buggy:
-            %pixelShiftY = fractionMoved * obj.visibleHeight;
-
             pixelpos = getpixelposition( obj.main.hPanel(panelNum) );
-            %pixelpos(2) = pixelpos(2) + pixelShiftY;
 
             % Calculate new y-position for panel in pixels:
             offsetY = scroller.Value / 100 * obj.visibleHeight;
@@ -3126,18 +2997,6 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             % Update pixelpos with rounding to prevent small jitters from
             % triggering the size changed callbacks
             setpixelposition( obj.main.hPanel(panelNum), round(pixelpos) );
-            
-            return
-            
-            % % % OLD implementation: Keep for reference. Todo: remove
-            % % % Move all fields up or down in panel.
-            % % for i = 1:length(hUicTmp)
-            % %     fieldPos = get(hUicTmp(i), 'Position');
-            % %     fieldPos(2) = fieldPos(2) + pixelShiftY;
-            % %     set(hUicTmp(i), 'Position', fieldPos)
-            % % end
-            % % 
-            % % obj.main.hAxes(panelNum).YLim = obj.main.hAxes(panelNum).YLim - pixelShiftY;
         end
         
         function waitfor(obj)
@@ -3194,33 +3053,3 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         end
     end
 end
-
-% % % % OLDER CODE:
-% %
-% % function parseNvPairs(obj, varargin)
-% %     if any(contains(varargin(1:2:end), 'Callback'))
-% %         ind = find(contains(varargin(1:2:end), 'Callback'));
-% %         obj.Callback = varargin{ind*2};
-% %     end
-% %
-% %     if any(contains(varargin(1:2:end), 'Testfunc'))
-% %         ind = find(contains(varargin(1:2:end), 'Testfunc'));
-% %         obj.TestFunc = varargin{ind*2};
-% %     end
-% %
-% %     if any(contains(varargin(1:2:end), 'Name'))
-% %         ind = find(contains(varargin(1:2:end), 'Name'));
-% %         obj.Name = varargin{ind*2};
-% %     end
-% %
-% %     if any(contains(varargin(1:2:end), 'OptionsManager'))
-% %         ind = find(contains(varargin(1:2:end), 'OptionsManager'));
-% %         obj.OptionsManager = varargin{ind*2};
-% %         obj.showFooter = true;
-% %     end
-% %
-% %     if any(contains(varargin(1:2:end), 'CurrentOptionsSet'))
-% %         ind = find(contains(varargin(1:2:end), 'CurrentOptionsSet'));
-% %         obj.CurrentOptionsSet = varargin{ind*2};
-% %     end
-% % end
