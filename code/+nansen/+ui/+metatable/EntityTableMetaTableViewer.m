@@ -15,6 +15,7 @@ classdef EntityTableMetaTableViewer < handle
         CellEditCallback
         KeyPressCallback
         MouseDoubleClickedFcn = []
+        Theme (1,1) string = "light"
 
         DeleteColumnFcn = []
         UpdateColumnFcn = []
@@ -584,11 +585,30 @@ classdef EntityTableMetaTableViewer < handle
                 backend = "html";
             end
 
+            obj.applyFigureTheme(parent)
+
             tableView = entitytable.EntityTableView(parent, dataTable, ...
                 RowKey=options.RowKey, ...
                 ColumnSpecs=options.ColumnSpecs, ...
                 SelectionMode=options.SelectionMode, ...
-                Backend=backend);
+                Backend=backend, ...
+                Theme=obj.Theme);
+        end
+
+        function applyFigureTheme(obj, parent)
+            if isempty(parent) || strlength(obj.Theme) == 0
+                return
+            end
+
+            hFigure = ancestor(parent, 'figure');
+            if isempty(hFigure) || ~isvalid(hFigure) || ~isprop(hFigure, 'Theme')
+                return
+            end
+
+            hFigure.Theme = obj.Theme;
+            if isprop(hFigure, 'ToolBar')
+                hFigure.ToolBar = 'none';
+            end
         end
 
         function cleanup = suspendEntityTableRefresh(obj)
