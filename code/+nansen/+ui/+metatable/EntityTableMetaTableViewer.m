@@ -585,8 +585,6 @@ classdef EntityTableMetaTableViewer < handle
                 backend = "html";
             end
 
-            obj.applyFigureTheme(parent)
-
             tableView = entitytable.EntityTableView(parent, dataTable, ...
                 RowKey=options.RowKey, ...
                 ColumnSpecs=options.ColumnSpecs, ...
@@ -654,6 +652,7 @@ classdef EntityTableMetaTableViewer < handle
                 obj.Parent = uifigure(...
                     'Name', 'NANSEN Metadata Table', ...
                     'Visible', 'on');
+                obj.applyFigureTheme(obj.Parent)
             end
 
             tableLayout = obj.captureTableLayout();

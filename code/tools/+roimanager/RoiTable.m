@@ -59,6 +59,9 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             
             if strcmp(obj.mode, 'standalone')
                 obj.Figure.Position = obj.initializeFigurePosition();
+                if nansen.util.useModernUiTable()
+                    obj.configureModernFigure()
+                end
             end
             
             roiTable = obj.rois2table(cat(1, roiGroup.roiArray));
@@ -257,7 +260,9 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             end
 
             if obj.UITable.usesModernBackend()
-                obj.setFigureTheme('dark')
+                if strcmp(obj.mode, 'standalone')
+                    obj.configureModernFigure()
+                end
             else
                 S = obj.Theme;
                 obj.setTableComponentProperty('BackgroundColor', S.HeaderBgColor)
@@ -283,20 +288,16 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             feval(methodName, obj.UITable.HTable)
         end
 
-        function setFigureTheme(obj, themeName)
-            if isempty(obj.UITable) || isempty(obj.UITable.HTable) || ...
-                    ~isvalid(obj.UITable.HTable)
+        function configureModernFigure(obj)
+            if isempty(obj.Figure) || ~isvalid(obj.Figure)
                 return
             end
 
-            hFigure = ancestor(obj.UITable.HTable, 'figure');
-            if isempty(hFigure) || ~isvalid(hFigure) || ~isprop(hFigure, 'Theme')
-                return
+            if isprop(obj.Figure, 'Theme')
+                obj.Figure.Theme = 'dark';
             end
-
-            hFigure.Theme = themeName;
-            if isprop(hFigure, 'ToolBar')
-                hFigure.ToolBar = 'none';
+            if isprop(obj.Figure, 'ToolBar')
+                obj.Figure.ToolBar = 'none';
             end
         end
         

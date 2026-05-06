@@ -71,6 +71,8 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             obj@applify.DashBoard()
             obj@imviewer.plugin.RoiManager('CreateContextMenu', false)
            
+            obj.configureModernFigure()
+
             % Todo: Get figure position from properties.
             obj.hFigure.Position = [100, 50, obj.FigureSize];
             obj.keepFigureOnScreen()
@@ -334,6 +336,20 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             obj.RoiThumbnailViewer.ThumbnailSize = obj.settings.RoiDisplayPreferences.roiThumbnailSize;
             obj.RoiThumbnailViewer.ActiveChannel = obj.ActiveChannel;
             %obj.AppModules(end+1) = obj.RoiThumbnailViewer;
+        end
+
+        function configureModernFigure(obj)
+            if ~nansen.util.useModernUiComponents()
+                return
+            end
+
+            if isprop(obj.hFigure, 'Theme')
+                obj.hFigure.Theme = 'dark';
+            end
+            if isprop(obj.hFigure, 'ToolBar')
+                obj.hFigure.ToolBar = 'none';
+            end
+            drawnow limitrate
         end
     end
 
