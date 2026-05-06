@@ -153,6 +153,14 @@
       "description": "Reading and writing YAML files in MATLAB",
       "setupHook": "nansen.internal.setup.addYamlJarToJavaClassPath",
       "installCheck": "yaml.WriteYaml"
+    },
+    {
+      "name": "Entity Table",
+      "dependencyType": "community-toolbox",
+      "requirementLevel": "required",
+      "source": "https://github.com/ehennestad/entity-table",
+      "description": "Modern table component for Java-free table UIs in MATLAB R2025a and newer",
+      "installCheck": "entitytable.EntityTableView"
     }
   ]
 }
