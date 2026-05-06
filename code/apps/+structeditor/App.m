@@ -195,9 +195,9 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         headerSubtitle
         sidePanelToggleButton
 
-        UIControlSchemer applify.uicontrolSchemer
-        UIControlSchemerHeader applify.uicontrolSchemer
-        UIControlSchemerFooter applify.uicontrolSchemer
+        ControlStylerByPanel
+        HeaderControlStyler applify.uicontrolSchemer
+        FooterControlStyler applify.uicontrolSchemer
 
         % Move to options manager ui class.
         OptionsManagerControls
@@ -250,6 +250,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             obj.parseStruct(S)
             
             obj.customizeFigure()
+            obj.ControlStylerByPanel = containers.Map('KeyType', 'double', 'ValueType', 'any');
             
             % Start GUI initialization
             obj.createPanels()
@@ -264,13 +265,13 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             obj.addComponents(1)
             obj.updateHeaderTitle()
 
-            obj.styleControls(1)
+            obj.stylePanelControls(1)
 
             if obj.showFooter
-                h = obj.styleUiControls(obj.OptionsManagerControls);
-                if ~isempty(h)
-                    obj.UIControlSchemerFooter = h;
-                    addlistener(obj, 'ObjectBeingDestroyed', @(src,evt) delete(h));
+                controlStyler = obj.styleControlHandles(obj.OptionsManagerControls);
+                if ~isempty(controlStyler)
+                    obj.FooterControlStyler = controlStyler;
+                    addlistener(obj, 'ObjectBeingDestroyed', @(src,evt) delete(controlStyler));
                     drawnow
                 end
             end
@@ -280,11 +281,10 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             
             % Make them look good.
             if ~isempty(hUic)
-                h = obj.styleUiControls(hUic);
-                if ~isempty(h)
-                    obj.UIControlSchemerHeader = h;
+                controlStyler = obj.styleControlHandles(hUic);
+                if ~isempty(controlStyler)
+                    obj.HeaderControlStyler = controlStyler;
                 end
-                %el = addlistener(obj, 'ObjectBeingDestroyed', @(src,evt) delete(h));
             end
             
 %             % Center position of figure on screen
@@ -2060,8 +2060,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             end
         end
 
-        function styleControls(obj, panelNum)
-        %styleControls Style ui controls
+        function stylePanelControls(obj, panelNum)
+        %stylePanelControls Style controls for one settings panel.
             if obj.isStandalone
                 set(obj.Figure, 'Visible', 'on')
             end
@@ -2073,19 +2073,15 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             end
 
             hUic = findall(hPanel, 'type', 'uicontrol');
-            h = obj.styleUiControls(hUic);
-            if ~isempty(h)
-                obj.UIControlSchemer(panelNum) = h;
-            elseif obj.canUseLegacyControlStyler()
-                warnCleanup = nansen.ui.legacy.tempDisableJavaFrameWarnings();
-                warnCleanup(end+1) = nansen.ui.legacy.tempDisableJavaComponentWarning(); %#ok<NASGU>
-                obj.UIControlSchemer(panelNum) = applify.uicontrolSchemer();
+            controlStyler = obj.styleControlHandles(hUic);
+            if ~isempty(controlStyler)
+                obj.ControlStylerByPanel(panelNum) = controlStyler;
             end
         end
 
-        function h = styleUiControls(obj, hUic)
-        %styleUiControls Style controls using Java styler or native fallback.
-            h = [];
+        function controlStyler = styleControlHandles(obj, hUic)
+        %styleControlHandles Style controls and return Java styler if used.
+            controlStyler = [];
             if isempty(hUic); return; end
 
             if ~obj.canUseLegacyControlStyler()
@@ -2097,11 +2093,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             warnCleanup(end+1) = nansen.ui.legacy.tempDisableJavaComponentWarning(); %#ok<NASGU>
 
             try
-                h = applify.uicontrolSchemer(hUic);
-                addlistener(obj, 'ObjectBeingDestroyed', @(src,evt,hObj) delete(h));
+                controlStyler = applify.uicontrolSchemer(hUic);
+                addlistener(obj, 'ObjectBeingDestroyed', @(src,evt,hObj) delete(controlStyler));
             catch
                 obj.applyNativeControlTheme(hUic)
-                h = [];
+                controlStyler = [];
             end
         end
 
@@ -2991,7 +2987,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                  % Create components
                 obj.addComponents(panelNum)
 
-                obj.styleControls(panelNum)
+                obj.stylePanelControls(panelNum)
                 
                 % Scroll to top, or align elements to top if all comps are
                 % visible
@@ -3010,11 +3006,13 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             obj.main.hPanel(panelNum).Visible = 'on';
             drawnow
 
-            if ~isempty(obj.UIControlSchemer)
-                obj.UIControlSchemer(panelNum).stripAllUIControls()
-                if obj.showFooter
-                    obj.UIControlSchemerFooter.stripAllUIControls()
-                end
+            if ~isempty(obj.ControlStylerByPanel) && ...
+                    isKey(obj.ControlStylerByPanel, panelNum)
+                obj.ControlStylerByPanel(panelNum).stripAllUIControls()
+            end
+            if obj.showFooter && ~isempty(obj.FooterControlStyler) && ...
+                    isvalid(obj.FooterControlStyler)
+                obj.FooterControlStyler.stripAllUIControls()
             end
 
             % Update scrollbar.
