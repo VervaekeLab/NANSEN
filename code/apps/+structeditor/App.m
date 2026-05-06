@@ -276,7 +276,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             end
 
             % Find handles of all uicontrols.
-            hUic = findobj(obj.header.hPanel, 'type', 'uicontrol');
+            hUic = findall(obj.header.hPanel, 'type', 'uicontrol');
             
             % Make them look good.
             if ~isempty(hUic)
@@ -698,7 +698,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 obj.headerSubtitle.BackgroundColor = obj.Theme.FigureBgColor;
             end
             if ~obj.canUseLegacyControlStyler()
-                obj.applyNativeControlTheme(findobj(obj.Panel, 'type', 'uicontrol'));
+                obj.applyNativeControlTheme(findall(obj.Panel, 'type', 'uicontrol'));
             end
             
             if obj.showSidePanel
@@ -2072,7 +2072,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 hPanel = obj.main.hPanel(panelNum);
             end
 
-            hUic = findobj(hPanel, 'type', 'uicontrol');
+            hUic = findall(hPanel, 'type', 'uicontrol');
             h = obj.styleUiControls(hUic);
             if ~isempty(h)
                 obj.UIControlSchemer(panelNum) = h;
