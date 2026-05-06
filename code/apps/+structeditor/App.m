@@ -271,13 +271,12 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 controlStyler = obj.styleControlHandles(obj.OptionsManagerControls);
                 if ~isempty(controlStyler)
                     obj.FooterControlStyler = controlStyler;
-                    addlistener(obj, 'ObjectBeingDestroyed', @(src,evt) delete(controlStyler));
                     drawnow
                 end
             end
 
             % Find handles of all uicontrols.
-            hUic = findall(obj.header.hPanel, 'type', 'uicontrol');
+            hUic = obj.findControlsForStyling(obj.header.hPanel);
             
             % Make them look good.
             if ~isempty(hUic)
@@ -380,7 +379,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             obj.Figure.Resize = 'off';
             obj.Figure.Position = obj.initializeFigurePosition();
         
-            obj.Figure.CloseRequestFcn = @(s, e, action) obj.quit('Cancel');
+            obj.Figure.CloseRequestFcn = @(~, ~) obj.quit('Cancel');
 
         end
         
@@ -725,7 +724,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             % Create a panel for controls for each of structs to be edited.
             for i = 1:obj.numTabs
                 obj.main.hPanel(i) = uipanel(obj.Panel, 'Visible', 'off');
-                obj.main.hPanel(i).SizeChangedFcn = @(s,e) obj.resizeControlPanel(i, getpixelposition(s));
+                obj.main.hPanel(i).SizeChangedFcn = @(s, ~) obj.resizeControlPanel(i, getpixelposition(s));
             end
         
             % Create a temporary panel to cover up uicontrols while they
@@ -957,7 +956,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             hButton2.FontName = obj.FontName;
             hButton2.FontUnits = 'pixels';
             hButton2.FontSize = obj.FontSize;
-            hButton2.Callback = @(s,e,h) obj.makeOptionsSetDefault(hDropdown);
+            hButton2.Callback = @(s,e) obj.makeOptionsSetDefault(hDropdown);
 
             obj.OptionsManagerControls = [hDropdown, hButton1, hButton2];
             
@@ -1059,7 +1058,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 hBtn(i).FaceAlpha = 0;
                 hBtn(i).PickableParts = 'all';
                 hBtn(i).Tag = sprintf('%s Button', btnName{i});
-                hBtn(i).ButtonDownFcn = @(s, e, action) obj.quit(btnName{i});
+                hBtn(i).ButtonDownFcn = @(~, ~) obj.quit(btnName{i});
 
             end
             
@@ -1132,7 +1131,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
                 obj.TabButtonGroup.Buttons(counter) = hToolbar.addButton(...
                     'Text', utility.string.varname2label(obj.Name{i}), 'Icon', icon, ...
-                    'Callback', @(s,e,n) obj.onTabButtonPressed(s,e,i), ...
+                    'Callback', @(s,e) obj.onTabButtonPressed(s,e,i), ...
                     buttonConfig{:} );
                 if i == 1
                     obj.TabButtonGroup.Buttons(counter).Value = true;
@@ -1296,15 +1295,15 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 obj.isTabCreated = false(1, obj.numTabs);
                 % assert(~isempty(obj.Name), 'Name required for each struct')
                 
-                if numel(obj.Callback)==1
+                if isscalar(obj.Callback)
                     obj.Callback = arrayfun(@(i) obj.Callback, 1:obj.numTabs, 'uni', 0);
                 end
                 
-                if numel(obj.TestFunc)==1
+                if isscalar(obj.TestFunc)
                     obj.TestFunc = arrayfun(@(i) obj.TestFunc, 1:obj.numTabs, 'uni', 0);
                 end
                 
-                if numel(obj.ValueChangedFcn)==1
+                if isscalar(obj.ValueChangedFcn)
                     obj.ValueChangedFcn = arrayfun(@(i) obj.ValueChangedFcn, 1:obj.numTabs, 'uni', 0);
                 end
                 
@@ -1737,7 +1736,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                         % Redefine config to allow editing dropdown items:
                         % To whoever encounters this, I am sorry. It's a result of "I can get it done
                         % quickly in 10 minutes or properly in 10 hours".
-                        config = @(dd, fh) obj.onDropdownItemEditRequested(inputbox, dropdownConfig);
+                        % Callback to swallow first argument, pass two custom args:
+                        config = @(~) obj.onDropdownItemEditRequested(inputbox, dropdownConfig);
                     else
                         inputbox = uicontrol(guiPanel, 'style', 'popupmenu');
                         inputbox.String = config;
@@ -2072,10 +2072,19 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 hPanel = obj.main.hPanel(panelNum);
             end
 
-            hUic = findall(hPanel, 'type', 'uicontrol');
+            hUic = obj.findControlsForStyling(hPanel);
             controlStyler = obj.styleControlHandles(hUic);
             if ~isempty(controlStyler)
                 obj.ControlStylerByPanel(panelNum) = controlStyler;
+            end
+        end
+
+        function hUic = findControlsForStyling(obj, hPanel)
+        %findControlsForStyling Find controls for Java or native styling.
+            if obj.canUseLegacyControlStyler()
+                hUic = findobj(hPanel, 'type', 'uicontrol');
+            else
+                hUic = findall(hPanel, 'type', 'uicontrol');
             end
         end
 
@@ -2089,12 +2098,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 return
             end
 
-            warnCleanup = nansen.ui.legacy.tempDisableJavaFrameWarnings();
-            warnCleanup(end+1) = nansen.ui.legacy.tempDisableJavaComponentWarning(); %#ok<NASGU>
-
             try
-                controlStyler = applify.uicontrolSchemer(hUic);
-                addlistener(obj, 'ObjectBeingDestroyed', @(src,evt,hObj) delete(controlStyler));
+                controlStyler = obj.applyJavaControlStyler(hUic);
             catch
                 obj.applyNativeControlTheme(hUic)
                 controlStyler = [];
@@ -2156,6 +2161,17 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             end
         end
         
+        function controlStyler = applyJavaControlStyler(obj, hControls)
+        % applyJavaControlStyler - Legacy solution for styling ui controls.
+            warnCleanup = nansen.ui.legacy.tempDisableJavaFrameWarnings();
+            warnCleanup(end+1) = nansen.ui.legacy.tempDisableJavaComponentWarning(); %#ok<NASGU>
+
+            controlStyler = applify.uicontrolSchemer(hControls);
+            % Add listener to ensure styler is destroyed if this app is
+            % deleted, relevant for docked structeditors
+            addlistener(obj, 'ObjectBeingDestroyed', @(~, ~) delete(controlStyler));
+        end
+
         function showFigure(obj)
             
             if isfield(obj.main, 'tmpPanel')
