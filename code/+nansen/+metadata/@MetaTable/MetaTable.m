@@ -1090,6 +1090,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 end
                 try
                     addlistener(metaObjects{i}, 'PropertyChanged', @obj.onMetaObjectPropertyChanged);
+                    obj.addObservablePropertyListeners(metaObjects{i});
                     addlistener(metaObjects{i}, 'ObjectBeingDestroyed', @obj.onMetaObjectDestroyed);
                 catch MEForListener
                     if isa(metaObjects{i}, 'nansen.metadata.abstract.MetadataEntity')
@@ -1135,23 +1136,77 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             obj.MetaObjectCacheMembers = {obj.MetaObjectCache.(idName)};
             obj.MetaObjectCacheMembers = nansen.metadata.MetaTable.normalizeIdentifier(obj.MetaObjectCacheMembers);
         end
+
+        function addObservablePropertyListeners(obj, metaObject)
+        %addObservablePropertyListeners Listen to table-backed properties
+
+            mc = metaclass(metaObject);
+            propList = mc.PropertyList;
+
+            for iProp = 1:numel(propList)
+                prop = propList(iProp);
+                if ~prop.SetObservable || prop.Constant || prop.Dependent
+                    continue
+                end
+                if ~obj.isVariable(prop.Name)
+                    continue
+                end
+
+                propertyName = prop.Name;
+                addlistener(metaObject, propertyName, 'PostSet', ...
+                    @(~, evt) obj.onMetaObjectObservablePropertySet(evt, propertyName));
+            end
+        end
         
         function onMetaObjectPropertyChanged(obj, src, evt)
         % onMetaObjectPropertyChanged - Callback to handle value change of meta object
-            if ~isvalid(src); return; end
+            obj.updateEntryFromMetaObjectProperty(src, evt.Property, evt.NewValue)
+        end
+
+        function onMetaObjectObservablePropertySet(obj, evt, propertyName)
+        %onMetaObjectObservablePropertySet Handle MATLAB property PostSet
+            src = evt.AffectedObject;
+            newValue = src.(propertyName);
+            obj.updateEntryFromMetaObjectProperty(src, propertyName, newValue)
+        end
+
+        function updateEntryFromMetaObjectProperty(obj, src, propertyName, newValue)
+        %updateEntryFromMetaObjectProperty Apply object property changes
+
+            if ~isvalid(src) || ~obj.isVariable(propertyName)
+                return
+            end
 
             objectID = obj.getObjectId(src); % sessionID / itemID
-
-            % Todo: Use getEntry
             metaTableEntryIdx = find(strcmp(obj.members, objectID));
+            if isempty(metaTableEntryIdx)
+                return
+            end
             
             if numel(metaTableEntryIdx) > 1
-                % metaTableEntryIdx = metaTableEntryIdx(1);
                 error('NANSEN:MetaTable:DuplicateEntries', ...
                     'Multiple entries have the ID "%s"', objectID)
             end
-            
-            obj.editEntries(metaTableEntryIdx, evt.Property, evt.NewValue)
+
+            currentValue = obj.entries{metaTableEntryIdx, propertyName};
+            if iscell(currentValue) && isscalar(currentValue)
+                currentValue = currentValue{1};
+            end
+
+            valueForComparison = newValue;
+            if iscell(valueForComparison) && isscalar(valueForComparison)
+                valueForComparison = valueForComparison{1};
+            end
+
+            if isequaln(currentValue, valueForComparison)
+                return
+            end
+
+            if isa(newValue, 'struct')
+                newValue = {newValue};
+            end
+
+            obj.editEntries(metaTableEntryIdx, propertyName, newValue)
         end
         
         function onMetaObjectDestroyed(obj, src, ~)

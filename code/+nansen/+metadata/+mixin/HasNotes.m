@@ -1,6 +1,6 @@
 classdef HasNotes < handle
 % HasNotes - Mixin for adding notes to metadata types
-    properties % Todo: SetAccess = nansen.util.StructAdapter
+    properties (SetObservable) % Todo: SetAccess = nansen.util.StructAdapter
         Notebook = struct.empty
     end
 
