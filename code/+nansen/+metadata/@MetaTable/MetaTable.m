@@ -492,15 +492,43 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         end
     end
 
-    methods (Access = {?nansen.App})
+    methods (Hidden)
         function editEntriesFromTable(obj, rowInd, varName, newValue)
         %editEntriesFromTable Apply an edit that already originated in a table UI
 
+            editedIds = obj.getObjectId(obj.entries(rowInd, :));
             obj.assignEntries(rowInd, varName, newValue)
+            obj.invalidateMetaObjectCache(editedIds)
         end
     end
 
     methods (Access = private)
+        function invalidateMetaObjectCache(obj, objectIds)
+        %invalidateMetaObjectCache Remove cached meta objects for given IDs
+
+            objectIds = nansen.metadata.MetaTable.normalizeIdentifier(objectIds);
+            if isempty(objectIds) || isempty(obj.MetaObjectCacheMembers)
+                return
+            end
+
+            cacheIdx = find(ismember(obj.MetaObjectCacheMembers, objectIds));
+
+            % Delete handle objects so external references become invalid
+            % instead of silently keeping stale row metadata alive.
+            for i = numel(cacheIdx):-1:1
+                thisIdx = cacheIdx(i);
+                cachedObject = obj.MetaObjectCache(thisIdx);
+
+                if isa(cachedObject, 'handle') && isvalid(cachedObject)
+                    delete(cachedObject)
+                else
+                    obj.MetaObjectCache(thisIdx) = [];
+                end
+            end
+
+            obj.updateMetaObjectCacheMembers();
+        end
+
         function notifyEntryChanged(obj, rowInd, varName)
         %notifyEntryChanged Notify listeners that table entries changed
 
@@ -617,6 +645,9 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             elseif isa(listOfEntryIds, 'char')
                 IND = strcmp(obj.entries.(idName), listOfEntryIds);
             end
+
+            idsToRemove = obj.getObjectId(obj.entries(IND, :));
+            obj.invalidateMetaObjectCache(idsToRemove)
 
             obj.entries(IND, :) = [];
             obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
@@ -1095,6 +1126,11 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         function updateMetaObjectCacheMembers(obj)
         %updateMetaObjectCacheMembers Update list of ids for members of the
         % metaobject cache
+            if isempty(obj.MetaObjectCache)
+                obj.MetaObjectCacheMembers = {};
+                return
+            end
+
             idName = obj.SchemaIdName;
             obj.MetaObjectCacheMembers = {obj.MetaObjectCache.(idName)};
             obj.MetaObjectCacheMembers = nansen.metadata.MetaTable.normalizeIdentifier(obj.MetaObjectCacheMembers);
