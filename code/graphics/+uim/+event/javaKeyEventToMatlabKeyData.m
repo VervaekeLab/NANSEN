@@ -64,6 +64,8 @@ function keyName = getSpecialKey(jEvt)
     switch keyCode
         case 16
             keyName = 'shift';
+        case 27
+            keyName = 'escape';
         case 17
             keyName = 'control';
         case 18
