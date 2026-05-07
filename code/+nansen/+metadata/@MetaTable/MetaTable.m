@@ -492,7 +492,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         end
     end
 
-    methods (Hidden)
+    methods (Access = {?nansen.App})
         function editEntriesFromTable(obj, rowInd, varName, newValue)
         %editEntriesFromTable Apply an edit that already originated in a table UI
 
