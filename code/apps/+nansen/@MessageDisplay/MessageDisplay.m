@@ -119,7 +119,7 @@ classdef MessageDisplay < handle
             end
         end
 
-        function hDialog = wait(obj, message, options)
+        function [hDialog, dialogCleanupObj] = wait(obj, message, options)
         % wait - Open an indeterminate progress dialog.
 
             arguments
@@ -138,6 +138,10 @@ classdef MessageDisplay < handle
                     'Indeterminate', char(options.Indeterminate));
             else
                 hDialog = waitbar(options.Value, message);
+            end
+
+            if nargout == 2
+                dialogCleanupObj = onCleanup(@()deleteWaitbarIfValid(hDialog));
             end
         end
 
@@ -254,5 +258,11 @@ classdef MessageDisplay < handle
             end
             cancelOption = char(alternatives(cancelIdx));
         end
+    end
+end
+
+function deleteWaitbarIfValid(waitbarHandle)
+    if ~isempty(waitbarHandle) && isvalid(waitbarHandle)
+        delete(waitbarHandle)
     end
 end

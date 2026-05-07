@@ -1811,8 +1811,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function onProjectChanged(app, varargin)
             app.TableIsUpdating = true;
             returnToIdle = app.setBusy('Changing project'); %#ok<NASGU>
-            hDlg = app.MessageDisplay.wait('Please wait, changing project...', ...
-                'Title', 'Changing Project');
+            [hDlg, dlgCleanup] = app.MessageDisplay.wait('Please wait, changing project...', ...
+                'Title', 'Changing Project'); %#ok<ASGLU>
             
             app.BatchProcessor.closeTaskList()
 
@@ -1895,7 +1895,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
 
             app.TableIsUpdating = false;
-            delete(hDlg)
             clear returnToIdle
         end
         
@@ -2880,9 +2879,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             numSessions = numel(metaObjects);
             
             if numSessions > 5 && ~reset
-                h = app.MessageDisplay.wait('Please wait while updating values', ...
-                    'Title', 'Updating Values');
-                waitbarCleanup = onCleanup(@() ~isempty(h) && isvalid(h) && delete(h));
+                [h, waitbarCleanup] = app.MessageDisplay.wait('Please wait while updating values', ...
+                    'Title', 'Updating Values'); %#ok<ASGLU>
             end
             
             % Todo: This function call is different for preprogrammed
