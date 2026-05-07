@@ -2882,7 +2882,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if numSessions > 5 && ~reset
                 h = app.MessageDisplay.wait('Please wait while updating values', ...
                     'Title', 'Updating Values');
-                waitbarCleanup = onCleanup(@() delete(h));
+                waitbarCleanup = onCleanup(@() ~isempty(h) && isvalid(h) && delete(h));
             end
             
             % Todo: This function call is different for preprogrammed
