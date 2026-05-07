@@ -4338,18 +4338,26 @@ methods % Misc, most can be outsourced
         S.PhysicalUnits = obj.ImageStack.MetaData.getPhysicalUnits();
         S.SampleRate = obj.ImageStack.getSampleRate();
         
-        h = structeditor.App(S, 'Title', 'ImageStack Properties', ...
+        h = structeditor(S, 'Title', 'ImageStack Properties', ...
             'Prompt', 'Set ImageStack Properties:');
         h.waitfor()
         
-        if ~h.wasCanceled
-            obj.ImageStack.MetaData.SampleRate = h.dataEdit.SampleRate;
-            obj.ImageStack.MetaData.SpatialPosition = h.dataEdit.SpatialPosition;
-            physSize = h.dataEdit.PhysicalSize;
-            if numel(h.dataEdit.PhysicalUnits) == 1
-                physUnits = strsplit(h.dataEdit.PhysicalUnits{1}, ', ');
+        if isprop(h, 'FinishState')
+            if h.FinishState ~= "Finished"; return; end
+            editedData = h.Data;
+        else
+            if h.wasCanceled; return; end
+            editedData = h.dataEdit;
+        end
+
+        if ~isempty(editedData)
+            obj.ImageStack.MetaData.SampleRate = editedData.SampleRate;
+            obj.ImageStack.MetaData.SpatialPosition = editedData.SpatialPosition;
+            physSize = editedData.PhysicalSize;
+            if numel(editedData.PhysicalUnits) == 1
+                physUnits = strsplit(editedData.PhysicalUnits{1}, ', ');
             else
-                physUnits = h.dataEdit.PhysicalUnits;
+                physUnits = editedData.PhysicalUnits;
             end
             obj.ImageStack.MetaData.PhysicalSizeX = physSize(1);
             obj.ImageStack.MetaData.PhysicalSizeY = physSize(2);

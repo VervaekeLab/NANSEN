@@ -417,12 +417,22 @@ classdef (Abstract) UserSettings < uim.handle
             
             if ~isvalid(obj.hSettingsEditor); return; end
             
-            if obj.hSettingsEditor.wasCanceled
-                updatedSettings = obj.hSettingsEditor.dataOrig;
-                obj.wasAborted = true;
+            if isprop(obj.hSettingsEditor, 'FinishState')
+                if obj.hSettingsEditor.FinishState == "Finished"
+                    updatedSettings = obj.hSettingsEditor.Data;
+                    obj.wasAborted = false;
+                else
+                    updatedSettings = obj.hSettingsEditor.OriginalData;
+                    obj.wasAborted = true;
+                end
             else
-                updatedSettings = obj.hSettingsEditor.dataEdit;
-                obj.wasAborted = false;
+                if obj.hSettingsEditor.wasCanceled
+                    updatedSettings = obj.hSettingsEditor.dataOrig;
+                    obj.wasAborted = true;
+                else
+                    updatedSettings = obj.hSettingsEditor.dataEdit;
+                    obj.wasAborted = false;
+                end
             end
 
             % Delete hSettingsEditor before assigning updated settings. 

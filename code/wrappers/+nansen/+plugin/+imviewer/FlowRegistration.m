@@ -65,13 +65,19 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & nansen.processing.MotionCo
 
             sEditor = openSettingsEditor@imviewer.ImviewerPlugin(obj);
             
-            % Need a better solution for this:
-            idx = strcmp(sEditor.Name, 'Export');
-            sEditor.dataOrig{idx}.SaveDirectory = folderPath;
-            sEditor.dataEdit{idx}.SaveDirectory = folderPath;
+            if ismethod(sEditor, 'replaceData')
+                settings = sEditor.Data;
+                settings.Export.SaveDirectory = folderPath;
+                settings.Export.FileName = fileName;
+                sEditor.replaceData(settings);
+            else
+                idx = strcmp(sEditor.Name, 'Export');
+                sEditor.dataOrig{idx}.SaveDirectory = folderPath;
+                sEditor.dataEdit{idx}.SaveDirectory = folderPath;
 
-            sEditor.dataOrig{idx}.FileName = fileName;
-            sEditor.dataEdit{idx}.FileName = fileName;
+                sEditor.dataOrig{idx}.FileName = fileName;
+                sEditor.dataEdit{idx}.FileName = fileName;
+            end
         end
         
         function openControlPanel(obj)
