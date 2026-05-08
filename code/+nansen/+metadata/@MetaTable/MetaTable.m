@@ -42,6 +42,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
     properties (Access = private)
         MetaObjectCache = []  % Cache of metadata objects | Todo: Make this a dictionary/containers.Map
         MetaObjectCacheMembers = {}  % IDs for cached metadata objects % Todo: enforce cell of char
+        IsUpdatingEntries = false
     end
 
     properties (SetAccess = private)
@@ -496,11 +497,39 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         function editEntriesFromTable(obj, rowInd, varName, newValue)
         %editEntriesFromTable Apply an edit that already originated in a table UI
 
+            editedIds = obj.getObjectId(obj.entries(rowInd, :));
             obj.assignEntries(rowInd, varName, newValue)
+            obj.invalidateMetaObjectCache(editedIds)
         end
     end
 
     methods (Access = private)
+        function invalidateMetaObjectCache(obj, objectIds)
+        %invalidateMetaObjectCache Remove cached meta objects for given IDs
+
+            objectIds = nansen.metadata.MetaTable.normalizeIdentifier(objectIds);
+            if isempty(objectIds) || isempty(obj.MetaObjectCacheMembers)
+                return
+            end
+
+            cacheIdx = find(ismember(obj.MetaObjectCacheMembers, objectIds));
+
+            % Delete handle objects so external references become invalid
+            % instead of silently keeping stale row metadata alive.
+            for i = numel(cacheIdx):-1:1
+                thisIdx = cacheIdx(i);
+                cachedObject = obj.MetaObjectCache(thisIdx);
+
+                if isa(cachedObject, 'handle') && isvalid(cachedObject)
+                    delete(cachedObject)
+                else
+                    obj.MetaObjectCache(thisIdx) = [];
+                end
+            end
+
+            obj.updateMetaObjectCacheMembers();
+        end
+
         function notifyEntryChanged(obj, rowInd, varName)
         %notifyEntryChanged Notify listeners that table entries changed
 
@@ -525,6 +554,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         function assignEntries(obj, rowInd, varName, newValue)
         %assignEntries Apply entry values without emitting view-sync events
 
+            cleanup = obj.beginEntriesUpdate(); %#ok<NASGU>
             if isa( obj.entries{rowInd, varName}, 'cell')
                 try
                     obj.entries{rowInd, varName} = newValue;
@@ -537,6 +567,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 obj.entries{rowInd, varName} = newValue;
             end
 
+            clear cleanup
             obj.onEntriesChanged()
         end
 
@@ -574,6 +605,8 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             [~, targetIdx, sourceIdx] = intersect(obj.MetaTableMembers, sourceMembers);
             updatedEntries = sourceEntries(sourceIdx, :);
             targetEntries = obj.entries(targetIdx, :);
+
+            cleanup = obj.beginEntriesUpdate(); %#ok<NASGU>
             if ~isequaln(targetEntries, updatedEntries)
                 changedEntryNotifications = obj.getChangedEntryNotifications(targetEntries, updatedEntries, targetIdx);
                 obj.entries(targetIdx, :) = updatedEntries;
@@ -589,6 +622,10 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
 
             if wasMerged
                 obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
+            end
+            clear cleanup
+
+            if wasMerged
                 obj.onEntriesChanged()
             end
 
@@ -618,14 +655,22 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 IND = strcmp(obj.entries.(idName), listOfEntryIds);
             end
 
+            idsToRemove = obj.getObjectId(obj.entries(IND, :));
+            obj.invalidateMetaObjectCache(idsToRemove)
+
+            cleanup = obj.beginEntriesUpdate(); %#ok<NASGU>
             obj.entries(IND, :) = [];
             obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
 
+            clear cleanup
             obj.onEntriesChanged()
             obj.notify('EntryRemoved')
         end
 
         function onEntriesChanged(obj)
+            if obj.IsUpdatingEntries
+                return
+            end
             obj.IsModified = true;
         end
         
@@ -637,9 +682,12 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         %   them after sorting.
 
             if ~isempty(obj.entries)
+                cleanup = obj.beginEntriesUpdate(); %#ok<NASGU>
                 [~, ind] = sort(obj.entries.(obj.SchemaIdName));
                 obj.entries = obj.entries(ind, :);
                 obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
+                clear cleanup
+                obj.onEntriesChanged()
             end
         end
         
@@ -975,6 +1023,8 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             nansen.getCurrentProject().synchronizeMetaTableVariables(tempMetaTable, ...
                 "AutoUpdateValues", options.AutoUpdateValues);
             
+            cleanup = obj.beginEntriesUpdate(); %#ok<NASGU>
+
             % Concatenate tables
             try
                 % Try direct concatenation
@@ -997,6 +1047,8 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             % Sort entries by ID
             obj.sort()
 
+            clear cleanup
+            obj.onEntriesChanged()
             obj.notify('EntryAdded')
         end
 
@@ -1059,6 +1111,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 end
                 try
                     addlistener(metaObjects{i}, 'PropertyChanged', @obj.onMetaObjectPropertyChanged);
+                    obj.addObservablePropertyListeners(metaObjects{i});
                     addlistener(metaObjects{i}, 'ObjectBeingDestroyed', @obj.onMetaObjectDestroyed);
                 catch MEForListener
                     if isa(metaObjects{i}, 'nansen.metadata.abstract.MetadataEntity')
@@ -1095,27 +1148,103 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         function updateMetaObjectCacheMembers(obj)
         %updateMetaObjectCacheMembers Update list of ids for members of the
         % metaobject cache
+            if isempty(obj.MetaObjectCache)
+                obj.MetaObjectCacheMembers = {};
+                return
+            end
+
             idName = obj.SchemaIdName;
             obj.MetaObjectCacheMembers = {obj.MetaObjectCache.(idName)};
             obj.MetaObjectCacheMembers = nansen.metadata.MetaTable.normalizeIdentifier(obj.MetaObjectCacheMembers);
         end
+
+        function cleanup = beginEntriesUpdate(obj)
+        %beginEntriesUpdate Batch internal entry mutations into one change
+            wasUpdating = obj.IsUpdatingEntries;
+            obj.IsUpdatingEntries = true;
+            cleanup = onCleanup(@() obj.restoreEntriesUpdate(wasUpdating));
+        end
+
+        function restoreEntriesUpdate(obj, wasUpdating)
+            if isvalid(obj)
+                obj.IsUpdatingEntries = wasUpdating;
+            end
+        end
+
+        function addObservablePropertyListeners(obj, metaObject)
+        %addObservablePropertyListeners Listen to table-backed properties
+
+            mc = metaclass(metaObject);
+            propList = mc.PropertyList;
+
+            for iProp = 1:numel(propList)
+                prop = propList(iProp);
+                if ~prop.SetObservable || prop.Constant || prop.Dependent
+                    continue
+                end
+                if ~obj.isVariable(prop.Name)
+                    continue
+                end
+
+                propertyName = prop.Name;
+                addlistener(metaObject, propertyName, 'PostSet', ...
+                    @(~, evt) obj.onMetaObjectObservablePropertySet(evt, propertyName));
+            end
+        end
         
         function onMetaObjectPropertyChanged(obj, src, evt)
         % onMetaObjectPropertyChanged - Callback to handle value change of meta object
-            if ~isvalid(src); return; end
+            obj.updateEntryFromMetaObjectProperty(src, evt.Property, evt.NewValue)
+        end
+
+        function onMetaObjectObservablePropertySet(obj, evt, propertyName)
+        %onMetaObjectObservablePropertySet Handle MATLAB property PostSet
+            src = evt.AffectedObject;
+            newValue = src.(propertyName);
+            obj.updateEntryFromMetaObjectProperty(src, propertyName, newValue)
+        end
+
+        function updateEntryFromMetaObjectProperty(obj, src, propertyName, newValue)
+        %updateEntryFromMetaObjectProperty Apply object property changes
+
+            if ~isvalid(src) || ~obj.isVariable(propertyName)
+                return
+            end
 
             objectID = obj.getObjectId(src); % sessionID / itemID
-
-            % Todo: Use getEntry
             metaTableEntryIdx = find(strcmp(obj.members, objectID));
-            
-            if numel(metaTableEntryIdx) > 1
-                % metaTableEntryIdx = metaTableEntryIdx(1);
-                error('NANSEN:MetaTable:DuplicateEntries', ...
-                    'Multiple entries have the ID "%s"', objectID)
+            if isempty(metaTableEntryIdx)
+                return
             end
             
-            obj.editEntries(metaTableEntryIdx, evt.Property, evt.NewValue)
+            if numel(metaTableEntryIdx) > 1
+                objectIDForDisplay = objectID;
+                if iscell(objectIDForDisplay) && isscalar(objectIDForDisplay)
+                    objectIDForDisplay = objectIDForDisplay{1};
+                end
+                error('NANSEN:MetaTable:DuplicateEntries', ...
+                    'Multiple entries have the ID "%s"', objectIDForDisplay)
+            end
+
+            currentValue = obj.entries{metaTableEntryIdx, propertyName};
+            if iscell(currentValue) && isscalar(currentValue)
+                currentValue = currentValue{1};
+            end
+
+            valueForComparison = newValue;
+            if iscell(valueForComparison) && isscalar(valueForComparison)
+                valueForComparison = valueForComparison{1};
+            end
+
+            if isequaln(currentValue, valueForComparison)
+                return
+            end
+
+            if isa(newValue, 'struct')
+                newValue = {newValue};
+            end
+
+            obj.editEntries(metaTableEntryIdx, propertyName, newValue)
         end
         
         function onMetaObjectDestroyed(obj, src, ~)

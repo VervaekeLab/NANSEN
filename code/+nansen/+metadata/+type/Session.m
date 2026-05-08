@@ -32,7 +32,7 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
         ANCESTOR = 'nansen.metadata.type.animal.Mouse'; % This is not going to fly... How to make a rat session?
     end
     
-    properties
+    properties (SetObservable)
         
         % Unique identification properties.
         subjectID      % Add some validation scheme.... Can I dynamically set this according to whatever?
