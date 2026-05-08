@@ -1218,8 +1218,12 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             end
             
             if numel(metaTableEntryIdx) > 1
+                objectIDForDisplay = objectID;
+                if iscell(objectIDForDisplay) && isscalar(objectIDForDisplay)
+                    objectIDForDisplay = objectIDForDisplay{1};
+                end
                 error('NANSEN:MetaTable:DuplicateEntries', ...
-                    'Multiple entries have the ID "%s"', objectID)
+                    'Multiple entries have the ID "%s"', objectIDForDisplay)
             end
 
             currentValue = obj.entries{metaTableEntryIdx, propertyName};
