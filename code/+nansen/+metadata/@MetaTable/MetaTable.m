@@ -152,9 +152,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
          
         function set.entries(obj, value)
             obj.entries = value;
-            if ~obj.IsUpdatingEntries
-                obj.onEntriesChanged()
-            end
+            obj.onEntriesChanged()
         end
 
         function set.MetaTableIdVarname(obj, value)
@@ -556,7 +554,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         function assignEntries(obj, rowInd, varName, newValue)
         %assignEntries Apply entry values without emitting view-sync events
 
-            cleanup = obj.beginEntriesUpdate();
+            cleanup = obj.beginEntriesUpdate(); %#ok<NASGU>
             if isa( obj.entries{rowInd, varName}, 'cell')
                 try
                     obj.entries{rowInd, varName} = newValue;
@@ -608,7 +606,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             updatedEntries = sourceEntries(sourceIdx, :);
             targetEntries = obj.entries(targetIdx, :);
 
-            cleanup = obj.beginEntriesUpdate();
+            cleanup = obj.beginEntriesUpdate(); %#ok<NASGU>
             if ~isequaln(targetEntries, updatedEntries)
                 changedEntryNotifications = obj.getChangedEntryNotifications(targetEntries, updatedEntries, targetIdx);
                 obj.entries(targetIdx, :) = updatedEntries;
@@ -660,7 +658,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             idsToRemove = obj.getObjectId(obj.entries(IND, :));
             obj.invalidateMetaObjectCache(idsToRemove)
 
-            cleanup = obj.beginEntriesUpdate();
+            cleanup = obj.beginEntriesUpdate(); %#ok<NASGU>
             obj.entries(IND, :) = [];
             obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
 
@@ -684,7 +682,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         %   them after sorting.
 
             if ~isempty(obj.entries)
-                cleanup = obj.beginEntriesUpdate();
+                cleanup = obj.beginEntriesUpdate(); %#ok<NASGU>
                 [~, ind] = sort(obj.entries.(obj.SchemaIdName));
                 obj.entries = obj.entries(ind, :);
                 obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
@@ -1025,7 +1023,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             nansen.getCurrentProject().synchronizeMetaTableVariables(tempMetaTable, ...
                 "AutoUpdateValues", options.AutoUpdateValues);
             
-            cleanup = obj.beginEntriesUpdate();
+            cleanup = obj.beginEntriesUpdate(); %#ok<NASGU>
 
             % Concatenate tables
             try
