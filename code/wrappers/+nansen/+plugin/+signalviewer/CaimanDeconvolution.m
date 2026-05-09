@@ -3,6 +3,11 @@ classdef CaimanDeconvolution < applify.mixin.AppPlugin & applify.mixin.HasOption
 %
 %   CaimanDeconvolution is a signalviewer plugin for editing deconvolution
 %   options and applying them to ROI dF/F signals.
+%
+%   SYNTAX:
+%       deconvolutionPlugin = nansen.plugin.signalviewer.CaimanDeconvolution(signalViewerHandle)
+%       deconvolutionPlugin = nansen.plugin.signalviewer.CaimanDeconvolution(signalViewerHandle, options)
+%       deconvolutionPlugin = nansen.plugin.signalviewer.CaimanDeconvolution(signalViewerHandle, options, Name, Value, ...)
 
     properties (Constant) % Implementation of AppPlugin property
         Name = 'CaImAn Deconvolution'

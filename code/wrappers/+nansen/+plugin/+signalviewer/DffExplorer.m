@@ -3,6 +3,11 @@ classdef DffExplorer < applify.mixin.AppPlugin & applify.mixin.HasOptionsManager
 %
 %   DffExplorer is a signalviewer plugin for editing dF/F options and
 %   applying them to ROI fluorescence signals.
+%
+%   SYNTAX:
+%       dffExplorerPlugin = nansen.plugin.signalviewer.DffExplorer(signalViewerHandle)
+%       dffExplorerPlugin = nansen.plugin.signalviewer.DffExplorer(signalViewerHandle, options)
+%       dffExplorerPlugin = nansen.plugin.signalviewer.DffExplorer(signalViewerHandle, options, Name, Value, ...)
 
     properties (Constant) % Implementation of AppPlugin property
         Name = 'DFF Explorer'

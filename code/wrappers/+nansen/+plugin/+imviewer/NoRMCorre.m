@@ -5,6 +5,11 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewC
 %   previewing patch geometry, and launching motion correction for the
 %   current image stack.
 %
+%   SYNTAX:
+%       normcorrePlugin = nansen.plugin.imviewer.NoRMCorre(imviewerHandle)
+%       normcorrePlugin = nansen.plugin.imviewer.NoRMCorre(imviewerHandle, options)
+%       normcorrePlugin = nansen.plugin.imviewer.NoRMCorre(imviewerHandle, options, Name, Value, ...)
+%
 %   INHERITANCE:
 %       |- imviewer.ImviewerPlugin
 %           |- applify.mixin.AppPlugin

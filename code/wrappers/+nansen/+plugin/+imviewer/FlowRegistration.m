@@ -4,6 +4,11 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodP
 %   FlowRegistration is an imviewer plugin for adjusting Flow Registration
 %   parameters, previewing filtered image data, and launching motion
 %   correction for the current image stack.
+%
+%   SYNTAX:
+%       flowregPlugin = nansen.plugin.imviewer.FlowRegistration(imviewerHandle)
+%       flowregPlugin = nansen.plugin.imviewer.FlowRegistration(imviewerHandle, options)
+%       flowregPlugin = nansen.plugin.imviewer.FlowRegistration(imviewerHandle, options, Name, Value, ...)
 
 % Todo: Use methods of flowreg processor to run prealigning?
     

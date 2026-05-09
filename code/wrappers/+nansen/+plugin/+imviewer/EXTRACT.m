@@ -4,6 +4,11 @@ classdef EXTRACT < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewCon
 %   EXTRACT is an imviewer plugin for inspecting EXTRACT grid and cell
 %   template parameters against the current image stack before running ROI
 %   segmentation.
+%
+%   SYNTAX:
+%       extractPlugin = nansen.plugin.imviewer.EXTRACT(imviewerHandle)
+%       extractPlugin = nansen.plugin.imviewer.EXTRACT(imviewerHandle, options)
+%       extractPlugin = nansen.plugin.imviewer.EXTRACT(imviewerHandle, options, Name, Value, ...)
 
     properties (Constant)
        Name = 'EXTRACT'
@@ -20,8 +25,8 @@ classdef EXTRACT < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewCon
         function obj = EXTRACT(imviewerHandle, varargin)
         %EXTRACT Create an EXTRACT plugin for an imviewer app.
         %
-        %   extractPlugin = EXTRACT(imviewerHandle) creates the plugin using
-        %   default EXTRACT options.
+        %   extractPlugin = EXTRACT(imviewerHandle) 
+        %   creates the plugin using default EXTRACT options.
         %
         %   extractPlugin = EXTRACT(imviewerHandle, options, Name, Value, ...)
         %   creates the plugin using a struct or nansen.manage.OptionsManager

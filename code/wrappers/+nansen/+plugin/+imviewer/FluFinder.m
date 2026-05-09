@@ -4,6 +4,11 @@ classdef FluFinder < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewC
 %   FluFinder is an imviewer plugin for adjusting FluFinder preprocessing
 %   and segmentation options while previewing their effect on the current
 %   image stack.
+%
+%   SYNTAX:
+%       flufinderPlugin = nansen.plugin.imviewer.FluFinder(imviewerHandle)
+%       flufinderPlugin = nansen.plugin.imviewer.FluFinder(imviewerHandle, options)
+%       flufinderPlugin = nansen.plugin.imviewer.FluFinder(imviewerHandle, options, Name, Value, ...)
 
     properties (Constant)
        Name = 'FluFinder'
