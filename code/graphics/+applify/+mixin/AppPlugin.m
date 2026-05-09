@@ -5,23 +5,20 @@ classdef AppPlugin < matlab.mixin.Heterogeneous & uiw.mixin.AssignPVPairs
 %       hPlugin = AppPlugin(hApp) creates a plugin instance for the given
 %       app reference
 %
-%       hPlugin = AppPlugin(hApp, options) additionally provides options to
-%       use. Options can be a struct or an OptionsManager object.
-%
-%       hPlugin = AppPlugin(hApp, options, flags) specifies flags to set
+%       hPlugin = AppPlugin(hApp, flags) specifies flags to set
 %       mode of plugin.
 %           Flags:
 %               '-p' : create plugin using partial construction, i.e
 %                      create, but do not open the control panel
 %
-%        hPlugin = AppPlugin(hApp, options, property, value, ...) specifies
-%        property, value pairs to be set on construction
+%        hPlugin = AppPlugin(hApp, property, value, ...) specifies property,
+%        value pairs to be set on construction
 %
 
     % Plugins can:
     %   - implement mouse/keyboard callbacks invoked by the host app
     %   - add items to the app menu
-    %   - hold method options via OptionsManager (algorithm parameters)
+    %   - opt into method options through a dedicated options mixin
     %
     % matlab.mixin.Heterogeneous allows AppWithPlugin.Plugins to hold an
     % array of mixed AppPlugin subclass instances.
@@ -36,11 +33,10 @@ classdef AppPlugin < matlab.mixin.Heterogeneous & uiw.mixin.AssignPVPairs
 
     properties
         DataIoModel         % Store a data i/o model object if it is provided.
-        OptionsManager      % Store optionsmanager handle if plugin is provided with an optionsmanager on construction
     end
 
     properties
-        PrimaryApp          % App which is primary "owner" of the plugin.
+        PrimaryApp          % App which is primary "owner" of the plugin. Should be typed
         MenuItem struct     % Struct for storing menu handles
     end
 
@@ -51,8 +47,6 @@ classdef AppPlugin < matlab.mixin.Heterogeneous & uiw.mixin.AssignPVPairs
     methods % Constructor
 
         function obj = AppPlugin(hApp, varargin)
-
-            [options, varargin] = applify.mixin.AppPlugin.optionsCheck(varargin);
 
             if nargin > 2
                 obj.parseVarargin(varargin{1:end})
@@ -69,13 +63,6 @@ classdef AppPlugin < matlab.mixin.Heterogeneous & uiw.mixin.AssignPVPairs
                     'Plugin "%s" is already active. Returning existing instance.', obj.Name)
                 obj = hApp.getPluginHandle(obj.Name);
                 return
-            end
-
-            % Assign options from input if provided
-            if nargin >= 2 && ~isempty(options)
-                obj.assignOptions(options)
-            else
-                obj.assignDefaultOptions()
             end
 
             obj.activatePlugin(hApp);
@@ -125,6 +112,14 @@ classdef AppPlugin < matlab.mixin.Heterogeneous & uiw.mixin.AssignPVPairs
 
     methods (Access = protected)
 
+        function setFigureTitle(obj)
+            if isprop(obj.PrimaryApp, 'Figure')
+                obj.PrimaryApp.Figure.Name = obj.Name;
+            else
+                warning('Could not set figure title')
+            end
+        end
+
         function onPluginActivated(obj)
         %onPluginActivated Run subroutines when plugin is activated.
             obj.createSubMenu()
@@ -132,43 +127,29 @@ classdef AppPlugin < matlab.mixin.Heterogeneous & uiw.mixin.AssignPVPairs
 
         function parseVarargin(obj, varargin)
         %parseVarargin Parser for varargin that are passed on construction
+            if isempty(varargin); return; end
+
             % Look for flag of whether to open plugin's options panel on construction
             if ischar(varargin{1}) && isequal(varargin{1}, '-p')
                 obj.PartialConstruction = true;
                 varargin(1) = [];
             end
+            if isempty(varargin); return; end
+
             obj.assignPVPairs(varargin{:})
-        end
-
-        function assignOptions(obj, options)
-        %assignOptions Assign non default options for plugin
-        %
-        %   options can be a struct or an OptionsManager object
-            if isa(options, 'struct')
-                obj.assignOptionsStruct(options)
-            elseif isa(options, 'nansen.manage.OptionsManager')
-                obj.OptionsManager = options;
-                obj.assignOptionsStruct(obj.OptionsManager.Options)
-            end
-        end
-
-        function assignDefaultOptions(obj) %#ok<MANU>
-        %assignDefaultOptions Assign default options. Subclasses may override.
         end
 
         function createSubMenu(obj) %#ok<MANU>
             % Subclasses may override
         end
 
-        function assignOptionsStruct(obj, options)
-            if isprop(obj, 'Options')
-                obj.Options = options;
+        function menuHandle = findAppContextMenu(obj)
+            if isprop(obj.PrimaryApp, 'hContextMenu')
+                menuHandle = obj.PrimaryApp.hContextMenu;
             else
-                error('AppPlugin:MissingOptionsTarget', ...
-                    'Plugin "%s" does not expose Options storage.', obj.Name)
+                menuHandle = findobj(obj.PrimaryApp.Figure, 'Tag', 'App Context Menu');
             end
         end
-
     end
 
     methods (Access = private)
@@ -178,20 +159,6 @@ classdef AppPlugin < matlab.mixin.Heterogeneous & uiw.mixin.AssignPVPairs
             if ~isa(hApp, 'applify.AppWithPlugin')
                 error('Can not add plugin "%s" to app of type %s', ...
                     obj.Name, class(hApp))
-            end
-        end
-    end
-
-    methods (Static)
-
-        function [opts, cellOfArgs] = optionsCheck(cellOfArgs)
-            opts = [];
-            if numel(cellOfArgs) >= 1
-                containsOpts = isa(cellOfArgs{1}, 'struct') || ...
-                    isa(cellOfArgs{1}, 'nansen.manage.OptionsManager');
-                if containsOpts
-                    opts = cellOfArgs{1}; cellOfArgs(1) = [];
-                end
             end
         end
     end

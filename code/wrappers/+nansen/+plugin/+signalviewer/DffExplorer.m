@@ -10,10 +10,19 @@ classdef DffExplorer < applify.mixin.AppPlugin & applify.mixin.HasOptionsManager
     
     methods % Constructor
         function obj = DffExplorer(varargin)
+            arguments (Repeating)
+                varargin
+            end
             %obj@imviewer.ImviewerPlugin(varargin{:})
-            
-            obj@applify.mixin.AppPlugin(varargin{:})
-            obj.PrimaryApp = varargin{1};
+
+            primaryApp = varargin{1};
+            pluginArgs = varargin(2:end);
+            [options, pluginArgs] = ...
+                applify.mixin.HasOptionsManager.splitOptionsArgument(pluginArgs);
+
+            obj@applify.mixin.HasOptionsManager(options)
+            obj@applify.mixin.AppPlugin(primaryApp, pluginArgs{:})
+            obj.PrimaryApp = primaryApp;
             obj.PrimaryApp.Figure.Name = 'DFF Explorer';
             obj.RoiSignalArray = obj.PrimaryApp.RoiSignalArray;
             

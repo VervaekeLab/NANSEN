@@ -25,17 +25,33 @@ classdef HasOptionsManager < handle
 
     properties
         OptionsManager nansen.manage.OptionsManager
+        Modal (1,1) logical = true      % Block execution while options editor is open
+        wasAborted = false              % True if options editor was canceled
     end
 
     properties (Dependent)
         Options
     end
 
-    properties (Access = private)
+    properties (Access = protected)
         Options_
+        hOptionsEditor
     end
 
     methods
+
+        function obj = HasOptionsManager(options)
+        %HasOptionsManager Initialize method options for option-aware plugins.
+            arguments
+                options = []
+            end
+
+            if isempty(options)
+                obj.assignDefaultOptions()
+            else
+                obj.assignOptions(options)
+            end
+        end
 
         function set.Options(obj, options)
             obj.Options_ = options;
@@ -57,11 +73,19 @@ classdef HasOptionsManager < handle
 
         function [options, wasAborted] = editOptions(obj)
         %editOptions Open the options editor and wait for user input
-            [~, options, wasAborted] = obj.OptionsManager.editOptions();
-            if ~wasAborted
-                obj.Options_ = options;
-                obj.onOptionsChanged();
+            optionsEditor = obj.openOptionsEditor();
+
+            if obj.Modal
+                optionsEditor.waitfor()
+                obj.onOptionsEditorResumed()
+            else
+                addlistener(optionsEditor, 'AppDestroyed', ...
+                    @(s, e) obj.onOptionsEditorResumed());
             end
+
+            options = obj.Options;
+            wasAborted = obj.wasAborted;
+
             if ~nargout
                 clear options wasAborted
             elseif nargout == 1
@@ -69,13 +93,109 @@ classdef HasOptionsManager < handle
             end
         end
 
+        function optionsEditor = openOptionsEditor(obj)
+        %openOptionsEditor Open a ui dialog for editing method options.
+            titleStr = obj.getOptionsEditorTitle();
+
+            if ~isempty(obj.OptionsManager)
+                optionsEditor = obj.OptionsManager.openOptionsEditor([], obj.Options);
+                optionsEditor.Title = titleStr;
+            else
+                optionsEditor = structeditor(obj.Options, 'Title', titleStr);
+            end
+
+            obj.hOptionsEditor = optionsEditor;
+            addlistener(obj, 'ObjectBeingDestroyed', @(s,e) delete(optionsEditor));
+        end
+
+        function place(obj, varargin)
+            if isempty(obj.hOptionsEditor) || ~isvalid(obj.hOptionsEditor)
+                return
+            end
+            obj.hOptionsEditor.place(varargin{:})
+        end
+
     end
 
     methods (Access = protected)
 
+        function assignOptions(obj, options)
+        %assignOptions Assign non-default options for plugin
+            if isa(options, 'struct')
+                obj.assignOptionsStruct(options)
+            elseif isa(options, 'nansen.manage.OptionsManager')
+                obj.OptionsManager = options;
+                obj.assignOptionsStruct(obj.OptionsManager.Options)
+            else
+                error('HasOptionsManager:InvalidOptions', ...
+                    'Options must be a struct or nansen.manage.OptionsManager.')
+            end
+        end
+
+        function assignDefaultOptions(obj) %#ok<MANU>
+        %assignDefaultOptions Assign default options. Subclasses may override.
+        end
+
+        function assignOptionsStruct(obj, options)
+            obj.Options = options;
+        end
+
+        function onOptionsEditorResumed(obj)
+        %onOptionsEditorResumed Called when the editor closes or is confirmed.
+            if isempty(obj.hOptionsEditor) || ~isvalid(obj.hOptionsEditor)
+                obj.hOptionsEditor = [];
+                return
+            end
+
+            obj.wasAborted = obj.hOptionsEditor.wasCanceled;
+            if ~obj.wasAborted
+                obj.Options = obj.hOptionsEditor.dataEdit;
+            end
+
+            delete(obj.hOptionsEditor)
+            obj.hOptionsEditor = [];
+
+            if ~obj.wasAborted
+                obj.onOptionsChanged();
+            end
+        end
+
         function onOptionsChanged(obj) %#ok<MANU>
         %onOptionsChanged Called after options are changed via editOptions
         %   Subclasses may override to react to option changes immediately.
+        end
+
+        function titleStr = getOptionsEditorTitle(obj)
+            titleStr = 'Options Editor';
+
+            if isprop(obj, 'Name')
+                propertyName = 'Name';
+                titleStr = sprintf('Options Editor (%s)', obj.(propertyName));
+            end
+        end
+
+    end
+
+    methods (Static)
+
+        function [opts, cellOfArgs] = splitOptionsArgument(cellOfArgs)
+        %splitOptionsArgument Split leading options object from argument list.
+            opts = [];
+
+            if numel(cellOfArgs) >= 1
+                containsOpts = isa(cellOfArgs{1}, 'struct') || ...
+                    isa(cellOfArgs{1}, 'nansen.manage.OptionsManager');
+
+                if containsOpts
+                    opts = cellOfArgs{1};
+                    cellOfArgs(1) = [];
+                end
+            end
+        end
+
+        function [opts, cellOfArgs] = optionsCheck(cellOfArgs)
+        %optionsCheck Backward-compatible name for splitOptionsArgument.
+            [opts, cellOfArgs] = applify.mixin.HasOptionsManager.splitOptionsArgument(cellOfArgs);
         end
 
     end

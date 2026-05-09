@@ -1,4 +1,5 @@
 classdef CaimanDeconvolution < applify.mixin.AppPlugin & applify.mixin.HasOptionsManager % signalviewer plugin
+% Signal viewer plugin for exploring the effect of deconvolution parameters
 
     properties (Constant) % Implementation of AppPlugin property
         Name = 'CaImAn Deconvolution'
@@ -9,46 +10,54 @@ classdef CaimanDeconvolution < applify.mixin.AppPlugin & applify.mixin.HasOption
     end
     
     properties (Access = private)
-        Mode
+        PlotUpdateMode (1,1) string {mustBeMember(PlotUpdateMode, ...
+            ["UpdateAll", "UpdateVisiblePlotOnly"])} = "UpdateAll"
         hLineDeconvolved
         hLineDenoised
     end
     
     methods % Constructor
-        function obj = CaimanDeconvolution(varargin)
-            %obj@imviewer.ImviewerPlugin(varargin{:})
+        function obj = CaimanDeconvolution(primaryApp, pluginArgs)
             
-            obj@applify.mixin.AppPlugin(varargin{:})
-            obj.PrimaryApp = varargin{1};
-            obj.PrimaryApp.Figure.Name = obj.Name;
+            arguments
+                primaryApp
+            end
+            arguments (Repeating)
+                pluginArgs
+            end
+
+            [options, pluginArgs] = ...
+                applify.mixin.HasOptionsManager.splitOptionsArgument(pluginArgs);
+
+            obj@applify.mixin.HasOptionsManager(options)
+            obj@applify.mixin.AppPlugin(primaryApp, pluginArgs{:})
+
+            obj.setFigureTitle()
             obj.RoiSignalArray = obj.PrimaryApp.RoiSignalArray;
-            
-            obj.Mode = 'UpdateAll';
-                        
+
             obj.editOptions()
 
         end
         
         function delete(obj)
-            
+            if ~isempty(obj.hLineDeconvolved) && isvalid(obj.hLineDeconvolved)
+                delete(obj.hLineDeconvolved)
+            end
+            if ~isempty(obj.hLineDenoised) && isvalid(obj.hLineDenoised)
+                delete(obj.hLineDenoised)
+            end
         end
     end
     
     methods (Access = protected) % Plugin derived methods
                 
-        function createSubMenu(obj)
-        %createSubMenu Create sub menu items for the normcorre plugin
-        
-            %m = obj.PrimaryApp.hContextMenu;
-            %m = findobj(obj.PrimaryApp.Figure, 'Tag', 'App Context Menu');
-            return
-            
-            % Todo: Check if menu is already added...
-            
-            % Todo: Open? Close? Toggle?
-            obj.MenuItem(1).ExploreDff = uimenu(m, 'Text', 'Deconvolve...', 'Enable', 'off');
-            obj.MenuItem(1).PlotShifts.Callback = @obj.editOptions;
-            
+        function createSubMenu(obj) %#ok<MANU> % Placeholder, not implemented
+        %createSubMenu Create sub menu items for the plugin
+            % parentMenu = obj.findAppContextMenu();
+            %
+            % % Todo: Open? Close? Toggle?
+            % obj.MenuItem(1).ExploreDff = uimenu(parentMenu, 'Text', 'Deconvolve...', 'Enable', 'off');
+            % obj.MenuItem(1).ExploreDff.Callback = @obj.editOptions;
         end
         
         function assignDefaultOptions(obj)
@@ -64,7 +73,7 @@ classdef CaimanDeconvolution < applify.mixin.AppPlugin & applify.mixin.HasOption
             
             obj.PrimaryApp.displayMessage('Updating Deconvolved Signal...')
             
-            switch obj.Mode
+            switch obj.PlotUpdateMode
                 case 'UpdateVisiblePlotOnly'
                     obj.updateInternal()
                     

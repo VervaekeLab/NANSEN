@@ -1,4 +1,4 @@
-classdef ModalMethodPreviewController < handle
+classdef ModalMethodPreviewController < applify.mixin.HasOptionsManager
 %ModalMethodPreviewController Behavioral mixin for modal edit/preview/run workflows
 %
 %   Provides the lifecycle for plugins that:
@@ -21,22 +21,18 @@ classdef ModalMethodPreviewController < handle
     properties
         RunMethodOnFinish (1,1) logical = true  % Run method when editor is confirmed
         DestroyOnFinish   (1,1) logical = true  % Destroy plugin after run
-        Modal             (1,1) logical = true  % Block execution while editor is open
-    end
-
-    properties (Dependent)
-        Options
-    end
-
-    properties (Access = protected)
-        Options_ struct = struct.empty
-        hOptionsEditor
-    end
-    properties
-        wasAborted = false
     end
 
     methods (Access = public)
+
+        function obj = ModalMethodPreviewController(options)
+        %ModalMethodPreviewController Initialize modal method options.
+            arguments
+                options = []
+            end
+
+            obj@applify.mixin.HasOptionsManager(options)
+        end
 
         function openControlPanel(obj)
         %openControlPanel Open the options editor. Subclasses may override
@@ -154,19 +150,4 @@ classdef ModalMethodPreviewController < handle
         end
     end
 
-    methods
-        function set.Options(obj, options)
-            obj.Options_ = options;
-        end
-
-        function options = get.Options(obj)
-            if ~isempty(obj.Options_)
-                options = obj.Options_;
-            elseif ~isempty(obj.OptionsManager)
-                options = obj.OptionsManager.Options;
-            else
-                options = struct.empty;
-            end
-        end
-    end
 end

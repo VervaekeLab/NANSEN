@@ -40,8 +40,18 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewC
         
         function obj = NoRMCorre(varargin)
         %NoRMCorre Create an instance of the NoRMCorre plugin for imviewer
-                        
-            obj@imviewer.ImviewerPlugin(varargin{:})
+
+            arguments (Repeating)
+                varargin
+            end
+
+            [hImviewer, pluginArgs] = ...
+                imviewer.ImviewerPlugin.checkForImviewerInArgList(varargin);
+            [options, pluginArgs] = ...
+                applify.mixin.HasOptionsManager.splitOptionsArgument(pluginArgs);
+
+            obj@applify.mixin.ModalMethodPreviewController(options)
+            obj@imviewer.ImviewerPlugin(hImviewer, pluginArgs{:})
             
             if ~ obj.PartialConstruction && isempty(obj.hOptionsEditor)
                 obj.openControlPanel()

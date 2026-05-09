@@ -2251,10 +2251,6 @@ methods % App update
     %   the AppWithPlugin superclass...Also, shouldn't plugin be added to
     %   the plugin property here?
     
-        if nargin < 3 || isempty(pluginOptions)
-            pluginOptions = struct.empty;
-        end
-        
         % Require function handle for plugin.
         if ischar(pluginName)
             pluginFcnName = strjoin({'imviewer', 'plugin', pluginName}, '.');
@@ -2264,7 +2260,11 @@ methods % App update
         end
             
         % Create the plugin
-        hPlugin = pluginFcn(obj, pluginOptions, varargin{:});
+        if nargin < 3 || isempty(pluginOptions)
+            hPlugin = pluginFcn(obj, varargin{:});
+        else
+            hPlugin = pluginFcn(obj, pluginOptions, varargin{:});
+        end
         
         if ~nargout
             clear(hPlugin)

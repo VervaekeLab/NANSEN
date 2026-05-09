@@ -24,8 +24,18 @@ classdef EXTRACT < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewCon
         %   extractPlugin = EXTRACT(imviewerObj)
         %
         %   extractPlugin = EXTRACT(imviewerObj, optionsManagerObj)
-        
-            obj@imviewer.ImviewerPlugin(varargin{:})
+
+            arguments (Repeating)
+                varargin
+            end
+
+            [hImviewer, pluginArgs] = ...
+                imviewer.ImviewerPlugin.checkForImviewerInArgList(varargin);
+            [options, pluginArgs] = ...
+                applify.mixin.HasOptionsManager.splitOptionsArgument(pluginArgs);
+
+            obj@applify.mixin.ModalMethodPreviewController(options)
+            obj@imviewer.ImviewerPlugin(hImviewer, pluginArgs{:})
             
             if ~obj.PartialConstruction
                 obj.openControlPanel()

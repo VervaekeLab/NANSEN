@@ -29,7 +29,17 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodP
         function obj = FlowRegistration(varargin)
         %FlowRegistration Create an instance of the FlowRegistration plugin
 
-            obj@imviewer.ImviewerPlugin(varargin{:})
+            arguments (Repeating)
+                varargin
+            end
+
+            [hImviewer, pluginArgs] = ...
+                imviewer.ImviewerPlugin.checkForImviewerInArgList(varargin);
+            [options, pluginArgs] = ...
+                applify.mixin.HasOptionsManager.splitOptionsArgument(pluginArgs);
+
+            obj@applify.mixin.ModalMethodPreviewController(options)
+            obj@imviewer.ImviewerPlugin(hImviewer, pluginArgs{:})
 
             if ~ obj.PartialConstruction
                 obj.openControlPanel()

@@ -32,8 +32,18 @@ classdef FluFinder < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewC
         %   flufinderPlugin = FluFinder(imviewerObj)
         %
         %   flufinderPlugin = FluFinder(imviewerObj, optionsManagerObj)
-        
-            obj@imviewer.ImviewerPlugin(varargin{:})
+
+            arguments (Repeating)
+                varargin
+            end
+
+            [hImviewer, pluginArgs] = ...
+                imviewer.ImviewerPlugin.checkForImviewerInArgList(varargin);
+            [options, pluginArgs] = ...
+                applify.mixin.HasOptionsManager.splitOptionsArgument(pluginArgs);
+
+            obj@applify.mixin.ModalMethodPreviewController(options)
+            obj@imviewer.ImviewerPlugin(hImviewer, pluginArgs{:})
             
             obj.addPreviewOptions()
             
