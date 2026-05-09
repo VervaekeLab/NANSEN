@@ -1,10 +1,9 @@
 classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewController & nansen.processing.MotionCorrectionPreview
-%FlowRegistration Imviewer plugin for FlowRegistration method
+%FlowRegistration Preview Flow Registration motion correction in imviewer.
 %
-%   SYNTAX:
-%       flowregPlugin = FlowRegistration(imviewerObj)
-%
-%       flowregPlugin = FlowRegistration(imviewerObj, optionsManagerObj)
+%   FlowRegistration is an imviewer plugin for adjusting Flow Registration
+%   parameters, previewing filtered image data, and launching motion
+%   correction for the current image stack.
 
 % Todo: Use methods of flowreg processor to run prealigning?
     
@@ -26,22 +25,31 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodP
     
     methods % Structors
         
-        function obj = FlowRegistration(varargin)
-        %FlowRegistration Create an instance of the FlowRegistration plugin
+        function obj = FlowRegistration(imviewerHandle, varargin)
+        %FlowRegistration Create a Flow Registration plugin for an imviewer app.
+        %
+        %   flowregPlugin = FlowRegistration(imviewerHandle) creates the
+        %   plugin using default Flow Registration options.
+        %
+        %   flowregPlugin = FlowRegistration(imviewerHandle, options, Name, Value, ...)
+        %   creates the plugin using a struct or nansen.manage.OptionsManager
+        %   for options. Remaining arguments are plugin flags or property-value
+        %   pairs, such as '-p' for partial construction.
 
+            arguments
+                imviewerHandle = [] % Todo. Should be type validated
+            end
             arguments (Repeating)
                 varargin
             end
 
-            [hImviewer, pluginArgs] = ...
-                imviewer.ImviewerPlugin.checkForImviewerInArgList(varargin);
             [options, pluginArgs] = ...
-                applify.mixin.HasOptionsManager.splitOptionsArgument(pluginArgs);
+                applify.mixin.HasOptionsManager.splitOptionsArgument(varargin);
 
             obj@applify.mixin.ModalMethodPreviewController(options)
-            obj@imviewer.ImviewerPlugin(hImviewer, pluginArgs{:})
+            obj@imviewer.ImviewerPlugin(imviewerHandle, pluginArgs{:})
 
-            if ~ obj.PartialConstruction
+            if ~obj.PartialConstruction
                 obj.openControlPanel()
             end
             

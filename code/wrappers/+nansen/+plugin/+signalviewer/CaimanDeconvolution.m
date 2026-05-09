@@ -1,5 +1,8 @@
 classdef CaimanDeconvolution < applify.mixin.AppPlugin & applify.mixin.HasOptionsManager % signalviewer plugin
-% Signal viewer plugin for exploring the effect of deconvolution parameters
+%CaimanDeconvolution Explore CaImAn deconvolution options in signalviewer.
+%
+%   CaimanDeconvolution is a signalviewer plugin for editing deconvolution
+%   options and applying them to ROI dF/F signals.
 
     properties (Constant) % Implementation of AppPlugin property
         Name = 'CaImAn Deconvolution'
@@ -17,20 +20,29 @@ classdef CaimanDeconvolution < applify.mixin.AppPlugin & applify.mixin.HasOption
     end
     
     methods % Constructor
-        function obj = CaimanDeconvolution(primaryApp, pluginArgs)
-            
+        function obj = CaimanDeconvolution(signalViewerHandle, varargin)
+        %CaimanDeconvolution Create a deconvolution plugin for signalviewer.
+        %
+        %   deconvolutionPlugin = CaimanDeconvolution(signalViewerHandle)
+        %   creates the plugin using default CaImAn deconvolution options.
+        %
+        %   deconvolutionPlugin = CaimanDeconvolution(signalViewerHandle, options, Name, Value, ...)
+        %   creates the plugin using a struct or nansen.manage.OptionsManager
+        %   for options. Remaining arguments are plugin flags or property-value
+        %   pairs, such as '-p' for partial construction.
+
             arguments
-                primaryApp
+                signalViewerHandle
             end
             arguments (Repeating)
-                pluginArgs
+                varargin
             end
 
             [options, pluginArgs] = ...
-                applify.mixin.HasOptionsManager.splitOptionsArgument(pluginArgs);
+                applify.mixin.HasOptionsManager.splitOptionsArgument(varargin);
 
             obj@applify.mixin.HasOptionsManager(options)
-            obj@applify.mixin.AppPlugin(primaryApp, pluginArgs{:})
+            obj@applify.mixin.AppPlugin(signalViewerHandle, pluginArgs{:})
 
             obj.setFigureTitle()
             obj.RoiSignalArray = obj.PrimaryApp.RoiSignalArray;
@@ -56,8 +68,8 @@ classdef CaimanDeconvolution < applify.mixin.AppPlugin & applify.mixin.HasOption
             % parentMenu = obj.findAppContextMenu();
             %
             % % Todo: Open? Close? Toggle?
-            % obj.MenuItem(1).ExploreDff = uimenu(parentMenu, 'Text', 'Deconvolve...', 'Enable', 'off');
-            % obj.MenuItem(1).ExploreDff.Callback = @obj.editOptions;
+            % obj.MenuItem(1).Deconvolve = uimenu(parentMenu, 'Text', 'Deconvolve...', 'Enable', 'off');
+            % obj.MenuItem(1).Deconvolve.Callback = @obj.editOptions;
         end
         
         function assignDefaultOptions(obj)

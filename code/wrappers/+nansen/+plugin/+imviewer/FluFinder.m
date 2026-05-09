@@ -1,10 +1,9 @@
 classdef FluFinder < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewController
-%FluFinder Imviewer plugin for FluFinder autosegmentation method
+%FluFinder Preview FluFinder ROI segmentation parameters in imviewer.
 %
-%   SYNTAX:
-%       flufinderPlugin = FluFinder(imviewerObj)
-%
-%       flufinderPlugin = FluFinder(imviewerObj, optionsManagerObj)
+%   FluFinder is an imviewer plugin for adjusting FluFinder preprocessing
+%   and segmentation options while previewing their effect on the current
+%   image stack.
 
     properties (Constant)
        Name = 'FluFinder'
@@ -26,24 +25,29 @@ classdef FluFinder < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewC
     
     methods % Structors
         
-        function obj = FluFinder(varargin)
-        %FluFinder Create an instance of the FluFinder plugin for imviewer
+        function obj = FluFinder(imviewerHandle, varargin)
+        %FluFinder Create a FluFinder plugin for an imviewer app.
         %
-        %   flufinderPlugin = FluFinder(imviewerObj)
+        %   flufinderPlugin = FluFinder(imviewerHandle) creates the plugin
+        %   using default FluFinder options.
         %
-        %   flufinderPlugin = FluFinder(imviewerObj, optionsManagerObj)
+        %   flufinderPlugin = FluFinder(imviewerHandle, options, Name, Value, ...)
+        %   creates the plugin using a struct or nansen.manage.OptionsManager
+        %   for options. Remaining arguments are plugin flags or property-value
+        %   pairs, such as '-p' for partial construction.
 
+            arguments
+                imviewerHandle = [] % Todo. Should be type validated
+            end
             arguments (Repeating)
                 varargin
             end
 
-            [hImviewer, pluginArgs] = ...
-                imviewer.ImviewerPlugin.checkForImviewerInArgList(varargin);
             [options, pluginArgs] = ...
-                applify.mixin.HasOptionsManager.splitOptionsArgument(pluginArgs);
+                applify.mixin.HasOptionsManager.splitOptionsArgument(varargin);
 
             obj@applify.mixin.ModalMethodPreviewController(options)
-            obj@imviewer.ImviewerPlugin(hImviewer, pluginArgs{:})
+            obj@imviewer.ImviewerPlugin(imviewerHandle, pluginArgs{:})
             
             obj.addPreviewOptions()
             

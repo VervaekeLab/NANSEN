@@ -1,4 +1,8 @@
 classdef DffExplorer < applify.mixin.AppPlugin & applify.mixin.HasOptionsManager % signalviewer plugin
+%DffExplorer Explore dF/F calculation options in signalviewer.
+%
+%   DffExplorer is a signalviewer plugin for editing dF/F options and
+%   applying them to ROI fluorescence signals.
 
     properties (Constant) % Implementation of AppPlugin property
         Name = 'DFF Explorer'
@@ -9,21 +13,31 @@ classdef DffExplorer < applify.mixin.AppPlugin & applify.mixin.HasOptionsManager
     end
     
     methods % Constructor
-        function obj = DffExplorer(varargin)
+        function obj = DffExplorer(signalViewerHandle, varargin)
+        %DffExplorer Create a dF/F options plugin for signalviewer.
+        %
+        %   dffExplorerPlugin = DffExplorer(signalViewerHandle) creates the
+        %   plugin using default dF/F options.
+        %
+        %   dffExplorerPlugin = DffExplorer(signalViewerHandle, options, Name, Value, ...)
+        %   creates the plugin using a struct or nansen.manage.OptionsManager
+        %   for options. Remaining arguments are plugin flags or property-value
+        %   pairs, such as '-p' for partial construction.
+
+            arguments
+                signalViewerHandle
+            end
             arguments (Repeating)
                 varargin
             end
-            %obj@imviewer.ImviewerPlugin(varargin{:})
 
-            primaryApp = varargin{1};
-            pluginArgs = varargin(2:end);
             [options, pluginArgs] = ...
-                applify.mixin.HasOptionsManager.splitOptionsArgument(pluginArgs);
+                applify.mixin.HasOptionsManager.splitOptionsArgument(varargin);
 
             obj@applify.mixin.HasOptionsManager(options)
-            obj@applify.mixin.AppPlugin(primaryApp, pluginArgs{:})
-            obj.PrimaryApp = primaryApp;
-            obj.PrimaryApp.Figure.Name = 'DFF Explorer';
+            obj@applify.mixin.AppPlugin(signalViewerHandle, pluginArgs{:})
+
+            obj.setFigureTitle()
             obj.RoiSignalArray = obj.PrimaryApp.RoiSignalArray;
             
             obj.editOptions()
@@ -37,19 +51,14 @@ classdef DffExplorer < applify.mixin.AppPlugin & applify.mixin.HasOptionsManager
     
     methods (Access = protected) % Plugin derived methods
                 
-        function createSubMenu(obj)
-        %createSubMenu Create sub menu items for the normcorre plugin
+        function createSubMenu(obj) %#ok<MANU> % Placeholder, not implemented
+        %createSubMenu Create sub menu items for the plugin
         
-            %m = obj.PrimaryApp.hContextMenu;
-            %m = findobj(obj.PrimaryApp.Figure, 'Tag', 'App Context Menu');
-            return
-            
-            % Todo: Check if menu is already added...
-            
-            % Todo: Open? Close? Toggle?
-            obj.MenuItem(1).ExploreDff = uimenu(m, 'Text', 'Explore DFF', 'Enable', 'off');
-            obj.MenuItem(1).PlotShifts.Callback = @obj.editOptions;
-            
+            % parentMenu = obj.findAppContextMenu();
+            %
+            % % Todo: Open? Close? Toggle?
+            % obj.MenuItem(1).ExploreDff = uimenu(parentMenu, 'Text', 'Explore DFF', 'Enable', 'off');
+            % obj.MenuItem(1).ExploreDff.Callback = @obj.editOptions;
         end
         
         function assignDefaultOptions(obj)

@@ -1,10 +1,9 @@
 classdef EXTRACT < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewController
-%EXTRACT Imviewer plugin for EXTRACT method
+%EXTRACT Preview EXTRACT ROI segmentation parameters in imviewer.
 %
-%   SYNTAX:
-%       extractPlugin = EXTRACT(imviewerObj)
-%
-%       extractPlugin = EXTRACT(imviewerObj, optionsManagerObj)
+%   EXTRACT is an imviewer plugin for inspecting EXTRACT grid and cell
+%   template parameters against the current image stack before running ROI
+%   segmentation.
 
     properties (Constant)
        Name = 'EXTRACT'
@@ -18,24 +17,29 @@ classdef EXTRACT < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewCon
     
     methods % Structors
         
-        function obj = EXTRACT(varargin)
-        %EXTRACT Create an instance of the extract plugin for imviewer
+        function obj = EXTRACT(imviewerHandle, varargin)
+        %EXTRACT Create an EXTRACT plugin for an imviewer app.
         %
-        %   extractPlugin = EXTRACT(imviewerObj)
+        %   extractPlugin = EXTRACT(imviewerHandle) creates the plugin using
+        %   default EXTRACT options.
         %
-        %   extractPlugin = EXTRACT(imviewerObj, optionsManagerObj)
+        %   extractPlugin = EXTRACT(imviewerHandle, options, Name, Value, ...)
+        %   creates the plugin using a struct or nansen.manage.OptionsManager
+        %   for options. Remaining arguments are plugin flags or property-value
+        %   pairs, such as '-p' for partial construction.
 
+            arguments
+                imviewerHandle = [] % Todo. Should be type validated
+            end
             arguments (Repeating)
                 varargin
             end
 
-            [hImviewer, pluginArgs] = ...
-                imviewer.ImviewerPlugin.checkForImviewerInArgList(varargin);
             [options, pluginArgs] = ...
-                applify.mixin.HasOptionsManager.splitOptionsArgument(pluginArgs);
+                applify.mixin.HasOptionsManager.splitOptionsArgument(varargin);
 
             obj@applify.mixin.ModalMethodPreviewController(options)
-            obj@imviewer.ImviewerPlugin(hImviewer, pluginArgs{:})
+            obj@imviewer.ImviewerPlugin(imviewerHandle, pluginArgs{:})
             
             if ~obj.PartialConstruction
                 obj.openControlPanel()

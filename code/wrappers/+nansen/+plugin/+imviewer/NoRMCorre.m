@@ -1,16 +1,18 @@
 classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewController & nansen.processing.MotionCorrectionPreview
-%NoRMCorre Imviewer plugin for NoRMCorre method
+%NoRMCorre Preview NoRMCorre motion correction in imviewer.
 %
-%   SYNTAX:
-%       normcorrePlugin = NoRMCorre(imviewerObj)
-%
-%       normcorrePlugin = NoRMCorre(imviewerObj, optionsManagerObj)
+%   NoRMCorre is an imviewer plugin for adjusting NoRMCorre parameters,
+%   previewing patch geometry, and launching motion correction for the
+%   current image stack.
 %
 %   INHERITANCE:
 %       |- imviewer.ImviewerPlugin
 %           |- applify.mixin.AppPlugin
 %               |-  matlab.mixin.Heterogeneous
 %               |-  uiw.mixin.AssignPVPairs
+%       |- applify.mixin.ModalMethodPreviewController
+%           |- applify.mixin.HasOptionsManager
+%       |- nansen.processing.MotionCorrectionPreview
 
 %   TODO:
 %       [ ] migrate plugin to new instance if results open in new window
@@ -29,7 +31,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewC
         TestResults struct = struct     % Store results from a pretest correction
     end
     
-    properties (Access = private)
+    properties (Access = private) % Graphical handles and event listeners
         hGridLines
         hGridOverlaps
         hShiftArrows
@@ -38,22 +40,31 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewC
     
     methods % Structors
         
-        function obj = NoRMCorre(varargin)
-        %NoRMCorre Create an instance of the NoRMCorre plugin for imviewer
+        function obj = NoRMCorre(imviewerHandle, varargin)
+        %NoRMCorre Create a NoRMCorre plugin for an imviewer app.
+        %
+        %   normcorrePlugin = NoRMCorre(imviewerHandle) creates the plugin
+        %   using default NoRMCorre options.
+        %
+        %   normcorrePlugin = NoRMCorre(imviewerHandle, options, Name, Value, ...)
+        %   creates the plugin using a struct or nansen.manage.OptionsManager
+        %   for options. Remaining arguments are plugin flags or property-value
+        %   pairs, such as '-p' for partial construction.
 
+            arguments
+                imviewerHandle = [] % Todo. Should be type validated
+            end
             arguments (Repeating)
                 varargin
             end
 
-            [hImviewer, pluginArgs] = ...
-                imviewer.ImviewerPlugin.checkForImviewerInArgList(varargin);
             [options, pluginArgs] = ...
-                applify.mixin.HasOptionsManager.splitOptionsArgument(pluginArgs);
+                applify.mixin.HasOptionsManager.splitOptionsArgument(varargin);
 
             obj@applify.mixin.ModalMethodPreviewController(options)
-            obj@imviewer.ImviewerPlugin(hImviewer, pluginArgs{:})
+            obj@imviewer.ImviewerPlugin(imviewerHandle, pluginArgs{:})
             
-            if ~ obj.PartialConstruction && isempty(obj.hOptionsEditor)
+            if ~obj.PartialConstruction && isempty(obj.hOptionsEditor)
                 obj.openControlPanel()
             end
             
