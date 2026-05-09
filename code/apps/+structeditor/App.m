@@ -1448,9 +1448,27 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
                         for i = 1:numel(propertyFields)
                             currentField = propertyFields{i};
+                            if endsWith(currentField, "_")
+                                continue
+                            end
+
                             name = strcat(currentProperty, '.', currentField);
-                            val = eval(strcat('S', '.', name));
-                            obj.newInputField(contentPanel, y, name, val, config, tip)
+                            val = S.(currentProperty).(currentField);
+
+                            fieldConfig = config;
+                            fieldConfigInd = obj.hasConfigField(...
+                                currentField, propertyFields);
+                            if ~isempty(fieldConfigInd)
+                                fieldConfig = S.(currentProperty).(...
+                                    propertyFields{fieldConfigInd});
+                            end
+                            if ischar(fieldConfig) && ...
+                                    any(strcmp(fieldConfig, {'ignore', 'internal'}))
+                                continue
+                            end
+
+                            obj.newInputField(contentPanel, y, name, val, ...
+                                fieldConfig, tip)
                             y = y + obj.RowHeight + rowSpacing;
                         end
 
