@@ -672,14 +672,14 @@ classdef RoiManager < imviewer.ImviewerPlugin & applify.mixin.UserSettings & roi
             
         end
         
-        function openManualRoiClassifier(obj)
+        function openRoiClassifier(obj)
             % todo....
             hClassifier = obj.ImviewerObj.openPlugin('RoiClassifier');
             if ~isempty(hClassifier) && isvalid(hClassifier)
                 hClassifier.setFilePath(obj.roiFilePath);
             end
             
-        end % /function openManualRoiClassifier
+        end % /function openRoiClassifier
         
         function extractSignals(obj) % Todo: Use imageStackProcessors and external methods!
             
