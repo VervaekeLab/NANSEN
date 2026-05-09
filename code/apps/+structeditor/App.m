@@ -2905,7 +2905,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
             if ~isempty(obj.ControlStylerByPanel) && ...
                     isKey(obj.ControlStylerByPanel, panelNum)
-                obj.ControlStylerByPanel(panelNum).stripAllUIControls()
+                styler = obj.ControlStylerByPanel(panelNum);
+                styler.stripAllUIControls()
             end
             if obj.showFooter && ~isempty(obj.FooterControlStyler) && ...
                     isvalid(obj.FooterControlStyler)
