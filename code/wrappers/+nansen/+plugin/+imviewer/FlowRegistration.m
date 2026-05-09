@@ -164,6 +164,10 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodP
          %dataset"
             dataSet = obj.prepareTargetDataset();
 
+            obj.ImviewerObj.displayMessage('Running motion correction with Flowregistration...')
+            drawnow
+            cleanupObj = onCleanup(@() obj.ImviewerObj.clearMessage());
+
             nansen.wrapper.flowreg.Processor(obj.ImviewerObj.ImageStack, ...
                 obj.Options, 'DataIoModel', dataSet)
         end

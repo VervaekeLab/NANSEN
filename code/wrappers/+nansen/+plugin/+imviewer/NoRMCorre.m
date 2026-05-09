@@ -221,6 +221,10 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewC
          
             dataSet = obj.prepareTargetDataset();
 
+            obj.ImviewerObj.displayMessage('Running NoRMCorre motion correction...')
+            drawnow
+            cleanupObj = onCleanup(@() obj.ImviewerObj.clearMessage());
+
             nansen.wrapper.normcorre.Processor(obj.ImviewerObj.ImageStack,...
                 obj.Options, 'DataIoModel', dataSet)
         end

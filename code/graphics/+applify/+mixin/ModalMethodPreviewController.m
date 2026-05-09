@@ -82,11 +82,12 @@ classdef (Abstract) ModalMethodPreviewController < applify.mixin.HasOptionsManag
 
             obj.hOptionsEditor = [];
             obj.onOptionsEditorClosed()
+            drawnow
 
-            if ~obj.wasAborted && obj.RunMethodOnFinish
+            if isvalid(obj) && ~obj.wasAborted && obj.RunMethodOnFinish
                 obj.run()
             end
-            if obj.DestroyOnFinish
+            if isvalid(obj) && obj.DestroyOnFinish
                 delete(obj)
             end
         end
