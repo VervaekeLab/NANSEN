@@ -39,7 +39,8 @@ classdef HasOptionsManager < handle
     end
 
     properties (Access = private)
-        OptionsEditorDestroyedListener event.listener
+        OptionsEditorDestroyedListener event.listener = event.listener.empty
+        OptionsEditorVisible = 'on'
     end
 
     methods % Constructor/destructor
@@ -118,18 +119,22 @@ classdef HasOptionsManager < handle
             end
 
             titleStr = obj.getOptionsEditorTitle();
+            editorArgs = {'Visible', obj.OptionsEditorVisible};
 
             if ~isempty(obj.OptionsManager)
-                optionsEditor = obj.OptionsManager.openOptionsEditor([], obj.Options);
+                optionsEditor = obj.OptionsManager.openOptionsEditor(...
+                    [], obj.Options, editorArgs{:});
                 optionsEditor.Title = titleStr;
                 if ~isempty(callback)
                     optionsEditor.Callback = callback;
                 end
             elseif isempty(callback)
-                optionsEditor = structeditor(obj.Options, 'Title', titleStr);
+                optionsEditor = structeditor(obj.Options, ...
+                    'Title', titleStr, editorArgs{:});
             else
                 optionsEditor = structeditor(obj.Options, ...
-                    'Title', titleStr, 'Callback', callback);
+                    'Title', titleStr, ...
+                    'Callback', callback, editorArgs{:});
             end
 
             obj.hOptionsEditor = optionsEditor;
@@ -140,6 +145,20 @@ classdef HasOptionsManager < handle
                 return
             end
             obj.hOptionsEditor.place(varargin{:})
+        end
+
+    end
+
+    methods (Access = ?matlab.unittest.TestCase)
+
+        function optionsEditor = getOptionsEditorForTesting(obj)
+        %getOptionsEditorForTesting Return the active options editor in tests.
+            optionsEditor = obj.hOptionsEditor;
+        end
+
+        function setOptionsEditorVisibleForTesting(obj, visibleState)
+        %setOptionsEditorVisibleForTesting Set editor visibility in tests.
+            obj.OptionsEditorVisible = visibleState;
         end
 
     end
@@ -222,7 +241,7 @@ classdef HasOptionsManager < handle
                     isvalid(obj.OptionsEditorDestroyedListener)
                 delete(obj.OptionsEditorDestroyedListener)
             end
-            obj.OptionsEditorDestroyedListener = [];
+            obj.OptionsEditorDestroyedListener = event.listener.empty;
         end
 
     end

@@ -90,8 +90,26 @@ classdef AppPluginSmokeTest < matlab.unittest.TestCase
             set(groot, 'DefaultFigureVisible', 'off')
             testCase.addTeardown(@set, groot, 'DefaultFigureVisible', oldDefaultFigureVisible)
 
-            hImviewer = imviewer(rand(16, 16, 5));
+            hFigure = figure('Visible', 'off', 'HandleVisibility', 'off');
+            testCase.addTeardown(@() testCase.deleteIfValid(hFigure))
+
+            hPanel = uipanel(hFigure, 'Units', 'normalized', ...
+                'Position', [0, 0, 1, 1], 'Visible', 'off');
+
+            visibilityListener = addlistener(hFigure, 'Visible', 'PostSet', ...
+                @(~, ~) testCase.forceFigureHidden(hFigure));
+            testCase.addTeardown(@() testCase.deleteIfValid(visibilityListener))
+
+            hImviewer = imviewer(hPanel, rand(16, 16, 5));
             testCase.addTeardown(@() testCase.deleteIfValid(hImviewer))
+            uimenu(hImviewer.Figure, 'Text', 'Align Images');
+            testCase.forceFigureHidden(hFigure)
+        end
+
+        function forceFigureHidden(~, hFigure)
+            if ~isempty(hFigure) && isvalid(hFigure) && strcmp(hFigure.Visible, 'on')
+                hFigure.Visible = 'off';
+            end
         end
     end
 
