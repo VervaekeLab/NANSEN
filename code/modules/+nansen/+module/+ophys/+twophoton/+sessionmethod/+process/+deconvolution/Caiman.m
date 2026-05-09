@@ -82,7 +82,9 @@ function hDffPlugin = openDeconvolutionExplorer(sessionObj)
     roiArray = sessionObj.loadData('RoiArray');
     
     % Load signals
-    roiSignalTable = sessionObj.loadData('RoiSignals_MeanF');
+    roiSignalTableMeanF = sessionObj.loadData('RoiSignals_MeanF');
+    roiSignalTableDff = sessionObj.loadData('RoiSignals_Dff');
+    roiSignalTable = cat(2, roiSignalTableMeanF, roiSignalTableDff);
     
     % Create roi group
     if isa(roiArray, 'RoI')
