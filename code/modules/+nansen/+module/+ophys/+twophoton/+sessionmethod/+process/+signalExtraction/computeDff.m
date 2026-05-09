@@ -71,7 +71,9 @@ classdef computeDff < nansen.session.SessionMethod
             
             dff = computeDff(signalArray, obj.Options);
             obj.saveData('RoiSignals_Dff', dff)
-            
+
+            filePath = obj.getDataFilePath('RoiSignals_Dff');
+            fprintf('Saved DFF to %s\n', filePath)
         end
         
         function wasSuccess = preview(obj)

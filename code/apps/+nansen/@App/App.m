@@ -3708,7 +3708,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
 
             switch evt.Mode
-                case {'Default', 'Restart'}
+                case {'Default', 'Restart', 'Preview'}
                     taskSplitName = split(func2str(taskConfiguration.Method), '.');
                     fprintf('Task completed: %s\n', taskSplitName{end});
             end

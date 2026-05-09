@@ -49,6 +49,9 @@ classdef Caiman < nansen.session.SessionMethod
             
             obj.SessionObjects.saveData('RoiSignals_Deconvolved', deconvolved)
             obj.SessionObjects.saveData('RoiSignals_Denoised', denoised)
+
+            filePath = obj.getDataFilePath('RoiSignals_Deconvolved');
+            fprintf('Saved deconvolved signals to %s\n', filePath)
             
             % Todo: get computed timeconstants and other params and save
             
