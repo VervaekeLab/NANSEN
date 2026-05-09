@@ -53,6 +53,13 @@ classdef FluFinder < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewC
 
             obj@applify.mixin.ModalMethodPreviewController(options)
             obj@imviewer.ImviewerPlugin(imviewerHandle, pluginArgs{:})
+
+            hasRunMethodOnFinishArgument = any(cellfun(@(arg) ...
+                (ischar(arg) || (isstring(arg) && isscalar(arg))) && ...
+                strcmp(arg, 'RunMethodOnFinish'), pluginArgs));
+            if ~hasRunMethodOnFinishArgument
+                obj.RunMethodOnFinish = false;
+            end
             
             obj.addPreviewOptions()
             
@@ -78,7 +85,7 @@ classdef FluFinder < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewC
             tf = false;
         end
         
-        %onMousePressed(src, evt)
+        %onMousePressed(obj, src, evt)
 
     end
     
@@ -86,6 +93,18 @@ classdef FluFinder < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewC
         
         function openControlPanel(obj, mode)
             obj.editOptions()
+        end
+
+        function optionsEditor = openOptionsEditor(obj)
+        %openOptionsEditor Open editor for method options.
+            optionsEditor = openOptionsEditor@applify.mixin.ModalMethodPreviewController(obj);
+            obj.arrangeAppWindows(optionsEditor)
+        end
+
+        function run(~)
+        %run Run FluFinder segmentation.
+            error('nansen:plugin:imviewer:FluFinder:RunNotImplemented', ...
+                'FluFinder does not implement run yet.')
         end
         
         function changeOption(obj, name, value)
@@ -113,7 +132,8 @@ classdef FluFinder < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewC
         end
         
         function onPluginActivated(obj)
-            
+            onPluginActivated@imviewer.ImviewerPlugin(obj)
+            % Placeholder in case specialized operations need to run here
         end
         
         function onOptionsChanged(obj, name, value)

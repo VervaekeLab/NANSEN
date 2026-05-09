@@ -79,13 +79,6 @@ classdef AppPlugin < matlab.mixin.Heterogeneous & uiw.mixin.AssignPVPairs
         end
     end
 
-    methods (Access = public)
-
-        function run(obj) %#ok<MANU>
-            % Subclasses may override
-        end
-    end
-
     % Methods for mouse and keyboard interactive callbacks
     methods (Access = {?applify.mixin.AppPlugin, ?applify.AppWithPlugin})
 
@@ -117,6 +110,45 @@ classdef AppPlugin < matlab.mixin.Heterogeneous & uiw.mixin.AssignPVPairs
                 obj.PrimaryApp.Figure.Name = obj.Name;
             else
                 warning('Could not set figure title')
+            end
+        end
+
+        function arrangeAppWindows(obj, secondaryApp, direction)
+        %arrangeAppWindows Shift primary and secondary app windows apart.
+            if nargin < 3
+                direction = 'horizontal';
+            end
+
+            if isempty(obj.PrimaryApp) || ~isprop(obj.PrimaryApp, 'Figure') ...
+                    || ~isprop(secondaryApp, 'Figure')
+                error('applify:AppPlugin:InvalidWindowPair', ...
+                    'arrangeAppWindows requires app objects with Figure properties.')
+            end
+
+            figPos(1,:) = getpixelposition(secondaryApp.Figure);
+            figPos(2,:) = getpixelposition(obj.PrimaryApp.Figure);
+            hFig = [secondaryApp.Figure, obj.PrimaryApp.Figure];
+
+            switch direction
+                case 'horizontal'
+                    figPos_ = figPos(:, [1,3]); dim = 1;
+                case 'vertical'
+                    figPos_ = figPos(:, [2,4]); dim = 2;
+                otherwise
+                    error('applify:AppPlugin:InvalidDirection', ...
+                        'Direction must be ''horizontal'' or ''vertical''.')
+            end
+
+            screenPos = uim.utility.getCurrentScreenSize(obj.PrimaryApp.Figure);
+            [~, idx] = sort(figPos_(:, 1));
+            figPos = figPos(idx, :);
+            hFig = hFig(idx);
+
+            [x, ~] = uim.utility.layout.subdividePosition( ...
+                min(figPos(:,1)), screenPos(dim+2), figPos_(:,2), 20);
+
+            for i = 1:2
+                hFig(i).Position(dim) = x(i);
             end
         end
 

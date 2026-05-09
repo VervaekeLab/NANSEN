@@ -45,6 +45,13 @@ classdef EXTRACT < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewCon
 
             obj@applify.mixin.ModalMethodPreviewController(options)
             obj@imviewer.ImviewerPlugin(imviewerHandle, pluginArgs{:})
+
+            hasRunMethodOnFinishArgument = any(cellfun(@(arg) ...
+                (ischar(arg) || (isstring(arg) && isscalar(arg))) && ...
+                strcmp(arg, 'RunMethodOnFinish'), pluginArgs));
+            if ~hasRunMethodOnFinishArgument
+                obj.RunMethodOnFinish = false;
+            end
             
             if ~obj.PartialConstruction
                 obj.openControlPanel()
@@ -64,12 +71,10 @@ classdef EXTRACT < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewCon
     
     methods (Access = {?applify.mixin.AppPlugin, ?applify.AppWithPlugin} )
         
-        function tf = keyPressHandler(src, evt)
+        function tf = keyPressHandler(obj, src, evt) %#ok<INUSD>
+            tf = false;
             % Todo?
         end
-        
-        %onMousePressed(src, evt)
-
     end
     
     methods
@@ -77,6 +82,18 @@ classdef EXTRACT < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewCon
         function openControlPanel(obj, mode)
             obj.plotGrid()
             obj.editOptions()
+        end
+
+        function optionsEditor = openOptionsEditor(obj)
+        %openOptionsEditor Open editor for method options.
+            optionsEditor = openOptionsEditor@applify.mixin.ModalMethodPreviewController(obj);
+            obj.arrangeAppWindows(optionsEditor)
+        end
+
+        function run(~)
+        %run Run EXTRACT segmentation.
+            error('nansen:plugin:imviewer:EXTRACT:RunNotImplemented', ...
+                'EXTRACT does not implement run yet.')
         end
         
         function changeOption(obj, name, value)
@@ -94,7 +111,8 @@ classdef EXTRACT < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewCon
     methods (Access = protected)
         
         function onPluginActivated(obj)
-            
+            onPluginActivated@imviewer.ImviewerPlugin(obj)
+            % Placeholder in case specialized operations need to run here
         end
         
         function onOptionsChanged(obj, name, value)

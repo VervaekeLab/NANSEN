@@ -38,7 +38,11 @@ classdef HasOptionsManager < handle
         hOptionsEditor
     end
 
-    methods
+    properties (Access = private)
+        OptionsEditorDestroyedListener event.listener
+    end
+
+    methods % Constructor/destructor
 
         function obj = HasOptionsManager(options)
         %HasOptionsManager Initialize method options for option-aware plugins.
@@ -53,6 +57,15 @@ classdef HasOptionsManager < handle
             end
         end
 
+        function delete(obj)
+            if ~isempty(obj.hOptionsEditor) && isvalid(obj.hOptionsEditor)
+                delete(obj.hOptionsEditor)
+            end
+            obj.clearOptionsEditorDestroyedListener()
+        end
+    end
+
+    methods % Set / get methods
         function set.Options(obj, options)
             obj.Options_ = options;
         end
@@ -66,46 +79,60 @@ classdef HasOptionsManager < handle
                 options = struct.empty;
             end
         end
-
     end
 
     methods (Access = public)
 
         function [options, wasAborted] = editOptions(obj)
         %editOptions Open the options editor and wait for user input
+
+            if ~obj.Modal && nargout
+                error('NANSEN:HasOptionsManager:OutputNotAvailable', ...
+                    "Modified options are not available in non-modal mode")
+            end
+
             optionsEditor = obj.openOptionsEditor();
 
             if obj.Modal
                 optionsEditor.waitfor()
                 obj.onOptionsEditorResumed()
+
+                if nargout
+                    if ~isvalid(obj)
+                        error('NANSEN:HasOptionsManager:ObjectDeleted', ...
+                            "Options are not available because the object was deleted")
+                    end
+                    options = obj.Options;
+                    wasAborted = obj.wasAborted;
+                end
             else
-                addlistener(optionsEditor, 'AppDestroyed', ...
-                    @(s, e) obj.onOptionsEditorResumed());
-            end
-
-            options = obj.Options;
-            wasAborted = obj.wasAborted;
-
-            if ~nargout
-                clear options wasAborted
-            elseif nargout == 1
-                clear wasAborted
+                obj.OptionsEditorDestroyedListener = addlistener(optionsEditor, ...
+                    'AppDestroyed', @(s, e) obj.resumeOptionsEditor());
             end
         end
 
-        function optionsEditor = openOptionsEditor(obj)
+        function optionsEditor = openOptionsEditor(obj, callback)
         %openOptionsEditor Open a ui dialog for editing method options.
+            if nargin < 2
+                callback = [];
+            end
+
             titleStr = obj.getOptionsEditorTitle();
 
             if ~isempty(obj.OptionsManager)
                 optionsEditor = obj.OptionsManager.openOptionsEditor([], obj.Options);
                 optionsEditor.Title = titleStr;
-            else
+                if ~isempty(callback)
+                    optionsEditor.Callback = callback;
+                end
+            elseif isempty(callback)
                 optionsEditor = structeditor(obj.Options, 'Title', titleStr);
+            else
+                optionsEditor = structeditor(obj.Options, ...
+                    'Title', titleStr, 'Callback', callback);
             end
 
             obj.hOptionsEditor = optionsEditor;
-            addlistener(obj, 'ObjectBeingDestroyed', @(s,e) delete(optionsEditor));
         end
 
         function place(obj, varargin)
@@ -144,6 +171,7 @@ classdef HasOptionsManager < handle
         %onOptionsEditorResumed Called when the editor closes or is confirmed.
             if isempty(obj.hOptionsEditor) || ~isvalid(obj.hOptionsEditor)
                 obj.hOptionsEditor = [];
+                obj.clearOptionsEditorDestroyedListener()
                 return
             end
 
@@ -154,6 +182,7 @@ classdef HasOptionsManager < handle
 
             delete(obj.hOptionsEditor)
             obj.hOptionsEditor = [];
+            obj.clearOptionsEditorDestroyedListener()
 
             if ~obj.wasAborted
                 obj.onOptionsChanged();
@@ -172,6 +201,28 @@ classdef HasOptionsManager < handle
                 propertyName = 'Name';
                 titleStr = sprintf('Options Editor (%s)', obj.(propertyName));
             end
+        end
+
+    end
+
+    methods (Access = private)
+
+        function resumeOptionsEditor(obj)
+        %resumeOptionsEditor Resume after a non-modal options editor closes.
+            obj.onOptionsEditorResumed()
+
+            if isvalid(obj)
+                obj.clearOptionsEditorDestroyedListener()
+            end
+        end
+
+        function clearOptionsEditorDestroyedListener(obj)
+        %clearOptionsEditorDestroyedListener Delete and clear editor listener.
+            if ~isempty(obj.OptionsEditorDestroyedListener) && ...
+                    isvalid(obj.OptionsEditorDestroyedListener)
+                delete(obj.OptionsEditorDestroyedListener)
+            end
+            obj.OptionsEditorDestroyedListener = [];
         end
 
     end

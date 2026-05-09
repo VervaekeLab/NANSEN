@@ -1,4 +1,4 @@
-classdef ModalMethodPreviewController < applify.mixin.HasOptionsManager
+classdef (Abstract) ModalMethodPreviewController < applify.mixin.HasOptionsManager
 %ModalMethodPreviewController Behavioral mixin for modal edit/preview/run workflows
 %
 %   Provides the lifecycle for plugins that:
@@ -7,20 +7,30 @@ classdef ModalMethodPreviewController < applify.mixin.HasOptionsManager
 %     3. Run the method when the editor is confirmed (run)
 %     4. Destroy themselves when finished (destroy)
 %
-%   Subclasses should override:
+%   Subclasses must override:
+%     - run                   — execute the method
+%
+%   Subclasses may/should override:
 %     - assignDefaultOptions  - set the default method options
 %     - openControlPanel      — set up preview state, then call editOptions
-%     - run                   — execute the method
 %     - onOptionsChanged      - react to live option changes in the editor
 %     - onOptionsEditorClosed — clean up preview state when editor closes
 %
-%   This class is a behavioral mixin, not the primary plugin base class.
-%   Concrete plugins should combine it with a single AppPlugin-derived
-%   superclass such as imviewer.ImviewerPlugin.
+%   Subclassing guidelines
+
+%   - This class is a behavioral mixin, not the primary plugin base class.
+%   - Concrete plugins should combine it with a single AppPlugin-derived
+%     superclass such as imviewer.ImviewerPlugin.
+%   - Host-app behavior belongs in the concrete plugin or an app-specific
+%     superclass.
 
     properties
         RunMethodOnFinish (1,1) logical = true  % Run method when editor is confirmed
         DestroyOnFinish   (1,1) logical = true  % Destroy plugin after run
+    end
+
+    methods (Abstract)
+        run(obj)
     end
 
     methods (Access = public)
@@ -40,36 +50,10 @@ classdef ModalMethodPreviewController < applify.mixin.HasOptionsManager
             obj.editOptions()
         end
 
-        function editOptions(obj)
-        %editOptions Open the options editor and wait (if modal).
-            optionsEditor = obj.openOptionsEditor();
-            if obj.Modal
-                optionsEditor.waitfor()
-                obj.onOptionsEditorResumed()
-            else
-                addlistener(optionsEditor, 'AppDestroyed', ...
-                    @(s, e) obj.onOptionsEditorResumed);
-            end
-        end
-
         function optionsEditor = openOptionsEditor(obj)
         %openOptionsEditor Open the ui dialog for editing method options.
-            titleStr = sprintf('Options Editor (%s)', obj.Name);
-            if ~isempty(obj.OptionsManager)
-                optionsEditor = obj.OptionsManager.openOptionsEditor([], obj.getCurrentOptions());
-                optionsEditor.Title = titleStr;
-                optionsEditor.Callback = @obj.onOptionsChanged;
-            else
-                optionsEditor = structeditor(obj.getCurrentOptions(), ...
-                    'Title', titleStr, 'Callback', @obj.onOptionsChanged);
-            end
-            obj.relocatePrimaryApp(optionsEditor)
-            obj.hOptionsEditor = optionsEditor;
-            addlistener(obj, 'ObjectBeingDestroyed', @(s,e) delete(optionsEditor));
-        end
-
-        function place(obj, varargin)
-            obj.hOptionsEditor.place(varargin{:})
+            optionsEditor = openOptionsEditor@applify.mixin.HasOptionsManager(...
+                obj, @obj.onOptionsChanged);
         end
 
     end
@@ -78,17 +62,28 @@ classdef ModalMethodPreviewController < applify.mixin.HasOptionsManager
 
         function onOptionsEditorResumed(obj)
         %onOptionsEditorResumed Called when the editor closes or is confirmed.
+
+            if ~isvalid(obj)
+                % Abort, controller might be used by a plugin that
+                % was deleted by closing an app.
+                return
+            end
+
             if isempty(obj.hOptionsEditor) || ~isvalid(obj.hOptionsEditor)
                 obj.hOptionsEditor = [];
                 return
             end
+
             if ~obj.hOptionsEditor.wasCanceled
-                obj.setCurrentOptions(obj.hOptionsEditor.dataEdit);
+                obj.Options = obj.hOptionsEditor.dataEdit;
             end
+
             obj.wasAborted = obj.hOptionsEditor.wasCanceled;
             delete(obj.hOptionsEditor)
+
             obj.hOptionsEditor = [];
             obj.onOptionsEditorClosed()
+
             if ~obj.wasAborted && obj.RunMethodOnFinish
                 obj.run()
             end
@@ -105,37 +100,6 @@ classdef ModalMethodPreviewController < applify.mixin.HasOptionsManager
         function onOptionsChanged(obj, name, value)
         %onOptionsChanged Called when the options editor changes a value.
             obj.updateOptionValue(name, value)
-        end
-
-        function relocatePrimaryApp(obj, hPlugin, direction)
-        %relocatePrimaryApp Shift app and plugin windows so they do not overlap.
-            if nargin < 3; direction = 'horizontal'; end
-            figPos(1,:) = getpixelposition(hPlugin.Figure);
-            figPos(2,:) = getpixelposition(obj.PrimaryApp.Figure);
-            hFig = [hPlugin.Figure, obj.PrimaryApp.Figure];
-            switch direction
-                case 'horizontal'; figPos_ = figPos(:, [1,3]); dim = 1;
-                case 'vertical';   figPos_ = figPos(:, [2,4]); dim = 2;
-            end
-            screenPos = uim.utility.getCurrentScreenSize(obj.PrimaryApp.Figure);
-            [~, idx] = sort(figPos_(:, 1));
-            figPos = figPos(idx, :);
-            hFig = hFig(idx);
-            [x, ~] = uim.utility.layout.subdividePosition(min(figPos(:,1)), ...
-                screenPos(dim+2), figPos_(:,2), 20);
-            for i = 1:2
-                hFig(i).Position(dim) = x(i);
-            end
-        end
-
-        function options = getCurrentOptions(obj)
-        %getCurrentOptions Return the current method options.
-            options = obj.Options;
-        end
-
-        function setCurrentOptions(obj, options)
-        %setCurrentOptions Assign the current method options.
-            obj.Options = options;
         end
 
         function updateOptionValue(obj, name, value)

@@ -82,6 +82,7 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodP
             obj.Options_.Export.FileName = fileName;
 
             sEditor = openOptionsEditor@applify.mixin.ModalMethodPreviewController(obj);
+            obj.arrangeAppWindows(sEditor)
             
             % Need a better solution for this:
             idx = strcmp(sEditor.Name, 'Export');
