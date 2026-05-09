@@ -44,6 +44,23 @@ classdef AppPluginSmokeTest < matlab.unittest.TestCase
             testCase.verifyEqual(pluginArguments, {'-p', 'Modal', false})
         end
 
+        function testOptionsOwnerWaitforProcessesNonModalEditor(testCase)
+            originalOptions = struct('Main', struct('Value', 1));
+            editedOptions = struct('Main', struct('Value', 2));
+
+            plugin = nansen.unittest.plugin.helper.TestOptionsOwner(originalOptions);
+            testCase.addTeardown(@() testCase.deleteIfValid(plugin))
+            editor = nansen.unittest.plugin.helper.TestOptionsEditor(editedOptions, false);
+            plugin.Editor = editor;
+
+            plugin.editOptions()
+            plugin.waitfor()
+
+            testCase.verifyEqual(plugin.Options, editedOptions)
+            testCase.verifyEqual(plugin.OptionsChangedCount, 1)
+            testCase.verifyFalse(isvalid(editor))
+        end
+
     end
 
     methods (Test, TestTags="Graphical")

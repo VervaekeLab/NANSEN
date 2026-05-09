@@ -147,6 +147,22 @@ classdef HasOptionsManager < handle
             obj.hOptionsEditor.place(varargin{:})
         end
 
+        function waitfor(obj)
+        %waitfor Wait for the active options editor to close.
+            if isempty(obj.hOptionsEditor)
+                return
+            end
+
+            optionsEditor = obj.hOptionsEditor;
+            if isvalid(optionsEditor)
+                optionsEditor.waitfor()
+            end
+
+            if isvalid(obj) && ~isempty(obj.hOptionsEditor)
+                obj.onOptionsEditorResumed()
+            end
+        end
+
     end
 
     methods (Access = ?matlab.unittest.TestCase)
