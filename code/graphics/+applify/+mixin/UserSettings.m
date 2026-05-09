@@ -192,65 +192,27 @@ classdef (Abstract) UserSettings < uim.handle
         %editSettings Open gui for editing fields of settings.
         
             titleStr = sprintf('Preferences for %s', class(obj));
-            doDefault = true; % backward compatibility...
-            
+
             if ~isempty(obj.hSettingsEditor)
                 figure(obj.hSettingsEditor.Figure)
                 return
             end
-            
-            % Todo: If obj has plugins, grab all settings from plugin
-            % classes as well.
-            if isprop(obj, 'plugins')
 
-                hObjects = [{obj}, {obj.plugins.pluginHandle}];
-                hasSettings = cellfun(@(h) isprop(h, 'settings'), hObjects);
-                
-                if sum(hasSettings) > 1
-                
-                    hObjects = hObjects(hasSettings);
-                    settingsStruct = cellfun(@(h) h.settings, hObjects, 'uni', 0);
-                    names = cellfun(@(h) class(h), hObjects, 'uni', 0);
-                    callbacks = cellfun(@(h) @(name, value) h.changeSettings(name, value), hObjects, 'uni', 0);
-
-                    settingsStruct = tools.editStruct(settingsStruct, nan, titleStr, ...
-                        'Callback', callbacks, 'Name', names);
-
-                    obj.settings = settingsStruct{1};
-                    obj.saveSettings()
-
-                    for i = 1:numel(hObjects)
-                        hObjects{i}.settings = settingsStruct{i};
-                        hObjects{i}.saveSettings()
-                    end
-                    doDefault = false;
-                else
-                    doDefault = true;
-                end
-            end
-
-            if doDefault
-                try
-                    obj.hSettingsEditor = structeditor.App(obj.settings, ...
-                        'Title', titleStr, 'Callback', @obj.onSettingsChanged);
-
-                    addlistener(obj.hSettingsEditor, 'AppDestroyed', ...
-                        @(s, e) obj.onSettingsEditorClosed);
-                catch ME
-                    
-                    switch ME.identifier
-                        case 'MATLAB:class:InvalidSuperClass'
-
-                            if contains(ME.message, 'uiw.mixin.AssignPVPairs')
-                                msg = 'Settings window requires the Widgets Toolbox to be installed';
-                                errordlg(msg)
-                                error(msg)
-                            end
-                                            
-                        otherwise
-                            rethrow(ME)
-
-                    end
+            try
+                obj.hSettingsEditor = structeditor.App(obj.settings, ...
+                    'Title', titleStr, 'Callback', @obj.onSettingsChanged);
+                addlistener(obj.hSettingsEditor, 'AppDestroyed', ...
+                    @(s, e) obj.onSettingsEditorClosed);
+            catch ME
+                switch ME.identifier
+                    case 'MATLAB:class:InvalidSuperClass'
+                        if contains(ME.message, 'uiw.mixin.AssignPVPairs')
+                            msg = 'Settings window requires the Widgets Toolbox to be installed';
+                            errordlg(msg)
+                            error(msg)
+                        end
+                    otherwise
+                        rethrow(ME)
                 end
             end
         end

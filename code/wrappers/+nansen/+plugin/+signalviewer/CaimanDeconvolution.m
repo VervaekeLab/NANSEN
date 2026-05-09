@@ -1,16 +1,16 @@
-classdef CaimanDeconvolution < applify.mixin.AppPlugin % signalviewer plugin
-    
-    properties (Constant, Hidden = true)
-        USE_DEFAULT_SETTINGS = false    % Ignore settings file
-        DEFAULT_SETTINGS = []           % This class uses an optionsmanager
-    end
+classdef CaimanDeconvolution < applify.mixin.AppPlugin & applify.mixin.HasOptionsManager % signalviewer plugin
+%CaimanDeconvolution Explore CaImAn deconvolution options in signalviewer.
+%
+%   CaimanDeconvolution is a signalviewer plugin for editing deconvolution
+%   options and applying them to ROI dF/F signals.
+%
+%   SYNTAX:
+%       deconvolutionPlugin = nansen.plugin.signalviewer.CaimanDeconvolution(signalViewerHandle)
+%       deconvolutionPlugin = nansen.plugin.signalviewer.CaimanDeconvolution(signalViewerHandle, options)
+%       deconvolutionPlugin = nansen.plugin.signalviewer.CaimanDeconvolution(signalViewerHandle, options, Name, Value, ...)
 
     properties (Constant) % Implementation of AppPlugin property
         Name = 'CaImAn Deconvolution'
-    end
-    
-    properties
-        PrimaryAppName = 'Roi Signal Explorer'
     end
     
     properties (Access = protected)
@@ -18,66 +18,85 @@ classdef CaimanDeconvolution < applify.mixin.AppPlugin % signalviewer plugin
     end
     
     properties (Access = private)
-        Mode
+        PlotUpdateMode (1,1) string {mustBeMember(PlotUpdateMode, ...
+            ["UpdateAll", "UpdateVisiblePlotOnly"])} = "UpdateAll"
         hLineDeconvolved
         hLineDenoised
     end
     
     methods % Constructor
-        function obj = CaimanDeconvolution(varargin)
-            %obj@imviewer.ImviewerPlugin(varargin{:})
-            
-            obj@applify.mixin.AppPlugin(varargin{:})
-            obj.PrimaryApp = varargin{1};
-            obj.PrimaryApp.Figure.Name = obj.Name;
+        function obj = CaimanDeconvolution(signalViewerHandle, varargin)
+        %CaimanDeconvolution Create a deconvolution plugin for signalviewer.
+        %
+        %   deconvolutionPlugin = CaimanDeconvolution(signalViewerHandle)
+        %   creates the plugin using default CaImAn deconvolution options.
+        %
+        %   deconvolutionPlugin = CaimanDeconvolution(signalViewerHandle, options, Name, Value, ...)
+        %   creates the plugin using a struct or nansen.manage.OptionsManager
+        %   for options. Remaining arguments are plugin flags or property-value
+        %   pairs, such as '-p' for partial construction.
+
+            arguments
+                signalViewerHandle applify.AppWithPlugin
+            end
+            arguments (Repeating)
+                varargin
+            end
+
+            [options, pluginArgs] = ...
+                applify.mixin.HasOptionsManager.splitOptionsArgument(varargin);
+
+            obj@applify.mixin.HasOptionsManager(options)
+            obj@applify.mixin.AppPlugin(signalViewerHandle, pluginArgs{:})
+
+            obj.setFigureTitle()
             obj.RoiSignalArray = obj.PrimaryApp.RoiSignalArray;
-            
-            obj.Mode = 'UpdateAll';
-                        
-            obj.editSettings()
+
+            obj.editOptions()
 
         end
         
         function delete(obj)
-            
+            if ~isempty(obj.hLineDeconvolved) && isvalid(obj.hLineDeconvolved)
+                delete(obj.hLineDeconvolved)
+            end
+            if ~isempty(obj.hLineDenoised) && isvalid(obj.hLineDenoised)
+                delete(obj.hLineDenoised)
+            end
         end
     end
     
     methods (Access = protected) % Plugin derived methods
                 
-        function createSubMenu(obj)
-        %createSubMenu Create sub menu items for the normcorre plugin
-        
-            %m = obj.PrimaryApp.hContextMenu;
-            %m = findobj(obj.PrimaryApp.Figure, 'Tag', 'App Context Menu');
-            return
-            
-            % Todo: Check if menu is already added...
-            
-            % Todo: Open? Close? Toggle?
-            obj.MenuItem(1).ExploreDff = uimenu(m, 'Text', 'Deconvolve...', 'Enable', 'off');
-            obj.MenuItem(1).PlotShifts.Callback = @obj.editSettings;
-            
+        function createSubMenu(obj) %#ok<MANU> % Placeholder, not implemented
+        %createSubMenu Create sub menu items for the plugin
+            % parentMenu = obj.findAppContextMenu();
+            %
+            % % Todo: Open? Close? Toggle?
+            % obj.MenuItem(1).Deconvolve = uimenu(parentMenu, 'Text', 'Deconvolve...', 'Enable', 'off');
+            % obj.MenuItem(1).Deconvolve.Callback = @obj.editOptions;
         end
         
         function assignDefaultOptions(obj)
-            %functionName = 'ophys.twophoton.process.deconvolution.Caiman';
             functionName = 'nansen.twophoton.roisignals.deconvolveDff';
             obj.OptionsManager = nansen.manage.OptionsManager(functionName);
-            obj.settings = obj.OptionsManager.getOptions;
         end
     end
-    
+
     methods (Access = protected)
-        
-        function onSettingsChanged(obj, name, value)
-            
-            obj.settings_.(name) = value;
-            obj.RoiSignalArray.DeconvolutionOptions = obj.settings;
+
+        function onOptionsChanged(obj, name, value)
+            if nargin == 3
+                options = obj.Options;
+                options.(name) = value;
+                obj.Options = options;
+            end
+
+            obj.RoiSignalArray.DeconvolutionOptions = obj.Options;
             
             obj.PrimaryApp.displayMessage('Updating Deconvolved Signal...')
             
-            switch obj.Mode
+            switch obj.PlotUpdateMode
                 case 'UpdateVisiblePlotOnly'
                     obj.updateInternal()
                     
@@ -104,7 +123,7 @@ classdef CaimanDeconvolution < applify.mixin.AppPlugin % signalviewer plugin
             dff_ = dff(isVisible);
             xData_ = xData(isVisible);
             
-            [dec, den, ~] = deconvolveDff(dff_, obj.settings);%, options)
+            [dec, den, ~] = deconvolveDff(dff_, obj.Options);
             
             if isempty(obj.hLineDeconvolved)
                 yyaxis(hAx, 'right')

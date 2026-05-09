@@ -1,16 +1,15 @@
-classdef EXTRACT < imviewer.ImviewerPlugin
-%EXTRACT Imviewer plugin for EXTRACT method
+classdef EXTRACT < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewController
+%EXTRACT Preview EXTRACT ROI segmentation parameters in imviewer.
+%
+%   EXTRACT is an imviewer plugin for inspecting EXTRACT grid and cell
+%   template parameters against the current image stack before running ROI
+%   segmentation.
 %
 %   SYNTAX:
-%       extractPlugin = EXTRACT(imviewerObj)
-%
-%       extractPlugin = EXTRACT(imviewerObj, optionsManagerObj)
+%       extractPlugin = nansen.plugin.imviewer.EXTRACT(imviewerHandle)
+%       extractPlugin = nansen.plugin.imviewer.EXTRACT(imviewerHandle, options)
+%       extractPlugin = nansen.plugin.imviewer.EXTRACT(imviewerHandle, options, Name, Value, ...)
 
-    properties (Constant, Hidden = true)
-        USE_DEFAULT_SETTINGS = false    % Ignore settings file
-        DEFAULT_SETTINGS = []           % This class uses an optionsmanager
-    end
-    
     properties (Constant)
        Name = 'EXTRACT'
     end
@@ -23,14 +22,36 @@ classdef EXTRACT < imviewer.ImviewerPlugin
     
     methods % Structors
         
-        function obj = EXTRACT(varargin)
-        %EXTRACT Create an instance of the extract plugin for imviewer
+        function obj = EXTRACT(imviewerHandle, varargin)
+        %EXTRACT Create an EXTRACT plugin for an imviewer app.
         %
-        %   extractPlugin = EXTRACT(imviewerObj)
+        %   extractPlugin = EXTRACT(imviewerHandle) 
+        %   creates the plugin using default EXTRACT options.
         %
-        %   extractPlugin = EXTRACT(imviewerObj, optionsManagerObj)
-        
-            obj@imviewer.ImviewerPlugin(varargin{:})
+        %   extractPlugin = EXTRACT(imviewerHandle, options, Name, Value, ...)
+        %   creates the plugin using a struct or nansen.manage.OptionsManager
+        %   for options. Remaining arguments are plugin flags or property-value
+        %   pairs, such as '-p' for partial construction.
+
+            arguments
+                imviewerHandle applify.AppWithPlugin
+            end
+            arguments (Repeating)
+                varargin
+            end
+
+            [options, pluginArgs] = ...
+                applify.mixin.HasOptionsManager.splitOptionsArgument(varargin);
+
+            obj@applify.mixin.ModalMethodPreviewController(options)
+            obj@imviewer.ImviewerPlugin(imviewerHandle, pluginArgs{:})
+
+            hasRunMethodOnFinishArgument = any(cellfun(@(arg) ...
+                (ischar(arg) || (isstring(arg) && isscalar(arg))) && ...
+                strcmp(arg, 'RunMethodOnFinish'), pluginArgs));
+            if ~hasRunMethodOnFinishArgument
+                obj.RunMethodOnFinish = false;
+            end
             
             if ~obj.PartialConstruction
                 obj.openControlPanel()
@@ -50,30 +71,33 @@ classdef EXTRACT < imviewer.ImviewerPlugin
     
     methods (Access = {?applify.mixin.AppPlugin, ?applify.AppWithPlugin} )
         
-        function tf = keyPressHandler(src, evt)
+        function tf = keyPressHandler(obj, src, evt) %#ok<INUSD>
+            tf = false;
             % Todo?
         end
-        
-        %onMousePressed(src, evt)
-
     end
     
     methods
         
         function openControlPanel(obj, mode)
             obj.plotGrid()
-            obj.editSettings()
+            obj.editOptions()
+        end
+
+        function optionsEditor = openOptionsEditor(obj)
+        %openOptionsEditor Open editor for method options.
+            optionsEditor = openOptionsEditor@applify.mixin.ModalMethodPreviewController(obj);
+            obj.arrangeAppWindows(optionsEditor)
+        end
+
+        function run(~)
+        %run Run EXTRACT segmentation.
+            error('nansen:plugin:imviewer:EXTRACT:RunNotImplemented', ...
+                'EXTRACT does not implement run yet.')
         end
         
-        function loadSettings(~)
-            % This class does not have to load settings
-        end
-        function saveSettings(~)
-            % This class does not have to save settings
-        end
-        
-        function changeSetting(obj, name, value)
-            obj.onSettingsChanged(name, value)
+        function changeOption(obj, name, value)
+            obj.onOptionsChanged(name, value)
         end
 
         function showTip(obj, message)
@@ -87,53 +111,48 @@ classdef EXTRACT < imviewer.ImviewerPlugin
     methods (Access = protected)
         
         function onPluginActivated(obj)
-            
+            onPluginActivated@imviewer.ImviewerPlugin(obj)
+            % Placeholder in case specialized operations need to run here
         end
         
-        function onSettingsChanged(obj, name, value)
+        function onOptionsChanged(obj, name, value)
             
             switch name
                 case {'num_partitions_x', 'num_partitions_y'}
-                    obj.settings.Main.(name) = value;
+                    obj.Options.Main.(name) = value;
                     obj.plotGrid()
                     
                     obj.checkGridSize()
                     
                 case 'use_gpu'
-                    obj.settings.Main.(name) = value;
+                    obj.Options.Main.(name) = value;
                     if value && ismac
                         obj.showTip('Note: GPU acceleration with Parallel Computing Toolbox is not supported on macOS versions 10.14 (Mojave) and above. Support for earlier macOS versions will be removed in a future MATLAB release.')
                     end
                     
                 case 'avg_cell_radius'
-                    obj.settings.Main.(name) = value;
+                    obj.Options.Main.(name) = value;
                     obj.plotCellTemplates(value)
                     
                 case 'temporal_denoising'
-                    obj.settings.Preprocess.(name) = value;
+                    obj.Options.Preprocess.(name) = value;
                     if value
                         obj.showTip('Note: This might increase processing time considerably for long movies')
                     end
                     
                 case 'reestimate_S_if_downsampled'
-                    obj.settings.Downsample.(name) = value;
+                    obj.Options.Downsample.(name) = value;
                     if value
                         obj.showTip('This is not recommended as precise shape of cell images are typically not essential, and processing will take longer')
                     end
                     
                 case 'trace_output_option'
-                    obj.settings.Main.(name) = value;
+                    obj.Options.Main.(name) = value;
                     
                     if strcmp(value, 'raw')
                         obj.showTip('Please check EXTRACT''s FAQ before using this options')
                     end
             end
-        end
-    end
-    
-    methods (Static) % Inherited...
-        function getPluginIcon()
-            
         end
     end
     
@@ -147,8 +166,8 @@ classdef EXTRACT < imviewer.ImviewerPlugin
             end
 
             % Plot grid lines
-            numRows = obj.settings.Main.num_partitions_y;
-            numCols = obj.settings.Main.num_partitions_x;
+            numRows = obj.Options.Main.num_partitions_y;
+            numCols = obj.Options.Main.num_partitions_x;
             
             hLine = imviewer.plot.plotGridLines(obj.PrimaryApp, numRows, numCols);
 
@@ -206,8 +225,8 @@ classdef EXTRACT < imviewer.ImviewerPlugin
         
         function checkGridSize(obj)
                         
-            numRows = obj.settings.Main.num_partitions_y;
-            numCols = obj.settings.Main.num_partitions_x;
+            numRows = obj.Options.Main.num_partitions_y;
+            numCols = obj.Options.Main.num_partitions_x;
             
             sizeX = obj.PrimaryApp.imWidth ./ numRows;
             sizeY = obj.PrimaryApp.imHeight ./ numCols;

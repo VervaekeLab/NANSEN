@@ -114,6 +114,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         ColSpacing = 10;
         Margins = [160, 45, 15, 45] % Layout. Space for header/footer + sidepanels
 
+        Visible = 'on' % Standalone figure visibility: 'on' | 'off'
         IsModal logical = false;
         ReferencePosition = []; % If struct editor is opened as a dialog window from another app, open on correct screen
         
@@ -1447,9 +1448,27 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
                         for i = 1:numel(propertyFields)
                             currentField = propertyFields{i};
+                            if endsWith(currentField, "_")
+                                continue
+                            end
+
                             name = strcat(currentProperty, '.', currentField);
-                            val = eval(strcat('S', '.', name));
-                            obj.newInputField(contentPanel, y, name, val, config, tip)
+                            val = S.(currentProperty).(currentField);
+
+                            fieldConfig = config;
+                            fieldConfigInd = obj.hasConfigField(...
+                                currentField, propertyFields);
+                            if ~isempty(fieldConfigInd)
+                                fieldConfig = S.(currentProperty).(...
+                                    propertyFields{fieldConfigInd});
+                            end
+                            if ischar(fieldConfig) && ...
+                                    any(strcmp(fieldConfig, {'ignore', 'internal'}))
+                                continue
+                            end
+
+                            obj.newInputField(contentPanel, y, name, val, ...
+                                fieldConfig, tip)
                             y = y + obj.RowHeight + rowSpacing;
                         end
 
@@ -1982,7 +2001,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
         function stylePanelControls(obj, panelNum)
         %stylePanelControls Style controls for one settings panel.
-            if obj.isStandalone
+            if obj.isStandalone && obj.shouldShowFigure()
                 set(obj.Figure, 'Visible', 'on')
             end
             
@@ -2098,8 +2117,14 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 delete(obj.main.tmpPanel)
             end
             
-            obj.Figure.Visible = 'on';
+            if obj.shouldShowFigure()
+                obj.Figure.Visible = 'on';
+            end
             
+        end
+
+        function tf = shouldShowFigure(obj)
+            tf = strcmp(obj.Visible, 'on');
         end
         
         function scrollToTop(obj)

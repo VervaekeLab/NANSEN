@@ -1,4 +1,4 @@
-classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixin
+classdef RoiManager < imviewer.ImviewerPlugin & applify.mixin.UserSettings & roimanager.RoiGroupFileIoAppMixin
 %imviewer.plugin.RoiManager Open the roimanager tool as a plugin in imviewer
     
     % Todo:
@@ -131,6 +131,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
         function obj = RoiManager(varargin)
             
             obj@imviewer.ImviewerPlugin(varargin{:})
+            obj@applify.mixin.UserSettings()
 
 % %             [nvPairs, varargin] = utility.getnvpairs(varargin);
 % %
@@ -671,12 +672,14 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             
         end
         
-        function openManualRoiClassifier(obj)
+        function openRoiClassifier(obj)
             % todo....
-            hClassifier = imviewer.plugin.RoiClassifier(obj.ImviewerObj);
-            hClassifier.setFilePath(obj.roiFilePath);
+            hClassifier = obj.ImviewerObj.openPlugin('RoiClassifier');
+            if ~isempty(hClassifier) && isvalid(hClassifier)
+                hClassifier.setFilePath(obj.roiFilePath);
+            end
             
-        end % /function openManualRoiClassifier
+        end % /function openRoiClassifier
         
         function extractSignals(obj) % Todo: Use imageStackProcessors and external methods!
             
@@ -1231,8 +1234,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
             hAxes = obj.PrimaryApp.Axes;
             hMap = obj.roiDisplay;
             
-            isMatch = contains({hViewer.plugins.pluginName}, 'pointerManager');
-            obj.PointerManager = hViewer.plugins(isMatch).pluginHandle;
+            obj.PointerManager = hViewer.PointerManager;
             
             pointerNames = {'selectObject', 'polyDraw', 'circleSelect', 'autoDetect', 'freehandDraw'};
             
@@ -1496,10 +1498,6 @@ classdef RoiManager < imviewer.ImviewerPlugin & roimanager.RoiGroupFileIoAppMixi
         end
         
         S = getDefaultSettings()
-        
-        function icon = getPluginIcon()
-            
-        end
         
         function pathStr = getIconPath()
             % Get system dependent absolute path for icons.
