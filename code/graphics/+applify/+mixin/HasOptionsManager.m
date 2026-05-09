@@ -114,7 +114,7 @@ classdef HasOptionsManager < handle
         function optionsEditor = openOptionsEditor(obj, callback)
         %openOptionsEditor Open a ui dialog for editing method options.
             if nargin < 2
-                callback = [];
+                callback = @obj.onOptionsChanged;
             end
 
             titleStr = obj.getOptionsEditorTitle();
@@ -189,7 +189,7 @@ classdef HasOptionsManager < handle
             end
         end
 
-        function onOptionsChanged(obj) %#ok<MANU>
+        function onOptionsChanged(obj, varargin) %#ok<INUSD>
         %onOptionsChanged Called after options are changed via editOptions
         %   Subclasses may override to react to option changes immediately.
         end

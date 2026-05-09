@@ -37,7 +37,7 @@ classdef CaimanDeconvolution < applify.mixin.AppPlugin & applify.mixin.HasOption
         %   pairs, such as '-p' for partial construction.
 
             arguments
-                signalViewerHandle
+                signalViewerHandle applify.AppWithPlugin
             end
             arguments (Repeating)
                 varargin
@@ -85,7 +85,13 @@ classdef CaimanDeconvolution < applify.mixin.AppPlugin & applify.mixin.HasOption
 
     methods (Access = protected)
 
-        function onOptionsChanged(obj)
+        function onOptionsChanged(obj, name, value)
+            if nargin == 3
+                options = obj.Options;
+                options.(name) = value;
+                obj.Options = options;
+            end
+
             obj.RoiSignalArray.DeconvolutionOptions = obj.Options;
             
             obj.PrimaryApp.displayMessage('Updating Deconvolved Signal...')

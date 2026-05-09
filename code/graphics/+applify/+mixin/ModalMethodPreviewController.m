@@ -17,7 +17,6 @@ classdef (Abstract) ModalMethodPreviewController < applify.mixin.HasOptionsManag
 %     - onOptionsEditorClosed — clean up preview state when editor closes
 %
 %   Subclassing guidelines
-
 %   - This class is a behavioral mixin, not the primary plugin base class.
 %   - Concrete plugins should combine it with a single AppPlugin-derived
 %     superclass such as imviewer.ImviewerPlugin.

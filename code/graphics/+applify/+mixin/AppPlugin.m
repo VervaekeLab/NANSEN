@@ -36,8 +36,8 @@ classdef AppPlugin < matlab.mixin.Heterogeneous & uiw.mixin.AssignPVPairs
     end
 
     properties
-        PrimaryApp          % App which is primary "owner" of the plugin. Should be typed
-        MenuItem struct     % Struct for storing menu handles
+        PrimaryApp applify.AppWithPlugin    % App which is primary "owner" of the plugin.
+        MenuItem struct                     % Struct for storing menu handles
     end
 
     properties (Access = protected)
@@ -47,10 +47,6 @@ classdef AppPlugin < matlab.mixin.Heterogeneous & uiw.mixin.AssignPVPairs
     methods % Constructor
 
         function obj = AppPlugin(hApp, varargin)
-
-            if nargin > 2
-                obj.parseVarargin(varargin{1:end})
-            end
 
             if ~nargin || isempty(hApp); return; end
 
@@ -63,6 +59,10 @@ classdef AppPlugin < matlab.mixin.Heterogeneous & uiw.mixin.AssignPVPairs
                     'Plugin "%s" is already active. Returning existing instance.', obj.Name)
                 obj = hApp.getPluginHandle(obj.Name);
                 return
+            end
+
+            if ~isempty(varargin)
+                obj.parseVarargin(varargin{:})
             end
 
             obj.activatePlugin(hApp);
@@ -109,7 +109,8 @@ classdef AppPlugin < matlab.mixin.Heterogeneous & uiw.mixin.AssignPVPairs
             if isprop(obj.PrimaryApp, 'Figure')
                 obj.PrimaryApp.Figure.Name = obj.Name;
             else
-                warning('Could not set figure title')
+                warning('NANSEN:AppPlugin:setFigureTitle:TitleUpdateFailed', ...
+                    'Could not set figure title')
             end
         end
 

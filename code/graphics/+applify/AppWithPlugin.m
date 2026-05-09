@@ -80,7 +80,7 @@ classdef AppWithPlugin < uim.handle
                     wasCaptured = obj.Plugins(i).keyPressHandler([], evt);
                     if wasCaptured; return; end
                 catch ME
-                    warning( [ME.message, '\n'] )
+                    warning('NANSEN:AppWithPlugin:KeyPressEventFailed', '%s', ME.message)
                 end
             end
         end
@@ -99,7 +99,7 @@ classdef AppWithPlugin < uim.handle
                     wasCaptured = obj.Plugins(i).keyReleasedHandler([], evt);
                     if wasCaptured; return; end
                 catch ME
-                    warning( [ME.message, '\n'] )
+                    warning('NANSEN:AppWithPlugin:KeyReleaseEventFailed', '%s', ME.message)
                 end
             end
         end

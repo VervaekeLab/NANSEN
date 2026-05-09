@@ -30,7 +30,7 @@ classdef DffExplorer < applify.mixin.AppPlugin & applify.mixin.HasOptionsManager
         %   pairs, such as '-p' for partial construction.
 
             arguments
-                signalViewerHandle
+                signalViewerHandle applify.AppWithPlugin
             end
             arguments (Repeating)
                 varargin
@@ -74,7 +74,13 @@ classdef DffExplorer < applify.mixin.AppPlugin & applify.mixin.HasOptionsManager
 
     methods (Access = protected)
 
-        function onOptionsChanged(obj)
+        function onOptionsChanged(obj, name, value)
+            if nargin == 3
+                options = obj.Options;
+                options.(name) = value;
+                obj.Options = options;
+            end
+
             obj.RoiSignalArray.DffOptions = obj.Options;
             obj.RoiSignalArray.resetSignals('all', {'dff'})
         end

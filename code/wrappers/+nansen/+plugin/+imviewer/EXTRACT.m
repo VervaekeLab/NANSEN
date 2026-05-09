@@ -34,7 +34,7 @@ classdef EXTRACT < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewCon
         %   pairs, such as '-p' for partial construction.
 
             arguments
-                imviewerHandle = [] % Todo. Should be type validated
+                imviewerHandle applify.AppWithPlugin
             end
             arguments (Repeating)
                 varargin
