@@ -194,7 +194,9 @@ classdef MessageDisplay < handle
         end
 
         function tf = useModernDialog(obj, functionName)
-            tf = obj.hasDialogFunction(functionName) && obj.hasUiFigureParent();
+            tf = obj.hasDialogFunction(functionName) && ...
+                    obj.hasUiFigureParent() && ...
+                    obj.hasVisibleFigureParent();
         end
 
         function tf = hasDialogFunction(~, functionName)
@@ -203,8 +205,12 @@ classdef MessageDisplay < handle
 
         function tf = hasUiFigureParent(obj)
             hFigure = obj.getDialogParent();
-            tf = ~isempty(hFigure) && isvalid(hFigure) && ...
-                obj.isUiFigure(hFigure) && strcmp(hFigure.Visible, 'on');
+            tf = nansen.ui.utility.isWebBasedUIFigure(hFigure);
+        end
+
+        function tf = hasVisibleFigureParent(obj)
+            hFigure = obj.getDialogParent();
+            tf = strcmp(hFigure.Visible, 'on');
         end
 
         function hFigure = getDialogParent(obj)
@@ -224,23 +230,6 @@ classdef MessageDisplay < handle
 
             if isempty(hFigure) || ~isa(hFigure, 'matlab.ui.Figure')
                 hFigure = [];
-            end
-        end
-
-        function tf = isUiFigure(~, hFigure)
-            if verLessThan('matlab', '9.0')
-                tf = false;
-                return
-            end
-
-            try
-                if verLessThan('matlab', '9.5')
-                    tf = ~isempty(matlab.ui.internal.dialog.DialogHelper.getFigureID(hFigure));
-                else
-                    tf = matlab.ui.internal.isUIFigure(hFigure);
-                end
-            catch
-                tf = false;
             end
         end
 

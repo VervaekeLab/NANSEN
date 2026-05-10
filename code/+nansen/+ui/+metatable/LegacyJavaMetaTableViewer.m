@@ -388,7 +388,7 @@ classdef LegacyJavaMetaTableViewer < handle & uiw.mixin.AssignPVPairs
             obj.updateTableView(rowInd)
         end
 
-        function refreshTable(obj, newTable, flushTable)
+        function refreshTable(obj, newTable, flushTable, requestFocus)
         %refreshTable Method for refreshing the table
 
             % TODO: Make sure the selection is maintained.
@@ -405,6 +405,9 @@ classdef LegacyJavaMetaTableViewer < handle & uiw.mixin.AssignPVPairs
 
             if nargin < 3 || isempty(flushTable)
                 flushTable = requireReset;
+            end
+            if nargin < 4 || isempty(requestFocus)
+                requestFocus = true;
             end
 
             % Todo: Save selection
@@ -427,7 +430,7 @@ classdef LegacyJavaMetaTableViewer < handle & uiw.mixin.AssignPVPairs
             if ~isempty(obj.MetaTable)
                 obj.updateMetaTableVariableAttributes()
                 obj.updateColumnLayout()
-                obj.updateTableView()
+                obj.updateTableView([], requestFocus)
             else
                 obj.HTable.ColumnName = cell(1,0);
             end

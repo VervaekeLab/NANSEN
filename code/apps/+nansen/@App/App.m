@@ -117,6 +117,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         ApplicationState nansen.enum.ApplicationState = "Initializing";
         TableIsUpdating (1,1) logical = false
         QuitRequestInProgress (1,1) logical = false
+        RequestFocusOnNextMetaTableRefresh (1,1) logical = true
     end
 
     properties (Constant, Hidden = true) % move to appwindow superclass
@@ -2012,7 +2013,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 return
             end
 
-            app.onNewMetaTableSet()
+            app.onNewMetaTableSet(false)
             if ~isempty(app.StatusText)
                 app.StatusText.Status = sprintf( ...
                     'Status: Reloaded metadata table from disk: %s', ...
@@ -3126,13 +3127,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.updateSessionInfoDependentMenus()
         end
         
-        function refreshTable(app)
+        function refreshTable(app, requestFocus)
+            if nargin < 2 || isempty(requestFocus)
+                requestFocus = true;
+            end
             returnToIdle = app.setBusy('Updating table'); %#ok<NASGU>
             hDlg = app.MessageDisplay.wait('Please wait, updating table...', ...
                 'Title', 'Updating Table');
             resetView = false;
             app.UiMetaTableViewer.resetTable(resetView)
-            app.onNewMetaTableSet()
+            app.onNewMetaTableSet(requestFocus)
             if isvalid(hDlg); delete(hDlg); end
         end
 
@@ -3193,7 +3197,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.loadMetaTable(mtFilePath)
         end
 
-        function loadMetaTable(app, loadPath)
+        function loadMetaTable(app, loadPath, requestFocus)
+            if nargin < 3 || isempty(requestFocus)
+                requestFocus = true;
+            end
             
             if nargin < 2 || isempty(loadPath)
                 MTC = app.CurrentProject.MetaTableCatalog;
@@ -3271,7 +3278,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 metaTable = app.updateDataLocationFromModel(metaTable);
 
                 app.deleteMetaTableListeners()
+                previousRequestFocus = app.RequestFocusOnNextMetaTableRefresh;
+                app.RequestFocusOnNextMetaTableRefresh = requestFocus;
+                refreshFocusCleanup = onCleanup(...
+                    @() app.setRequestFocusOnNextMetaTableRefresh(previousRequestFocus));
                 app.MetaTable = metaTable;
+                delete(refreshFocusCleanup)
 
                 app.MetaTableIsModifiedListener = addlistener(app.MetaTable, 'IsModified', 'PostSet', ...
                     @app.onMetaTableModifiedChanged);
@@ -3337,13 +3349,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if ~nargout; clear wasSaved; end
         end
         
-        function reloadMetaTable(app)
+        function reloadMetaTable(app, requestFocus)
+            if nargin < 2 || isempty(requestFocus)
+                requestFocus = true;
+            end
             currentTablePath = app.MetaTable.filepath;
             if ~isempty(currentTablePath)
                 cache = nansen.metadata.MetaTableCache.instance();
                 cache.remove(currentTablePath)
             end
-            app.loadMetaTable(currentTablePath)
+            app.loadMetaTable(currentTablePath, requestFocus)
         end
 
         function discardMetaTableChanges(app, options)
@@ -3428,6 +3443,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     app.(listenerNames{i}) = event.listener.empty;
                 end
             end
+        end
+
+        function setRequestFocusOnNextMetaTableRefresh(app, requestFocus)
+            app.RequestFocusOnNextMetaTableRefresh = requestFocus;
         end
         
         function metatable = createMetaTable(app, ~, ~)
@@ -3549,15 +3568,18 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             tf = strcmpi(metaTable.getTableType(), selectedType);
         end
         
-        function onNewMetaTableSet(app)
+        function onNewMetaTableSet(app, requestFocus)
+            if nargin < 2 || isempty(requestFocus)
+                requestFocus = app.RequestFocusOnNextMetaTableRefresh;
+            end
             if isempty(app.UiMetaTableViewer);    return;    end
             refreshCleanup = app.UiMetaTableViewer.suspendRefresh();
             app.UiMetaTableViewer.refreshColumnModel(false)
             if ~strcmpi(app.UiMetaTableViewer.MetaTableType, app.MetaTable.getTableType())
                 % If table type is changed, use the flush option.
-                app.UiMetaTableViewer.refreshTable(app.MetaTable, true)
+                app.UiMetaTableViewer.refreshTable(app.MetaTable, true, requestFocus)
             else
-                app.UiMetaTableViewer.refreshTable(app.MetaTable)
+                app.UiMetaTableViewer.refreshTable(app.MetaTable, [], requestFocus)
             end
             delete(refreshCleanup)
             app.updateMetaTableViewerPosition()
@@ -3717,7 +3739,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % should preserving of selection be part of the refreshTable
             % method?
             selectedEntries = app.UiMetaTableViewer.getSelectedEntries();
-            app.refreshTable()
+            app.refreshTable(false)
             app.UiMetaTableViewer.setSelectedEntries(selectedEntries);
         end
         

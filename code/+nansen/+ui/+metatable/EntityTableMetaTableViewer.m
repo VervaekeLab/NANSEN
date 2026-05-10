@@ -283,7 +283,7 @@ classdef EntityTableMetaTableViewer < handle
             obj.notifyTableRowsUpdated()
         end
 
-        function refreshTable(obj, newTable, flushTable)
+        function refreshTable(obj, newTable, flushTable, requestFocus)
             requireReset = isempty(obj.MetaTable) || obj.RequireReset;
 
             if nargin >= 2 && ~(isnumeric(newTable) && isempty(newTable))
@@ -292,6 +292,9 @@ classdef EntityTableMetaTableViewer < handle
 
             if nargin < 3 || isempty(flushTable)
                 flushTable = requireReset;
+            end
+            if nargin < 4 || isempty(requestFocus)
+                requestFocus = true;
             end
 
             if flushTable
@@ -312,7 +315,7 @@ classdef EntityTableMetaTableViewer < handle
                 % EntityTable validates column specs against its current
                 % data, so table refreshes must update data and specs in
                 % the same operation.
-                obj.updateTableView()
+                obj.updateTableView([], requestFocus)
             else
                 obj.createEntityTable(table.empty, entitytable.ColumnSpec.empty(1, 0))
             end

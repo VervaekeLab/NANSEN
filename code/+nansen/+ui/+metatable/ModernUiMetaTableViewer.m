@@ -238,7 +238,7 @@ classdef ModernUiMetaTableViewer < handle
             obj.updateTableView(rowInd)
         end
 
-        function refreshTable(obj, newTable, flushTable)
+        function refreshTable(obj, newTable, flushTable, requestFocus)
             requireReset = isempty(obj.MetaTable) || obj.RequireReset;
 
             if nargin >= 2 && ~(isnumeric(newTable) && isempty(newTable))
@@ -247,6 +247,9 @@ classdef ModernUiMetaTableViewer < handle
 
             if nargin < 3 || isempty(flushTable)
                 flushTable = requireReset;
+            end
+            if nargin < 4 || isempty(requestFocus)
+                requestFocus = true;
             end
 
             if flushTable
@@ -264,7 +267,7 @@ classdef ModernUiMetaTableViewer < handle
             if ~isempty(obj.MetaTable)
                 obj.updateMetaTableVariableAttributes()
                 obj.updateColumnLayout()
-                obj.updateTableView()
+                obj.updateTableView([], requestFocus)
             else
                 obj.HTable.ColumnName = cell(1,0);
             end
