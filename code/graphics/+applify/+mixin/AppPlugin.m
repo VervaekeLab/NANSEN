@@ -48,7 +48,13 @@ classdef AppPlugin < matlab.mixin.Heterogeneous & uiw.mixin.AssignPVPairs
 
         function obj = AppPlugin(hApp, varargin)
 
-            if ~nargin || isempty(hApp); return; end
+            if ~nargin || isempty(hApp)
+                % Empty app plus other args should not be supported.
+                if ~isempty(varargin)
+                    obj.parseVarargin(varargin{:})
+                end
+                return
+            end
 
             obj.validateAppHandle(hApp)
 
@@ -68,7 +74,6 @@ classdef AppPlugin < matlab.mixin.Heterogeneous & uiw.mixin.AssignPVPairs
             obj.activatePlugin(hApp);
 
             if ~nargout; clear obj; end
-
         end
 
         function delete(obj)
