@@ -1803,10 +1803,21 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.saveMetatableColumnSettingsToProject()
 
             projectManager = nansen.ProjectManager;
+            targetProject = projectManager.getProjectObject(newProjectName);
+            projectWarningMessage = "";
+            if ~isempty(targetProject)
+                projectWarningMessage = targetProject.ModuleLoadWarningMessage;
+            end
+
             projectManager.changeProject(newProjectName)
 
             % Todo: Update session table!
             app.onProjectChanged()
+
+            if strlength(projectWarningMessage) > 0
+                app.MessageDisplay.warn(projectWarningMessage, ...
+                    'Title', 'Project Module Warning')
+            end
         end
         
         function onProjectChanged(app, varargin)

@@ -30,6 +30,10 @@ classdef Project < nansen.module.Module
     properties (SetAccess = private)
         FolderPath char             % Path to the project folder
     end
+
+    properties (SetAccess = private, Hidden)
+        ModuleLoadWarningMessage (1,1) string = ""
+    end
     
     properties (Dependent, SetAccess = private)
         Preferences                 % Preferences for the project
@@ -605,6 +609,8 @@ classdef Project < nansen.module.Module
             % Note: Base module (required module) should be added last in
             % the list.
 
+            obj.ModuleLoadWarningMessage = "";
+
             if isfield(obj.Preferences, 'DataModule')
                 
                 moduleNames = obj.Preferences.DataModule;
@@ -616,9 +622,27 @@ classdef Project < nansen.module.Module
                
                 moduleNames = unique(moduleNames, 'stable'); % Just in case...
                 
+                failedModuleNames = strings(1, 0);
+                failureMessages = strings(1, 0);
+
                 for i = 1:numel(moduleNames)
-                    module = nansen.module.Module.fromName(moduleNames{i});
-                    obj.IncludedModules(i) = module;
+                    try
+                        module = nansen.module.Module.fromName(moduleNames{i});
+                        obj.IncludedModules(end+1) = module;
+                    catch exception
+                        failedModuleNames(end+1) = string(moduleNames{i}); %#ok<AGROW>
+                        failureMessages(end+1) = string(exception.message); %#ok<AGROW>
+                    end
+                end
+
+                if ~isempty(failedModuleNames)
+                    warningMessage = sprintf([ ...
+                        'The project "%s" references modules that could not be loaded:\n\n%s\n\n', ...
+                        'The project will open, but functionality from these modules will be unavailable.'], ...
+                        obj.Name, strjoin(compose('  %s: %s', failedModuleNames', failureMessages'), newline));
+
+                    obj.ModuleLoadWarningMessage = string(warningMessage);
+                    warning('NANSEN:Project:ModuleLoadFailed', '%s', warningMessage)
                 end
             end
         end
