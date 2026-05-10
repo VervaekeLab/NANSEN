@@ -60,7 +60,7 @@ function loadProject(tutorial)
             repositoryUrl, "InstallationLocation", installationLocation, "Update", true);
         
         L = dir(fullfile(repoTargetFolder, '*', 'project.nansen.json'));
-        fprintf("Adding project ""%s"" to NANSEN...\n", S(selection))
+        fprintf("Adding project ""%s"" to NANSEN...\n", tutorial.Title)
         projectManager.importProject(L.folder);
         projectManager.changeProject(tutorial.ProjectName);
     
