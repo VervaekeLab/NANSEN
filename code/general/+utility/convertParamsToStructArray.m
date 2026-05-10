@@ -41,25 +41,30 @@ function [S, D] = convertParamsToStructArray(filepath)
         subStringB = strsplit(thisLine, '%'); % Split out comment first
         subStringA = strsplit(subStringB{1}, '='); % Split first part @ =
         
+        if isscalar(subStringB)
+            subStringB{2} = 'No description';
+        end
+
         thisLineDivided = [subStringA, subStringB{2}];
         thisLineDivided = strtrim(thisLineDivided);
         
         % Make sure that this line was divided in three parts.
         msg = 'Parameter definition function does not adhere to required format';
         assert(numel(thisLineDivided)==3, msg)
-        
         % Isolate relevant parts of substrings and add as attribtutes. This
         % might need more work, to take care of unwanted character symbols
         S(i).Name = strrep(thisLineDivided{1}, 'P.', '');
         S(i).DefaultValue = eval( strrep(thisLineDivided{2}, ';', ''));
         S(i).Description = thisLineDivided{3};
-                
+
+        if strcmp(S(i).Description, 'No description')
+            warning('Description missing for parameter %s',  S(i).Name)
+        end                
     end
     
     % % Get validation function and message
     fSub = getFileSectionStr(f, 2); % Get second subsection (local function)
     varBeginInd = strfind(fSub, 'V.'); % All parameter names should be succeeded by this expression    
-    
     
     for i = 1:numel(varBeginInd)
         
@@ -85,7 +90,6 @@ function [S, D] = convertParamsToStructArray(filepath)
         thisLineDivided = strtrim(thisLineDivided);
         
         validMsgStr = cleanValidationMessageStr( thisLineDivided{2} );
-        
         S(isMatch).ValidationMsg = eval(validMsgStr);
         S(isMatch).ValidationFcn = eval(thisLineRemaining);
 
