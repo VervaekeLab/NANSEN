@@ -37,6 +37,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
     
     properties (Access = private)
         WindowMousePressListener
+        SelectionChangedListener
         TableUpdatedListener
     end
     
@@ -58,25 +59,24 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             
             if strcmp(obj.mode, 'standalone')
                 obj.Figure.Position = obj.initializeFigurePosition();
+                if nansen.util.useModernUiTable()
+                    obj.configureModernFigure()
+                end
             end
             
             roiTable = obj.rois2table(cat(1, roiGroup.roiArray));
             obj.roiTable = roiTable;
             
-            nansen.assert('WidgetsToolboxInstalled')
-            obj.UITable = nansen.MetaTableViewer(obj.Panel, roiTable, 'MetaTableType', 'roi');
-            
-            % Set table properties
-            if ismac
-                obj.UITable.HTable.hideHorizontalScroller()
+            if ~nansen.util.useModernUiTable()
+                nansen.assert('WidgetsToolboxInstalled')
             end
-            %obj.UITable.HTable.hideVerticalScroller()
-            obj.UITable.HTable.RowHeight = 18;
-            obj.UITable.HTable.CellSelectionCallback = @obj.onTableSelectionChanged;
-            obj.UITable.HTable.CellEditCallback = @obj.onTableCellEdited;
-            obj.UITable.HTable.KeyPressFcn = @obj.onKeyPressedInTable;
-            obj.UITable.HTable.KeyReleaseFcn = @obj.onKeyReleasedInTable;
-            obj.UITable.HTable.ColumnResizePolicy = 'off';
+            metaTableViewerArgs = {obj.Panel, roiTable, 'MetaTableType', 'roi'};
+            if nansen.util.useModernUiTable()
+                metaTableViewerArgs = [metaTableViewerArgs, {'Theme', 'dark'}];
+            end
+            obj.UITable = nansen.MetaTableViewer(metaTableViewerArgs{:});
+            obj.configureTableBackend()
+            obj.applyTableTheme()
 
             % Load and set column model settings from preferences.
             tableColumnSettings = obj.getPreference('TableColumnSettings', []);
@@ -94,6 +94,8 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             
             obj.WindowMousePressListener = listener(obj.Figure, ...
                 'WindowMousePress', @obj.onMousePressedInFigure);
+            obj.SelectionChangedListener = listener(obj.UITable, ...
+                'SelectionChanged', @obj.onTableSelectionChanged);
             obj.TableUpdatedListener = listener(obj.UITable, ...
                 'TableUpdated', @obj.onTableUpdated);
             
@@ -116,6 +118,9 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             
             if ~isempty(obj.WindowMousePressListener)
                 delete(obj.WindowMousePressListener)
+            end
+            if ~isempty(obj.SelectionChangedListener)
+                delete(obj.SelectionChangedListener)
             end
             if ~isempty(obj.TableUpdatedListener)
                 delete(obj.TableUpdatedListener)
@@ -143,7 +148,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
 
             roiIdxToRemove = obj.SelectedRois;
             
-            obj.UITable.HTable.Enable = 'off';
+            obj.setTableComponentProperty('Enable', 'off')
             C = onCleanup(@obj.enableTable);
             
             % Important:  Change roi selection to first element in list
@@ -154,11 +159,11 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             obj.RoiGroup.removeRois(roiIdxToRemove);
             newSelection = obj.UITable.getSelectedEntries();
             obj.RoiGroup.changeRoiSelection([], newSelection)
-            obj.UITable.HTable.JTable.requestFocus()
+            obj.UITable.focusTable()
         end
 
         function enableTable(obj)
-            obj.UITable.HTable.Enable = 'on';
+            obj.setTableComponentProperty('Enable', 'on')
         end
         
         function classifyRois(obj, classificationIdx, currentRoiInd)
@@ -201,13 +206,26 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
     methods % Set/get
         
         function set.SelectionMode(obj, newMode)
-            if ~isempty(obj.UITable.HTable)
-                obj.UITable.HTable.SelectionMode = newMode;
+            if isempty(obj.UITable)
+                return
             end
+            if obj.UITable.usesModernBackend()
+                return
+            end
+            obj.setTableComponentProperty('SelectionMode', newMode)
         end
         
         function mode = get.SelectionMode(obj)
-            if ~isempty(obj.UITable.HTable)
+            if isempty(obj.UITable)
+                mode = '';
+                return
+            end
+            if obj.UITable.usesModernBackend()
+                mode = 'multiple';
+                return
+            end
+            if ~isempty(obj.UITable.HTable) && ...
+                    isprop(obj.UITable.HTable, 'SelectionMode')
                 mode = obj.UITable.HTable.SelectionMode;
             else
                 mode = '';
@@ -222,6 +240,66 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
     end
     
     methods (Access = private)
+
+        function configureTableBackend(obj)
+            if ismac
+                obj.callTableComponentMethod('hideHorizontalScroller')
+            end
+            obj.setTableComponentProperty('RowHeight', 18)
+            obj.setTableComponentProperty('KeyReleaseFcn', @obj.onKeyReleasedInTable)
+            obj.setTableComponentProperty('ColumnResizePolicy', 'off')
+
+            obj.UITable.CellEditCallback = @obj.onTableCellEdited;
+            obj.UITable.KeyPressCallback = @obj.onKeyPressedInTable;
+            obj.UITable.setKeyPressFcn(@obj.onKeyPressedInTable)
+        end
+
+        function applyTableTheme(obj)
+            if isempty(obj.UITable)
+                return
+            end
+
+            if obj.UITable.usesModernBackend()
+                if strcmp(obj.mode, 'standalone')
+                    obj.configureModernFigure()
+                end
+            else
+                S = obj.Theme;
+                obj.setTableComponentProperty('BackgroundColor', S.HeaderBgColor)
+                obj.setTableComponentProperty('Theme', S.TableTheme)
+            end
+        end
+
+        function setTableComponentProperty(obj, propertyName, propertyValue)
+            if isempty(obj.UITable) || isempty(obj.UITable.HTable) || ...
+                    ~isvalid(obj.UITable.HTable) || ...
+                    ~isprop(obj.UITable.HTable, propertyName)
+                return
+            end
+            obj.UITable.HTable.(propertyName) = propertyValue;
+        end
+
+        function callTableComponentMethod(obj, methodName)
+            if isempty(obj.UITable) || isempty(obj.UITable.HTable) || ...
+                    ~isvalid(obj.UITable.HTable) || ...
+                    ~ismethod(obj.UITable.HTable, methodName)
+                return
+            end
+            feval(methodName, obj.UITable.HTable)
+        end
+
+        function configureModernFigure(obj)
+            if isempty(obj.Figure) || ~isvalid(obj.Figure)
+                return
+            end
+
+            if isprop(obj.Figure, 'Theme')
+                obj.Figure.Theme = 'dark';
+            end
+            if isprop(obj.Figure, 'ToolBar')
+                obj.Figure.ToolBar = 'none';
+            end
+        end
         
         function onMousePressedInFigure(obj, src, evt)
             % Hide filter if mouse is pressed anywhere in figure.
@@ -405,14 +483,21 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
         function resizePanel(obj, src, evt)
             
             parentPosition = getpixelposition(obj.Panel);
-            obj.UITable.HTable.Units = 'pixel';
-            obj.UITable.HTable.Position(1:2) = [5,5];
-            obj.UITable.HTable.Position(3) = parentPosition(3)-10;
-            if strcmp(obj.mode, 'standalone')
-                obj.UITable.HTable.Position(4) = parentPosition(4)-10;
-            else
-                obj.UITable.HTable.Position(4) = parentPosition(4)-20;
+            if isempty(obj.UITable) || isempty(obj.UITable.HTable) || ...
+                    ~isvalid(obj.UITable.HTable) || ...
+                    ~isprop(obj.UITable.HTable, 'Position')
+                return
             end
+            obj.setTableComponentProperty('Units', 'pixel')
+            tablePosition = obj.UITable.HTable.Position;
+            tablePosition(1:2) = [5,5];
+            tablePosition(3) = parentPosition(3)-10;
+            if strcmp(obj.mode, 'standalone')
+                tablePosition(4) = parentPosition(4)-10;
+            else
+                tablePosition(4) = parentPosition(4)-20;
+            end
+            obj.UITable.HTable.Position = tablePosition;
         end
     end
     
@@ -600,10 +685,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
         function onThemeChanged(obj) % Override superclass implementation
             
             onThemeChanged@applify.ModularApp(obj)
-            S = obj.Theme;
-            
-            obj.UITable.HTable.BackgroundColor = S.HeaderBgColor;
-            obj.UITable.HTable.Theme = S.TableTheme;
+            obj.applyTableTheme()
         end
     end
 end

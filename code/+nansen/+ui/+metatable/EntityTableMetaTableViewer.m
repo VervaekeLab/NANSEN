@@ -15,6 +15,7 @@ classdef EntityTableMetaTableViewer < handle
         CellEditCallback
         KeyPressCallback
         MouseDoubleClickedFcn = []
+        Theme (1,1) string = "light"
 
         DeleteColumnFcn = []
         UpdateColumnFcn = []
@@ -588,7 +589,24 @@ classdef EntityTableMetaTableViewer < handle
                 RowKey=options.RowKey, ...
                 ColumnSpecs=options.ColumnSpecs, ...
                 SelectionMode=options.SelectionMode, ...
-                Backend=backend);
+                Backend=backend, ...
+                Theme=obj.Theme);
+        end
+
+        function applyFigureTheme(obj, parent)
+            if isempty(parent) || strlength(obj.Theme) == 0
+                return
+            end
+
+            hFigure = ancestor(parent, 'figure');
+            if isempty(hFigure) || ~isvalid(hFigure) || ~isprop(hFigure, 'Theme')
+                return
+            end
+
+            hFigure.Theme = obj.Theme;
+            if isprop(hFigure, 'ToolBar')
+                hFigure.ToolBar = 'none';
+            end
         end
 
         function cleanup = suspendEntityTableRefresh(obj)
@@ -634,6 +652,7 @@ classdef EntityTableMetaTableViewer < handle
                 obj.Parent = uifigure(...
                     'Name', 'NANSEN Metadata Table', ...
                     'Visible', 'on');
+                obj.applyFigureTheme(obj.Parent)
             end
 
             tableLayout = obj.captureTableLayout();

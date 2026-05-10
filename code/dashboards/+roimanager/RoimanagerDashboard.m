@@ -71,6 +71,8 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             obj@applify.DashBoard()
             obj@imviewer.plugin.RoiManager('CreateContextMenu', false)
            
+            obj.configureModernFigure()
+
             % Todo: Get figure position from properties.
             obj.hFigure.Position = [100, 50, obj.FigureSize];
             obj.keepFigureOnScreen()
@@ -89,7 +91,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             % Todo: This dashboard should implement roimanager as a
             % property, not a superclass...
 
-            % Todo: Why do I need this. Should not roimanager take care of
+            % Todo: Why is this needed? Should not roimanager take care of
             % this?
             if numel(obj.RoiGroup) > 1
                 roiGroup = roimanager.CompositeRoiGroup(obj.RoiGroup);
@@ -192,9 +194,17 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             
             panelParameters = {'Parent', obj.hMainPanel, ...
                 'BorderType', 'line', 'BorderWidth', 1, ...
-                'Background', bgColor2, 'ShadowColor', shColor, ...
-                'Foreground', fgColor, 'HighlightColor', hlColor };
-            
+                'Background', bgColor2, 'Foreground', fgColor};
+
+            if nansen.util.useModernUiComponents()
+                panelParameters = [panelParameters, {'BorderColor', shColor}];
+            else
+                warningCleanup = nansen.common.suppressWarning(...
+                    'MATLAB:Uipanel:UnsupportedProperty'); %#ok<NASGU>
+                panelParameters = [panelParameters, {'ShadowColor', shColor}];
+                panelParameters = [panelParameters, {'HighlightColor', hlColor}];
+            end
+
             % Create each of the panels:
             for i = 1:numel(obj.PanelTitles)
                 iTitle = obj.PanelTitles{i};
@@ -262,6 +272,17 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             
             newPos = cell(numPanelsA, 1);
             
+            if nansen.util.useModernUiComponents()
+                % Modern panels should be placed at (0,0), not (1,1)
+                originOffset = -1;
+            else
+                originOffset = 0;
+            end
+            xPosA = xPosA + originOffset;
+            xPosB = xPosB + originOffset;
+            xPosC = xPosC + originOffset;
+            yPos = yPos + originOffset;
+
             for i = [1,3,2] % Resize imviewer latest...
                 newPos{i} = [xPosA(i), yPos(iA), Wa(i), H(iA)];
                 setpixelposition(obj.hPanels(panelNumsA(i)), newPos{i})
@@ -284,11 +305,10 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             set(obj.hPanels(3), 'Visible', 'on');
             
             obj.hMainPanel.Visible = mainPanelVisibility;
+            obj.applyModernDockedAppInsets()
             
             %obj.hFigure.Visible = 'on';
-            
             %drawnow
-
         end
     end
     
@@ -298,6 +318,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
         %initializeImviewer Initialize the imviewer module
 
             h = imviewer(obj.hPanels(2), varargin{:});
+            obj.applyModernDockedAppInsets()
             h.resizePanelContents()
             obj.AppModules = h;
             obj.configurePanelResizeButton(obj.hPanels(2).Children(1), h)
@@ -309,6 +330,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
         %initializeSignalViewer Initialize the signalviewer module
             if ~obj.Imviewer.ImageStack.isDummyStack()
                 obj.openSignalViewer(obj.hPanels(4), roiGroup)
+                obj.applyModernDockedAppInsets()
                 obj.addPanelResizeButton(obj.hPanels(4).Children(1))
                 obj.AppModules(end+1) = obj.SignalViewer;
             end
@@ -317,6 +339,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
         function initializeRoiTable(obj, roiGroup)
         %initializeRoiTable Initialize the roi table module
             h = roimanager.RoiTable(obj.hPanels(3), roiGroup);
+            obj.applyModernDockedAppInsets()
             % Note: table catches all key events by default. Setting the
             % following callbacks will pass uncaught key events to the
             % roimanager/imviewer.
@@ -329,11 +352,77 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
 
         function initializeRoiThumbnailDisplay(obj, roiGroup)
             obj.RoiThumbnailViewer = roimanager.RoiThumbnailDisplay(obj.hPanels(6), roiGroup);
+            obj.applyModernDockedAppInsets()
             obj.RoiThumbnailViewer.ImageStack = obj.ImviewerObj.ImageStack;
             obj.RoiThumbnailViewer.Dashboard = obj;
             obj.RoiThumbnailViewer.ThumbnailSize = obj.settings.RoiDisplayPreferences.roiThumbnailSize;
             obj.RoiThumbnailViewer.ActiveChannel = obj.ActiveChannel;
             %obj.AppModules(end+1) = obj.RoiThumbnailViewer;
+        end
+
+        function configureModernFigure(obj)
+            if ~nansen.util.useModernUiComponents()
+                return
+            end
+
+            if isprop(obj.hFigure, 'Theme')
+                obj.hFigure.Theme = 'dark';
+            end
+            if isprop(obj.hFigure, 'ToolBar')
+                obj.hFigure.ToolBar = 'none';
+            end
+            drawnow limitrate
+        end
+
+        function applyModernDockedAppInsets(obj)
+            if ~nansen.util.useModernUiComponents()
+                return
+            end
+
+            % Todo: Can this be simplified?
+
+            % For modern panels, content should be placed at (0,0).
+            % The Innerposition is measured starting at (1,1), so we add an
+            % originOffset.
+            originOffset = -1;
+
+            % For modern panels, we need to subtract 4 pixels (ad-hoc) to
+            % avoid top-clipping of panel content.
+            topInset = 4;
+
+            for i = 1:numel(obj.hPanels)
+                hPanel = obj.hPanels(i);
+                hAppPanels = obj.findDockedAppPanels(hPanel);
+                if isempty(hAppPanels)
+                    continue
+                end
+
+                previousUnits = hPanel.Units;
+                hPanel.Units = 'pixels';
+                panelPosition = hPanel.Position;
+                innerPosition = hPanel.InnerPosition;
+                contentPosition = [innerPosition(1:2) - panelPosition(1:2) + originOffset, ...
+                    innerPosition(3:4)];
+                contentPosition(4) = max(1, contentPosition(4) - topInset);
+
+                for j = 1:numel(hAppPanels)
+                    hAppPanels(j).Units = 'pixels';
+                    setpixelposition(hAppPanels(j), round(contentPosition), false)
+                end
+                hPanel.Units = previousUnits;
+            end
+        end
+
+        function hAppPanels = findDockedAppPanels(~, hPanel)
+            hChildren = hPanel.Children;
+            isAppPanel = false(size(hChildren));
+
+            for i = 1:numel(hChildren)
+                isAppPanel(i) = isprop(hChildren(i), 'Tag') && ...
+                    strcmp(hChildren(i).Tag, 'App Content Panel');
+            end
+
+            hAppPanels = hChildren(isAppPanel);
         end
     end
 
