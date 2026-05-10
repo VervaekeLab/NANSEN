@@ -1,8 +1,21 @@
 function varargout = twoPhotonRawImages(sessionObj, varargin)
-%TWOPHOTONRAWIMAGES Open 2-photon raw recording in imviewer
+%View the original two-photon recording in imviewer.
 %
-%   Opens the original (raw) two-photon recording for the given session 
-%   in imviewer using default options.
+%Use this when:
+%- You want to inspect the raw recording before motion correction.
+%- You need to check imaging quality, drift, motion, flyback lines, or
+%  acquisition artifacts in the source data.
+%
+%What happens:
+%- NANSEN opens `TwoPhotonSeries_Original` for the selected session.
+%- With `UseVirtualStack` enabled, imviewer reads frames lazily from disk.
+%- With `UseVirtualStack` disabled, only `FirstImage` through `LastImage`
+%  are loaded into memory before opening imviewer.
+%- If a recording contains multiple FOV stacks, you are prompted to choose
+%  which FOVs to open.
+%
+%Outputs:
+%- No data are written; this method only opens an interactive viewer.
 
 %   Todo: Implement dynamic retrieval of parameters based on file adapter
 %   for opening files.
@@ -66,7 +79,7 @@ end
 
 function params = getDefaultParameters()
     params = struct();
-    params.UseVirtualStack = true; % Whether to open the stack without loading data into memory (virtual stack).
-    params.FirstImage = uint64(1); % Index of first frame to load if UseVirtualStack is false
-    params.LastImage = inf;        % Index of last frame to load if UseVirtualStack is false
+    params.UseVirtualStack = true; % Open the stack lazily from disk when possible.
+    params.FirstImage = uint64(1); % First frame to load when UseVirtualStack is false.
+    params.LastImage = inf;        % Last frame to load when UseVirtualStack is false.
 end

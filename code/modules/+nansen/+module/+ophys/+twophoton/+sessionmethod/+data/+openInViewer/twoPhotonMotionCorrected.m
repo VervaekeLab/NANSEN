@@ -1,8 +1,19 @@
 function varargout = twoPhotonMotionCorrected(sessionObj, varargin)
-%TWOPHOTONMOTIONCORRECTED Open 2-photon corrected recording in imviewer
+%View the motion-corrected two-photon recording in imviewer.
 %
-%   Opens the motion-corrected two-photon recording for the given session 
-%   using default options.
+%Use this when:
+%- You want to inspect the registered recording after motion correction.
+%- You need a quick quality-control pass before ROI detection or signal
+%  extraction.
+%
+%What happens:
+%- NANSEN opens `TwoPhotonSeries_Corrected` for the selected session.
+%- With `UseVirtualStack` enabled, imviewer reads frames lazily from disk.
+%- With `UseVirtualStack` disabled, only `FirstImage` through `LastImage`
+%  are loaded into memory before opening imviewer.
+%
+%Outputs:
+%- No data are written; this method only opens an interactive viewer.
 
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
 % Please create a struct of default parameters (if applicable) and specify

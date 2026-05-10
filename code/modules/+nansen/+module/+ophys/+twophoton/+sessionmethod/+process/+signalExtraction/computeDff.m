@@ -1,6 +1,21 @@
 classdef computeDff < nansen.session.SessionMethod
-%COMPUTEDFF Summary of this function goes here
-%   Detailed explanation goes here
+%Compute delta-F-over-F traces from extracted ROI signals.
+%
+%Use this when:
+%- You have already run signal extraction for the session.
+%- You want normalized ROI activity traces for visualization, deconvolution,
+%  or downstream analysis.
+%
+%What happens:
+%- NANSEN loads `RoiSignals_MeanF`.
+%- If the selected dF/F method requires neuropil data, NANSEN also loads
+%  `RoiSignals_NeuropilF`.
+%- The selected dF/F algorithm is applied to each ROI trace.
+%- Preview mode opens the dF/F explorer so parameters can be tuned before
+%  committing the run.
+%
+%Outputs:
+%- `RoiSignals_Dff`: delta-F-over-F ROI signals.
     
     properties (Constant) % SessionMethod attributes
         MethodName = 'Compute Delta F over F'
@@ -30,7 +45,7 @@ classdef computeDff < nansen.session.SessionMethod
     
     methods (Static)
         function options = getDefaultOptions()
-        %GETDEFAULTOPTIONS Summary of this function goes here
+        %GETDEFAULTOPTIONS Return default delta-F-over-F options.
             options = nansen.twophoton.roisignals.getDffParameters();
         end
     end

@@ -1,25 +1,30 @@
 function varargout = migrateRoisToFovs(sessionObject, varargin)
-%migrateRoisToFovs Summary of this function goes here
+%Migrate ROIs from one reference FOV to matching FOVs in other sessions.
 %
-%   This is a multisession method to use for migrating a roi array from one
-%   FoV to other matching FOVs.
+%Use this when:
+%- You have repeated imaging sessions from matching fields of view.
+%- You want to start longitudinal ROI curation from one reference ROI set
+%  instead of drawing ROIs independently in every session.
 %
-%   Requirements:
-%   - - - - - - -
-%   The method requires a FOV image ("FovAverageProjection") to be present
-%   for all sessions and a roi array to be present for the reference session.
+%Requirements:
+%- Every selected session must have `FovAverageProjection` or
+%  `FovAverageProjectionCorr`.
+%- The reference session must contain the ROI array you want to migrate.
+%- Multi-plane recordings are not supported by this method yet.
 %
-%   What will happen?
-%   - - - - - - - - -
-%   1) An average FOV image is loaded for each session and aligned
-%      using an image registration method (flowreg or normcorre).
-%   2) The roi array from the reference session will be copied to all other
-%      sessions and the roi positions will be adjusted based on the pixel
-%      shifts from the image registration step.
-%   3) Rois are added and saved to a MultiSessionRoiCollection. This can
-%      later be used to manually edit rois for individual sessions and
-%      synchronize those changes across all sessions. See
-%      Roi Registration -> Edit Rois
+%What happens:
+%- You choose the reference session.
+%- FOV projections are loaded, aligned, and used to estimate pixel shifts
+%  from the reference FOV to each target FOV.
+%- The reference ROI array is copied to each target session and shifted into
+%  the aligned FOV coordinate frame.
+%- QC images are generated and opened so the migration can be inspected.
+%
+%Outputs:
+%- `RoiArrayLongitudinal`: migrated ROI arrays saved for each selected
+%  session.
+%- `MultisessionRoiCrossReference`: path to the shared multi-session ROI
+%  collection saved for each selected session.
 
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
 % Create a struct of default parameters (if applicable) and specify one or
@@ -47,7 +52,7 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
     params = utility.parsenvpairs(params, [], varargin);
     
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
-% Implementation of the method : Add your code here:
+% Implementation of the session method.
     
     % Count number of sessions
     numSessions = numel(sessionObject);
@@ -251,12 +256,11 @@ end
 function S = getDefaultParameters()
     
     S = struct();
-    S.WorkingChannel = 2;
+    S.WorkingChannel = 2; % Imaging channel used for aligning FOVs and migrating ROIs.
     S.WorkingChannel_ = {1,2};
 
     %  S.MultisessionRoiSynchMode ?
     % 'LoadFromMaster', struct('Alternatives', {{'Use Master', 'Use Single', 'Merge'}}, 'Selection', {'Merge'}), ...
     % 'SaveToMaster', struct('Alternatives', {{'Only Add', 'Mirror'}}, 'Selection', {'Mirror'}), ...
 
-    % Add more fields:
 end

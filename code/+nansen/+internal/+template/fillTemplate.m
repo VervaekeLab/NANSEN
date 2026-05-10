@@ -91,9 +91,14 @@ function template = processForLoop(template, sectionName, loopParams)
     end
 
     if isempty(loopParams)
-        loopContentFinal = '<div class="helptext">No alternatives available</div>';
         if strcmp(sectionName, 'parameters')
-            startIdx = startIdx - 5;
+            loopContentFinal = ['<tr class="summary-item empty-row">', ...
+                '<td class="m-help" colspan="3">No parameters are exposed for this method.</td>', ...
+                '</tr>'];
+        else
+            loopContentFinal = ['<tr class="summary-item empty-row">', ...
+                '<td class="m-help" colspan="2">No option presets are available for this method.</td>', ...
+                '</tr>'];
         end
     else
         % Extract everything between the loop directives
@@ -139,7 +144,7 @@ function result = replaceUrlsWithHyperlinks(inputText)
     %    result - The input text with URLs replaced by HTML hyperlinks
 
     % Regular expression to detect URLs
-    urlPattern = '(https?://[^\s]+)';
+    urlPattern = '(https?://[^\s<]+)';
     
     % Replacement pattern to create hyperlinks
     replacementPattern = '<a href="$1">$1</a>';

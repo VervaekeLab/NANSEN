@@ -1,9 +1,26 @@
 classdef Quicky < nansen.session.SessionMethod & nansen.wrapper.quicky.Processor
-%QUICKY Runs autosegmentation using QUICKY on TwoPhoton_MotionCorrected
+%Detect ROIs automatically with Quicky.
 %
-% QUICKY is an auto segmentation algorithm developed for thy-1 GCaMP6s data
-% in the VervaekeLab. It is quick, and should produce few false positives,
-% but might not generalize well to data from other labs or setups.
+%Use this when:
+%- You want a fast automated segmentation pass on `TwoPhotonSeries_Corrected`.
+%- Your data are similar to the Thy1-GCaMP6s recordings this method was
+%  developed around in the Vervaeke Lab.
+%
+%What happens:
+%- NANSEN loads the motion-corrected stack and opens it as the source stack
+%  for the Quicky wrapper.
+%- Quicky is run through the NANSEN ROI segmentation pipeline, including
+%  chunking, result merging, ROI-image computation, and ROI-statistics
+%  computation.
+%
+%Outputs:
+%- `roiArrayQuickyAuto`: automatically detected ROIs.
+%- `QuickyOptions` and intermediate Quicky result files are saved for
+%  provenance and restart support.
+%
+%Limitations:
+%- Quicky is tuned for a specific data style and may not generalize as well
+%  to other preparations, indicators, or imaging systems.
     
     properties (Constant) % SessionMethod attributes
         BatchMode = 'serial' % Move to data method?

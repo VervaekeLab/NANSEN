@@ -1,6 +1,22 @@
 classdef Caiman < nansen.session.SessionMethod
-%DeconvolutionCaImAn Summary of this function goes here
-%   Detailed explanation goes here
+%Deconvolve delta-F-over-F traces with the CaImAn signal model.
+%
+%Use this when:
+%- You have already computed `RoiSignals_Dff`.
+%- You want denoised and event-like deconvolved traces for downstream
+%  analysis or inspection.
+%
+%What happens:
+%- NANSEN loads `RoiSignals_Dff`.
+%- The selected CaImAn deconvolution parameters are applied to each ROI
+%  trace.
+%- Preview mode opens the deconvolution explorer so parameters can be tuned
+%  before committing the run.
+%
+%Outputs:
+%- `RoiSignals_Deconvolved`: deconvolved ROI activity estimates.
+%- `RoiSignals_Denoised`: denoised delta-F-over-F traces.
+%- `OptionsDeconvolution`: the options used for this run.
     
     properties (Constant) % SessionMethod attributes
         MethodName = 'Deconvolution CaImAn'
@@ -17,7 +33,7 @@ classdef Caiman < nansen.session.SessionMethod
 
     methods (Static)
         function options = getDefaultOptions()
-        %GETDEFAULTOPTIONS Summary of this function goes here
+        %GETDEFAULTOPTIONS Return default CaImAn deconvolution options.
             options = nansen.twophoton.roisignals.getDeconvolutionParameters();
         end
     end

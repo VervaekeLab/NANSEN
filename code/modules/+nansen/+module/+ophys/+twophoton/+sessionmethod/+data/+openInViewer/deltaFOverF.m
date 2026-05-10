@@ -1,7 +1,16 @@
 function varargout = deltaFOverF(sessionObject, varargin)
-%deltaFOverF Open dff (delta f over f) roi signals in SignalViewer app. 
+%View delta-F-over-F ROI signals for this session.
 %
-%   deltaFOverF opens the delta F over F in an interactive viewer.
+%Use this when:
+%- You have already run signal extraction and delta-F-over-F computation.
+%- You want to inspect normalized ROI activity traces in SignalViewer.
+%
+%What happens:
+%- NANSEN checks that `RoiSignals_Dff` exists for the selected session.
+%- The `RoiSignals_Dff` column is opened in the interactive SignalViewer app.
+%
+%Outputs:
+%- No data are written; this method only opens an interactive viewer.
 
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
 % Create a struct of default parameters (if applicable) and specify one or
@@ -29,7 +38,7 @@ function varargout = deltaFOverF(sessionObject, varargin)
     params = utility.parsenvpairs(params, [], varargin);
     
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
-% Implementation of the method : Add your code here:
+% Implementation of the session method.
     
     sessionObject.validateVariable('RoiSignals_Dff')
     roiSignalArray = sessionObject.loadData('RoiSignals_Dff');
@@ -42,6 +51,5 @@ end
 function S = getDefaultParameters()
     
     S = struct();
-    % Add more fields:
 
 end

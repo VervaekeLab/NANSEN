@@ -7,20 +7,17 @@
    </head>
    <body>
       <!--Single-page help-->
-      <table border="0" cellspacing="0" width="100%">
-         <tr class="subheader">
-            <td class="headertitle">{{ title }} - Nansen Method Help</td>
-         </tr>
-      </table>
+      <div class="method-page">
+      <div class="subheader">
+         <div class="headertitle">NANSEN Session Method</div>
+      </div>
       <div class="title">{{ main_title }}</div>
-      <div class="helptext">
-         <!--helptext -->
+      <div class="lead">
          {{ helptext }}
       </div>
       <!--Description-->
-      <div class="sectiontitle">Description</div>
-      <div class="helptext">
-         <!--helptext -->
+      <div class="sectiontitle">Guide</div>
+      <div class="guide-text">
          {{ description }}
       </div>
       <!--Option Presets-->
@@ -49,5 +46,6 @@
          </tr>
          <!-- {% endfor %} -->
       </table>
+      </div>
    </body>
 </html>

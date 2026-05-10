@@ -12,23 +12,31 @@ function helpDialogNansenMethod(functionName, options)
 
     functionFilepath = which(functionName);
     [summary, description] = extractDocString(functionFilepath);
-    
+
     data.title = titleStr;
     data.main_title = titleStr;
-    data.helptext = char(summary);
+    data.helptext = char(formatInlineGuideText(summary));
     data.helptopic = functionNameSplit{end};
-    data.description = char(description);
+    data.description = char(formatGuideTextAsHtml(description));
     
     data.parameters = struct.empty;
     
-    optionsManager = nansen.OptionsManager(functionName);
-    data.option_presets = optionsManager.getPresetMetadata();
+    try
+        optionsManager = nansen.OptionsManager(functionName);
+        data.option_presets = optionsManager.getPresetMetadata();
 
-    if strcmp(optionsManager.FunctionType,'Function')
-        data.parameters = optionsManager.getOptionDescriptions();
-    else
-        S = optionsManager.getDefaultOptions;
-        data.parameters = flattenNestedStruct(S);
+        if strcmp(optionsManager.FunctionType,'Function')
+            data.parameters = optionsManager.getOptionDescriptions();
+        else
+            S = optionsManager.getDefaultOptions;
+            data.parameters = flattenNestedStruct(S);
+        end
+    catch ME
+        data.option_presets = struct.empty;
+        data.parameters = struct(...
+            'name', 'Options unavailable', ...
+            'default_value', '', ...
+            'description', ME.message);
     end
 
     templateFile = fullfile(nansen.toolboxdir, 'resources', 'templates', 'session_method_help.html.template');
@@ -67,11 +75,120 @@ function [summary, description] = extractDocString(filePath)
     end
     
     if ~isempty(docstringLines)
-        summary = docstringLines{1};
-        description = docstringLines(2:end);
-        description( strtrim(description) == "" ) = [];
+        summary = strtrim(docstringLines{1});
+        description = trimEmptyEdgeLines(docstringLines(2:end));
         description = strjoin(description, newline);
     end
+end
+
+function lines = trimEmptyEdgeLines(lines)
+    while ~isempty(lines) && strtrim(lines(1)) == ""
+        lines(1) = [];
+    end
+    while ~isempty(lines) && strtrim(lines(end)) == ""
+        lines(end) = [];
+    end
+end
+
+function htmlText = formatGuideTextAsHtml(text)
+    lines = splitlines(string(text));
+    htmlLines = strings(0, 1);
+    paragraphLines = strings(0, 1);
+    listItemLines = strings(0, 1);
+    isInList = false;
+
+    for i = 1:numel(lines)
+        rawLine = string(lines(i));
+        line = strtrim(rawLine);
+
+        if line == ""
+            flushParagraph()
+            flushListItem()
+            closeList()
+        elseif isRawHtmlLine(line)
+            flushParagraph()
+            flushListItem()
+            closeList()
+            htmlLines(end+1, 1) = line; %#ok<AGROW>
+        elseif any(startsWith(line, ["- ", "* "]))
+            flushParagraph()
+            if ~isInList
+                htmlLines(end+1, 1) = "<ul>"; %#ok<AGROW>
+                isInList = true;
+            end
+            flushListItem()
+            itemText = extractAfter(line, 2);
+            listItemLines(end+1, 1) = itemText; %#ok<AGROW>
+        elseif isInList && startsWith(rawLine, "  ")
+            listItemLines(end+1, 1) = line; %#ok<AGROW>
+        elseif isGuideHeading(line)
+            flushParagraph()
+            flushListItem()
+            closeList()
+            heading = extractBefore(line, strlength(line));
+            htmlLines(end+1, 1) = "<h2>" + formatInlineGuideText(heading) + "</h2>"; %#ok<AGROW>
+        else
+            flushListItem()
+            closeList()
+            paragraphLines(end+1, 1) = line; %#ok<AGROW>
+        end
+    end
+
+    flushParagraph()
+    flushListItem()
+    closeList()
+
+    if isempty(htmlLines)
+        htmlText = "<p>No guide text available.</p>";
+    else
+        htmlText = strjoin(htmlLines, newline);
+    end
+
+    function flushParagraph()
+        if isempty(paragraphLines)
+            return
+        end
+        paragraphText = strjoin(paragraphLines, " ");
+        htmlLines(end+1, 1) = "<p>" + formatInlineGuideText(paragraphText) + "</p>";
+        paragraphLines = strings(0, 1);
+    end
+
+    function flushListItem()
+        if isempty(listItemLines)
+            return
+        end
+        itemText = strjoin(listItemLines, " ");
+        htmlLines(end+1, 1) = "<li>" + formatInlineGuideText(itemText) + "</li>"; %#ok<AGROW>
+        listItemLines = strings(0, 1);
+    end
+
+    function closeList()
+        if isInList
+            htmlLines(end+1, 1) = "</ul>";
+            isInList = false;
+        end
+    end
+end
+
+function tf = isGuideHeading(line)
+    tf = endsWith(line, ":") && strlength(line) <= 80 && ~contains(line, "://");
+end
+
+function tf = isRawHtmlLine(line)
+    htmlPrefixes = ["<p", "</p", "<ul", "</ul", "<ol", "</ol", "<li", ...
+        "<h1", "<h2", "<h3", "<div", "</div", "<strong", "<em", "<br"];
+    tf = any(startsWith(line, htmlPrefixes));
+end
+
+function htmlText = formatInlineGuideText(text)
+    htmlText = escapeHtml(strtrim(string(text)));
+    htmlText = regexprep(htmlText, '`([^`]+)`', '<code>$1</code>');
+end
+
+function htmlText = escapeHtml(text)
+    htmlText = replace(text, "&", "&amp;");
+    htmlText = replace(htmlText, "<", "&lt;");
+    htmlText = replace(htmlText, ">", "&gt;");
 end
 
 function flatStruct = flattenNestedStruct(nestedStruct, parentName)
@@ -128,7 +245,7 @@ function flatStruct = flattenNestedStruct(nestedStruct, parentName)
             % Add field to flatStruct
             flatStruct(end + 1).name = fullName;
             flatStruct(end).default_value = value;
-            flatStruct(end).description = 'not available yet.';
+            flatStruct(end).description = 'No description available.';
         end
     end
 end
@@ -147,4 +264,3 @@ function value = formatValueAsString(value)
         end
     end
 end
-
