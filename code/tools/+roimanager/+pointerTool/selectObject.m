@@ -60,14 +60,15 @@ classdef selectObject < uim.interface.abstractPointer & ...
         end
         
         function onButtonDown(obj, src, event)
-        %onButtonDown Callback for handling button down events in a roiMap.
-                    
-            obj.isButtonDown = true;
-            obj.isActive = true;
+        %onButtonDown Callback for handling button down events in a roiMap.  
 
             if isempty(  obj.RoiDisplay ); return; end
+
+            obj.resetInteractionState()
+            obj.isButtonDown = true;
+            obj.isActive = true;
             
-            [isRoiSelected, roiInd] = obj.RoiDisplay.hittest(src, event);
+            [isRoiSelected, ~] = obj.RoiDisplay.hittest(src, event);
             
             %hFig = ancestor(obj.hAxes, 'figure');
             %obj.RoiDisplay.selectRois(roiInd, hFig.SelectionType, true)
@@ -119,42 +120,68 @@ classdef selectObject < uim.interface.abstractPointer & ...
             end
         end
         
-        function onButtonUp(obj, src, evt)
+        function onButtonUp(obj, ~, ~)
             if ~obj.isButtonDown; return; end % Button is released from a different component, i.e a toolbar button
 
+            try
+                obj.isButtonDown = false;
+                obj.isActive = false;
+                
+                axRange = mean( [diff(obj.hAxes.XLim), diff(obj.hAxes.YLim) ] );
+                
+                if all((abs(obj.anchorPoint - obj.previousPoint)) < axRange * 1e-3) % No movement
+                    obj.RoiDisplay.deselectRois() % Unselect..
+
+                else
+
+                    switch obj.activeMode
+                        case 'moveObjects'
+
+                            if any(obj.objectDisplacement ~= 0)
+                                obj.RoiDisplay.moveRoi(obj.objectDisplacement);
+                            end
+
+                        case 'selectObjects'
+
+                            xBounds = sort( [obj.anchorPoint(1), obj.previousPoint(1)] );
+                            yBounds = sort( [obj.anchorPoint(2), obj.previousPoint(2)] );
+
+                            obj.resetRectangle();
+                            obj.RoiDisplay.multiSelectRois(xBounds, yBounds);
+                    end
+                end
+
+                obj.resetInteractionState()
+
+            catch ME
+                obj.rollbackTemporaryMove()
+                obj.resetInteractionState()
+                rethrow(ME)
+            end
+        end
+
+    end
+
+    methods (Access = private)
+
+        function resetInteractionState(obj)
             obj.isButtonDown = false;
             obj.isActive = false;
-            
-            axRange = mean( [diff(obj.hAxes.XLim), diff(obj.hAxes.YLim) ] );
-            
-            if all((abs(obj.anchorPoint - obj.previousPoint)) < axRange * 1e-3) % No movement
-                obj.RoiDisplay.deselectRois() % Unselect..
-                
-            else
-                
-                switch obj.activeMode
-                    case 'moveObjects'
-                        
-                        if any(obj.objectDisplacement ~= 0)
-                            obj.RoiDisplay.moveRoi(obj.objectDisplacement);
-                            obj.objectDisplacement = [0, 0];
-                        end
-                
-                    case 'selectObjects'
-                
-                        xBounds = sort( [obj.anchorPoint(1), obj.previousPoint(1)] );
-                        yBounds = sort( [obj.anchorPoint(2), obj.previousPoint(2)] );
-
-                        obj.resetRectangle();
-                        obj.RoiDisplay.multiSelectRois(xBounds, yBounds);
-                end
-            end
-            
-            % Reset active mode.
             obj.activeMode = '';
-            
-            obj.setPointerSymbol()
+            obj.objectDisplacement = [0, 0];
+            obj.anchorPoint = [nan, nan];
             obj.previousPoint = [nan, nan];
+            obj.setPointerSymbol()
         end
+
+        function rollbackTemporaryMove(obj)
+            if strcmp(obj.activeMode, 'moveObjects') && any(obj.objectDisplacement ~= 0)
+                obj.RoiDisplay.shiftRoiPlot([-obj.objectDisplacement, 0]);
+            elseif strcmp(obj.activeMode, 'selectObjects')
+                obj.resetRectangle();
+            end
+        end
+
     end
+    
 end

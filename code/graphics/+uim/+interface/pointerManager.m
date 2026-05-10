@@ -37,6 +37,7 @@ classdef pointerManager < handle
         WindowButtonUpListener event.listener
         WindowScrollWheelListener event.listener % todo
         %WindowKeyPressListener event.listener
+        MouseDownPointerTool = []
     end
         
     properties (Access = protected)
@@ -181,34 +182,39 @@ classdef pointerManager < handle
             % 2) Call active pointer tool
             if obj.isCursorInsideAxes(obj.hAxes)
                 if ~isempty(obj.currentPointerTool)
-                    obj.currentPointerTool.onButtonDown(src, event)
+                    obj.MouseDownPointerTool = obj.currentPointerTool;
+                    try
+                        obj.MouseDownPointerTool.onButtonDown(src, event)
+                    catch ME
+                        obj.MouseDownPointerTool = [];
+                        rethrow(ME)
+                    end
                 end
             end
         end
         
         function onButtonMotion(obj, src, event)
             
-            if isempty(obj.currentPointerTool); return; end
+            pointerTool = obj.getMouseEventPointerTool();
+            if isempty(pointerTool); return; end
             tf = obj.isCursorInsideAxes(obj.hAxes);
 
             % Change cursor symbol when pointer enters or leaves axes
             if tf && ~obj.wasCursorInAxes % Entered axes
-                if ~isempty(obj.currentPointerTool)
-                    obj.currentPointerTool.setPointerSymbol()
-                end
-                obj.currentPointerTool.onPointerEnteredAxes()
+                pointerTool.setPointerSymbol()
+                pointerTool.onPointerEnteredAxes()
             elseif ~tf && obj.wasCursorInAxes % Left axes
                 set(obj.hFigure, 'Pointer', 'arrow');
-                obj.currentPointerTool.onPointerExitedAxes()
+                pointerTool.onPointerExitedAxes()
             end
             
             % Create extended eventdata containing mousepoint coordinates?
             
-            % 2) Call active pointer tool
-            if ~isempty(obj.currentPointerTool)% && ~isSuspended(obj.currentPointerTool) Some tools, like zoom, should continue to workeven when cursor moves outside axes...
-                obj.currentPointerTool.onButtonMotion(src, event)
-            end
-
+            % Keep sending motion events to the mouse-down owner. This lets
+            % tools such as zoom/pan continue after a valid press even if
+            % the cursor leaves the axes.
+            pointerTool.onButtonMotion(src, event)
+            
             if tf
                 obj.wasCursorInAxes = true;
             else
@@ -222,8 +228,10 @@ classdef pointerManager < handle
         function onButtonRelease(obj, src, event)
             
             % Redirect to callback of active pointer tool
-            if ~isempty(obj.currentPointerTool)
-                obj.currentPointerTool.onButtonUp(src, event)
+            pointerTool = obj.getMouseEventPointerTool();
+            if ~isempty(pointerTool)
+                cleanupObj = onCleanup(@() obj.resetMouseDownPointerTool());
+                pointerTool.onButtonUp(src, event)
             end
         end
 
@@ -391,6 +399,18 @@ classdef pointerManager < handle
     end
 
     methods (Access = private)
+
+        function pointerTool = getMouseEventPointerTool(obj)
+            if ~isempty(obj.MouseDownPointerTool)
+                pointerTool = obj.MouseDownPointerTool;
+            else
+                pointerTool = obj.currentPointerTool;
+            end
+        end
+
+        function resetMouseDownPointerTool(obj)
+            obj.MouseDownPointerTool = [];
+        end
         
         function mouseMotionDummyCallback(obj, src, evt)
             % Assign this if the WindowButtonMotionFcn of a figure is empty
