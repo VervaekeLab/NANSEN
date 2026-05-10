@@ -1,6 +1,10 @@
 function varargout = changeDataLocationRoot(sessionObject, varargin)
-%CHANGERAWDATAROOT Summary of this function goes here
-%   Detailed explanation goes here
+%CHANGEDATALOCATIONROOT Change the root directory for the specified data location of a session.
+%
+% CHANGEDATALOCATIONROOT opens an interactive dialog for changing the root 
+% folder of the selected data location for a session. The dialog is a
+% dropdown selector where you can select the root folder from all
+% configured root folders of the data location.
 
 % % % % % % % % % % % % % % % INSTRUCTIONS % % % % % % % % % % % % % % %
 % - - - - - - - - - - You can remove this part - - - - - - - - - - -

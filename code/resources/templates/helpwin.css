@@ -1,0 +1,274 @@
+body {
+    font-family: 'Avenir Next', Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+    color: #303E4C;
+    background-color: #f7f8fb;
+    margin: 0;
+    padding: 0;
+}
+
+a {
+    color: #1F78B4;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+a:visited {
+    color: #5C6F8C;
+}
+
+a:active {
+    color: #184A6D;
+}
+
+a:hover {
+    color: #0F3654;
+    text-decoration: underline;
+}
+
+hr {
+    border: none;
+    border-top: 2px solid #1F78B4;
+    margin: 30px 0;
+}
+
+p {
+    margin: 10px 0;
+    color: #404A59;
+    font-size: 16px;
+}
+
+code {
+    background-color: #EEF2F6;
+    border: 1px solid #DDE4EC;
+    border-radius: 3px;
+    color: #243746;
+    font-family: Menlo, Consolas, monospace;
+    font-size: 0.92em;
+    padding: 1px 4px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 22px;
+    font-size: 14px;
+    background-color: #fff;
+}
+
+table th,
+table td {
+    padding: 12px 15px;
+    text-align: left;
+    color: #303E4C;
+    border: none;
+}
+
+table th {
+    background-color: #E8EFF7;
+    font-weight: bold;
+    border-bottom: 2px solid #1F78B4;
+}
+
+table tr td {
+    border-bottom: 1px solid #E0E4EB;
+}
+
+table tr:nth-child(even) {
+    background-color: #F9FAFC;
+}
+
+table tbody tr:hover {
+    background-color: #E0E4EB !important; /* Ensure the hover color is applied */
+}
+
+.title {
+    color: #182633;
+    font-size: 30px;
+    font-weight: 700;
+    margin: 22px 0 8px;
+    border-bottom: 2px solid #D6DEE8;
+    padding-bottom: 10px;
+}
+
+.sectiontitle {
+    color: #184A6D;
+    font-size: 20px;
+    font-weight: 700;
+    margin: 28px 0 10px;
+}
+
+.headertitle {
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    color: #5F6F80;
+}
+
+.helptopic {
+    font-weight: bold;
+    color: #1F78B4;
+    font-size: 18px;
+    margin-top: 20px;
+}
+
+.helptext {
+    margin: 20px 0;
+    font-family: 'Avenir Next', Helvetica, Arial, sans-serif;
+    font-size: 17px;
+    line-height: 1.7;
+    color: #505F72;
+    background-color: #F2F5FA;
+    padding: 15px 20px;
+    border-left: 4px solid #1F78B4;
+    border-radius: 3px;
+}
+
+.method-page {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 22px 28px 36px;
+}
+
+.lead {
+    color: #344657;
+    font-size: 18px;
+    line-height: 1.55;
+    margin: 12px 0 20px;
+}
+
+.guide-text {
+    background-color: #FFFFFF;
+    border: 1px solid #DDE4EC;
+    border-radius: 6px;
+    padding: 18px 22px;
+}
+
+.guide-text h2 {
+    color: #184A6D;
+    font-size: 17px;
+    margin: 18px 0 8px;
+}
+
+.guide-text h2:first-child {
+    margin-top: 0;
+}
+
+.guide-text ul {
+    margin: 8px 0 14px 20px;
+    padding: 0;
+}
+
+.guide-text li {
+    margin: 5px 0;
+}
+
+.subheader {
+    border-bottom: 1px solid #DDE4EC;
+    padding-bottom: 10px;
+    color: #1F78B4;
+}
+
+.subheader-left {
+    float: left;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.subheader-right {
+    text-align: right;
+    float: right;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.footerlinktitle {
+    margin: 30px 0 10px;
+    color: #1F78B4;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.footerlink {
+    padding: 5px 10px;
+    color: #505F72;
+    display: inline-block;
+}
+
+.topiclinks {
+    margin: 20px 0;
+}
+
+a.topiclink {
+    padding-right: 15px;
+    color: #1F78B4;
+    font-weight: 500;
+}
+
+.class-details {
+    margin: 15px 20px;
+    padding: 15px;
+    background-color: #f2f5fa;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.class-detail-label {
+    font-weight: bold;
+    padding-right: 10px;
+    color: #1F78B4;
+    font-size: 18px;
+}
+
+.name {
+    color: #184A6D;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.summary-list {
+    margin: 20px 0;
+    list-style: none;
+    padding: 0;
+}
+
+.summary-list .summary-item {
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    background-color: #F9FAFC;
+    border-bottom: 1px solid #E0E4EB;
+}
+
+.summary-list .summary-item .name {
+    font-weight: bold;
+    color: #303E4C;
+    font-size: 14px;
+}
+
+.summary-list .summary-item .m-help {
+    font-size: 14px;
+    color: #505F72;
+    margin-top: 5px;
+}
+
+.summary-list .summary-item .attributes {
+    font-size: 14px;
+    text-align: center;
+    color: #1F78B4;
+    font-weight: 500;
+}
+
+.columntitle {
+    font-size: 14px;
+    font-weight: bold;
+    color: #303E4C;
+    padding: 8px 8px;
+    margin-bottom: 10px;
+}
+
+.empty-row .m-help {
+    color: #6B7887;
+    font-style: italic;
+}

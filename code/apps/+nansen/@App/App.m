@@ -165,6 +165,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 app.Figure.Visible = 'on';
             end
 
+            cleanupObject = onCleanup(@app.assertInitialized);
+
             % % Start app construction
             app.configureWindow()
             app.lockWindowPosition()
@@ -319,6 +321,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             errorId = 'NANSEN:App:ForceQuit';
             ME = MException(errorId, message);
             throwAsCaller(ME)
+        end
+
+        function assertInitialized(app)
+            if ~app.isInitialized()
+                app.ApplicationState = nansen.enum.ApplicationState.ShuttingDown;
+                delete(app)
+            end
         end
     end
         
@@ -503,6 +512,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     'Text', modeInfo(i).MenuText, ...
                     'Tag', sprintf('core.session_task_mode.%s', lower(modeValue)), ...
                     'UserData', modeValue);
+                if isprop(mitem, 'Accelerator') && ~isempty(modeInfo(i).Accelerator)
+                    mitem.Accelerator = modeInfo(i).Accelerator;
+                end
                 mitem.MenuSelectedFcn = @(~, ~) app.setSessionTaskMode(modeValue);
             end
 
@@ -596,7 +608,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 'Label', {'Default', 'Preview', 'Queue', 'Edit', 'Restart', 'Help'}, ...
                 'MenuText', {'Default (Esc)', 'Preview (Shift)', 'Queue (q)', ...
                     'Edit (e)', 'Restart (r)', 'Help (h)'}, ...
-                'Key', {'escape', 'shift', 'q', 'e', 'r', 'h'} );
+                'Key', {'escape', 'shift', 'q', 'e', 'r', 'h'}, ...
+                'Accelerator', {'', '', 'q', 'e', 'r', 'h'} );
         end
 
         function wasHandled = setSessionTaskModeFromKey(app, keyName)
@@ -3628,8 +3641,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 app.SessionTaskMenu.Mode = 'Default'; % Reset menu mode
                 return
             elseif strcmp(evt.Mode, 'Help')
-                help(evt.TaskAttributes.FunctionName)
-                applify.helpDialog(evt.TaskAttributes.FunctionName)
+                try
+                    titleStr = eval(sprintf('%s.MethodName', evt.TaskAttributes.FunctionName));
+                catch
+                    if ~isempty(evt.TaskAttributes.MethodName)
+                        titleStr = evt.TaskAttributes.MethodName;
+                    else
+                        titleStr = strrep(evt.TaskAttributes.FunctionName, 'nansen.module.', '');
+                    end
+                end
+                %applify.helpDialog(evt.TaskAttributes.FunctionName, 'Title', titleStr)
+                applify.helpDialogNansenMethod(evt.TaskAttributes.FunctionName, 'Title', titleStr)
                 return
             end
 
@@ -3835,8 +3857,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     sMethod.RedoIfCompleted = true;
                     sMethod.runMethod()
                 case 'function'
+                    warningMessage = "This method does not have reset mode";
+                    app.MessageDisplay.warn(warningMessage)
                     sessionMethod(methodArgs{:});
-                    warning('Session method does not have reset mode')
             end
         end
 
@@ -4558,6 +4581,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
         
         %% User dialog - Display information, warning and error messages
+        function cleanupObj = displayRunningMethod(app)
+            % Todo: Make this non-modal
+            hDlg = app.MessageDisplay.inform('Method is running. Please wait...');
+            cleanupObj = onCleanup(@(h) delete(hDlg));
+        end
+        
         function throwSessionMethodFailedError(app, ME, taskName, methodName)
         % throwSessionMethodFailedError - Display error message if task fails
             if iscell(taskName)

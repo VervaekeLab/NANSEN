@@ -1,31 +1,26 @@
 function varargout = DenoiseStack(sessionObject, varargin)
-%DenoiseStack Denoise an ImageStack using the DeepInterpolation method
+%Denoise an image stack with DeepInterpolation.
 %
-%   This method is based on the DeepInterpolation method from the Allen
-%   Institute. It requires MATLAB 2023a or later and the external toolbox
-%   "Deep Learning Toolbox Converter for TensorFlow Models".
+%Use this when:
+%- You want to suppress frame-wise noise in an ImageStack before visual
+%  inspection or downstream processing.
+%- You have MATLAB R2023a or newer and the Deep Learning Toolbox Converter
+%  for TensorFlow Models available.
 %
-%   Note: Currently it uses the tretrained model they provided for two-photon
-%   data. It is possible to train models (See the DeepInterpolation_Matlab)
-%   on GitHub for details. Create an issue on VervaekeLab/Nansen if you
-%   need help adapting the code to run with another model.
+%What happens:
+%- You choose which ImageStack variable to denoise.
+%- NANSEN runs the stack denoiser with the configured DeepInterpolation
+%  window and stack-processing options.
+%- The current implementation uses the pretrained two-photon model from the
+%  DeepInterpolation MATLAB workflow.
 %
-%   Input:
-%       Input must be an ImageStack
+%Outputs:
+%- A denoised stack is produced by the stack processor according to the
+%  selected export options.
 %
-%   Options:
-%       PrePostOmission : How many frames around the target frame to omit
-%           for the interpolation. Default = 0.
-%
-%       PreFrame : How many frames before the target frame to use for
-%           interpolation. Default = 30.
-%
-%       PostFrame : How many frames after the target frame to use for
-%           interpolation. Default = 30.
-%
-%   References:
-%   (1) https://github.com/AllenInstitute/deepinterpolation
-%   (2) https://github.com/MATLAB-Community-Toolboxes-at-INCF/DeepInterpolation-MATLAB
+%References:
+%- https://github.com/AllenInstitute/deepinterpolation
+%- https://github.com/MATLAB-Community-Toolboxes-at-INCF/DeepInterpolation-MATLAB
 
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
 % Create a struct of default parameters (if applicable) and specify one or
@@ -53,7 +48,7 @@ function varargout = DenoiseStack(sessionObject, varargin)
     params = utility.parsenvpairs(params, [], varargin);
     
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
-% Implementation of the method : Add your code here:
+% Implementation of the session method.
     
     imageStack = sessionObject.loadData(params.Input.VariableName);
     params = utility.struct.renamefield(params, 'StackOptions', 'Run');

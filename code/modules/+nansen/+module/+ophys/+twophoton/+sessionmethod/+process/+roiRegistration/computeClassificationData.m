@@ -1,6 +1,22 @@
 function varargout = computeClassificationData(sessionObject, varargin)
-%computeClassificationData Summary of this function goes here
-%   Detailed explanation goes here
+%Compute ROI images and statistics for longitudinal ROI classification.
+%
+%Use this when:
+%- You have `RoiArrayLongitudinal` for a session and want to classify those
+%  ROIs later.
+%- You need ROI thumbnails and ROI statistics derived from the
+%  motion-corrected stack.
+%
+%What happens:
+%- NANSEN loads `RoiArrayLongitudinal` and the selected ImageStack.
+%- For each channel and plane, it computes ROI images and ROI statistics
+%  from an initial chunk of frames.
+%- The ROI data, images, statistics, and empty classification labels are
+%  packaged as a longitudinal ROI group.
+%
+%Outputs:
+%- `RoiGroupLongitudinal`: ROI data prepared for longitudinal
+%  classification.
 
 % % % % % % % % % % % % CONFIGURATION CODE BLOCK % % % % % % % % % % % %
 % Create a struct of default parameters (if applicable) and specify one or
@@ -104,16 +120,9 @@ function varargout = computeClassificationData(sessionObject, varargin)
 end
 
 function params = getDefaultParameters()
-%getDefaultParameters Get the default parameters for this session method
-%
-%   params = getDefaultParameters() should return a struct, params, which
-%   contains fields and values for parameters of this session method.
-
-    % Add fields to this struct in order to define parameters for this
-    % session method:
     params = struct();
-    params.ImageStackVariableName = 'TwoPhotonSeries_Corrected';
-    params.RoiImageSize = [21, 21];
+    params.ImageStackVariableName = 'TwoPhotonSeries_Corrected'; % ImageStack used to compute ROI images and statistics.
+    params.RoiImageSize = [21, 21]; % Pixel size of generated ROI thumbnails.
 end
 
 function throwError(errorID, sessionID)

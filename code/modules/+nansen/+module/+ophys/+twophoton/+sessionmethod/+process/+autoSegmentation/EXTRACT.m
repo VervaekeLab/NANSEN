@@ -1,6 +1,25 @@
 classdef EXTRACT < nansen.session.SessionMethod & nansen.wrapper.extract.Processor
-%EXTRACT Summary of this function goes here
-%   Detailed explanation goes here
+%Detect ROIs automatically with EXTRACT.
+%
+%Use this when:
+%- You want automated ROI detection on `TwoPhotonSeries_Corrected`.
+%- You expect EXTRACT's calcium-imaging model to be a better fit than
+%  Quicky or suite2p for the current recording.
+%
+%What happens:
+%- NANSEN loads the motion-corrected stack and opens it as the source stack
+%  for the EXTRACT wrapper.
+%- EXTRACT is run through the NANSEN ROI segmentation pipeline, including
+%  chunking, result merging, ROI-image computation, and ROI-statistics
+%  computation.
+%
+%Outputs:
+%- `roiArrayExtractAuto`: automatically detected ROIs.
+%- `ExtractOptions`, `ExtractResultsTemp`, and `ExtractResultsFinal` are
+%  saved as method outputs for provenance and restart support.
+%
+%Reference:
+%- https://github.com/schnitzer-lab/EXTRACT-public
     
     properties (Constant) % SessionMethod attributes
         BatchMode = 'serial' % Move to data method?

@@ -1,14 +1,19 @@
 function varargout = twoPhotonMotionCorrected(sessionObj, varargin)
-%twoPhotonMotionCorrected Open 2-photon corrected recording in imviewer
+%View the motion-corrected two-photon recording in imviewer.
 %
-%   twoPhotonMotionCorrected(sessionObj) opens the motion-corrected
-%       two-photon recording for the given session using default options.
+%Use this when:
+%- You want to inspect the registered recording after motion correction.
+%- You need a quick quality-control pass before ROI detection or signal
+%  extraction.
 %
-%   twoPhotonMotionCorrected(sessionObj, Name, Value) opens the recording
-%       using the options given as name, value pairs.
+%What happens:
+%- NANSEN opens `TwoPhotonSeries_Corrected` for the selected session.
+%- With `UseVirtualStack` enabled, imviewer reads frames lazily from disk.
+%- With `UseVirtualStack` disabled, only `FirstImage` through `LastImage`
+%  are loaded into memory before opening imviewer.
 %
-%   fcnAttributes = twoPhotonMotionCorrected() returns a struct of
-%       attributes for the function.
+%Outputs:
+%- No data are written; this method only opens an interactive viewer.
 
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
 % Please create a struct of default parameters (if applicable) and specify
@@ -17,7 +22,7 @@ function varargout = twoPhotonMotionCorrected(sessionObj, varargin)
 
     % % % Get struct of default parameters for function.
     params = getDefaultParameters();
-    ATTRIBUTES = {'serial', 'unqueueable'};
+    ATTRIBUTES = {'serial', 'unqueueable', 'MethodName', 'View Motion-Corrected 2-Photon'};
     
 % % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % %
 % - - - - - - - - - - Please do not edit this part - - - - - - - - - - -
@@ -51,10 +56,9 @@ function varargout = twoPhotonMotionCorrected(sessionObj, varargin)
     end
 end
 
-function S = getDefaultParameters()
-    S = struct();
-    S.UseVirtualStack = true;
-    S.FirstImage = 1;
-    S.LastImage = inf;
-
+function params = getDefaultParameters()
+    params = struct();
+    params.UseVirtualStack = true; % Whether to open the stack without loading data into memory (virtual stack).
+    params.FirstImage = uint64(1); % Index of first frame to load if UseVirtualStack is false
+    params.LastImage = inf;        % Index of last frame to load if UseVirtualStack is false
 end

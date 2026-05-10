@@ -1,6 +1,22 @@
 classdef extractSignals < nansen.session.SessionMethod
-%EXTRACTSIGNALS Summary of this function goes here
-%   Detailed explanation goes here
+%Extract fluorescence and neuropil signals from the corrected stack.
+%
+%Use this when:
+%- `TwoPhotonSeries_Corrected` and the default `RoiArray` are ready.
+%- You want per-ROI fluorescence traces before dF/F computation or
+%  deconvolution.
+%
+%What happens:
+%- NANSEN loads the motion-corrected stack and the default ROI array.
+%- For each ROI, fluorescence is extracted from the ROI region and configured
+%  neuropil regions.
+%- Signal metadata such as sample rate are inherited from the image stack
+%  where available.
+%
+%Outputs:
+%- `RoiSignals_MeanF`: mean ROI fluorescence traces.
+%- `RoiSignals_NeuropilF`: neuropil fluorescence traces.
+%- `OptionsSignalExtraction`: options used for the extraction run.
     
     properties (Constant) % SessionMethod attributes
         MethodName = 'Extract Signals'

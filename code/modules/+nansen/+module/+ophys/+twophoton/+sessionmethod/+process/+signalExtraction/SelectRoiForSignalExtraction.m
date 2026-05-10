@@ -1,18 +1,20 @@
 function varargout = SelectRoiForSignalExtraction(sessionObject, varargin)
-%SELECTROIFORSIGNALEXTRACTION Select which rois to use for signal extraction
+%Choose which ROI set should be used for signal extraction.
 %
-% This method updates the default ROI data variable for a Nansen session. It 
-% prompts the user to select which ROI variable to work with. If a valid 
-% variable name is chosen, the corresponding ROI group is retrieved and
-% saved to the default ROI variable.
+%Use this when:
+%- A session has multiple ROI variables, for example automatic detections
+%  and manually curated ROIs.
+%- You want `Extract Signals` to use a specific ROI set.
 %
-% Note: The default ROI variable is used for signal extraction
+%What happens:
+%- NANSEN asks which ROI variable to use.
+%- The selected ROI group can optionally be cleaned by removing ROIs with
+%  pixels outside the FOV boundary.
+%- The selected ROI group is saved as the default `RoiArray`.
 %
-% Parameters:
-%   - deleteRoisOutsideTheBorders (logical) - 
-%     Boolean flag true, determining if ROIs whose pixels lie partially or 
-%     completely outside the field of view (FOV) boundaries are removed. The 
-%     updated ROI group is then saved back to the session.
+%Outputs:
+%- `RoiArray`: the ROI set that signal-extraction methods will use by
+%  default.
 
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % 
 % Create a struct of default parameters (if applicable) and specify one or 
@@ -40,7 +42,7 @@ function varargout = SelectRoiForSignalExtraction(sessionObject, varargin)
     params = utility.parsenvpairs(params, [], varargin);
     
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
-% Implementation of the method : Add your code here:
+% Implementation of the session method.
     
     sessionData = nansen.session.SessionData( sessionObject );
     sessionData.updateDataVariables()
@@ -86,6 +88,5 @@ end
 
 function S = getDefaultParameters()
     S = struct();
-    % Add more fields:
-    S.deleteRoisOutsideTheBorders = true;
+    S.deleteRoisOutsideTheBorders = true; % Remove ROIs with pixels outside the FOV before saving RoiArray.
 end

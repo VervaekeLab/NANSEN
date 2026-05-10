@@ -1,6 +1,20 @@
 function varargout = DownsampleStack(sessionObject, varargin)
-%DOWNSAMPLESTACK Summary of this function goes here
-%   Detailed explanation goes here
+%Create a temporally downsampled copy of an image stack.
+%
+%Use this when:
+%- You need a smaller stack for quick inspection, algorithm testing, or
+%  lightweight downstream processing.
+%- You want to bin frames over time while preserving the original image
+%  height, width, channel count, and data type.
+%
+%What happens:
+%- NANSEN loads the selected stack variable.
+%- Consecutive groups of frames are binned with the selected method.
+%- The downsampled stack is saved to file by the stack processor.
+%
+%Outputs:
+%- A temporally downsampled ImageStack file is created according to the
+%  selected downsampling factor and binning method.
 
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
 % Create a struct of default parameters (if applicable) and specify one or
@@ -28,7 +42,7 @@ function varargout = DownsampleStack(sessionObject, varargin)
     params = utility.parsenvpairs(params, [], varargin);
     
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
-% Implementation of the method : Add your code here:
+% Implementation of the session method.
     
     imageStack = sessionObject.loadData(params.StackName);
         
@@ -46,10 +60,10 @@ end
 function S = getDefaultParameters()
     
     S = struct();
-    S.StackName = 'TwoPhotonSeries_Corrected';
+    S.StackName = 'TwoPhotonSeries_Corrected'; % ImageStack variable to downsample.
     S.StackName_ = {'TwoPhotonSeries_Corrected'};
-    S.DownsamplingFactor = 10;
-    S.BinningMethod = 'mean';
+    S.DownsamplingFactor = 10; % Number of consecutive frames per output frame.
+    S.BinningMethod = 'mean';  % Method used to combine frames within each bin.
     S.BinningMethod_ = {'mean', 'max'};
 
 end

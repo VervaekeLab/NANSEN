@@ -1,6 +1,23 @@
 classdef suite2p < nansen.session.SessionMethod & nansen.wrapper.suite2p.Processor
-%EXTRACT Summary of this function goes here
-%   Detailed explanation goes here
+%Detect ROIs automatically with suite2p.
+%
+%Use this when:
+%- You want to run suite2p ROI detection on `TwoPhotonSeries_Corrected`
+%  from inside the NANSEN session workflow.
+%- You want suite2p results saved back into the session data model rather
+%  than managed only in an external suite2p output folder.
+%
+%What happens:
+%- NANSEN loads the motion-corrected stack and opens it as the source stack
+%  for the suite2p wrapper.
+%- suite2p is run through the NANSEN ROI segmentation pipeline, including
+%  chunking, component merging, ROI-image computation, and ROI-statistics
+%  computation.
+%
+%Outputs:
+%- `roiArraySuite2pAuto`: automatically detected ROIs.
+%- `Suite2pOptions`, `Suite2pResultsTemp`, and `Suite2pResultsFinal` are
+%  saved as method outputs for provenance and restart support.
     
     properties (Constant) % SessionMethod attributes
         BatchMode = 'serial' % Move to data method?

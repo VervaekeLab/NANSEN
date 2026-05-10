@@ -1,9 +1,21 @@
 function varargout = editRois(sessionObject, varargin)
-%EDITROIS Edit rois for a set of longitudinal rois in roimanager.
-%   This method opens the roimanager for editing rois for a set of
-%   longitudinal sessions. It additionally opens a thumbnail selector for
-%   switching between each of the sessions. If changes are made to rois in
-%   one session, those changes will be copied to all other sessions.
+%Edit longitudinal ROIs across a selected session set.
+%
+%Use this when:
+%- You have migrated ROIs across sessions and want to manually correct the
+%  matched ROI set.
+%- You need to switch between sessions while keeping RoiManager focused on
+%  the corresponding longitudinal ROIs.
+%
+%What happens:
+%- NANSEN loads an FOV projection for each selected session.
+%- It loads `RoiArrayLongitudinal` and the selected ImageStack for each
+%  session.
+%- RoiManager opens on the first session, together with a multi-session FOV
+%  switcher for moving through the selected sessions.
+%
+%Outputs:
+%- ROI edits are managed by RoiManager and the multi-session switcher.
 
 % Todo: Also support loading of roi classifications.
 %   Specify FOV image variable name in parameters.
@@ -75,15 +87,8 @@ function varargout = editRois(sessionObject, varargin)
 end
 
 function params = getDefaultParameters()
-%getDefaultParameters Get the default parameters for this session method
-%
-%   params = getDefaultParameters() should return a struct, params, which
-%   contains fields and values for parameters of this session method.
-
-    % Add fields to this struct in order to define parameters for this
-    % session method:
     params = struct();
-    params.ImageStackVariableName = 'TwoPhotonSeries_Corrected';
+    params.ImageStackVariableName = 'TwoPhotonSeries_Corrected'; % ImageStack shown in RoiManager.
 
 end
 

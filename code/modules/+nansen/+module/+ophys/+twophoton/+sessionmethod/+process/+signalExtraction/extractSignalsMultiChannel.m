@@ -1,8 +1,21 @@
 classdef extractSignalsMultiChannel < nansen.session.SessionMethod
-%EXTRACTSIGNALS Summary of this function goes here
-%   Detailed explanation goes here
+%Extract ROI signals from all channels in a multi-channel recording.
 %
-%   Session method wrapper for SignalExtractor
+%Use this when:
+%- `TwoPhotonSeries_Corrected` has multiple channels.
+%- The default `RoiArray` should be matched to the stack's channel and plane
+%  layout before signal extraction.
+%
+%What happens:
+%- NANSEN loads the corrected stack and temporarily selects all channels.
+%- The ROI group is checked and adapted to match the stack dimensions.
+%- The `SignalExtractor` processor extracts ROI and neuropil signals using
+%  the configured extraction options.
+%
+%Outputs:
+%- `RoiSignals_MeanF`: mean ROI fluorescence traces.
+%- `RoiSignals_NeuropilF`: neuropil fluorescence traces.
+%- `OptionsSignalExtraction`: options used by the signal extractor.
     
     properties (Constant) % SessionMethod attributes
         MethodName = 'Extract Signals (MultiChannel)'

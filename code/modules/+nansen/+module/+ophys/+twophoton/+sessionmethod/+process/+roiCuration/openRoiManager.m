@@ -1,6 +1,21 @@
 function varargout = openRoiManager(sessionObj, varargin)
-%openRoimanager Open roimanager for corrected two-photon images
+%Open RoiManager for the motion-corrected two-photon recording.
 %
+%Use this when:
+%- You want to inspect, draw, edit, or curate ROIs directly on the
+%  motion-corrected image stack.
+%- You want to load an existing ROI variable into RoiManager for manual
+%  correction.
+%
+%What happens:
+%- NANSEN loads `TwoPhotonSeries_Corrected` and enables dynamic caching for
+%  interactive browsing.
+%- RoiManager opens on the corrected stack.
+%- If you choose an ROI variable, those ROIs are loaded into RoiManager and
+%  linked to the current session data.
+%
+%Outputs:
+%- Edits are managed by RoiManager; this method itself only opens the app.
 
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
 % Please create a struct of default parameters (if applicable) and specify

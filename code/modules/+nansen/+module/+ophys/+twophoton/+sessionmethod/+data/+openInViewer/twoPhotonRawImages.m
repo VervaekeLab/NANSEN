@@ -1,14 +1,21 @@
 function varargout = twoPhotonRawImages(sessionObj, varargin)
-%twoPhotonRawImages Open 2-photon raw recording in imviewer
+%View the original two-photon recording in imviewer.
 %
-%   twoPhotonRawImages(sessionObj) opens the raw two-photon recording for
-%   the given session using default options.
+%Use this when:
+%- You want to inspect the raw recording before motion correction.
+%- You need to check imaging quality, drift, motion, flyback lines, or
+%  acquisition artifacts in the source data.
 %
-%   twoPhotonRawImages(sessionObj, Name, Value) opens the recording using
-%   the options given as name, value pairs.
+%What happens:
+%- NANSEN opens `TwoPhotonSeries_Original` for the selected session.
+%- With `UseVirtualStack` enabled, imviewer reads frames lazily from disk.
+%- With `UseVirtualStack` disabled, only `FirstImage` through `LastImage`
+%  are loaded into memory before opening imviewer.
+%- If a recording contains multiple FOV stacks, you are prompted to choose
+%  which FOVs to open.
 %
-%   fcnAttributes = twoPhotonRawImages() returns a struct of attributes for
-%   the function.
+%Outputs:
+%- No data are written; this method only opens an interactive viewer.
 
 %   Todo: Implement dynamic retrieval of parameters based on file adapter
 %   for opening files.
@@ -20,7 +27,7 @@ function varargout = twoPhotonRawImages(sessionObj, varargin)
 
     % % % Get struct of default parameters for function.
     params = getDefaultParameters();
-    ATTRIBUTES = {'serial', 'unqueueable'};
+    ATTRIBUTES = {'serial', 'unqueueable', 'MethodName', 'View Original (Raw) 2-Photon'};
     
 % % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % %
 % - - - - - - - - - - Please do not edit this part - - - - - - - - - - -
@@ -70,9 +77,9 @@ function varargout = twoPhotonRawImages(sessionObj, varargin)
     end
 end
 
-function S = getDefaultParameters()
-    S = struct();
-    S.UseVirtualStack = true;
-    S.FirstImage = 1;
-    S.LastImage = inf;
+function params = getDefaultParameters()
+    params = struct();
+    params.UseVirtualStack = true; % Open the stack lazily from disk when possible.
+    params.FirstImage = uint64(1); % First frame to load when UseVirtualStack is false.
+    params.LastImage = inf;        % Last frame to load when UseVirtualStack is false.
 end

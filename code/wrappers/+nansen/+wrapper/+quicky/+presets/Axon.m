@@ -2,7 +2,7 @@ classdef Axon < nansen.wrapper.quicky.Options
 
     properties (Constant)
         Name = 'Axons'
-        Description = 'Autosegment neuronal axonal boutons'
+        Description = 'Tuned to detect smaller axonal bouton-like structures'
     end
     
     methods (Static)

@@ -1,8 +1,19 @@
 function varargout = plotImageStats(sessionObj, varargin)
-%plotImageStats Plot stats from raw two photon recording
+%Plot frame-wise image statistics for a two-photon recording.
 %
-%   Plot mean pixel value for each frame with a shaded error bar
-%   corresponding to a lower and an upper percentile of the pixel values.
+%Use this when:
+%- You want a fast quality-control view of brightness, saturation, or
+%  acquisition instability across time.
+%- You have an `ImageStats` data variable for the selected session.
+%
+%What happens:
+%- NANSEN loads `ImageStats` and plots the mean pixel value per frame in
+%  SignalViewer.
+%- Optional shaded envelopes show the minimum/maximum range and configured
+%  percentile ranges.
+%
+%Outputs:
+%- No data are written; this method only opens an interactive plot.
     
     % % % Get struct of default parameters for function.
     params = getDefaultParameters();
@@ -40,6 +51,7 @@ function varargout = plotImageStats(sessionObj, varargin)
     axes(hViewer.Axes)
     
     if params.ShowExtremes
+        assertHasShadedErrorBar()
         lowerBound = (S.meanValue - S.minimumValue)';
         upperBound = (S.maximumValue - S.meanValue)';
         h = shadedErrorBar([], S.meanValue, [upperBound; lowerBound], 'lineprops',{'color', cmap(:,1)});
@@ -52,6 +64,7 @@ function varargout = plotImageStats(sessionObj, varargin)
     uistack(hLine, 'top')
     
     if params.ShowPrctile1
+        assertHasShadedErrorBar()
         lowerBound = (S.meanValue - S.prctileL1)';
         upperBound = (S.prctileU1 - S.meanValue)';
         h = shadedErrorBar([], S.meanValue, [upperBound; lowerBound], 'lineprops',{'color', cmap(:,2)});
@@ -61,6 +74,7 @@ function varargout = plotImageStats(sessionObj, varargin)
     uistack(hLine, 'top')
 
     if params.ShowPrctile2
+        assertHasShadedErrorBar()
         lowerBound = (S.meanValue - S.prctileL2)';
         upperBound = (S.prctileU2 - S.meanValue)';
         h = shadedErrorBar([], S.meanValue, [upperBound; lowerBound], 'lineprops',{'color', cmap(:,3)});
@@ -73,7 +87,12 @@ end
 
 function params = getDefaultParameters()
     params = struct();
-    params.ShowExtremes = true;
-    params.ShowPrctile1 = true;
-    params.ShowPrctile2 = true;
+    params.ShowExtremes = true; % Show the minimum-to-maximum pixel range.
+    params.ShowPrctile1 = true; % Show the first configured percentile envelope.
+    params.ShowPrctile2 = true; % Show the second configured percentile envelope.
+end
+
+function assertHasShadedErrorBar()
+    assert( exist('shadedErrorBar', 'file') == 2, ...
+        'This method requires shadedErrorBar from MATLAB FileExchange')
 end

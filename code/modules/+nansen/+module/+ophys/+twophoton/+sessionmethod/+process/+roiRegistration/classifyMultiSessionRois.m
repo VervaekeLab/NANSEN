@@ -1,6 +1,23 @@
 function varargout = classifyMultiSessionRois(sessionObject, varargin)
-%CLASSIFYMULTISESSIONROIS Summary of this function goes here
-%   Detailed explanation goes here
+%Classify matched ROIs across a longitudinal session set.
+%
+%Use this when:
+%- You have already migrated ROIs across sessions and computed
+%  classification data for each session.
+%- You want one classifier view where corresponding ROIs from different
+%  sessions stay aligned.
+%
+%What happens:
+%- NANSEN loads the multi-session ROI cross-reference from the first
+%  selected session.
+%- `RoiGroupLongitudinal` data are loaded from each selected session and
+%  reordered so matched ROIs appear together.
+%- The ROI classifier opens with session-aware labels.
+%- When classifications are saved, each session's `RoiGroupLongitudinal`
+%  is updated with the new labels.
+%
+%Outputs:
+%- Updated `RoiGroupLongitudinal` files for the selected sessions.
 
 % % % % % % % % % % % % % % % INSTRUCTIONS % % % % % % % % % % % % % % %
 % - - - - - - - - - - You can remove this part - - - - - - - - - - -
@@ -43,7 +60,7 @@ function varargout = classifyMultiSessionRois(sessionObject, varargin)
     params = utility.parsenvpairs(params, [], varargin);
     
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
-% Implementation of the method : Add your code here:
+% Implementation of the session method.
     
     varName = 'MultisessionRoiCrossReference';
     filePath = sessionObject(1).loadData(varName);

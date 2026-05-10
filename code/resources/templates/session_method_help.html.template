@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+      <link rel="stylesheet" href="./helpwin.css">
+      <title>{{ title }}</title>
+   </head>
+   <body>
+      <!--Single-page help-->
+      <div class="method-page">
+      <div class="subheader">
+         <div class="headertitle">NANSEN Session Method</div>
+      </div>
+      <div class="title">{{ main_title }}</div>
+      <div class="lead">
+         {{ helptext }}
+      </div>
+      <!--Description-->
+      <div class="sectiontitle">Guide</div>
+      <div class="guide-text">
+         {{ description }}
+      </div>
+      <!--Option Presets-->
+      <div class="sectiontitle"><a name="constructors"></a>Option Presets</div>
+      <table class="summary-list">
+         {% for preset in option_presets %}
+         <tr class="summary-item">
+            <td class="name">{{ preset.name }}</td>
+            <td class="m-help">{{ preset.description }}</td>
+         </tr>
+         {% endfor %}
+      </table>
+      <!--Parameters-->
+      <div class="sectiontitle"><a name="methods"></a>Parameters</div>
+      <table class="summary-list">
+         <tr class="summary-item">
+            <td class="columntitle">Name</td>
+            <td class="columntitle">Default value</td>
+            <td class="columntitle">Description</td>
+         </tr>
+         <!-- {% for param in parameters %} -->
+         <tr class="summary-item">
+            <td class="name">{{ param.name }}</td>
+            <td class="attributes">{{ param.default_value }}</td>
+            <td class="m-help">{{ param.description }}</td>
+         </tr>
+         <!-- {% endfor %} -->
+      </table>
+      </div>
+   </body>
+</html>

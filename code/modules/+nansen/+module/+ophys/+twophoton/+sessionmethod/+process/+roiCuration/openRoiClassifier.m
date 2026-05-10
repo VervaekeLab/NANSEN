@@ -1,6 +1,21 @@
 function varargout = openRoiClassifier(sessionObject, varargin)
-%OPENROICLASSIFIER Open roi classifier on a session
-%   Detailed explanation goes here
+%Open the ROI classifier for a selected ROI variable.
+%
+%Use this when:
+%- You want to manually label ROIs as cells, non-cells, or other configured
+%  classes.
+%- You have one or more ROI variables available for the selected session.
+%
+%What happens:
+%- NANSEN asks which ROI variable to classify.
+%- If needed, the ROI data are loaded through the ROI file adapter so the
+%  classifier receives a roiGroup.
+%- If ROI images are missing, the motion-corrected stack is passed in so
+%  the classifier can show image context.
+%
+%Outputs:
+%- Classification edits are handled by the ROI classifier app for the
+%  selected ROI file.
 
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
 % Create a struct of default parameters (if applicable) and specify one or
@@ -28,7 +43,7 @@ function varargout = openRoiClassifier(sessionObject, varargin)
     params = utility.parsenvpairs(params, 1, varargin);
     
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
-% Implementation of the method : Add your code here:
+% Implementation of the session method.
 
     sessionData = nansen.session.SessionData( sessionObject );
     sessionData.updateDataVariables()
@@ -74,8 +89,7 @@ end
 function S = getDefaultParameters()
     
     S = struct();
-    % Add more fields:
-    S.RoiSelectedCallbackFunction = '';
+    S.RoiSelectedCallbackFunction = ''; % Optional callback used when an ROI is selected.
 
 end
 

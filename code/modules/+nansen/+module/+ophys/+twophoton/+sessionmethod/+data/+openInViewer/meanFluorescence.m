@@ -1,6 +1,17 @@
 function varargout = meanFluorescence(sessionObject, varargin)
-%meanFluorescence Summary of this function goes here
-%   Detailed explanation goes here
+%View extracted mean-fluorescence ROI signals for this session.
+%
+%Use this when:
+%- You have already extracted ROI signals from the motion-corrected stack.
+%- You want to inspect raw fluorescence traces before neuropil correction,
+%  delta-F-over-F computation, or deconvolution.
+%
+%What happens:
+%- NANSEN loads `RoiSignals_MeanF`.
+%- The signals are opened in the interactive SignalViewer app.
+%
+%Outputs:
+%- No data are written; this method only opens an interactive viewer.
 
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
 % Create a struct of default parameters (if applicable) and specify one or
@@ -11,7 +22,7 @@ function varargout = meanFluorescence(sessionObject, varargin)
     params = getDefaultParameters();
     
     % Create a cell array with attribute keywords
-    ATTRIBUTES = {'batch', 'unqueueable'};
+    ATTRIBUTES = {'serial', 'unqueueable', 'MethodName', 'View Mean Fluorescence'};
     
 % % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % %
 % - - - - - - - - - - Please do not edit this part - - - - - - - - - - -
@@ -28,7 +39,7 @@ function varargout = meanFluorescence(sessionObject, varargin)
     params = utility.parsenvpairs(params, [], varargin);
     
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
-% Implementation of the method : Add your code here:
+% Implementation of the session method.
     
     sessionObject.validateVariable('RoiSignals_MeanF')
     roiSignalArray = sessionObject.loadData('RoiSignals_MeanF');
@@ -39,6 +50,5 @@ end
 function S = getDefaultParameters()
     
     S = struct();
-    % Add more fields:
 
 end
