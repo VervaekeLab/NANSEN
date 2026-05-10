@@ -780,8 +780,10 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
 
         function onFigureCloseRequest(obj)
 
-            wasAborted = obj.promptSaveRois();
-            if wasAborted; return; end
+            if ~isempty(obj.roiFilePath)
+                wasAborted = obj.promptSaveRois();
+                if wasAborted; return; end
+            end
             
             delete(obj)
             

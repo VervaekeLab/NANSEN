@@ -399,7 +399,7 @@ classdef OptionsManager < handle
             end
         end
         
-        function hOptionsEditor = openOptionsEditor(obj, optionsName, optsStruct)
+        function hOptionsEditor = openOptionsEditor(obj, optionsName, optsStruct, varargin)
         %openOptionsEditor Open options editor for current options.
         
             if nargin < 2 || isempty(optionsName)
@@ -419,7 +419,8 @@ classdef OptionsManager < handle
             hOptionsEditor = structeditor(optsStruct, ...
                 'OptionsManager', obj, ...
                 'Title', titleStr, ...
-                'Prompt', promptStr );
+                'Prompt', promptStr, ...
+                varargin{:} );
             
             hOptionsEditor.changeOptionsSelectionDropdownValue(optionsName);
             

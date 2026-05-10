@@ -49,6 +49,9 @@ classdef Caiman < nansen.session.SessionMethod
             
             obj.SessionObjects.saveData('RoiSignals_Deconvolved', deconvolved)
             obj.SessionObjects.saveData('RoiSignals_Denoised', denoised)
+
+            filePath = obj.getDataFilePath('RoiSignals_Deconvolved');
+            fprintf('Saved deconvolved signals to %s\n', filePath)
             
             % Todo: get computed timeconstants and other params and save
             
@@ -79,7 +82,9 @@ function hDffPlugin = openDeconvolutionExplorer(sessionObj)
     roiArray = sessionObj.loadData('RoiArray');
     
     % Load signals
-    roiSignalTable = sessionObj.loadData('RoiSignals_MeanF');
+    roiSignalTableMeanF = sessionObj.loadData('RoiSignals_MeanF');
+    roiSignalTableDff = sessionObj.loadData('RoiSignals_Dff');
+    roiSignalTable = cat(2, roiSignalTableMeanF, roiSignalTableDff);
     
     % Create roi group
     if isa(roiArray, 'RoI')

@@ -1,16 +1,15 @@
-classdef FluFinder < imviewer.ImviewerPlugin
-%FluFinder Imviewer plugin for FluFinder autosegmentation method
+classdef FluFinder < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewController
+%FluFinder Preview FluFinder ROI segmentation parameters in imviewer.
+%
+%   FluFinder is an imviewer plugin for adjusting FluFinder preprocessing
+%   and segmentation options while previewing their effect on the current
+%   image stack.
 %
 %   SYNTAX:
-%       flufinderPlugin = FluFinder(imviewerObj)
-%
-%       flufinderPlugin = FluFinder(imviewerObj, optionsManagerObj)
+%       flufinderPlugin = nansen.plugin.imviewer.FluFinder(imviewerHandle)
+%       flufinderPlugin = nansen.plugin.imviewer.FluFinder(imviewerHandle, options)
+%       flufinderPlugin = nansen.plugin.imviewer.FluFinder(imviewerHandle, options, Name, Value, ...)
 
-    properties (Constant, Hidden = true)
-        USE_DEFAULT_SETTINGS = false    % Ignore settings file
-        DEFAULT_SETTINGS = []           % This class uses an optionsmanager
-    end
-    
     properties (Constant)
        Name = 'FluFinder'
     end
@@ -31,14 +30,36 @@ classdef FluFinder < imviewer.ImviewerPlugin
     
     methods % Structors
         
-        function obj = FluFinder(varargin)
-        %FluFinder Create an instance of the FluFinder plugin for imviewer
+        function obj = FluFinder(imviewerHandle, varargin)
+        %FluFinder Create a FluFinder plugin for an imviewer app.
         %
-        %   flufinderPlugin = FluFinder(imviewerObj)
+        %   flufinderPlugin = FluFinder(imviewerHandle) creates the plugin
+        %   using default FluFinder options.
         %
-        %   flufinderPlugin = FluFinder(imviewerObj, optionsManagerObj)
-        
-            obj@imviewer.ImviewerPlugin(varargin{:})
+        %   flufinderPlugin = FluFinder(imviewerHandle, options, Name, Value, ...)
+        %   creates the plugin using a struct or nansen.manage.OptionsManager
+        %   for options. Remaining arguments are plugin flags or property-value
+        %   pairs, such as '-p' for partial construction.
+
+            arguments
+                imviewerHandle applify.AppWithPlugin
+            end
+            arguments (Repeating)
+                varargin
+            end
+
+            [options, pluginArgs] = ...
+                applify.mixin.HasOptionsManager.splitOptionsArgument(varargin);
+
+            obj@applify.mixin.ModalMethodPreviewController(options)
+            obj@imviewer.ImviewerPlugin(imviewerHandle, pluginArgs{:})
+
+            hasRunMethodOnFinishArgument = any(cellfun(@(arg) ...
+                (ischar(arg) || (isstring(arg) && isscalar(arg))) && ...
+                strcmp(arg, 'RunMethodOnFinish'), pluginArgs));
+            if ~hasRunMethodOnFinishArgument
+                obj.RunMethodOnFinish = false;
+            end
             
             obj.addPreviewOptions()
             
@@ -64,25 +85,30 @@ classdef FluFinder < imviewer.ImviewerPlugin
             tf = false;
         end
         
-        %onMousePressed(src, evt)
+        %onMousePressed(obj, src, evt)
 
     end
     
     methods
         
         function openControlPanel(obj, mode)
-            obj.editSettings()
+            obj.editOptions()
+        end
+
+        function optionsEditor = openOptionsEditor(obj)
+        %openOptionsEditor Open editor for method options.
+            optionsEditor = openOptionsEditor@applify.mixin.ModalMethodPreviewController(obj);
+            obj.arrangeAppWindows(optionsEditor)
+        end
+
+        function run(~)
+        %run Run FluFinder segmentation.
+            error('nansen:plugin:imviewer:FluFinder:RunNotImplemented', ...
+                'FluFinder does not implement run yet.')
         end
         
-        function loadSettings(~)
-            % This class does not have to load settings
-        end
-        function saveSettings(~)
-            % This class does not have to save settings
-        end
-        
-        function changeSetting(obj, name, value)
-            obj.onSettingsChanged(name, value)
+        function changeOption(obj, name, value)
+            obj.onOptionsChanged(name, value)
         end
 
         function showTip(obj, message)
@@ -101,56 +127,51 @@ classdef FluFinder < imviewer.ImviewerPlugin
             S.Show = 'Preprocessed';
             S.Show_ = {'Preprocessed', 'Binarized'};
             
-            obj.settings_.Preview = S;
+            obj.Options_.Preview = S;
             
         end
         
         function onPluginActivated(obj)
-            
+            onPluginActivated@imviewer.ImviewerPlugin(obj)
+            % Placeholder in case specialized operations need to run here
         end
         
-        function onSettingsChanged(obj, name, value)
+        function onOptionsChanged(obj, name, value)
             
             switch name
                 case 'RoiDiameter'
-                    obj.settings.General.RoiDiameter = value;
+                    obj.Options.General.RoiDiameter = value;
                     obj.plotCellTemplates(value/2)
                     
                 case 'Show'
-                    obj.settings.Preview.Show = value;
+                    obj.Options.Preview.Show = value;
                     obj.changeImageToDisplay();
                     
                 case 'PrctileForBinarization'
-                    obj.settings.Preprocessing.PrctileForBinarization = value;
+                    obj.Options.Preprocessing.PrctileForBinarization = value;
                     
-                    if strcmp(obj.settings.Preview.Show, 'Binarized')
+                    if strcmp(obj.Options.Preview.Show, 'Binarized')
                         obj.updateImviewerDisplay()
                     end
                     
                 case 'PrctileForBaseline'
-                    obj.settings.Preprocessing.PrctileForBaseline = value;
+                    obj.Options.Preprocessing.PrctileForBaseline = value;
                     obj.updateBackgroundImage()
                     obj.BackgroundOffset = 0;
 
-                    if strcmp(obj.settings.Preview.Show, 'Static Background')
+                    if strcmp(obj.Options.Preview.Show, 'Static Background')
                         obj.showImageInImviewer(obj.StaticBackground, 'Static Background')
-                    elseif strcmp(obj.settings.Preview.Show, 'Preprocessed')
+                    elseif strcmp(obj.Options.Preview.Show, 'Preprocessed')
                         obj.updateImviewerDisplay()
                     end
                     
                 case 'SmoothingSigma'
-                    obj.settings.Preprocessing.SmoothingSigma = value;
+                    obj.Options.Preprocessing.SmoothingSigma = value;
                     obj.BackgroundOffset = 0;
-                    if strcmp(obj.settings.Preview.Show, 'Preprocessed')
+                    if strcmp(obj.Options.Preview.Show, 'Preprocessed')
                         obj.updateImviewerDisplay()
                     end
             end
-        end
-    end
-    
-    methods (Static) % Inherited...
-        function getPluginIcon()
-            
         end
     end
     
@@ -161,7 +182,7 @@ classdef FluFinder < imviewer.ImviewerPlugin
             hRoimanager = obj.PrimaryApp.getPluginHandle('Roimanager');
             imArray = hRoimanager.prepareImagedata();
             
-            switch obj.settings.Preview.Show
+            switch obj.Options.Preview.Show
                 
                 case 'Preprocessed'
                     updateFcn = @obj.getPreprocessedImage;
@@ -186,7 +207,7 @@ classdef FluFinder < imviewer.ImviewerPlugin
         function imArray = getPreprocessedImageArray(obj, imArray)
             
             import nansen.wrapper.abstract.OptionsAdapter
-            opts = OptionsAdapter.ungroupOptions(obj.settings);
+            opts = OptionsAdapter.ungroupOptions(obj.Options);
             
             if isempty(obj.CachePreprocessed)
                 imArray = flufinder.module.preprocessImages(imArray, opts);
@@ -199,7 +220,7 @@ classdef FluFinder < imviewer.ImviewerPlugin
         function imArray = getBinarizedImageArray(obj, imArray)
             
             import nansen.wrapper.abstract.OptionsAdapter
-            opts = OptionsAdapter.ungroupOptions(obj.settings);
+            opts = OptionsAdapter.ungroupOptions(obj.Options);
             
             if isempty(obj.CacheBinarized)
                 imArray = obj.getPreprocessedImageArray(imArray);
@@ -212,7 +233,7 @@ classdef FluFinder < imviewer.ImviewerPlugin
         end
         
         function image = getPreprocessedImage(obj, image)
-            opts = obj.getUngroupedSettings();
+            opts = obj.getUngroupedOptions();
 
             % Preprocess (subtract dynamic background)
             optsNames = {'SpatialFilterType', 'SmoothingSigma'};
@@ -238,7 +259,7 @@ classdef FluFinder < imviewer.ImviewerPlugin
         
         function image = getBinarizedImage(obj, image)
             
-            opts = obj.getUngroupedSettings();
+            opts = obj.getUngroupedOptions();
             imageType = class(image);
             
             image = obj.getPreprocessedImage(image);
@@ -262,7 +283,7 @@ classdef FluFinder < imviewer.ImviewerPlugin
             import flufinder.preprocess.computeStaticBackgroundImage
             
             imageArray = obj.getImageArray();
-            opts = obj.getUngroupedSettings();
+            opts = obj.getUngroupedOptions();
             
             bgImage = computeStaticBackgroundImage(imageArray, opts);
             
@@ -333,9 +354,9 @@ classdef FluFinder < imviewer.ImviewerPlugin
             imArray = hRoimanager.prepareImagedata();
         end
         
-        function opts = getUngroupedSettings(obj)
+        function opts = getUngroupedOptions(obj)
             import nansen.wrapper.abstract.OptionsAdapter
-            opts = OptionsAdapter.ungroupOptions(obj.settings);
+            opts = OptionsAdapter.ungroupOptions(obj.Options);
         end
      end
 end

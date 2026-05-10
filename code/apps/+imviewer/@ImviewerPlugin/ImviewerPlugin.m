@@ -1,12 +1,8 @@
 classdef ImviewerPlugin < applify.mixin.AppPlugin
-%imviewer.AppPlugin Superclass for plugins to the imviewer app
+%imviewer.ImviewerPlugin App-scoped plugin base for imviewer
 
     % Abstract class providing properties and methods that gives plugin
     % functionality for imviewer.
-
-    properties
-        PrimaryAppName = 'imviewer'     % Name of primary app
-    end
     
     properties (Dependent)
         ImviewerObj                     % Alias for PrimaryApp % Rename to ImviewerApp
@@ -14,11 +10,9 @@ classdef ImviewerPlugin < applify.mixin.AppPlugin
     
     properties (GetAccess = protected, SetAccess = private)
         Axes                            % Axes for plotting into
-        %PointerManager
     end
 
     properties (Dependent, SetAccess = private)
-        NumFrames
         NumChannels
         NumPlanes
     end
@@ -32,23 +26,10 @@ classdef ImviewerPlugin < applify.mixin.AppPlugin
     methods % Constructor
         
         function obj = ImviewerPlugin(varargin)
-            
             % Make sure the given handle is an instance of imviewer.App
             [h, varargin] = imviewer.ImviewerPlugin.checkForImviewerInArgList(varargin);
             obj@applify.mixin.AppPlugin(h, varargin{:})
-            
-            if isempty(h); return; end
-
-            % Assign property values.
-            obj.PrimaryApp = h;
-            obj.Axes = h.Axes;
-
-            obj.onImviewerSet()
-
-            obj.assignDataIoModel() % todo: superclass? Should belong to a
-            % data method class, not a plugin.
-            % So a plugin that runs a method should inherit the imviewer
-            % plugin and the datamethod...
+            % onImviewerSet is called via onPluginActivated during activatePlugin above.
         end
     end
 
@@ -64,14 +45,6 @@ classdef ImviewerPlugin < applify.mixin.AppPlugin
     end
     
     methods
-        
-        function assignDataIoModel(obj)
-            return % Under construction. Todo: Move to another class
-            if isempty(obj.DataIoModel)
-                folderPath = fileparts( obj.ImviewerObj.ImageStack.FileName );
-                obj.DataIoModel = nansen.dataio.DataIoModel(folderPath);
-            end
-        end
         
         function imviewerObj = get.ImviewerObj(obj)
             imviewerObj = obj.PrimaryApp;

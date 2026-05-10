@@ -153,6 +153,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app@uiw.abstract.AppWindow('Preferences', nansen.Preferences, 'Visible', 'off')
             
             setappdata(app.Figure, 'AppInstance', app)
+            app.MessageDisplay = nansen.MessageDisplay(app.Figure);
             
             [isAppOpen, hApp] = app.isOpen();
             if isAppOpen
@@ -1810,7 +1811,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function onProjectChanged(app, varargin)
             app.TableIsUpdating = true;
             returnToIdle = app.setBusy('Changing project'); %#ok<NASGU>
-            hDlg = app.MessageDisplay.inform('Please wait, changing project...');
+            [hDlg, dlgCleanup] = app.MessageDisplay.wait('Please wait, changing project...', ...
+                'Title', 'Changing Project'); %#ok<ASGLU>
             
             app.BatchProcessor.closeTaskList()
 
@@ -1893,7 +1895,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
 
             app.TableIsUpdating = false;
-            delete(hDlg)
             clear returnToIdle
         end
         
@@ -2878,8 +2879,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             numSessions = numel(metaObjects);
             
             if numSessions > 5 && ~reset
-                h = waitbar(0, 'Please wait while updating values');
-                waitbarCleanup = onCleanup(@() delete(h));
+                [h, waitbarCleanup] = app.MessageDisplay.wait('Please wait while updating values', ...
+                    'Title', 'Updating Values'); %#ok<ASGLU>
             end
             
             % Todo: This function call is different for preprogrammed
@@ -2951,7 +2952,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     end
 
                     if numSessions > 5
-                        waitbar(iSession/numSessions, h)
+                        app.MessageDisplay.updateProgress(h, iSession/numSessions)
                     end
                 end
             end
@@ -3127,7 +3128,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         
         function refreshTable(app)
             returnToIdle = app.setBusy('Updating table'); %#ok<NASGU>
-            hDlg = app.MessageDisplay.inform('Please wait, updating table...');
+            hDlg = app.MessageDisplay.wait('Please wait, updating table...', ...
+                'Title', 'Updating Table');
             resetView = false;
             app.UiMetaTableViewer.resetTable(resetView)
             app.onNewMetaTableSet()
@@ -3706,7 +3708,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
 
             switch evt.Mode
-                case {'Default', 'Restart'}
+                case {'Default', 'Restart', 'Preview'}
                     taskSplitName = split(func2str(taskConfiguration.Method), '.');
                     fprintf('Task completed: %s\n', taskSplitName{end});
             end
