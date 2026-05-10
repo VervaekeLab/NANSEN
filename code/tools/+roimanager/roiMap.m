@@ -1607,7 +1607,7 @@ classdef roiMap < roimanager.roiDisplay
         
             %currentPoint = round( obj.hAxes.CurrentPoint(1, 1:2) );
             currentPoint = round(event.IntersectionPoint(1:2));
-            currentPoint = min([currentPoint; obj.FovSize]);
+            currentPoint = max([1, 1], min(currentPoint, obj.FovSize));
 
             [wasInRoi, roiInd] = obj.isPointInRoi(currentPoint(1), currentPoint(2));
                         
