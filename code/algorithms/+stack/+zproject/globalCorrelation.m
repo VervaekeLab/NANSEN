@@ -24,7 +24,7 @@ imageSignal = mean(mean(IM,2),1);
 imageSignal = single( squeeze(imageSignal) );
 
 % Divide data into chunks to use less memory during calculation
-tmpIm = stack.reshape.imsplit(IM, true, [], 'numRows', numRows, 'numCols', numCols);
+tmpIm = stack.reshape.splitImage(IM, numRows, numCols);
 tmpC = cell(size(tmpIm));
 
 for i = 1:size(tmpIm,1)
@@ -43,9 +43,9 @@ for i = 1:size(tmpIm,1)
     end
 end
 
-% Unchunk data
+% Reassemble blocks into a single image
 [d1,d2,~] = size(IM);
-cIm = stack.reshape.imsplit(tmpC, false, [d1,d2,1], 'numRows', numRows, 'numCols', numCols);
+cIm = stack.reshape.mergeImageBlocks(tmpC, [d1,d2]);
 
 % cast...
 cIm = cIm .* nansen.util.range(P) + P(1);
