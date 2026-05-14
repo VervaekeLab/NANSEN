@@ -13,6 +13,4 @@ function pathStr = browse()
     if isequal(fileName, 0); return; end
 
     pathStr = fullfile(folderPath, fileName);
-
 end
-    

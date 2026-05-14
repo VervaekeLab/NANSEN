@@ -7,21 +7,21 @@ function pathStr = packagename2pathstr(packageName)
 %   same type and size as the input.
 %
 %   EXAMPLE:
-    
+
     convertToCell = false;
     if ~isa(packageName, 'cell')
         packageName = {packageName};
         convertToCell = true;
     end
-    
+
     numPackages = numel(packageName);
-    
+
     pathStr = cell(size(packageName));
     for i = 1:numPackages
         folderNames = strcat('+', strsplit(packageName{i}, '.'));
         pathStr{i} = fullfile(folderNames{:});
     end
-    
+
     if convertToCell
         pathStr = pathStr{1};
     end

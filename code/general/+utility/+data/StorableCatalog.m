@@ -34,12 +34,12 @@ classdef StorableCatalog < handle
 % using structs makes it easier to define items...
 
 % Todo:
-%       [ ] Inherit from singletonish
-%       [ ] addpref and removepref methods
-%       [ ] Add mode for saving changes immediately or not. I.e when
+%       [ ] Inherit from singletonish
+%       [ ] addpref and removepref methods
+%       [ ] Add mode for saving changes immediately or not. I.e when
 %           working with table on command line versus in app...
-%       [ ] Property flag for whether items should be assigned uuids or not
-%       [ ] AutoSave property? I.e let user decide to autosave or not when
+%       [ ] Property flag for whether items should be assigned uuids or not
+%       [ ] AutoSave property? I.e let user decide to autosave or not when
 %           catalog changes.
 
 % Questions:
@@ -61,15 +61,15 @@ classdef StorableCatalog < handle
         Data struct % Todo: Rename ?
         Preferences
     end
-    
+
     properties (Dependent, SetAccess = private)
         TabularData
     end
-    
+
     properties (SetAccess = protected)
         FilePath char   % Filepath where current table is archived
     end
-    
+
     properties (Access = protected) % Might be better id this is dependent... (no need to explicitly update)
         ItemNames       % Name of all items in archive
     end
@@ -77,17 +77,17 @@ classdef StorableCatalog < handle
     properties (Hidden)
         SaveFormat = 'mat';
     end
-    
+
     events % Tentative...
         ItemAdded
         ItemRemoved
         ItemModified
     end
-    
+
     events % Or...
         DataChanged
     end
-    
+
 %     Implement this with protected data property, or have a set method
 %     that notifies an event or just make Data observable???
 
@@ -96,30 +96,29 @@ classdef StorableCatalog < handle
 %     end
 
     methods (Abstract, Static)
-    
+
         S = getBlankItem()
 
         S = getDefaultItem() % todo... remove
-        
+
         pathStr = getDefaultFilePath()
-        
     end
-    
+
     methods (Access =  protected)
-        
+
         function item = validateItem(obj, item)
-        
+
             requiredFields = fieldnames( obj.getBlankItem() );
             itemFields = fieldnames(item);
 
             assertMessage = 'Item does not match the item type of this catalog';
             assert(all(ismember(requiredFields, itemFields)), assertMessage)
         end
-        
+
         function item = validateFieldOrder(~, item)
         %validateFieldOrder Enforce Uuid as the first field of item struct
             itemFields = fieldnames(item);
-            
+
             % Make sure uuid is the first field...
             if contains('Uuid', itemFields) && ~strcmp(itemFields{1}, 'Uuid')
                 fieldOrder = ['Uuid'; setdiff(itemFields, 'Uuid', 'stable') ];
@@ -127,76 +126,75 @@ classdef StorableCatalog < handle
             end
         end
     end
-    
+
     methods % Constructor
-        
+
         function obj = StorableCatalog(varargin)
-            
+
             % Will assign FilePath property if given in list of inputs
             obj.parseVarargin(varargin{:})
-            
+
             if isempty(obj.FilePath)
                 obj.FilePath = obj.getDefaultFilePath();
             end
-            
+
             if ~isfile(obj.FilePath)
                 obj.initialize()
             end
-            
+
             obj.load()
-            
         end
     end
-    
+
     methods % Get method
         function T = get.TabularData(obj)
             T = struct2table(obj.Data, 'AsArray', true);
         end
     end
-    
+
     methods % Methods for archiving
-        
+
         function setFilePath(obj, filePath)
         %setFilePath Set filepath of archive. %Todo: remove?
-        
+
             folderPath = fileparts(filePath);
             if ~isfolder(folderPath); mkdir(folderPath); end
-            
+
             obj.FilePath = filePath;
         end
-        
+
         function refreshFilePath(obj)
             obj.FilePath = obj.getDefaultFilePath();
         end % resetFilePath
-        
+
         function reloadDefault(obj)
             obj.FilePath = obj.getDefaultFilePath();
             obj.load()
         end
-        
+
         function refresh(obj)
             obj.reloadDefault()
         end
-        
+
         function restoreCatalog(obj, structCatalog)
             obj.Preferences = structCatalog.Preferences;
             obj.Data = structCatalog.Data;
         end
-        
+
         function S = initialize(obj)
         %initialize Initialize file with variables
             S = struct();
             S.Data =  obj.getEmptyItem();
             S.Preferences = struct();
             S.Preferences.SourceID = utility.system.getComputerName(true);
-            
+
             % Add a uuid as the last field of S
             origNames = fieldnames(S.Data);
             [S.Data(:).Uuid] = {};
             S.Data = orderfields(S.Data, ['Uuid'; origNames]);
-            
+
             save(obj.FilePath, '-struct', 'S')
-            
+
             if ~nargout
                 clear S
             end
@@ -204,27 +202,26 @@ classdef StorableCatalog < handle
 
         function load(obj)
         %load Load data from file
-        
+
             if ~isfile(obj.FilePath)
                 obj.initialize()
             end
-            
+
             S = load(obj.FilePath, 'Data', 'Preferences');
-            
+
             S = obj.addUuidIfMissing(S); % Todo: Remove this on release.
-            
+
             S = obj.modifyStructOnLoad(S); % For subclasses to make modifications
             obj.fromStruct(S);
-            
+
             obj.assignItemNames()
-            
         end
-        
+
         function save(obj)
         %save Save data to file
             obj.saveas(obj.FilePath)
         end
-        
+
         function saveas(obj, filePath)
         %save Save data to file at file path given as input
             S = obj.toStruct();
@@ -238,23 +235,23 @@ classdef StorableCatalog < handle
             end
         end
     end
-    
+
     methods % Methods for manipulating entries
-                
+
         function name = getNewName(obj)
-            
+
             prefix = 'UNNAMED';
-            
+
             isUnnamed = contains(obj.ItemNames, prefix);
             numUnnamed = sum(isUnnamed);
             unnamedNames = sort(obj.ItemNames(isUnnamed));
-            
+
             candidates = arrayfun(@(i) sprintf('%s_%d', prefix, i), ...
                 1:(numUnnamed+1), 'uni', 0);
-            
+
             % Find candidate which is not in use...
             candidates = setdiff(candidates, unnamedNames, 'stable');
-            
+
             name = candidates{1};
         end
 
@@ -263,17 +260,17 @@ classdef StorableCatalog < handle
                 obj.insertItem(newItemList(i))
             end
         end
-        
+
         function newItem = insertItem(obj, newItem)
-            
+
             newItem.Uuid = nansen.util.getuuid();
             newItem = obj.validateFieldOrder(newItem);
-            
+
             % Make sure item has necessary fields...
             newItem = obj.validateItem(newItem);
-            
+
             insertIdx = numel(obj.Data) + 1;
-            
+
             % Make sure not to insert item with name that already exist...
             newItemName = obj.getItemName(newItem);
             if any(obj.containsItem(newItemName))
@@ -281,7 +278,7 @@ classdef StorableCatalog < handle
                     obj.ITEM_TYPE, newItemName);
                 error(message); %#ok<SPERR>
             end
-            
+
             % Todo: Should newItem replace old item if an item with the
             % name already exists? Or make separate replace method?
             if isempty(obj.Data)
@@ -289,38 +286,38 @@ classdef StorableCatalog < handle
             else
                 obj.Data(insertIdx) = newItem;
             end
-            
+
             obj.assignItemNames()
             obj.save()
-            
+
             if ~nargout
                 clear newItem
             end
         end
-        
+
         function newItem = replaceItem(obj, newItem)
-             
+
             % Make sure item has necessary fields...
             newItem = obj.validateItem(newItem);
-            
+
             itemName = obj.getItemName(newItem);
             [itemExists, insertIdx] = obj.containsItem(itemName);
-            
+
             if ~itemExists
                 error('Item with name "%s" does not exist in this catalog', itemName)
             else
                 obj.Data(insertIdx) = newItem;
             end
-            
+
             obj.save()
-            
+
             if ~nargout
                 clear newItem
             end
         end
-        
+
         function removeItem(obj, itemName)
-             
+
             if isnumeric(itemName) % Assume index was given instead of name
                 itemIndex = itemName;
                 itemName = obj.ItemNames(itemIndex);
@@ -328,73 +325,71 @@ classdef StorableCatalog < handle
                     itemName = char(itemName{1});
                 end
             end
-            
+
             tf = obj.containsItem(itemName);
-            
+
             if ~any(tf)
                 error('%s "%s" was not found in table', obj.ITEM_TYPE, itemName)
             end
-            
+
             obj.Data(tf) = [];
-            
+
             obj.assignItemNames()
             obj.save()
         end
     end
-    
-    methods % Methods for finding entries
 
+    methods % Methods for finding entries
     end
-    
+
     methods
-        
+
         function list(obj)
             disp( obj.TabularData )
         end
-        
+
         function initializeWithDefault(obj)
             obj.Data = obj.getDefaultItem();
         end
-        
+
         function obj = default(obj)
             obj.initializeWithDefault()
         end
 
         function name = getNameFromUuid(obj, uuid)
-            
+
             idx = find(strcmp({obj.Data.Uuid}, uuid));
-            
+
             if isempty(idx); name = ''; return; end
-            
+
             name = obj.getItemName( obj.Data(idx) );
-            
         end
-        
+
         function [S, idx] = getItem(obj, itemName)
-                    
+
             idx = obj.getItemIndex( itemName );
             S = obj.Data(idx);
-            
+
             if nargout == 1
                 clear idx
             end
         end
-        
+
         function idx = getItemIndex(obj, itemName)
-            
+
             if isnumeric(itemName) % Assume index was given instead of name
                 idx = itemName;
-                
+
             elseif obj.isuuid(itemName) % Assume uuid was given instead of name
                 idx = find(strcmp({obj.Data.Uuid}, itemName));
-                
+
             else
                 idx = find(strcmp(obj.ItemNames, itemName));
             end
         end
-        
+
         function name = getItemName(obj, item)
-            
+
             if ~isempty(obj.Data)
                 fieldNames = fieldnames(obj.Data);
                 idName = fieldNames{2};
@@ -402,128 +397,125 @@ classdef StorableCatalog < handle
                 fieldNames = fieldnames(obj.getEmptyItem() ); % Todo: replace with blank item
                 idName = fieldNames{1};
             end
-            
+
             name = item.(idName);
-            
         end
 
         function name = getItemName2(obj, item) % Alternative version..
             % Assumes the "Name" is the second fieldname. Todo: generalize
             fieldNames = fieldnames(obj.Data);
-            
+
             if strcmp(fieldNames{1}, 'Uuid')
                 idName = fieldNames{2};
             else
                 idName = fieldNames{1};
             end
-            
+
             name = item.(idName);
         end
-        
+
         function [Lia, Locb] = ismember(obj, itemName)
         %ismember
-            
+
             Lia = ismember(itemName, obj.ItemNames);
-            
+
             if nargout == 2
                 Locb = find(Lia);
             end
         end
-        
+
         function [tf, idx] = containsItem(obj, itemName)
         %containsItem Check if given item is part of current archive
-
 
             % normalize itemName to char:
             itemName = char(itemName);
 
             tf = ismember(obj.ItemNames, itemName);
-            
+
             if nargout == 2
                 idx = find(tf);
             end
         end
-        
+
         function setData(obj, dataStruct)
             obj.Data = dataStruct;
         end
-        
+
         function S = getBackupCatalog(obj)
             S = obj.toStruct();
         end
-        
+
         function tf = isequal(obj, catalogStruct)
             S = obj.toStruct();
             tf = isequal(S, catalogStruct);
         end
     end
-    
+
     methods (Access = protected)
-        
+
         function S = cleanStructOnSave(obj, S)
             % Subclass can override
         end
-        
+
         function S = modifyStructOnLoad(obj, S)
             % Subclass can override
         end
-        
+
         function S = getEmptyItem(obj)
         %getEmptyItem Get an empty item for the data property
             S = obj.getBlankItem();
             S(1) = [];
         end
-            
+
         function assignItemNames(obj)
         %assignItemNames Assign names of all items to property
-        
+
             % Assumes the "Name" is the second fieldname. Todo: generalize
             fieldNames = fieldnames(obj.Data);
-            
+
             if strcmp(fieldNames{1}, 'Uuid')
                 idName = fieldNames{2};
             else
                 idName = fieldNames{1};
             end
-            
+
             assertMsg = 'Expected leading tablevariable to be name of item';
             assert(contains(lower(idName), 'name'), assertMsg)
-            
+
             obj.ItemNames = {obj.Data.(idName)};
             obj.ItemNames = cellfun(@(c) char(c), obj.ItemNames, 'uni', false); % normalize to chars
-            
         end
     end
-    
+
     methods (Access = private)
-        
+
         function S = toStruct(obj)
             S = struct();
             S.Data = obj.Data;
             S.Preferences = obj.Preferences;
         end
-        
+
         function fromStruct(obj, S)
             assert(isfield(S, 'Preferences'), 'Catalog must have Preferences')
             assert(isfield(S, 'Data'), 'Catalog must have Data')
-            
+
             % Todo: Make sure all the fieldnames are the same.
-            
+
             obj.Data = S.Data;
             obj.Preferences = S.Preferences;
         end
-        
+
         function parseVarargin(obj, varargin)
-            
+
             if ~isempty(varargin)
                 varargin = obj.checkArgsForFilePath(varargin);
             end
         end
-        
+
         function argList = checkArgsForFilePath(obj, argList)
-            
+
             if isa(argList{1}, 'char')
-                
+
                 % Check if it is a valid filepath
                 isFilePath = contains(argList{1}, filesep);
 
@@ -539,25 +531,25 @@ classdef StorableCatalog < handle
                 end
             end
         end
-        
+
         function S = addUuidIfMissing(~, S)
             %addUuidIfMissing
-            
+
             if isfield(S.Data, 'Uuid'); return; end
-           
+
             originalFieldNames = fieldnames(S.Data);
-            
+
             for i = 1:numel(S.Data)
                 S.Data(i).Uuid = nansen.util.getuuid();
             end
-            
+
             if isempty(S.Data) % Alternative way to add field for empty struct
                 [S.Data.Uuid] = {};
             end
-            
+
             S.Data = orderfields(S.Data, ['Uuid'; originalFieldNames]);
         end
-        
+
         function saveToFolder(obj, S)
         %saveToFolder Save catalog to a folder with one file per item
             % Make folder if it does not exist.
@@ -568,7 +560,7 @@ classdef StorableCatalog < handle
             main = struct;
             main.Preferences = S;
             main.Data = utility.struct.substruct(S.Data, {'Uuid'});
-            
+
             % Loop through each item and save
             for i = 1:numel(S.Data)
                 s = S.Data(i);
@@ -582,7 +574,7 @@ classdef StorableCatalog < handle
             filename = sprintf('_%s_inventory.mat', name);
             save(fullfile(folderPath, filename), '-struct', 'main')
         end
-        
+
         function S = loadFromFolder(obj)
         %loadFromFolder Load catalog from a folder with one file per item
         %
@@ -592,9 +584,9 @@ classdef StorableCatalog < handle
         %   modular, in that its easier to add and remove items.
 
             folderPath = strrep(obj.FilePath, '.mat', '');
-            
+
             L = dir(fullfile(folderPath, '*.mat'));
-            
+
             % Find preferences
             isPref = strcmp({L.name}, '_preferences.mat');
             filePath = fullfile(L(isPref).folder, L(isPref).name);
@@ -613,24 +605,22 @@ classdef StorableCatalog < handle
             S.Data = cat(2, itemArray{:});
         end
     end
-    
+
     methods (Static)
-        
+
         function h = new()
-        
         end
-        
+
         function open(filePath)
-            
         end
     end
-    
+
     methods (Static, Access = private)
-        
+
         function tf = isuuid(value)
-            
+
             tf = false;
-            
+
             if ischar(value)
                 expression = '\w{8}-\w{4}-\w{4}-\w{4}-\w{12}';
                 tf = ~isempty(regexp(value, expression, 'once'));

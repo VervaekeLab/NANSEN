@@ -1,7 +1,7 @@
 classdef buttonLightMode2 < uim.style.buttonScheme
-    
+
     properties (Constant)
-        
+
         HighlightedOn = struct(...
             'ForegroundColor', [0, 0, 0]/255, ... %ones(1,3) * 0.15
             'BackgroundColor', ones(1,3) * 0.7, ...

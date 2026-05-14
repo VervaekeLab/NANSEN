@@ -10,14 +10,14 @@ classdef DataMethodSubStep < handle
         StepID char
         Description char
     end
-    
+
     methods
-        
+
         function obj = DataMethodSubStep(id, description)
             if nargin == 0
                 return
             end
-           
+
             obj.StepID = id;
             obj.Description = description;
         end

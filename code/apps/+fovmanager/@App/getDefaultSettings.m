@@ -13,5 +13,4 @@ S.hemisphereToLabel_ = {'right', 'left'}; % left|right
 S.hemisphereToLabel = 'right'; % left|right
 S.askBeforeDelete = true;
 S.fovOrientation = struct('flipVertical', false, 'flipHorizontal', false, 'rotationAngle', -90);
-
 end

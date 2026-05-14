@@ -12,7 +12,7 @@ function sOut = substruct(sIn, varargin)
 
     sOut = struct;
     numItems = numel(sIn);
-    
+
     for i = 1:numel(fieldNames)
         if isfield(sIn, fieldNames{i})
             [sOut(1:numItems).(fieldNames{i})] = deal(sIn(:).(fieldNames{i}));

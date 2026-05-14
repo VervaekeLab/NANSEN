@@ -6,5 +6,4 @@ switch keyword
 
     case 'toolbar_icons'
         pathStr = fullfile(pkgRootPath, 'resources', 'icons');
-
 end

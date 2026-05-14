@@ -9,7 +9,7 @@ function [A, C, centerOut] = addManualComponent(Y, A, C, center, roiRad, options
     if nargin < 5 || isempty(roiRad)
         roiRad = 5;
     end
-    
+
     roiRad = round(roiRad);
 
     [~,T] = size(C);
@@ -33,24 +33,23 @@ function [A, C, centerOut] = addManualComponent(Y, A, C, center, roiRad, options
     if int_y(end)>options.d2
         int_y = int_y - (int_y(end)-options.d2);
     end
-            
+
     % Create a meshgrid, for the box specified by x and y and find
     % all the pixels within this square box.
     [INT_x,INT_y] = meshgrid(int_x,int_y);
     coor = sub2ind([options.d1,options.d2],INT_x(:),INT_y(:));
-            
+
     % Crop image based on rectangle
     Ypatch = reshape(Y(int_x,int_y,:),(2*roiRad+1)^2,T);  % make it nPix x nFrames
     Y_res = Ypatch - A(coor,:)*C; % Subtract activity from other rois in the square???
     Y_res = bsxfun(@minus, Y_res, median(Y_res,2)); % same as Y_res-median(Y_res,2)
-            
+
     [atemp, ctemp, ~, ~, newcenter, ~] = greedyROI(reshape(Y_res,2*roiRad+1,2*roiRad+1,T), 1, options); % Call greedy roi to initialize a and c.
-            
+
     % Add the new components to the list of components!
     A(coor,end+1) = atemp/norm(atemp);
     C(end+1,:) = ctemp*norm(atemp);
-    
+
     % Find new center based on the spatial component found by greedy roi.
     centerOut = com(A(:,end),options.d1,options.d2);
-
 end

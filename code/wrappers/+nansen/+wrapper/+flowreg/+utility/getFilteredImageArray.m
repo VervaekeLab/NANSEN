@@ -32,4 +32,3 @@ function C1 = getFilteredImageArray(Y, options, varargin)
         end
     end
 end
-        

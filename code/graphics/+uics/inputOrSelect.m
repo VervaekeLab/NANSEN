@@ -1,13 +1,13 @@
 function selectedValue = inputOrSelect(listIn, varargin)
 %inputOrSelect Dialog for entering a value manually or select from a list
-    
+
     params = struct();
     params.Title = '';
     params.Theme = nansen.theme.getThemeColors('dark-purple');
     params.ReferencePosition = [];
     params.ItemName = 'value';
     params.FontSize = 13;
-    
+
     params = utility.parsenvpairs(params, 1, varargin{:});
 
     if nargin < 1
@@ -22,10 +22,10 @@ function selectedValue = inputOrSelect(listIn, varargin)
         end
         return
     end
-    
+
     MARGINS = [20, 70, 20, 20];
     SPACING = [20, 20];
-    
+
     bgColor = params.Theme.FigureBgColor;
 
     f = figure('MenuBar', 'none', 'Resize', 'off');
@@ -35,38 +35,38 @@ function selectedValue = inputOrSelect(listIn, varargin)
     else
         f.Name = params.Title;
     end
-    
+
     hPanel = uipanel(f);
     hPanel.BorderType = 'none';
     hPanel.BackgroundColor = bgColor;
-    
+
     tmpPanel = uipanel(f);
     tmpPanel.BorderType = 'none';
     tmpPanel.BackgroundColor = bgColor;
     %tmpPanel.Visible = 'off'; % Debug...
-    
+
     %uicc = uim.UIComponentCanvas(hPanel);
-    
+
   % % Configure layout of components
     buttonSize = [80, 18];
-    
+
     editSize = [160, 20];
-   
+
     componentWidth = editSize(1);
     componentHeight = 225;
-    
+
     f.Position(3:4) = [componentWidth, componentHeight] + sum(MARGINS([1,2;3,4]));
     H = f.Position(4); % Figure Height
-    
+
     if ~isempty(params.ReferencePosition)
         uim.utility.layout.centerObjectInRectangle(f, params.ReferencePosition)
     end
-     
+
     x = MARGINS(1);
     y = H - MARGINS(4) - editSize(2);
-    
+
   % % Create components
-  
+
     hLabelEdit = uicontrol(hPanel, 'Style', 'text');
     hLabelEdit.String = sprintf('Enter a %s...', params.ItemName);
     hLabelEdit.Position = [x, y, editSize];
@@ -88,7 +88,7 @@ function selectedValue = inputOrSelect(listIn, varargin)
     listboxHeight = y - MARGINS(2) - SPACING(2)/3;
     listboxSize = [editSize(1), listboxHeight];
     %listboxSize = [editSize(1), componentHeight - editSize(2) - SPACING(2)];
-    
+
     y = MARGINS(2);
     hLBox = uicontrol(hPanel, 'Style', 'listbox');
     hLBox.Position = [x, y, listboxSize];
@@ -121,7 +121,7 @@ function selectedValue = inputOrSelect(listIn, varargin)
     end
 
     hLabels = [hLabelEdit, hLabelSelect];
-    
+
     warning('off', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
     h = applify.uicontrolSchemer([hButtons, hEdit, hLBox, hLabels]);
     warning('on', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
@@ -136,16 +136,16 @@ function selectedValue = inputOrSelect(listIn, varargin)
     hEdit.ForegroundColor = params.Theme.FigureFgColor;
     hLBox.BackgroundColor = bgColor;
     hEdit.BackgroundColor = bgColor;
-    
+
     set(hLabels, 'ForegroundColor', params.Theme.FigureFgColor, 'FontSize', params.FontSize-1)
     set([hLBox, hEdit, hButtons], 'FontSize', params.FontSize)
-    
+
     delete(tmpPanel)
-    
+
     uiwait(f)
-    
+
     if ~isvalid(f); selectedValue = []; return; end
-    
+
     switch f.UserData.Mode
         case 'Ok'
             if hLBox.Value == 1
@@ -160,11 +160,11 @@ function selectedValue = inputOrSelect(listIn, varargin)
             else
                 selectedValue = [];
             end
-            
+
         case 'Cancel'
             selectedValue = [];
     end
-    
+
     delete(f)
     delete(h)
 end

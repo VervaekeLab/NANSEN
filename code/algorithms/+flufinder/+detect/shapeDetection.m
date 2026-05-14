@@ -1,17 +1,17 @@
 function [roisOut, statOut] = shapeDetection(im, rois, varargin)
 
     showResults = false; % For debugging
-    
+
     defaults.Shape = 'ring'; % 'ring' or 'disk' or 'custom'
     defaults.ShapeKernel = [];
-    
+
     defaults.InnerRadius = 3;
     defaults.OuterRadius = 5;
     defaults.Sigma       = 1;
     defaults.PercentOverlapForMerge = 75; % todo.
 
     options = utility.parsenvpairs(defaults, [], varargin{:});
-    
+
     im = double(im);
 
     % Normalize image to values between 0 and 1.
@@ -24,10 +24,10 @@ function [roisOut, statOut] = shapeDetection(im, rois, varargin)
         case 'disk'
             filterWindow = flufinder.filter.makeDiskKernel(im, varargin{:});
     end
-    
+
     % C = conv2(imOrig,window, 'same') ;
     % C = C./max(C(:));
-    
+
     %% Filter image using the selected shape/filter kernel and use the
     % filtered image to detect components.
 
@@ -51,7 +51,7 @@ function [roisOut, statOut] = shapeDetection(im, rois, varargin)
 
     stat = regionprops(CC, 'Centroid');
     stat2 = regionprops(CC, B, {'MaxIntensity', 'MeanIntensity'});
-    
+
     centerCoords = cat(1, stat(:).Centroid);
     % plot(gca, centerCoords(:,1), centerCoords(:,2), 'x')
 
@@ -73,11 +73,11 @@ function [roisOut, statOut] = shapeDetection(im, rois, varargin)
 
     centerCoords = round( centerCoords(keep, :) );
     stat2 = stat2(keep);
-    
+
     nKeep = sum(keep);
 
     % Todo: Use specialized function for getting crop indices
-    
+
     %% extract "box" around remaining centroids.
     boxSize = [21,21];
     assert(all(mod(boxSize,2)==1), 'Boxsize should be odd')
@@ -91,7 +91,7 @@ function [roisOut, statOut] = shapeDetection(im, rois, varargin)
         tmpY = indY + centerCoords(i, 2);
         imdata(:, :, i) = im(tmpY, tmpX);
     end
-    
+
 % % %     [~, indMax] = sort([stat2.MaxIntensity], 'descend');
 % % %     imdataSortedMax = imdata(:, :, indMax);
 % % %     imdataSortedMaxUS = imresize(imdataSortedMax, 4);
@@ -119,15 +119,15 @@ function [roisOut, statOut] = shapeDetection(im, rois, varargin)
     centerCoords = centerCoords(keep2, :);
 
     [masksSmall, s] = flufinder.binarize.findSomaMaskByEdgeDetection(imdata, centerCoords, size(im));
-    
+
     % Todo: place in fov sized mask
     masks = zeros([size(im), size(masksSmall,3)], 'logical');
-    
+
     for i = 1:size(masksSmall,3)
         masks(:, :, i) = flufinder.utility.placeLocalRoiMaskInFovMask(...
             masksSmall(:, :, i), centerCoords(i,:), masks(:, :, i));
     end
-    
+
     if showResults
         nIms = size(imdata,3);
         masks = zeros([size(im), nIms], 'logical');
@@ -135,9 +135,9 @@ function [roisOut, statOut] = shapeDetection(im, rois, varargin)
         for i = 1:nIms
             center = centerCoords(i, :);
             [maskSmall, s(i)] = flufinder.binarize.findSomaMaskByEdgeDetection(imdata(:,:,i));
-            
+
             masks(S(2):L(2), S(1):L(1), i) = roiMaskSmall;
-            
+
             if showResults
                 f = figure('Position', [1,1,  size(imdata,2)*4, size(imdata,1)*4], 'Visible', 'off');
                 ax = axes('Position', [0,0,1,1], 'Parent', f);
@@ -186,7 +186,7 @@ function [roisOut, statOut] = shapeDetection(im, rois, varargin)
     for i = 1:size(masks, 3)
         roisOut(end+1) = RoI('Mask', masks(:, :, i), size(im));
     end
-    
+
     % Merge overlapping rois before returning
     overlap = options.PercentOverlapForMerge ./ 100;
     roisOut = flufinder.utility.mergeOverlappingRois(roisOut, overlap);

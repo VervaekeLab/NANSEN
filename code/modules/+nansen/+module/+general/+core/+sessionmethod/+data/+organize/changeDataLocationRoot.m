@@ -1,7 +1,7 @@
 function varargout = changeDataLocationRoot(sessionObject, varargin)
 %CHANGEDATALOCATIONROOT Change the root directory for the specified data location of a session.
 %
-% CHANGEDATALOCATIONROOT opens an interactive dialog for changing the root 
+% CHANGEDATALOCATIONROOT opens an interactive dialog for changing the root
 % folder of the selected data location for a session. The dialog is a
 % dropdown selector where you can select the root folder from all
 % configured root folders of the data location.
@@ -25,35 +25,35 @@ function varargout = changeDataLocationRoot(sessionObject, varargin)
 % Create a struct of default parameters (if applicable) and specify one or
 % more attributes (see nansen.session.SessionMethod.setAttributes) for
 % details.
-    
+
     % Get struct of parameters from local function
     params = getDefaultParameters();
-    
+
     % Create a cell array with attribute keywords
     ATTRIBUTES = {'batch', 'queueable'};
-   
+
     % Get all data location names and make a list of alternatives
     dlm = nansen.DataLocationModel;
     ATTRIBUTES = [ATTRIBUTES, {'Alternatives', dlm.DataLocationNames}];
-    
+
 % % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % %
 % - - - - - - - - - - Please do not edit this part - - - - - - - - - - -
-    
+
     % Create a struct with "attributes" using a predefined pattern
     import nansen.session.SessionMethod
     fcnAttributes = SessionMethod.setAttributes(params, ATTRIBUTES{:});
-    
+
     if ~nargin && nargout > 0
         varargout = {fcnAttributes};   return
     end
-    
+
     params.Alternative = dlm.DataLocationNames{1}; % Set a default value.
 
     % Parse name-value pairs from function input and update parameters
     params = utility.parsenvpairs(params, [], varargin);
-    
+
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
-    
+
     % Get data locations, make a list of available roots, let user select
     % which one to use and then apply that data location to all sessions
 
@@ -61,7 +61,7 @@ function varargout = changeDataLocationRoot(sessionObject, varargin)
 
     dlm = sessionObject(1).DataLocationModel;
     thisDataLoc = dlm.getDataLocation(dataLocName);
-                
+
     S = struct();
 
     rootDir = cell(numel(sessionObject), 1);
@@ -72,15 +72,15 @@ function varargout = changeDataLocationRoot(sessionObject, varargin)
 
     rootPath = sessionObject(1).getDataLocationRootDir(dataLocName);
     allRootPaths = {thisDataLoc.RootPath.Value};
-                
+
     if isempty(rootPath)
         rootPath = '';
     end
-                
+
     if ~any(strcmp(rootPath, allRootPaths))
         allRootPaths = [{rootPath}, allRootPaths];
     end
-                
+
     S.RootPath = rootPath;
     S.RootPath_ = allRootPaths;
 
@@ -92,12 +92,12 @@ function varargout = changeDataLocationRoot(sessionObject, varargin)
 
     h.Title = sprintf('Edit Data Location Rootpath');
     h.waitfor()
-            
+
     if h.wasCanceled
         return
     else
         sNew = h.dataEdit;
-    
+
         for i = 1:numel(sessionObject)
             sessionObject(i).updateRootDirPath(dataLocName, sNew.RootPath)
         end
@@ -112,7 +112,7 @@ function params = getDefaultParameters()
 %
 %   params = getDefaultParameters() should return a struct, params, which
 %   contains fields and values for parameters of this session method.
-    
+
     % Add fields to this struct in order to define parameters for this
     % session method:
     params = struct();

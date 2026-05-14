@@ -6,21 +6,21 @@ function reset()
         'the operation can not be undone. \nAre you sure you want to continue? ', ...
         'Enter y or n: ']);
     answer = input(msg, 's');
-    
+
     if ~strcmp(answer, 'y')
         disp('Aborted.')
         return
     end
-    
+
     %% Remove Preferences
     preferenceGroups = {'nansen_App', 'Nansen'};
-    
+
     for i = 1:numel(preferenceGroups)
         if ispref(preferenceGroups{i})
             rmpref(preferenceGroups{i})
         end
     end
-    
+
     %% Remove folders with userdata
     nansenRootPath = nansen.rootpath();
 
@@ -31,18 +31,18 @@ function reset()
         fullfile(nansenRootPath, 'external', 'neuroscience_toolboxes'), ...
         fullfile(nansenRootPath, '_userdata', 'projects'), ...
         fullfile(nansenRootPath, '_userdata', 'settings') };
-    
+
     backupPath = fullfile(nansenRootPath, '_userdata', 'backup', ...
         datestr(now, 'yyyy_mm_dd_HHMMSS'));
-    
+
     for i = 1:numel(folderPath)
-        
+
         iPath = folderPath{i};
-        
+
         if ~isfolder(iPath)
             continue
         end
-        
+
         try
             rmpath(genpath(iPath))
 
@@ -54,11 +54,11 @@ function reset()
             else
                 rmdir(iPath, 's')
             end
-            
+
             % Remake an empty directory
             mkdir(iPath)
             addpath(genpath(iPath))
-            
+
         catch ME
             disp(ME.message)
         end
@@ -66,9 +66,7 @@ function reset()
 
     %% Show a confirmation message
     disp('All settings and user data was removed')
-    
 end
 
 function moveDirToBackup
-
 end

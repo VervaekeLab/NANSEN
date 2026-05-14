@@ -21,5 +21,4 @@ function imageOut = translateImage(imageIn, varargin)
 
     % Use imwarp to translate image with subpixel resolution
     imageOut = imwarp(imageIn, D, 'cubic');
-    
 end

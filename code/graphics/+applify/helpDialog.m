@@ -28,7 +28,7 @@ function helpDialog(functionName, options)
 
     functionFilepath = which(functionName);
     functionContentStr = fileread(functionFilepath);
-    
+
     [idx, functions] = regexp(functionContentStr, 'classdef.*?end', 'start', 'match');
     if isempty(idx)
         [idx, functions] = regexp(functionContentStr, 'function.*?end', 'start', 'match');
@@ -36,7 +36,7 @@ function helpDialog(functionName, options)
 
     function_def = functions{1};
     function_def = regexprep(function_def, '\n        ', '', 'once');
-        
+
     functionLines = strsplit(function_def, '\n', 'CollapseDelimiters', false);
     functionLines{1} = '% Summary:';
     functionDoc = {};
@@ -51,7 +51,7 @@ function helpDialog(functionName, options)
             break
         end
     end
-    
+
     % Create a figure for showing help text
     helpfig = figure('Position', [100,200,500,500], 'Visible', 'off');
     helpfig.Resize = 'off';
@@ -71,11 +71,11 @@ function helpDialog(functionName, options)
     % put in different xpositions.
     numMessage = numel(messages);
     hTxt = gobjects(numMessage, 1);
-    
+
     y = 0.1;
     x1 = 0.05;
     %x2 = 0.3;
-    
+
     count = 0;
 
     for i = numel(messages):-1:1
@@ -99,9 +99,9 @@ function helpDialog(functionName, options)
 
         y = y + 0.04;
     end
-    
+
     hTxt = hTxt(1:count);
-    
+
     color = theme.FigureFgColor;
     set(hTxt, 'FontSize', 14, 'Color', color, 'VerticalAlignment', 'top')
 
@@ -119,10 +119,10 @@ function helpDialog(functionName, options)
     helpfig.Position(4) = helpfig.Position(4) - (1-y)*helpfig.Position(4);
     uim.utility.centerFigureOnScreen(helpfig)
     helpfig.Visible = 'on';
-    
+
     if nansen.util.isJavaFrameSupported()
         % Close help window if it loses focus
-        warnCleanup = nansen.ui.legacy.tempDisableJavaFrameWarnings(); %#ok<NASGU>    
+        warnCleanup = nansen.ui.legacy.tempDisableJavaFrameWarnings(); %#ok<NASGU>
         jframe = getjframe(helpfig);
         set(jframe, 'WindowDeactivatedCallback', @(s, e) delete(helpfig))
     end
@@ -133,13 +133,13 @@ function makeHyperlink(hText)
     hText.Color = 'blue';
     hText.FontWeight = 'bold';
     hText.Interpreter = 'none';
-    
+
     % Add an interactive callback to simulate a hyperlink
     set(hText, 'ButtonDownFcn', @(src, event) web(hText.String, '-browser'));
-    
+
     % Make the text object clickable
     hText.HitTest = 'on';
-    
+
     % Set the axes to allow clicking on the text
     % set(gca, 'ButtonDownFcn', []);
 end

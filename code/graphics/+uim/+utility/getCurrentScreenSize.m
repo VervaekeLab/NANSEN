@@ -4,18 +4,18 @@ function [screenSize, screenNumber] = getCurrentScreenSize(hFig)
 %   [screenSize, screenNumber] = getCurrentScreenSize(hFig) returns the
 %   posision coordinates (screenSize) and number of the monitor where a
 %   figure is located.
-    
+
     MP = get(0, 'MonitorPosition');
     if size(MP, 1) == 1
         screenSize = MP;
         screenNumber = 1;
         return
     end
-    
+
     % Get coordinates for upper left corner of figure
     xPos = hFig.Position(1);
     yPos = hFig.Position(2) + hFig.Position(4);
-    
+
     screenNumber = getMonitorIdx([xPos, yPos], MP); % Check upper left
 
     if isnan(screenNumber)                          % Check upper right
@@ -23,7 +23,7 @@ function [screenSize, screenNumber] = getCurrentScreenSize(hFig)
         xPos = hFig.Position(1) + hFig.Position(3);
         screenNumber = getMonitorIdx([xPos, yPos], MP);
     end
-    
+
     if ~isnan(screenNumber)
         screenSize = MP(screenNumber, :);
     else
@@ -48,7 +48,7 @@ function monitorIdx = getMonitorIdx(point, monitorPositionArray)
 
     monitorIdx = nan;
     numMonitors = size(monitorPositionArray, 1);
-    
+
     % Find monitor where point is located
     for iMonitor = 1:numMonitors
          if isPointInPosition( point, monitorPositionArray(iMonitor, :) )

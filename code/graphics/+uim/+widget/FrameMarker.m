@@ -1,9 +1,9 @@
 classdef FrameMarker < uim.mixin.assignProperties
 
     % Todo
-    % [ ] Create Interactive frame marker
-    % [ ] Property to control axis , i.e x or y
-    % [ ]
+    % [ ] Create Interactive frame marker
+    % [ ] Property to control axis , i.e x or y
+    % [ ]
 
     properties
         Value = 1
@@ -65,9 +65,9 @@ classdef FrameMarker < uim.mixin.assignProperties
     methods (Access = private)
 
         function drawFrameMarker(obj)
-            
+
             obj.LineHandle = plot(obj.Axes, [1, 1], [0, 1], '-', 'HitTest', 'off');
-            
+
             obj.TopButtonHandle = plot(obj.Axes, 1, 1, 'v', ...
                 'HitTest', 'on', 'MarkerSize', 10);
             obj.TopButtonHandle.ButtonDownFcn = @obj.knobPressed;
@@ -95,20 +95,20 @@ classdef FrameMarker < uim.mixin.assignProperties
             pointerBehavior.enterFcn    = @(s,e,hObj)obj.onMouseEnterSlider(h);
             pointerBehavior.exitFcn     = @(s,e,hObj)obj.onMouseExitSlider(h);
             pointerBehavior.traverseFcn = [];%@obj.moving;
-            
+
             iptSetPointerBehavior(h, pointerBehavior);
             iptPointerManager(ancestor(h, 'figure'));
         end
 
         function updateFrameMarker(obj, flag)
         % Update line indicating current frame in plot.
-        
+
             if ~obj.IsConstructed; return; end
-            
+
             xValue = obj.Value;
 
                 %yLim = obj.ax.YAxis(1).Limits;
-                        
+
             allHandles = [obj.LineHandle, obj.TopButtonHandle, obj.BottomButtonHandle];
 
             yData = {[0,1], 1, 0};
@@ -118,7 +118,7 @@ classdef FrameMarker < uim.mixin.assignProperties
         end
 
         function resetWindowMouseListeners(obj)
-            
+
             if isvalid(obj) && ~isempty(obj.WindowMouseMotionListener)
                 delete(obj.WindowMouseMotionListener)
                 obj.WindowMouseMotionListener = [];
@@ -141,12 +141,12 @@ classdef FrameMarker < uim.mixin.assignProperties
                 h.MarkerFaceColor = ones(1,3) * 0.5;
                 h.MarkerSize = 12;
             end
-            
+
             obj.IsMouseOnButton = true;
             obj.ParentFigure.Pointer = 'hand';
             drawnow
         end
-        
+
         function onMouseExitSlider(obj, h, varargin)
         %onMouseEntered Callback for mouse leaving button
             if isa(h, 'matlab.graphics.primitive.Patch')
@@ -157,29 +157,28 @@ classdef FrameMarker < uim.mixin.assignProperties
                     h.MarkerSize = 10;
                 end
             end
-            
+
             obj.IsMouseOnButton = false;
             if ~obj.IsButtonDown
                 obj.ParentFigure.Pointer = 'arrow';
             end
         end
-        
+
         % % % Callbacks for the scroller knob
 
         function knobPressed(obj, src, event)
-            
+
             el = listener(obj.ParentFigure, 'WindowMouseMotion', @obj.knobMoving);
             obj.WindowMouseMotionListener = el;
-            
+
             el = listener(obj.ParentFigure, 'WindowMouseRelease', @obj.knobReleased);
             obj.WindowMouseReleaseListener = el;
-            
+
             obj.IsButtonDown = true;
-            
         end
-        
+
         function knobMoving(obj, src, event)
-           
+
             if obj.IsButtonDown % Just in case???
                 mousePoint = obj.Axes.CurrentPoint(1);
                 xPoint = mousePoint(1);
@@ -189,10 +188,10 @@ classdef FrameMarker < uim.mixin.assignProperties
 
                 if newValue < obj.Minimum; newValue = obj.Minimum; end
                 if newValue > obj.Maximum; newValue = obj.Maximum; end
-                
+
                 % Call guis changeFrame methods
                 % is it better with event notification?
-                
+
                 oldValue = obj.Value;
                 obj.Value = newValue;
                 obj.updateFrameMarker()
@@ -203,13 +202,13 @@ classdef FrameMarker < uim.mixin.assignProperties
                 end
             end
         end
-        
+
         function knobReleased(obj, src, event)
-            
+
             obj.IsButtonDown = false;
-            
+
             obj.resetWindowMouseListeners()
-                    
+
             obj.TopButtonHandle.MarkerFaceColor = ones(1,3) * 0.4;
             obj.TopButtonHandle.MarkerSize = 10;
 

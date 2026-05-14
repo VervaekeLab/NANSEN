@@ -14,19 +14,19 @@ function imDataOut = binprojection(imDataIn, n, method, dim)
     else
         error('Dim not implemented yet')
     end
-    
+
     if nargin < 3
         method = 'mean';
     end
-    
+
     % Find size/resolution of data
     [h, w, ~] = size(imDataIn);
 
     % Bin data along selected dimension through reshaping.
     imDataIn = reshape(imDataIn, h, w, n, []);
-            
+
     % Todo: Add filter operations before binning?
-    
+
     % Calculate projections for each bin.
     switch method
         case 'min'

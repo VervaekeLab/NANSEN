@@ -13,11 +13,11 @@ classdef UiCreateNote < matlab.apps.AppBase
         SaveButton           matlab.ui.control.Button
         CancelButton         matlab.ui.control.Button
     end
-    
+
     properties
         noteStruct
     end
-    
+
     % App creation and deletion
     methods (Access = public)
 
@@ -33,7 +33,7 @@ classdef UiCreateNote < matlab.apps.AppBase
             if ~nargin
                 noteTemplate = app.getDefaultTemplate();
             end
-            
+
             app.updateComponentValues(noteTemplate)
 
             if nargout == 0
@@ -43,7 +43,7 @@ classdef UiCreateNote < matlab.apps.AppBase
 
         % Code that executes before app deletion
         function delete(app)
-            
+
             % Delete UIFigure when app is deleted
             if isvalid(app.UIFigure)
                 delete(app.UIFigure)
@@ -104,7 +104,7 @@ classdef UiCreateNote < matlab.apps.AppBase
             app.SaveButton.Position = [126 17 100 22];
             app.SaveButton.Text = 'Save';
             app.SaveButton.ButtonPushedFcn = @app.onSaveButtonPushed;
-            
+
             % Create CancelButton
             app.CancelButton = uibutton(app.UIFigure, 'push');
             app.CancelButton.Position = [274 17 100 22];
@@ -114,39 +114,37 @@ classdef UiCreateNote < matlab.apps.AppBase
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';
         end
-        
+
         function updateComponentValues(app, noteTemplate)
-         
+
             app.SelectTypeDropDown.Items = noteTemplate.Type_;
             app.SelectTypeDropDown.Value = noteTemplate.Type;
-            
+
             app.AuthorEditField.Value = noteTemplate.Author;
-            
         end
-        
+
         function storeComponentValues(app)
-            
+
             app.noteStruct.Author = app.AuthorEditField.Value;
             app.noteStruct.Title = app.TitleEditField.Value;
             app.noteStruct.Type = app.SelectTypeDropDown.Value;
             app.noteStruct.Text = strjoin( app.EnterTextTextArea.Value, newline );
-            
         end
-        
+
         function success = verifyComponentValues(app)
-                        
+
             if isempty( app.noteStruct.Author )
                 uialert(app.UIFigure, 'Please enter name of author', 'Information Missing', 'Icon', 'error')
                 success = false;
             end
-            
+
             if isempty( app.noteStruct.Title )
                 uialert(app.UIFigure, 'Please enter title', 'Information Missing', 'Icon', 'error')
                 success = false;
             end
-            
+
             if isempty( app.noteStruct.Text )
-                
+
                 selection = uiconfirm(app.UIFigure, 'Do you want to create a note without any text?', 'Confirm Save', 'Options', {'Yes', 'Cancel'});
                 switch selection
                     case 'Yes'
@@ -155,9 +153,8 @@ classdef UiCreateNote < matlab.apps.AppBase
                         success = false;
                 end
             end
-            
+
             success = true;
-            
         end
     end
 
@@ -165,19 +162,19 @@ classdef UiCreateNote < matlab.apps.AppBase
         function onSaveButtonPushed(app, src, evt)
             app.storeComponentValues()
             wasSuccess = app.verifyComponentValues();
-            
+
             if wasSuccess
                 delete(app.UIFigure)
             end
         end
-        
+
         function onCancelButtonPushed(app, src, evt)
             app.delete()
         end
     end
-    
+
     methods (Static)
-               
+
         function noteTemplate = getDefaultTemplate()
             noteTemplate = struct();
             noteTemplate.Type = nansen.notes.Note.VALID_NOTE_TYPES{1};

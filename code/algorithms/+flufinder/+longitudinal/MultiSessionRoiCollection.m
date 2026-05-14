@@ -24,11 +24,11 @@ classdef MultiSessionRoiCollection < handle
 % unflatten again afterwards.
 
 % Todo:
-%   [ ] Add save method and save as a struct array
-%   [ ] Add static load method, and initialize from calling it.
-%   [ ] Use catalog?
+%   [ ] Add save method and save as a struct array
+%   [ ] Add static load method, and initialize from calling it.
+%   [ ] Use catalog?
 %   [ ] Add methods for updating on the fly
-%   [ ] Add configurable options for how to align fov images to compute roi
+%   [ ] Add configurable options for how to align fov images to compute roi
 %       translations.
 
 % How do updateEntries, updateRoisFromReference and synchEntries differ? Can
@@ -72,14 +72,14 @@ classdef MultiSessionRoiCollection < handle
     end
 
     methods % Constructor
-        
+
         function obj = MultiSessionRoiCollection(sessionID, fovImage, roiArray, isReference)
         %MultiSessionRoiCollection Create instance of MultiSessionRoiCollection
             if nargin == 0; return; end
             if nargin < 4 || isempty(isReference); isReference = false; end
-            
+
             obj = obj.initializeEntry(sessionID, fovImage, isReference);
-            
+
             obj.RoIArray = roimanager.utilities.roiarray2struct(roiArray);
 
             if nargin == 4 && ~isempty(imageChannel)
@@ -103,9 +103,9 @@ classdef MultiSessionRoiCollection < handle
         %   present, they are added to the current roi array from the
         %   reference. If overlapping rois are found, rois of the current roi
         %   array inherit the roi uid from the reference sessions.
-            
+
             import flufinder.longitudinal.MultiSessionRoiCollection
-            
+
             if nargin < 5 || isempty(skipUpdate); skipUpdate = false; end
 
             % Check if session is already a member of the object array
@@ -114,7 +114,7 @@ classdef MultiSessionRoiCollection < handle
                 warning('MultiSessionRoI array already contains session %s. Updated entry...', sessionID)
                 return
             end
-            
+
             if isempty(roiArray) || ( isa(roiArray, 'cell') && all(cellfun(@isempty, roiArray)) )
                 roiArray = obj.duplicateRoisFromReference(fovImage);
                 skipUpdate = true;
@@ -122,36 +122,36 @@ classdef MultiSessionRoiCollection < handle
 
             % Todo: plot rois and ask user if the alignment is good. If
             % no, just add rois as normal.
-            
+
             % Expand the multi session roi array with a new object.
             obj(end+1) = MultiSessionRoiCollection(sessionID, fovImage, roiArray);
-            
+
             if numel(obj) > 1 && ~skipUpdate
                 obj = obj.updateRoisFromReference(sessionID);
             end
-            
+
             if ~nargout
                 warning('multiSessionRoI is an array of handle objects. Type help flufinder.longitudinal.MultiSessionRoiCollection/addEntry for instruction on how to properly add entries to an object array of this class.')
                 clear obj
             end
         end
-                
+
         function obj = updateEntry(obj, sessionID, newRois, synchMode)
         %UPDATEENTRY Update rois for given session
         %
         %   Only new rois are added.
-        
+
         % synchMode: 'replace', 'merge', 'update'
-        
+
             if nargin < 4; synchMode = 'merge'; end
 
             ind = contains({obj.SessionID}, sessionID);
-                        
+
             switch lower(synchMode)
-                
+
                 case 'replace'
                     obj(ind).RoIArray = roimanager.utilities.roiarray2struct(newRois);
-                    
+
                 case 'merge'
                     if isa(obj(ind).RoIArray, 'cell')
                         error('Merge is currently not supported for multichannel rois.')
@@ -159,7 +159,7 @@ classdef MultiSessionRoiCollection < handle
                     oldRois = roimanager.utilities.struct2roiarray(obj(ind).RoIArray);
                     tmpRois = roimanager.utilities.interpolateRoiPositions(oldRois, newRois);
                     newRois = roimanager.utilities.removeOverlappingRois(tmpRois, newRois);
-                    
+
                     % Sort newRois so that imported comes at the end
                     % Todo: Reconsider sorting
                     imported = [];
@@ -171,17 +171,17 @@ classdef MultiSessionRoiCollection < handle
                     notImported = true(1,length(newRois));
                     notImported(imported) = false;
                     newRois = [newRois(notImported), newRois(imported)];
-                    
+
                     obj(ind).RoIArray = roimanager.utilities.roiarray2struct(newRois);
 
                 case 'update'
                     obj = obj.updateRoisFromReference(sessionID);
-                    
+
                 otherwise
                     error('Unknown input')
             end
         end
-                   
+
         function obj = synchEntries(obj, sessionID, synchMode)
         %SYNCHENTRIES Synchronize all RoIs based on a reference session
         %
@@ -195,22 +195,22 @@ classdef MultiSessionRoiCollection < handle
 
         % Rename to updateAllEntriesFromIndividual? Important to note that
         % it is not an update from reference, but the "reverse"
-        
+
             if nargin < 3; synchMode = 'mirror'; end
-            
+
             obj.assertSessionIsMember(sessionID)
-            
+
             isSourceSession = contains( {obj.SessionID}, sessionID );
             sourceRois = obj.getRoiArray(sessionID);
 
             for i = find(~isSourceSession)
-                
+
                 targetRois = obj.getRoiArray(obj(i).SessionID);
-               
+
                 % Find rois which are present in source rois and not in target
                 % rois and calculate their positions relative to target rois.
                 newRois = roimanager.utilities.interpolateRoiPositions(sourceRois, targetRois);
-                
+
                 if isa(newRois, 'cell')
                     for j = 1:numel(newRois)
                         targetRois{j} = obj.addNewRoisToTargetRois(sourceRois{j}, targetRois{j}, newRois{j}, synchMode);
@@ -218,11 +218,11 @@ classdef MultiSessionRoiCollection < handle
                 else
                     targetRois = addNewRoisToTargetRois(obj, sourceRois, targetRois, newRois, synchMode);
                 end
-                
+
                 obj(i).RoIArray = roimanager.utilities.roiarray2struct(targetRois);
             end
         end
-          
+
         function roiArray = getRoiArray(obj, sessionID)
         %GETROIARRAY Get roi array for given sessionID
             ind = strcmp( {obj.SessionID}, sessionID );
@@ -236,18 +236,18 @@ classdef MultiSessionRoiCollection < handle
 
             TF = any(contains({obj(:).SessionID}, sessionID));
         end
-       
+
         function obj = sortEntries(obj)
         %SORTENTRIES sort entries in array based on date in sessionID
-        
+
             sessionIDs = {obj.SessionID};
             dateStrings = cellfun(@(sid) sid(7:14), sessionIDs, 'uni', 0);
             dateNumbers = datenum(dateStrings, 'yyyymmdd');
-            
+
             [~, sortInd] = sort(dateNumbers);
             obj = obj(sortInd);
         end
-        
+
         function S = toStruct(obj)
         %TOSTRUCT Return the properties of the object in a struct array
         % Todo: Why is this needed
@@ -269,24 +269,24 @@ classdef MultiSessionRoiCollection < handle
                 % Since rois are added to another session, remove the
                 % missing tag they might contain on another session.
                 newRois = newRois.removeTag('missing');
-                
+
                 % Add imported tag to rois because they are "imported" from
                 % another session
                 newRois = newRois.addTag('imported');
-                
+
                 % Set the enhanced image property to empty
                 newRois = obj.resetRoiImageProperty(newRois);
 
                 targetRois = cat(2, targetRois, newRois);
-                
+
                 if strcmpi(synchMode, 'mirror')
                     [~, delInd] = setdiff({targetRois.uid}, {sourceRois.uid});
                     targetRois(delInd) = [];
-                    
+
                     % Mirror celltype from reference rois
                     [targetRois(:).celltype] = sourceRois.celltype;
                 end
-                
+
                 % Check if rois are outside of image, and add missing
                 % tag if they are.
                 isRoiOutsideImage = arrayfun(@(roi) roi.isOutsideImage, targetRois);
@@ -323,13 +323,13 @@ classdef MultiSessionRoiCollection < handle
                 end
                 newRois(iA) = [];
             end
-            
+
             % Set the enhanced image property to empty
             [newRois(:).enhancedImage] = deal([]);
-            
+
             roiArray = cat(2, tmpRois, newRois);
             obj(ind).RoIArray = roimanager.utilities.roiarray2struct(roiArray);
-            
+
             if nargout < 2
                 clear roiArray tmpRois newRois
             end
@@ -341,22 +341,22 @@ classdef MultiSessionRoiCollection < handle
         %   This methods duplicates the roi array from the reference session
         %   and repositions them based on pixel shifts that are obtained by
         %   aligning a FoV image with the reference FoV image.
-            
+
             fovShifts = obj.getFovPixelOffsets(fovImage);
-            
+
             refRois = obj.getReferenceRoiArray();
             [refRois, numRoisPerCell] = obj.getFlattenedRoiArray(refRois);
 
             % Create a new roi array based on shifts
             newRois = flufinder.longitudinal.warpRois(refRois, fovShifts);
-            
+
             isRoiOutsideImage = arrayfun(@(roi) roi.isOutsideImage, newRois);
-            
+
             % Todo: standardize tags.
             newRois(isRoiOutsideImage) = newRois(isRoiOutsideImage).addTag('missing');
-            
+
             [newRois(:).enhancedImage] = deal([]); % Reset roi image property
-            
+
             if ~isempty(numRoisPerCell) % Unflatten (multi-channel rois)
                 newRois = utility.cell.unflatten(newRois, numRoisPerCell);
             end
@@ -367,9 +367,9 @@ classdef MultiSessionRoiCollection < handle
 
         function fovPixelOffsets = getFovPixelOffsets(obj, fovImage)
         %getFovPixelOffsets Get pixel offsets for FoV relative to reference FoV
-            
+
             %Todo: Get alignment options from object properties/preferences?
-            
+
             referenceFovImage = obj.getReferenceFovImage();
             fovImageArray = cat(3, referenceFovImage, fovImage);
             fovPixelOffsets = flufinder.longitudinal.alignFovs(fovImageArray);
@@ -431,9 +431,9 @@ classdef MultiSessionRoiCollection < handle
         %   Convert rois to struct arrays on load.
             import roimanager.utilities.roiarray2struct
             import flufinder.longitudinal.MultiSessionRoiCollection.isRoiArray
-            
+
             obj = s;
-            
+
             for n = 1:numel(obj)
                 if isRoiArray( obj(n).RoIArray )
                     obj(n).RoIArray = roiarray2struct(obj(n).RoIArray);

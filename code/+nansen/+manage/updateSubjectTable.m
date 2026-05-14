@@ -7,7 +7,7 @@ function updateSubjectTable(metatableCatalog, subjectSchema)
     % Find master session table from metatable catalog
     sessionTable = metatableCatalog.getMasterMetaTable('session');
     subjectTable = metatableCatalog.getMasterMetaTable('subject');
-    
+
     try
         uniqueSubjectIds = unique( sessionTable.entries.subjectID );
 
@@ -32,7 +32,7 @@ function updateSubjectTable(metatableCatalog, subjectSchema)
     newSubjectTable = nansen.metadata.MetaTable.new(subjectArray);
     currentProject = nansen.getCurrentProject();
     currentProject.synchronizeMetaTableVariables(newSubjectTable);
-    
+
     % Find all that are not part of existing metatable
     subjectTable.addTable(newSubjectTable.entries)
     subjectTable.save()

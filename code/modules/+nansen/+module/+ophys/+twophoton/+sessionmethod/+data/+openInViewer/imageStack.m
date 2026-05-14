@@ -25,7 +25,7 @@ import nansen.session.SessionMethod
     % % % Get struct of default parameters for function.
     params = getDefaultParameters();
     ATTRIBUTES = {'serial', 'unqueueable'};
-    
+
     % Get all the data variable alternatives for this function. Add it to
     % the optional 'Alternatives' attribute to autogenerate a menu item for
     % each variable that can be opened as an imagestack object in imviewer.
@@ -34,22 +34,22 @@ import nansen.session.SessionMethod
 
 % % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % %
 % - - - - - - - - - - Please do not edit this part - - - - - - - - - - -
-   
+
     % % % Initialization block for a session method function.
 
     if ~nargin && nargout > 0
         fcnAttributes = SessionMethod.setAttributes(params, ATTRIBUTES{:});
         varargout = {fcnAttributes};   return
     end
-    
+
     params.Alternative = variableNames{1}; % Set a default value.
 
     % % % Parse name-value pairs from function input.
     params = utility.parsenvpairs(params, [], varargin);
-    
+
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
 % Implementation of the method : Add you code here:
-        
+
     imageStack = sessionObj.loadData(params.Alternative);
 
     if ~params.UseVirtualStack
@@ -58,11 +58,11 @@ import nansen.session.SessionMethod
         else
             frameIndices = params.FirstImage:params.LastImage;
         end
-        
+
         imData = imageStack.getFrameSet(frameIndices);
         imviewer(imData)
     else
-        
+
         imviewer(imageStack)
     end
 end
@@ -70,7 +70,7 @@ end
 function S = getDefaultParameters()
 %getDefaultParameters Define the default parameters for this function
     S = struct();
-    
+
     S.UseVirtualStack = true; % Open the stack lazily from disk when possible.
     S.FirstImage = 1;         % First frame to load when UseVirtualStack is false.
     S.LastImage = inf;        % Last frame to load when UseVirtualStack is false.
@@ -78,13 +78,13 @@ end
 
 function alternatives = getVariableNameAlternatives()
 %getVariableNameAlternatives Collect a list of imagestack variables
-    
+
     variableModel = nansen.VariableModel();
 
     dataTypes = {variableModel.Data.DataType};
     isImageStack = contains(dataTypes, 'ImageStack');
     varNames = {variableModel.Data(isImageStack).VariableName};
     if isempty(varNames); varNames = {'N/A'}; end
-    
+
     alternatives = varNames;
 end

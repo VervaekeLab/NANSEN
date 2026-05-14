@@ -20,8 +20,8 @@ function dndObject = activateDragAndDrop(figureHandle, callbackFunction)
     dpathOrig = javaclasspath('-dynamic');
     dndcontrolPath = fileparts( which("dndcontrol") );
     if isempty(dpathOrig) || ~any(strcmp(dpathOrig, dndcontrolPath))
-        % Suppress warning sometimes happens after installation of NANSEN 
-        % on systems where the javaclasspath has not been properly cleaned 
+        % Suppress warning sometimes happens after installation of NANSEN
+        % on systems where the javaclasspath has not been properly cleaned
         % up. It is unrelated to adding this class to the javapath, so we
         % suppress the warning to spare users from the noise.
         warnState = warning('off', 'MATLAB:Java:DuplicateClass');

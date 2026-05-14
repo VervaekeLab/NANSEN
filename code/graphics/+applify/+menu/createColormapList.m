@@ -9,7 +9,7 @@ function createColormapList(hMenu, hAxes, varargin)
 
     def = struct('Separator', 'off');
     opt = utility.parsenvpairs(def, [], varargin);
-        
+
     mitem = uimenu(hMenu, 'Label', 'Set Colormap', 'Separator', opt.Separator);
         colormapNames = {'Viridis', 'Inferno', 'Magma','Plasma', 'jet', 'Nissl', ...
             'BuPu', 'GnBu', 'Greens', 'PuBuGn', 'YlOrRd', 'PuOr', 'Gray', ...
@@ -20,9 +20,9 @@ function createColormapList(hMenu, hAxes, varargin)
             tmpItem.Callback = @(src, event) changeColormap(src, event, hAxes);
         end
     end
-    
+
 function changeColormap(src, ~, hAxes)
-            
+
     switch src.Label
         case 'Viridis'
             cmap = viridis;
@@ -53,5 +53,4 @@ function changeColormap(src, ~, hAxes)
 
 %             cmap(1, :) = [0.7,0.7,0.7];%obj.fig.Color;
     colormap(hAxes, cmap)
-
 end

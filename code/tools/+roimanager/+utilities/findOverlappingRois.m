@@ -17,14 +17,14 @@ centerCoordsB = cat(1, roiArrayB.center);
 
 % Merge highly overlapping rois.
 if ~isempty(roiArrayB)
-    
+
     % First, find rois that have center coordinates close together,
     % detecting a list of potentially overlapping rois.
     [xPosI, xPosJ] = meshgrid(centerCoordsA(:,1), centerCoordsB(:,1));
     [yPosI, yPosJ] = meshgrid(centerCoordsA(:,2), centerCoordsB(:,2));
 
     distance = sqrt( (xPosI-xPosJ).^2 + (yPosI-yPosJ).^2 );
-    
+
     if isequal(roiArrayA, roiArrayB)
         [j, i] = find(distance < 10 & distance ~= 0);
     else
@@ -38,15 +38,14 @@ if ~isempty(roiArrayB)
         overlap(n) = RoI.calculateOverlap(roiArrayA(i(n)), ...
                         roiArrayB(j(n)));
     end
-    
+
     % Find indices of rois that are highly overlapping
     isOverlapping = find(overlap > overlapThresh)';
     iA = i(isOverlapping);
     iB = j(isOverlapping);
-    
+
 else
 
     iA = [];
     iB = [];
-    
 end

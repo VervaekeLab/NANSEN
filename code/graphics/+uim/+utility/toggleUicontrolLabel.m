@@ -2,7 +2,7 @@ function toggleUicontrolLabel(h, strA, strB)
 %toggleUicontrolLabel Toggle the text of a uihandle (ie menu item)
 %
 % Interchange strA and strB in text label of given handle h.
-    
+
     if isempty(h); return; end
 
     if contains(h.Text, strA)

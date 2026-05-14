@@ -8,7 +8,7 @@ classdef SingleFolderDataSet < nansen.dataio.DataSet
 %
 %
 %   See also nansen.dataio.DataSet
-    
+
 %   Note: This class is created to work in the same way as a session
 %   object. In the future, the aim is to extract all the "dataset" related
 %   code from the session class and create a SessionDataSet class. The
@@ -27,13 +27,13 @@ classdef SingleFolderDataSet < nansen.dataio.DataSet
         NumVariables
         VariableNames
     end
-    
+
     properties (Access = private)
         VariableList struct
     end
-    
+
     methods % Constructor
-        
+
         function obj = SingleFolderDataSet(initialPath, varargin)
         %SingleFolderDataSet Construct a SingleFolderDataSet object
         %
@@ -78,7 +78,7 @@ classdef SingleFolderDataSet < nansen.dataio.DataSet
     end
 
     methods % Public methods
-        
+
         function id = getDataId(obj)
             id = obj.DataSetID;
         end
@@ -87,7 +87,7 @@ classdef SingleFolderDataSet < nansen.dataio.DataSet
         %getDataFilePath Get filepath for data with the given variable name
         %
         %
-            
+
             % Check if mode is given as input:
             [mode, varargin] = obj.checkDataFilePathMode(varargin{:});
 
@@ -101,13 +101,13 @@ classdef SingleFolderDataSet < nansen.dataio.DataSet
                 variableItem.FileName = fileName;
 
                 folderPath = obj.FolderPath;
-    
+
                 if ~isempty(variableItem.Subfolder)
                     folderPath = fullfile( folderPath, variableItem.Subfolder);
                 end
-    
+
                 filePath = fullfile(folderPath, fileName);
-                
+
                 if strcmp(mode, 'write')
                     variableItem.FilePath = filePath;
                     obj.insertVariableItem(variableItem)
@@ -120,7 +120,7 @@ classdef SingleFolderDataSet < nansen.dataio.DataSet
         end
 
         function data = loadData(obj, varName, varargin)
-            
+
             % Check if variable is part of dataset data exists
             if obj.existVariableItem(varName)
                 variableItem = obj.getVariableItem(varName);
@@ -146,9 +146,9 @@ classdef SingleFolderDataSet < nansen.dataio.DataSet
         end
 
         function saveData(obj, varName, data, varargin)
-                
+
             [filePath, ~] = obj.getDataFilePath(varName, '-w', varargin{:});
-            
+
             folderPath = fileparts(filePath);
             if ~isfolder(folderPath); mkdir(folderPath); end
 
@@ -159,22 +159,22 @@ classdef SingleFolderDataSet < nansen.dataio.DataSet
         end
 
         function addVariable(obj, varName, varargin)
-            
+
             assert( ~obj.existVariableItem(varName), ['Variable with name ', ...
                 '"%s" already exists for this DataSet'], varName )
 
             variableItem = obj.initializeVariableItem(varName, varargin{:});
-            
+
             %If a new variable is added, and it has a filepah provided,
             %make sure it contains the dataset folder location (i.e make
             %sure it is an absolute filepath rooted in the dataset foleder)
             if ~isempty(variableItem.FilePath)
                 folderPath = obj.FolderPath;
-        
+
                 if ~isempty(variableItem.Subfolder)
                     folderPath = fullfile( folderPath, variableItem.Subfolder);
                 end
-        
+
                 if ~contains(variableItem.FilePath, folderPath)
                     variableItem.FilePath = fullfile(folderPath, variableItem.FilePath);
                 end
@@ -192,7 +192,7 @@ classdef SingleFolderDataSet < nansen.dataio.DataSet
         end
 
         function replaceVariable(obj, varName, varargin)
-            
+
             assert( obj.existVariableItem(varName), ['Variable with name ', ...
                 '"%s" does not exist for this DataSet'], varName )
 
@@ -209,17 +209,15 @@ classdef SingleFolderDataSet < nansen.dataio.DataSet
             obj.VariableList(idx) = [];
         end
     end
-    
-    methods (Access = protected)
 
+    methods (Access = protected)
     end
 
     methods (Access = private)
-        
-        function existVariable(obj, varName)
 
+        function existVariable(obj, varName)
         end
-        
+
         function S = initializeVariableItem(obj, varName, varargin)
         %initializeVariableItem Initialize a variable item struct
 
@@ -233,19 +231,18 @@ classdef SingleFolderDataSet < nansen.dataio.DataSet
             S.FileAdapterName = '';
 
             S = utility.parsenvpairs(S, 1, varargin{:});
-
         end
-        
+
         function tf = existVariableItem(obj, varName)
             if isempty(obj.VariableList); tf = false; return; end
             tf = any(strcmp({obj.VariableList.VariableName}, varName));
         end
-        
+
         function idx = findVariableItem(obj, varName)
             if isempty(obj.VariableList); idx = []; return; end
             idx = strcmp({obj.VariableList.VariableName}, varName);
         end
-        
+
         function S = getVariableItem(obj, varName)
             S = struct.empty;
             if isempty(obj.VariableList); return; end
@@ -255,9 +252,9 @@ classdef SingleFolderDataSet < nansen.dataio.DataSet
             end
         end
     end
-    
+
     methods (Access = private)
-        
+
         function msg = getErrorMessage(~, errorID)
         %getErrorMessage Get class specific error message given error id
             switch errorID

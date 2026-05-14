@@ -16,12 +16,12 @@ cnames{3,:}={'Accent', 'Dark2', 'Paired', 'Pastel1', 'Pastel2', 'Set1', 'Set2', 
 
 figure('position', [314 327 807 420])
 for itype=1:3
-    
+
     %fh(itype)=figure();
     subplot(1,3,itype)
-    
+
     for iname=1:length(cnames{itype,:})
-        
+
         ncol=length(colorbrewer.(ctypes{itype}).(cnames{itype}{iname}));
         fg=1./ncol; % geometrical factor
 

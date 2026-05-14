@@ -16,8 +16,8 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
 
     % Todo:
     % [ ] Dock in roimanager
-    % [ ] migrate rois to all sessions when closing
-    % [ ] Consistent naming, i.e multisession or longitudinal?
+    % [ ] migrate rois to all sessions when closing
+    % [ ] Consistent naming, i.e multisession or longitudinal?
 
     properties (Constant)
         AppName = 'Multisession Fov Selector'
@@ -93,7 +93,7 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
 
             % Todo:
             % Check that all sessions are present in multisession
-            
+
             obj.Figure.CloseRequestFcn = @obj.onQuit;
             addlistener(obj.RoimanagerApp, 'ObjectBeingDestroyed', @obj.onQuit);
 
@@ -121,7 +121,7 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
             if strcmp( src.Name, 'Multisession Fov Selector' )
                 obj.saveCurrentRoiArray(obj.SelectedSession)
                 obj.saveMultiSessionRois()
-                
+
                 % Update and save all other roi arrays:
                 for i = 1:obj.NumSessions
                     if i == obj.SelectedSession
@@ -150,7 +150,6 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
     methods (Access = protected)
 
         function onSettingsChanged(obj)
-
         end
 
         function onSizeChanged(obj, src, evt)
@@ -164,7 +163,7 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
     methods (Access = private)
 
         function createApplication(obj)
-            
+
             obj.createFovSelectorWidget()
             obj.updateVisibleTiles()
 
@@ -178,11 +177,11 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
 
             % Set this property so that text outside the axes is clipped.
             obj.Axes.ClippingStyle = 'rectangle';
-            
+
             pixelPosition = getpixelposition( obj.TiledImageAxes );
             obj.TiledImageAxes.Position(2) = obj.TiledImageAxes.Position(2)+20;
             obj.Panel.Position(3:4) = pixelPosition(3:4)+[20, 40];
-            
+
             if strcmp( obj.mode, 'standalone' )
                 obj.Figure.Position([3,4]) = pixelPosition(3:4)+[20, 40];
                 obj.Figure.Resize = 'off';
@@ -231,7 +230,7 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
 
         function createScrollBar(obj)
         % Create a scrollbar on the panel if all the fields do not fit in the panel
-            
+
             numImagesAll = numel(obj.SessionObjects);
             visibleAmount = obj.NumVisibleImages / numImagesAll * 100;
 
@@ -239,9 +238,9 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
             scrollbarWidth = obj.TiledImageAxes.Position(3);
             scrollbarPosY = 10;
             scrollbarHeight = 10;
-            
+
             scrollbarPosition = [scrollbarPosX, scrollbarPosY, scrollbarWidth, scrollbarHeight];
-            
+
             opts = {'Orientation', 'Horizontal', ...
                     'Maximum', 100, ...
                     'VisibleAmount', visibleAmount, ...
@@ -263,7 +262,7 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
         end
 
         function scrollValueChange(obj, scroller, ~)
-            
+
             numImages = numel(obj.SessionObjects);
             %scroller.Value
             i = round(scroller.Value./scroller.Maximum .* numImages) + 1;
@@ -278,7 +277,7 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
         end
 
         function updateVisibleTiles(obj)
-            
+
             % Todo: Combine with update view??
             tileInd = 1:obj.NumVisibleImages;
 
@@ -290,16 +289,16 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
 
             obj.TiledImageAxes.updateTileText( obj.ThumbnailLabels(tileInd), ...
                 tileInd, 'FontSize', 12, 'Color','w')
-            
+
             obj.CurrentTiles = tileInd;
         end
 
         function updateView(obj, src, event, mode)
-                        
+
             numImages = numel(obj.SessionObjects);
-            
+
             switch lower(mode)
-                
+
                 case 'scrollbar'
                     deltaY = src.deltaY;
 
@@ -309,7 +308,7 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
                     n = round(numImages * deltaY);
 
                 case 'scroll'
-                
+
                     % Determine how many tiles to move across
                     if ismac % Mac touchpad is too sensitive...
                         i = ceil(event.VerticalScrollCount);
@@ -317,13 +316,13 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
                         %i = ceil(event.VerticalScrollCount);
                     end
                     n = round(obj.TiledImageAxes.nCols * i);
-                    
+
                     if n == 0; return; end
-                    
+
                 case 'incr'
                     n = event.incr;
             end
-            
+
             % Make sure to not exceed limits
             n = max( 1-obj.CurrentTiles(1), n );
             n = min( numImages-obj.CurrentTiles(end), n );
@@ -332,7 +331,7 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
 
             % combine with updateVisibleTiles
             IND = obj.CurrentTiles;
-            
+
             subs = repmat({':'}, 1, ndims(obj.ThumbnailImageArray));
             subs{end} = IND;
 
@@ -342,7 +341,7 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
 
             obj.TiledImageAxes.updateTileImage(tileImages, 1:obj.NumVisibleImages)
             obj.TiledImageAxes.updateTileText(tileLabels, 1:obj.NumVisibleImages, 'FontSize', 12, 'Color','w')
-            
+
             %updateScrollbar(obj)
 
             if any(ismember(obj.CurrentTiles, obj.SelectedSession))
@@ -354,13 +353,13 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
         end
 
         function onSessionSelected(obj, src, evt, i)
-            
+
             oldSelectionIdx = obj.SelectedSession;
             newSelectionIdx = obj.CurrentTiles(i);
 
             if ~isequal(newSelectionIdx, oldSelectionIdx)
                 obj.SelectedSession = newSelectionIdx;
-                
+
                 % Save roi array (also adds it to multi session roi collection)
                 obj.saveCurrentRoiArray(oldSelectionIdx)
 
@@ -368,17 +367,17 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
                 S = obj.SessionObjectStruct(newSelectionIdx);
 
                 obj.RoimanagerApp.changeSession(S.ImageStack, newRoiArray)
-                
+
                 obj.saveMultiSessionRois()
             end
         end
 
         function newRoiArray = updateRoiArrayForSession(obj, sessionIdx)
-        
+
             sessonId = obj.SessionObjectStruct(sessionIdx).sessionID;
 
             newRoiArray = obj.MultiSessionRoiCollection.getRoiArray(sessonId);
-            
+
             channelNumber = obj.MultiSessionRoiCollection(1).ImageChannel;
             if ~isempty(channelNumber)
                 oldRoiArray = obj.SessionObjectStruct(sessionIdx).RoiArray;
@@ -423,7 +422,7 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
         end
 
         function saveCurrentRoiArray(obj, sessionIdx)
-            
+
             sessionID = obj.SessionObjects(sessionIdx).sessionID;
             fprintf('Saving rois for session %s\n', sessionID)
 
@@ -456,10 +455,10 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
             synchMode = 'Mirror';
             obj.MultiSessionRoiCollection = ...
                 obj.MultiSessionRoiCollection.synchEntries(sessionID, synchMode);
-            
+
             % Get updated rois (if adding them to multisession array modifies them)
             updatedRois = obj.MultiSessionRoiCollection.getRoiArray(sessionID);
-            
+
             % Update in session object struct
             oldRoiArray = obj.SessionObjectStruct(sessionIdx).RoiArray;
             if iscell(oldRoiArray) && numel(oldRoiArray) > 1 && ~isempty(channelNumber)

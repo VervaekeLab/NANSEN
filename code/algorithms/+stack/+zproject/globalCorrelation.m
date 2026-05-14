@@ -29,16 +29,16 @@ tmpC = cell(size(tmpIm));
 
 for i = 1:size(tmpIm,1)
     for j = 1:size(tmpIm,2)
-        
+
         [d1,d2,d3] = size(tmpIm{i,j});
         pixelSignals = transpose( reshape( tmpIm{i,j} , d1*d2, d3) );
         pixelSignals = single(pixelSignals);
-        
+
         % Calculate the correlation of each pixel with the image signal.
         % Note: data is cast to single and transposed to row vectors.
         RHO = corr(imageSignal, pixelSignals, 'tail', 'right', 'rows', 'all');
         rhoIm = reshape(RHO, d1,d2);
-        
+
         tmpC{i, j} = rhoIm;
     end
 end
@@ -52,5 +52,4 @@ cIm = cIm .* nansen.util.range(P) + P(1);
 cIm = cast(cIm, class(IM));
 
 %cIm = stack.makeuint8(cIm);
-
 end

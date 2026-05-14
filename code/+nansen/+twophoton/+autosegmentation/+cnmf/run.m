@@ -8,9 +8,9 @@ function [roiArray, cnmfResults] = run(Y, roiDiameter)
     % % Data pre-processing
     p = 2; % order of autoregressive system (p = 0 no dynamics, p=1 just decay, p = 2, both rise and decay)
     [P, Y] = preprocess_data(Y, p);
-    
+
     roiRadius = round(roiDiameter / 2);
-    
+
     options = autosegment.cnmf.getOptions(size(Y), roiRadius);
 
     % % fast initialization of spatial components using greedyROI and HALS
@@ -48,11 +48,10 @@ function [roiArray, cnmfResults] = run(Y, roiDiameter)
 
     % % convert to array of RoI objects
     roiArray = autosegment.cnmf.getRoiArray(A_or, options);
-    
+
     cnmfResults = struct;
     cnmfResults.A = A_or;
     cnmfResults.C = C_or;
     cnmfResults.S = S_or;
     cnmfResults.Cdff = C_df;
-
 end

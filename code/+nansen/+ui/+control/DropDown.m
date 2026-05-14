@@ -9,10 +9,10 @@ classdef DropDown < nansen.ui.control.AbstractControl %& nansen.ui.mixin.IsStyla
 % will be handled separately from selecting a "standard" option.
 
 % Todo:
-%   [ ] Ensure items are unique?
-%   [ ] Allow arbitrary actions and action callbacks. Could be managed
+%   [ ] Ensure items are unique?
+%   [ ] Allow arbitrary actions and action callbacks. Could be managed
 %       through a dictionary...
-%   [ ] Add a placeholder string if items and string is empty...
+%   [ ] Add a placeholder string if items and string is empty...
 %   [ ] Todo how to represent values and value changed when one of the
 %       actions have been selected...?
 
@@ -23,7 +23,7 @@ classdef DropDown < nansen.ui.control.AbstractControl %& nansen.ui.mixin.IsStyla
 
         AllowNoSelection (1,1) matlab.lang.OnOffSwitchState = 'off'
         %SortItems = false; % Todo
-        
+
         % CreateNewItemFcn - A function handle for a function that accepts
         % (1) items or (2) items and itemsData as inputs and returns
         % (1) newItem or (2) newItem and newItemsData as outputs. If the
@@ -44,7 +44,7 @@ classdef DropDown < nansen.ui.control.AbstractControl %& nansen.ui.mixin.IsStyla
     end
 
     methods % Constructor
-        
+
         function obj = DropDown(superclassOptions, options)
             arguments
                 superclassOptions.?matlab.ui.control.UIControl
@@ -54,7 +54,7 @@ classdef DropDown < nansen.ui.control.AbstractControl %& nansen.ui.mixin.IsStyla
                 options.CreateNewItemFcn (1,1) function_handle = []
                 options.AllowNoSelection (1,1) matlab.lang.OnOffSwitchState = 'off'
             end
-    
+
             % This control has custom callback routines, so the callback
             % is not passed to the superclass constructor
             if isfield(superclassOptions, 'Callback')
@@ -63,28 +63,28 @@ classdef DropDown < nansen.ui.control.AbstractControl %& nansen.ui.mixin.IsStyla
             else
                 callbackFcn = [];
             end
-            
+
             superclassOptions = namedargs2cell(superclassOptions);
             obj = obj@nansen.ui.control.AbstractControl(superclassOptions{:});
             %obj = obj@nansen.ui.mixin.IsStylableDropDown()
-            
+
             % Update items if items was given as input (will take
             % precedence over the string property)
             if ~isempty(options.Items)
                 obj.setItemsOnConstruction(options.Items)
             end
             options = rmfield(options, 'Items');
-            
+
             obj.assignPropertyArguments(options)
-            
+
             % Set up the internal handling of callback
             obj.UserCallbackFcn = callbackFcn;
             obj.UIControl.Callback = @obj.onValueChanged;
-            
+
             if ~nargout; clear obj; end
         end
     end
-    
+
     methods
         function selectedValue = getSelectedValue(obj)
             if obj.Value <= numel(obj.ActionItems)
@@ -100,12 +100,12 @@ classdef DropDown < nansen.ui.control.AbstractControl %& nansen.ui.mixin.IsStyla
             obj.Items = value;
             obj.onItemsSet();
         end
-        
+
         function set.ItemsData(obj, value)
             obj.ItemsData = value;
             obj.onItemsDataSet();
         end
-        
+
         function set.ItemName(obj, value)
             obj.ItemName = value;
             obj.onItemNameSet();
@@ -140,9 +140,9 @@ classdef DropDown < nansen.ui.control.AbstractControl %& nansen.ui.mixin.IsStyla
 
     methods (Access = private)
         function onValueChanged(obj, src, evt)
-            
+
             value = src.Value;
-            
+
             if value <= numel(obj.ActionItems)
                 action = obj.ActionItems(value);
             else
@@ -158,9 +158,9 @@ classdef DropDown < nansen.ui.control.AbstractControl %& nansen.ui.mixin.IsStyla
 
             % Todo: Need a good way to provide a value change event where
             % the src.String{src.Value} does not yield the "action item"
-            
+
             %if ~isempty(action); return; end
-            
+
             if ~isempty(obj.UserCallbackFcn)
                 obj.UserCallbackFcn(obj, evt)
             end
@@ -173,15 +173,15 @@ classdef DropDown < nansen.ui.control.AbstractControl %& nansen.ui.mixin.IsStyla
         % onItemsSet - Do something when Items property is set
             obj.updateString()
         end
-        
+
         function onItemsDataSet(obj)
         % onItemsDataSet - Do something when ItemsData property is set
             % Todo: Make sure items data is the same size as items.
         end
-        
+
         function onItemNameSet(obj)
         % onItemNameSet - Do something when ItemName property is set
-            
+
             if isempty(obj.Items) && ~isempty(obj.String)
                 warning('Setting ''ItemsName'' has no effect when ''Items'' are empty')
                 return
@@ -191,7 +191,7 @@ classdef DropDown < nansen.ui.control.AbstractControl %& nansen.ui.mixin.IsStyla
 
         function onAllowNoSelectionSet(obj)
             %if isempty(obj.Items); return; end
-            
+
             newValue = obj.Value;
 
             if obj.AllowNoSelection
@@ -213,7 +213,7 @@ classdef DropDown < nansen.ui.control.AbstractControl %& nansen.ui.mixin.IsStyla
 
         function onCreateNewItemFcnSet(obj)
             %if isempty(obj.Items); return; end
-            
+
             newValue = obj.Value;
 
             if isempty(obj.CreateNewItemFcn)
@@ -240,9 +240,9 @@ classdef DropDown < nansen.ui.control.AbstractControl %& nansen.ui.mixin.IsStyla
 
         function updateString(obj)
         % updateString - Add labels for actions to uicontrol's String property
-            
+
             if isempty(obj.Items) && isempty(obj.ActionItems); return; end
-            
+
             stringValue = obj.Items;
 
             actionItemLabels = arrayfun(@(str) obj.getPlaceholderString(str), obj.ActionItems);
@@ -254,7 +254,7 @@ classdef DropDown < nansen.ui.control.AbstractControl %& nansen.ui.mixin.IsStyla
         end
 
         function setItemsOnConstruction(obj, items)
-            
+
             if ~isempty(obj.String)
                 warning('NANSEN:UIControl:DropDown', ...
                     ['When setting both ''String'' property and ''Items'' ', ...
@@ -266,7 +266,7 @@ classdef DropDown < nansen.ui.control.AbstractControl %& nansen.ui.mixin.IsStyla
         end
 
         function str = getPlaceholderString(obj, actionWord)
-            
+
             if nargin < 2; actionWord = "Select"; end
 
             if ismissing( obj.ItemName ) || obj.ItemName == ""
@@ -293,7 +293,7 @@ classdef DropDown < nansen.ui.control.AbstractControl %& nansen.ui.mixin.IsStyla
                 str = lower(str);
             end
         end
-    
+
         function throwInvalidCreateNewItemFcnError(obj)
 
             if ~isempty(obj.ItemsData)
@@ -309,7 +309,7 @@ classdef DropDown < nansen.ui.control.AbstractControl %& nansen.ui.mixin.IsStyla
             ME = MException('NANSEN:UIDropDown:CreateNewItemFcn', errMessage);
             throwAsCaller(ME)
         end
-    
+
         function createNewItem(obj)
         %
             try
@@ -320,7 +320,7 @@ classdef DropDown < nansen.ui.control.AbstractControl %& nansen.ui.mixin.IsStyla
                     newItemData = {};
                 end
                 if isempty(newItem); return; end
-                
+
                 % Add new item to items.
                 obj.addNewItem(newItem, newItemData)
 
@@ -334,11 +334,11 @@ classdef DropDown < nansen.ui.control.AbstractControl %& nansen.ui.mixin.IsStyla
         end
 
         function addNewItem(obj, newItem, newItemData)
-            
+
             if ~isempty(obj.ItemsData)
                 obj.ItemsData{end+1} = newItemData;
             end
-                
+
             obj.Items(end+1) = newItem;
             obj.Value = find(strcmp(obj.String, newItem));
 

@@ -24,22 +24,22 @@ function [S, L] = getImageSubsetBounds(imSize, x, y, r, padding, varargin)
     param = struct();
     param.boundaryMethod = 'crop';
     param = utility.parsenvpairs(param, [], varargin);
-    
+
     if numel(r)==1
         r = [r,r];
     end
-    
+
     % Round values because output should be in pixel indices
     x = round(x);
     y = round(y);
     rExtended = round( r+padding );
-    
+
     % Compute boundary limits
     xMin = x - rExtended(2);
     yMin = y - rExtended(1);
     xMax = x + rExtended(2);
     yMax = y + rExtended(1);
-    
+
     if strcmp(param.boundaryMethod, 'none')
         % pass
     elseif strcmp(param.boundaryMethod, 'crop')
@@ -51,7 +51,7 @@ function [S, L] = getImageSubsetBounds(imSize, x, y, r, padding, varargin)
     else
         warning('Unknown boundary method')
     end
-    
+
     % Assign Output
     S = [xMin, yMin];
     L = [xMax, yMax];

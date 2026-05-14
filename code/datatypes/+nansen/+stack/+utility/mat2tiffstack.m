@@ -68,7 +68,7 @@ if (nDim == 2 || nDim == 3) && ~createRgb
     tiffFile.close();
 
 elseif nDim == 4 || createRgb
-    
+
     [height, width, nColors, nFrames] = size(mat);
 
     if nColors ~= 3
@@ -92,7 +92,7 @@ elseif nDim == 4 || createRgb
             tiffFile.write(mat(:, :, :, f));
             tiffFile.writeDirectory();
         end
-        
+
         tiffFile.close();
     end
 

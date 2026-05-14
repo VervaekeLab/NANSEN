@@ -4,13 +4,13 @@ function metaTable = fixDataLocationSubfolders(metaTable)
 % This function should ensure
 %   All datalocation items has all the datalocations
 %   All datalocation items has all the 6 fields (see below)
-    
+
     if ~contains('DataLocation', metaTable.entries.Properties.VariableNames )
         return
     end
 
     dataLocationStructArray = metaTable.entries.DataLocation;
-    
+
     if isa(dataLocationStructArray, 'cell')
         dataLocationStructArray = utility.struct.structcat(1, dataLocationStructArray{:});
     end
@@ -29,7 +29,7 @@ function metaTable = fixDataLocationSubfolders(metaTable)
         end
     end
     dataLocationStructArray = mat2cell(dataLocationStructArray, ones(1, numSessions), numDataLocations);
-    
+
     %dataLocationStructs = app.DataLocationModel.validateDataLocationPaths(dataLocationStructs);
     metaTable.replaceDataColumn('DataLocation', dataLocationStructArray );
     %metaTable.entries.DataLocation = dataLocationStructs;

@@ -21,11 +21,11 @@ function npMasksSplit = splitNeuropilMasks(npMasks, roiMasks, numSlices)
 %   See also nansen.adapter.fissa.splitneuropilmask
 
     import nansen.processing.roi.fissa.splitneuropilmask
-   
+
     if nargin < 3 || isempty(numSlices)
         numSlices = 4;
     end
-    
+
     [h, w, numRois] = size(npMasks);
     npMasksSplit = false( [h, w, numSlices, numRois] );
 
@@ -34,11 +34,10 @@ function npMasksSplit = splitNeuropilMasks(npMasks, roiMasks, numSlices)
         npMask = npMasks(:, :, i);
         npMasksSplit(:, :, :, i) = splitneuropilmask(npMask, roiMask, numSlices);
     end
-    
+
     % Create cell array where each cell contains one slice for all rois
     getSlicedMasks = @(i) squeeze(npMasksSplit(:, :, i, :));
     npMasksSplit = arrayfun(@(i) getSlicedMasks(i), 1:numSlices, 'un', 0);
-    
 end
 
 % Questions:

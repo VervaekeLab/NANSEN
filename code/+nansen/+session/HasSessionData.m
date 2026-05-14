@@ -45,7 +45,7 @@ classdef HasSessionData < uim.handle
             delete(obj.Data_)
         end
     end
-    
+
     methods % Set/get
 
         function data = get.Data(obj)
@@ -66,7 +66,7 @@ classdef HasSessionData < uim.handle
     methods (Sealed, Hidden)
 
         function varargout = subsref(obj, s)
-            
+
 % %             numRequestedOutputs = nargout();
 % %             if numRequestedOutputs == 0
 % %                 numOutputs = obj.determineNumArgout(s); %#ok<NASGU>
@@ -76,9 +76,9 @@ classdef HasSessionData < uim.handle
 
             numOutputs = nargout;
             varargout = cell(1, numOutputs);
-            
+
             [isDataRequested, ind] = obj.isDataSubsrefed(s);
-            
+
             if isDataRequested
                 for i = ind
                     if ~obj(i).Data.IsInitialized
@@ -86,14 +86,14 @@ classdef HasSessionData < uim.handle
                     end
                 end
             end
-            
+
             % If we got this far, use the builtin subsref
             if numOutputs > 0
                 [varargout{:}] = builtin('subsref', obj, s);
             else
                 builtin('subsref', obj, s)
             end
-            
+
 % %                 varargout = builtin('subsref', obj, s);
 % %                 try
 % %                     varargout{1} = builtin('subsref', obj, s);
@@ -110,13 +110,13 @@ classdef HasSessionData < uim.handle
 % %                     end
 % %                 end
 % %             end
-            
+
 % %             if numRequestedOutputs == 0
 % %                 varargout{:}
 % %                 clear varargout
 % %             end
         end
-        
+
         function n = numArgumentsFromSubscript(obj, s, indexingContext)
             if strcmp(s(1).type, '.')
                 if strcmp(s(1).subs, 'Data')
@@ -127,7 +127,7 @@ classdef HasSessionData < uim.handle
                     end
                 end
             end
-            
+
             n = builtin('numArgumentsFromSubscript', obj, s, indexingContext);
         end
     end
@@ -135,7 +135,7 @@ classdef HasSessionData < uim.handle
     methods (Access = private)
 
         function [tf, idx] = isDataSubsrefed(obj, s)
-            
+
             if strcmp(s(1).type, '.') && strcmp(s(1).subs, 'Data')
                 tf = true;
                 idx = 1:numel(obj);
@@ -148,34 +148,33 @@ classdef HasSessionData < uim.handle
                 idx = [];
             end
         end
-        
+
         function numArgouts = determineNumArgout(obj, s)
         %determineNumArgout Determine expected nargout from subsref
-        
+
         % This was an experiment. Did not work very well.
-        
+
             persistent ic
             if isempty(ic)
                 ic = enumeration('matlab.mixin.util.IndexingContext');
             end
-            
+
             % Determine the number of expected outputs from each of the
             % indexing contexts
             n = zeros(1, numel(ic));
             for i = 1:numel(ic)
                 n(i) = builtin('numArgumentsFromSubscript', obj, s, ic(i));
             end
-            
+
             % Check if different number of outputs are expected and issue
             % warning if yes.
             uniqueN = unique(n);
             if numel(uniqueN) ~= 1
                 warning('The number of outputs from this subscripted reference might not be correct')
             end
-            
+
             % Return the value from the "Statement" indexing context
             numArgouts = n(1);
-            
         end
     end
 end

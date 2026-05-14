@@ -12,10 +12,10 @@ function virtualData = open(pathStr, varargin)
     % with a single path. If latter is the case, put it in a cell array,
     % because the rest of the function assumes the variable is a list of
     % pathStrings.
-    
+
     if isstring(pathStr); pathStr = char(pathStr); end
     if ~isa(pathStr, 'cell'); pathStr = {pathStr}; end
-    
+
     numFiles = numel(pathStr);
     [folder, filename, fileext] = fileparts(pathStr{1});
 
@@ -29,9 +29,9 @@ function virtualData = open(pathStr, varargin)
     end
 
     switch lower(fileext)
-        
+
         case {'.tif', '.tiff'}
-            
+
             if isfile(pathStr{1})
                 % No idea if this is important, but everything looks fine
                 warning('off', 'imageio:tiffmexutils:libtiffWarning')
@@ -40,9 +40,9 @@ function virtualData = open(pathStr, varargin)
             else
                 imInfo = struct;
             end
-            
+
             virtualData = [];
-            
+
             % Should file be opened using the custom ScanImageTiff adapter?
             try
                 softwareName = imInfo.getTag('Software');
@@ -72,10 +72,10 @@ function virtualData = open(pathStr, varargin)
                     %end
                 end
             end
-            
+
         case '.h5'
             virtualData = nansen.stack.virtual.HDF5(pathStr, '', varargin{:}, nvPairs{:});
-            
+
         case '.mdf'
             virtualData = nansen.stack.virtual.MDF(pathStr, nvPairs{:});
 
@@ -98,23 +98,23 @@ function virtualData = open(pathStr, varargin)
 %                 imArray = imread(pathStr{1});
 %             end
 %             toc
-            
+
             virtualData = nansen.stack.virtual.Image(pathStr);
-            
+
         case {'.raw','.ini'}
-            
+
             if nansen.stack.virtual.SciScanRaw.fileCheck(pathStr)
                 virtualData = nansen.stack.virtual.SciScanRaw(pathStr, nvPairs{:});
             else
                 virtualData = nansen.stack.virtual.Binary(pathStr, varargin{:}, nvPairs{:});
             end
-            
+
         case {'.avi', '.mov', '.mpg', '.mp4'}
             virtualData = nansen.stack.virtual.Video(pathStr, nvPairs);
 
         case {'.tsm'}
             virtualData = nansen.stack.virtual.TSM(pathStr, nvPairs);
-            
+
         otherwise
 
             if isempty(fileext) && isfolder(folder)
@@ -130,11 +130,11 @@ end
 function virtualData = openUsingCustomFileAdapter(filePath, varargin)
 %openUsingCustomFileAdapter Get virtual data using file adapter based on name
     import nansen.dataio.fileadapter.imagestack.ImageStack
-    
+
     if iscell(filePath); filePath = filePath{1}; end
-    
+
     virtualDataClass = ImageStack.getVirtualDataClassNameFromFilename(filePath);
-    
+
     if ~isempty(virtualDataClass)
         virtualDataClassFcn = str2func(virtualDataClass);
         virtualData = virtualDataClassFcn(filePath, varargin{:});

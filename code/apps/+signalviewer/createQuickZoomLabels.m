@@ -20,24 +20,23 @@ function createQuickZoomLabels(parent, numFrames, callbackFcn, options)
         'CornerRadius', 0};
 
     hBtn = uim.control.Button.empty;
-    
+
     minNumber = min([100, numFrames/10]);
-    
+
     numFrames = log(numFrames);
     minFrames = log(minNumber);
     labels = linspace(minFrames, numFrames, 5);
     labels = exp(labels);
     labels = round(labels, -2);
-    
+
     labels = arrayfun(@(i) num2str(i), labels, 'uni', 0);
     labels{end} = 'all';
-    
+
     for i = 1:numel(labels)
         hBtn(i) = hAppbar.addButton('String', labels{i}, ...
             'Padding', [0,0,0,0], ...
             'ButtonDownFcn', @(s,e,m) disp('test click'), ...
             'Type', 'togglebutton', buttonArgs{:});
-       
     end
 
     for i = 1:numel(labels)
@@ -47,7 +46,7 @@ function createQuickZoomLabels(parent, numFrames, callbackFcn, options)
 end
 
 function onLabelPressed(src, hBtn, i)
-           
+
     if src.Value
 
         for iBtn = 1:numel(hBtn)

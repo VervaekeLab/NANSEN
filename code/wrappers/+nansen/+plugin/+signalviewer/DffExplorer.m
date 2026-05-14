@@ -12,11 +12,11 @@ classdef DffExplorer < applify.mixin.AppPlugin & applify.mixin.HasOptionsManager
     properties (Constant) % Implementation of AppPlugin property
         Name = 'DFF Explorer'
     end
-    
+
     properties (Access = protected)
         RoiSignalArray
     end
-    
+
     methods % Constructor
         function obj = DffExplorer(signalViewerHandle, varargin)
         %DffExplorer Create a dF/F options plugin for signalviewer.
@@ -44,28 +44,26 @@ classdef DffExplorer < applify.mixin.AppPlugin & applify.mixin.HasOptionsManager
 
             obj.setFigureTitle()
             obj.RoiSignalArray = obj.PrimaryApp.RoiSignalArray;
-            
-            obj.editOptions()
 
+            obj.editOptions()
         end
-        
+
         function delete(obj)
-            
         end
     end
-    
+
     methods (Access = protected) % Plugin derived methods
-                
+
         function createSubMenu(obj) %#ok<MANU> % Placeholder, not implemented
         %createSubMenu Create sub menu items for the plugin
-        
+
             % parentMenu = obj.findAppContextMenu();
             %
             % % Todo: Open? Close? Toggle?
             % obj.MenuItem(1).ExploreDff = uimenu(parentMenu, 'Text', 'Explore DFF', 'Enable', 'off');
             % obj.MenuItem(1).ExploreDff.Callback = @obj.editOptions;
         end
-        
+
         function assignDefaultOptions(obj)
             functionName = 'nansen.twophoton.roisignals.computeDff';
             obj.OptionsManager = nansen.manage.OptionsManager(functionName);

@@ -37,77 +37,77 @@ classdef SessionMethod < nansen.processing.DataMethod
     %
     %   Are there benefits of having alternatives as separate properties as
     %   done in the original implementation in the session browser?
-    
+
     % TODO (implemented in options manager):
-    % * [ ] Change name of class to SessionTask
+    % * [ ] Change name of class to SessionTask
     %   [x] methods/functionality for preset options.
     %   [x] append a page in options for saving a preset
     %   [x] create method for getting options based on name.
-    
+
 % - - - - - - - - - - - - PROPERTIES - - - - - - - - - - - - - - - - - - -
-    
+
     properties (Abstract, Constant)
         BatchMode                   % char      : 'serial' | 'batch' Should session method accept one (serial) or multiple (batch) session objects?
         % MaxAllowedSessions = inf;     % Todo(?): limit number of sessions...
         % Similar to above, but for performance or other issues??
      end
-    
+
     properties
         SessionObjects          % Array of session objects
         ExternalFcn % remove this...???
         % Parameters % inherited from datamethod
     end
-    
+
     properties (Constant, Access = protected)
         VALID_SESSION_CLASS = 'nansen.metadata.type.Session'
     end
-    
+
 % - - - - - - - - - - - - - METHODS - - - - - - - - - - - - - - - - - - - -
-  
+
     methods (Abstract, Static)
     end
-    
+
 % %     methods (Abstract) % Todo: Should there be any abstract methods??? Maybe make run abstract... Or maybe figure out how to make sure to call the subclass version of run....?
 % %         runMethod(obj)
 % %     end
-    
+
     methods % Constructor
-        
+
         function obj = SessionMethod(varargin)
-            
+
             % Todo: Some more input validation? I.e is it possible that
             % varargin is a combination of struct and name value pairs?
             % utility.parsenvpairs already takes care of it if varargin
             % contains a struct in first place, but does not handle
             % additional nv pairs then. Also, maybe not very transparent?
-            
+
             % If no inputs are provides, return an object which can be run
             % later.
             if numel(varargin) == 0
                 return
             end
-            
+
             % Validate session objects
             message = 'First input must be a valid session object or a list of valid session objects';
             assert(isa(varargin{1}, obj.VALID_SESSION_CLASS), message)
-            
+
             % Assign session objects to properties
             obj.SessionObjects = varargin{1};
             varargin(1) = [];
-            
+
             % Set session object as data I/O model
             obj.DataIoModel = obj.SessionObjects;
-            
+
             % Parse name-value pairs and assign to parameters property.
             if ~isempty(obj.OptionsManager)
                 params = obj.OptionsManager.getOptions;
                 %obj.Parameters = utility.parsenvpairs(params, 1, varargin);
                 obj.Options = utility.parsenvpairs(params, 1, varargin);
             end
-            
+
             % Check that required variables for this method exist.
             obj.checkRequiredVariables()
-            
+
             % Call the appropriate run method
             if ~nargout
                 obj.run()
@@ -115,40 +115,39 @@ classdef SessionMethod < nansen.processing.DataMethod
             end
         end
     end
-    
+
     methods
-        
+
         function checkRequiredVariables(obj)
         %checkRequiredVariables Check if required variables are available
             if isempty(obj.DataIoModel)
                 error('Nansen:SessionMethod:IoModelMissing', ...
                     'Data I/O Model is missing for method %s', class(obj))
             end
-            
+
             % Alternative to making this abstract in which case subclasses
             % has to implement it...
             if ~isprop(obj, 'RequiredVariables'); return; end
-            
+
             for i = 1:numel(obj.RequiredVariables)
-                
+
                 assertionMsg = sprintf(['File for the required data ', ...
                     'variable "%s" is missing'], obj.RequiredVariables{i});
-                
+
                 filePath = obj.getDataFilePath(obj.RequiredVariables{i});
                 assert(isfile(filePath), assertionMsg)
-                
             end
         end
-        
+
         function run(obj)
-            
+
             % Todo: How to create a sessionMethod instance from a function?
             % Create a subclass??
             if ~isempty(obj.ExternalFcn)
                 sessionObjects = obj.SessionObjects;
                 %params = obj.Parameters;
                 params = obj.Options;
-                
+
                 obj.ExternalFcn(sessionObjects, params)
             else
                 obj.runMethod()
@@ -156,33 +155,32 @@ classdef SessionMethod < nansen.processing.DataMethod
         end
 
         function setup(obj)
-                        
+
             obj.Options = tools.editStruct(obj.Options);
-            
         end
-        
+
         function usePreset(obj, presetName)
-            
+
             obj.OptionsManager.setOptions(presetName)
             obj.Options = obj.OptionsManager.getOptions(presetName);
             %obj.Parameters = obj.OptionsManager.getOptions(presetName);
         end
     end
-    
+
     methods % Set/get methods
 %         function names = get.PresetOptionNames(obj)
 %             % Todo: This should not be a property of this class.
 %             names = obj.OptionsManager.listPresetOptions();
 %         end
     end
-    
+
     methods (Static)
-    
+
         function name = getMethodName(sessionMethod)
         %getMethodName Get name of session method
-            
+
             fcnAttributes = sessionMethod();
-            
+
             if isstruct(fcnAttributes)
                 if isfield(fcnAttributes, 'MethodName')
                     name = fcnAttributes.MethodName;
@@ -194,7 +192,7 @@ classdef SessionMethod < nansen.processing.DataMethod
                 name = fcnAttributes.MethodName;
             end
         end
-        
+
         function attributes = setAttributes(varargin)
         %setAttributes Create a struct mimicking an object of this class
         %
@@ -208,12 +206,12 @@ classdef SessionMethod < nansen.processing.DataMethod
         %
         %
         %   See also nansen.session.methods.template.SessionMethodFunctionTemplate
-        
+
             % Todo: Get all constant properties + parameters from metaclass
             % definition.
-            
+
             %    Include Required variables as attribute
-            
+
             % Fields of output struct with defaults.
             S.BatchMode = 'serial';
             S.IsQueueable = true;
@@ -227,31 +225,31 @@ classdef SessionMethod < nansen.processing.DataMethod
             else
                 defaultOpts = struct();
             end
-            
+
             S.DefaultOptions = defaultOpts;
-         
+
             % Extract flags from varargin
             flags = {'batch', 'serial', 'queueable', 'unqueueable'};
             [flags, varargin] = utility.splitvararginflags(varargin, flags);
-            
+
             % Check for any name, value pairs in varargin
             [nvPairs, varargin] = utility.getnvpairs(varargin);
-            
+
             S = utility.parsenvpairs(S, 1, nvPairs);
 
             % Update S from input flags
             if contains('serial', flags)
                 S.BatchMode = 'serial';
             end
-            
+
             if contains('batch', flags)
                 S.BatchMode = 'batch';
             end
-            
+
             if any( strcmpi('queueable', flags) )
                 S.IsQueueable = true;
             end
-            
+
             if any( strcmpi('unqueueable', flags) )
                 S.IsQueueable = false;
             end
@@ -265,17 +263,15 @@ classdef SessionMethod < nansen.processing.DataMethod
             end
 
             attributes = S;
-            
         end
-        
+
         function attributes = getAttributesFromFunction(fcnName)
-            
         end
-        
+
         function attributes = getAttributesFromClass(className)
             % Todo: is this method used?
             hfun = str2func(className);
-            
+
             mc = meta.class.fromName(className);
             if ~isempty(mc)
                 tic
@@ -289,7 +285,7 @@ classdef SessionMethod < nansen.processing.DataMethod
                 end
                 toc
             end
-            
+
             try
                 tic; mConfig = hfun(); toc % Call with no input should give configs
             catch % Get defaults it there are no config:
@@ -297,15 +293,15 @@ classdef SessionMethod < nansen.processing.DataMethod
             end
         end
     end
-        
+
     methods (Static, Access = private)
-        
+
         function name = getCallingFunction()
 
             % Skip two first entries (current function and class
             % method that requests caller)
             st = dbstack(2, '-completenames');
-            
+
             if isempty(st)
                 name = '';
                 return
@@ -318,33 +314,32 @@ classdef SessionMethod < nansen.processing.DataMethod
 
             isPackage = strncmp(splitFilePath, '+', 1);
             folderNames = strrep(splitFilePath, '+', '');
-            
-            name = strjoin( [folderNames(isPackage), {st(1).name} ], '.');
 
+            name = strjoin( [folderNames(isPackage), {st(1).name} ], '.');
         end
     end
 
     methods (Static)
 
         function sessionMethodTable = buildSessionMethodTable(fileList)
-            
+
             % Todo: Also find functions...
             % Todo: What is necessary to list here...?
-            
+
             sessionMethodList = struct(...
                 'Name', {},...
                 'FunctionName', {});
 
             count = 1;
-                        
+
             % Loop through m-files and add to file adapter list if this
             for i = 1:numel(fileList)
                 mFilePath = utility.dir.abspath(fileList(i));
                 mFilePath = mFilePath{1};
                 thisFcnName = utility.path.abspath2funcname(mFilePath);
-                
+
                 [~, fileName] = fileparts(mFilePath);
-                
+
                 sessionMethodList(count).Name = fileName;
                 sessionMethodList(count).FunctionName = thisFcnName;
                 count = count + 1;

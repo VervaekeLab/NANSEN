@@ -11,10 +11,10 @@ function partitionedIndices = splitIndicesInParts(indices, numParts)
     numIndices = numel(indices);
     numFramesPerPart = ceil(numIndices / numParts);
     numParts = numFramesPerPart * numParts;
-    
+
     % Adjust number of parts in case some would be empty
     numParts = sum( (1:numParts) * numFramesPerPart < numIndices ) + 1;
-    
+
     % Split into cell array
     keep = 1:numFramesPerPart*(numParts-1);
     partitionedIndices = mat2cell(indices(keep), 1, repmat(numFramesPerPart, 1, numParts-1));

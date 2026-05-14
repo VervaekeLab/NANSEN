@@ -10,7 +10,7 @@ function hApp = fovmanager(varargin)
     else
         hApp = fovmanager.App(varargin{:});
     end
-    
+
     if ~nargout
         clear hApp
     end

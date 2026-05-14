@@ -1,5 +1,5 @@
 classdef DataSet < uiw.mixin.AssignPVPairs
-    
+
     properties % Immutable? Should not be possible to change
         DataSetID = ''  % ID which identifies files that belong to dataset.
     end
@@ -17,7 +17,7 @@ classdef DataSet < uiw.mixin.AssignPVPairs
     end
 
     methods (Abstract)
-        
+
 %         existVariable
 %
 %         existFolder
@@ -29,11 +29,10 @@ classdef DataSet < uiw.mixin.AssignPVPairs
         saveData
 
         loadData
-
     end
-    
+
     methods % Set/get
-        
+
         function set.IsArchive(obj, newValue)
             assert(islogical(newValue), 'Value must be logical')
             obj.IsArchive = newValue;
@@ -57,7 +56,7 @@ classdef DataSet < uiw.mixin.AssignPVPairs
 
             % Default mode is read:
             mode = 'read';
-            
+
             if ~isempty(varargin) && ischar(varargin{1})
                 switch varargin{1}
                     case '-r'
@@ -90,12 +89,12 @@ classdef DataSet < uiw.mixin.AssignPVPairs
 
             % Fix special case:
             fileName = strrep(fileName, '__', '_');
-            
+
             % Combine variable name and data set id
             if ~isempty(obj.DataSetID)
                 fileName = strjoin({obj.DataSetID, fileName}, '_');
             end
-            
+
             % Append a file extension
             if isfield(parameters, 'FileType')
                 fileExtension = parameters.FileType;
@@ -114,9 +113,9 @@ classdef DataSet < uiw.mixin.AssignPVPairs
     end
 
     methods (Access = protected)
-        
+
         function str = getDatePrefix(obj)
-            
+
             if isempty(obj.DatePrefixStr_)
                 obj.DatePrefixStr_ = datestr(now, 'yyyymmdd_HH_MM_SS');
             end

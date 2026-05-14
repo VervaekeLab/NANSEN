@@ -8,7 +8,7 @@ function defaultTableVariableList = getDefaultTableVariables(className)
 
     mc = meta.class.fromName(className);
     % Todo: Check whether the MetadataEntity is a superclass?
-    
+
     isStatic = [mc.PropertyList.Constant];
     isTransient = [mc.PropertyList.Transient];
     isPublic = strcmp({mc.PropertyList.SetAccess}, 'public');

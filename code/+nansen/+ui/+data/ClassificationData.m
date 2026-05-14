@@ -1,13 +1,13 @@
 classdef ClassificationData < handle
 
     % Todo:
-    %   [ ] Add methods for appending, inserting and removing elements.
-    %   [ ] Only allow adding a base name for items?
+    %   [ ] Add methods for appending, inserting and removing elements.
+    %   [ ] Only allow adding a base name for items?
 
     properties
         Description (1,1) string
     end
-        
+
     properties (SetAccess = private)
         NumElements = []
     end
@@ -30,7 +30,6 @@ classdef ClassificationData < handle
 
     methods % Constructor
         function obj = ClassificationData(varargin)
-            
         end
     end
 
@@ -52,20 +51,20 @@ classdef ClassificationData < handle
                 imageName (1,1) string
                 imageArray (:,:,:) {mustBeNumeric}
             end
-            
+
             numImages = cellfun(@(c) size(c,3), imageArray);
-            
+
             assert( numel(unique(numImages))  == 1, ...
                 'Image arrays must have the same size along the 3rd dimension' )
-        
+
             numImages = numImages(1);
 
             obj.validateNumElements(numImages);
-            
+
             if isempty(obj.ImageData)
                 obj.ImageData = obj.initializeStructArray(imageName, numImages);
             end
-            
+
             % Place individual images into individual elements of the struct array
             for i = 1:numel(imageName)
                 thisName = imageName{i};
@@ -74,7 +73,7 @@ classdef ClassificationData < handle
                 [obj.ImageData(:).(thisName)] = deal(thisImageCellArray{:});
             end
         end
-        
+
         function addStatistics(obj, name, valueList)
         %addStatistics - Add one or more statistical value lists to this instance
         %
@@ -82,7 +81,7 @@ classdef ClassificationData < handle
         %       obj.addStatistics(name, valueList)
         %
         %       obj.addStatistics(nameA, valueListA, nameB, valueListB, ...)
-                    
+
             arguments
                 obj (1,1) nansen.ui.data.ClassificationData
             end
@@ -93,18 +92,18 @@ classdef ClassificationData < handle
             end
 
             numValues = cellfun(@(c) numel(c), valueList);
-            
+
             assert( numel(unique(numValues))  == 1, ...
                 'Lists of values must have the same number of elements' )
-        
+
             numValues = numValues(1);
 
             obj.validateNumElements(numValues);
-            
+
             if isempty(obj.Statistics)
                 obj.Statistics = obj.initializeStructArray(name, numValues);
             end
-            
+
             % Place individual images into individual elements of the struct array
             for i = 1:numel(name)
                 thisName = name{i};
@@ -121,7 +120,7 @@ classdef ClassificationData < handle
         function insertImages(obj, imageName, indices, imageArray)
             error('Not implemented yet')
         end
-        
+
         function addNames(obj, names)
         % addNames - Add names for each element
 
@@ -154,7 +153,6 @@ classdef ClassificationData < handle
         function initalizeProperties(obj)
             obj.Name = obj.createNames();
             obj.Classification = zeros(obj.NumElements, 1, 'uint8');
-
         end
 
         function nameList = createNames(obj, baseName)
@@ -166,15 +164,12 @@ classdef ClassificationData < handle
         end
 
         function append()
-
         end
 
         function insert()
-
         end
 
         function remove()
-
         end
     end
 

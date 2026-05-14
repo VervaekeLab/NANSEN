@@ -6,7 +6,7 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
     % Java control. It also has a label which may optionally be used. The
     % label will be shown once any Label* property has been set.
     %
-    
+
     %   Copyright 2009-2019 The MathWorks Inc.
     %
     % Auth/Revision:
@@ -15,10 +15,10 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
     %   $Revision: 328 $
     %   $Date: 2019-04-24 08:55:24 -0400 (Wed, 24 Apr 2019) $
     % ---------------------------------------------------------------------
-    
+
     % Modifications EH:
     % 1) getKeyboardEventData : Add command key as modifier in evtdata
-    
+
     %% Properties
     properties (Hidden, SetAccess=protected)
         JControl % The main Java control
@@ -27,48 +27,48 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
         JEditor % The editor component of the Java control (applies to some controls)
         HGJContainer % The container for the Java control
     end
-    
+
     properties (AbortSet, Hidden, SetAccess=protected)
         CallbacksEnabled logical = true % Are callbacks active or should then be suspended? (in case updating a java widget would trigger undesired callbacks)
     end
-    
+
     %% Events
     events
         MouseDrag %Triggered on mouse drag over the control
         MouseMotion %Triggered on mouse motion over the control
     end
-    
+
     %% Public methods
     methods
         % These may be implemented by subclass if desired
-        
+
         function [str,data] = onCopy(obj) %#ok<STOUT>
             % Triggered on copy interaction - subclass may override
             error('Copy not implemented for %s',class(obj));
         end
-        
+
         function [str,data] = onCut(obj) %#ok<STOUT>
             % Triggered on cut interaction - subclass may override
             error('Cut not implemented for %s',class(obj));
         end
-        
+
         function onPaste(obj,~)
             % Triggered on paste interaction - subclass may override
             error('Paste not implemented for %s',class(obj));
         end
-        
+
         function requestFocus(obj)
             obj.JControl.requestFocusInWindow();
         end
-        
+
     end %methods
-    
+
     %% Sealed Protected methods
     methods (Sealed, Access=protected)
-        
+
         function value = getJFont(obj)
             % Return a Java font object matching the widget's font settings
-            
+
             jStyle = 0;
             if strcmp(obj.FontWeight,'bold')
                 jStyle = jStyle + java.awt.Font.BOLD;
@@ -82,12 +82,12 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
             % typically 96dpi and up, depending on display settings.
             jSize = round(obj.FontSize * obj.getJavaDPI() / 72);
             value = javax.swing.plaf.FontUIResource(obj.FontName, jStyle, jSize);
-            
+
         end %function
-        
+
         function evt = getMouseEventData(obj,jEvent)
             % Interpret a Java mouse event and return MATLAB data
-            
+
             % Get info on the click location and type
             pos = [jEvent.getX() jEvent.getY()];
             ctrlOn = jEvent.isControlDown();
@@ -105,7 +105,7 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
             else
                 type = "normal";
             end
-            
+
             switch jEvent.getID()
                 case 500
                     interaction = "ButtonClicked";
@@ -118,7 +118,7 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
                 case 506
                     interaction = "ButtonDrag";
             end %switch jEvent.getID()
-            
+
             % Prepare eventdata
             evt = uiw.event.MouseEvent(...
                 'HitObject',obj,...
@@ -132,12 +132,12 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
                 'ControlOn',ctrlOn,...
                 'ShiftOn',shiftOn,...
                 'AltOn',altOn);
-            
+
         end %function
-        
+
         function evt = getKeyboardEventData(~,jEvent)
             % Interpret a Java keyboard event and return MATLAB data
-            
+
             % Get info on the key event
             cmdOn = jEvent.isMetaDown(); % added by EH 2022-05-13
             ctrlOn = jEvent.isControlDown();
@@ -145,28 +145,28 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
             altOn = jEvent.isAltDown();
             modifier = {'shift','control','alt','command'};
             modifier = modifier([shiftOn ctrlOn altOn cmdOn]);
-            
+
             character = jEvent.getKeyChar();
             paramStr = jEvent.paramString();
             tokens = regexp(char(paramStr),'^(\w*).*keyText=([^,]*)','tokens','once');
-            
+
             key = lower(tokens{2});
-            
+
             % Prepare eventdata
             evt = uiw.event.KeyboardEvent(...
                 'Character',character,...
                 'Modifier',modifier,...
                 'Key',key);
-            
+
         end %function
-        
+
         function showContextMenu(obj,cMenu)
-            
+
             % Default to normal context menu
             if nargin<2
                 cMenu = obj.UIContextMenu;
             end
-            
+
             % Display the context menu
             if ~isempty(cMenu)
                 tPos = getpixelposition(obj.HGJContainer,true);
@@ -186,30 +186,30 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
                     set(cMenu,'Position',mPos,'Visible','on');
                 end
             end
-            
+
         end %function
-        
+
     end % Sealed Protected methods
-    
+
     %% Protected methods
     methods (Access=protected)
-        
+
         function createScrollPaneJControl(obj,JavaClassName,varargin)
             % Create the Java control on a scroll pane, and set any additional properties
-            
+
             jControl = obj.constructJObj(JavaClassName,varargin{:});
             obj.JScrollPane = createJControl(obj,'com.mathworks.mwswing.MJScrollPane',jControl);
             obj.JControl = jControl;
             obj.JavaObj = java(jControl);
-            
+
             % Set interactions
             obj.setInteractions(jControl);
-            
+
         end %function
-        
+
         function [jControl,hgContainer] = createJControl(obj, JavaClassName, varargin)
             % Create the Java control and set any additional properties
-            
+
             [jControl, hgContainer] = javacomponent([{JavaClassName},varargin],...
                 [1 1 100 100], obj.hBasePanel);
             set(hgContainer,'Units','Pixels','Position',[1 1 100 25]);
@@ -220,94 +220,92 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
                     obj.JavaObj = java(jControl);
                 end
             end
-            
+
             % Set interactions
             obj.setInteractions(jControl);
-            
+
             % Set focusability of the object
             obj.setFocusProps(jControl);
-            
+
         end % createControl
-        
+
         function setInteractions(obj,jObj)
             % Set Java control interactions
-            
+
             % Set keyboard callbacks
             jObj.KeyPressedCallback = @(h,e)onKeyPressed(obj,e);
             jObj.KeyReleasedCallback = @(h,e)onKeyReleased(obj,e);
-            
+
         end % setFocusProps
-        
+
         function setFocusProps(obj,jObj)
             % Set Java control focusability and tab order
-            
+
             jObj.putClientProperty('TabCycleParticipant', true);
             jObj.setFocusable(true);
-            
+
             CbProps = handle(jObj,'CallbackProperties');
             CbProps.FocusGainedCallback = @(h,e)onFocusGained(obj,h,e);
             CbProps.FocusLostCallback = @(h,e)onFocusLost(obj,h,e);
-            
+
         end % setFocusProps
-        
+
         function onFocusGained(obj,~,~)
             % Triggered on focus on the control, sets this widget as the figure's current object
-            
+
             hFigure = ancestor(obj,'figure');
             hFigure.CurrentObject = obj;
-            
         end
-        
+
         function onFocusLost(~,~,~)
             % Triggered on focus lost from the control - subclass may override
-            
         end
-        
+
         function onKeyPressed(obj,jEvent)
-            
+
             % Get the keyboard event data
             evt = obj.getKeyboardEventData(jEvent);
-            
+
             % Call superclass method
             obj.onKeyPressed@uiw.mixin.HasKeyEvents(evt);
-            
+
         end %function
-        
+
         function onKeyReleased(obj,jEvent)
-            
+
             % Get the keyboard event data
             evt = obj.getKeyboardEventData(jEvent);
-            
+
             % Call superclass method
             obj.onKeyReleased@uiw.mixin.HasKeyEvents(evt);
-            
+
         end %function
-        
+
         function onResized(obj)
             % Handle changes to widget size - subclass may override
-            
+
             % Ensure the construction is complete
             if obj.IsConstructed
-                
+
                 % Get widget dimensions
                 [w,h] = obj.getInnerPixelSize();
-                
+
                 % Adjust the java control, due to positioning issues
                 set(obj.HGJContainer,'Units','pixels','Position',[2 2 w-2 h-2]);
-                
+
             end %if obj.IsConstructed
-            
+
         end %function
-        
+
         function onEnableChanged(obj,~)
             % Handle updates to Enable state - subclass may override
-            
+
             % Ensure the construction is complete
             if obj.IsConstructed
-                
+
                 % Call superclass methods
                 onEnableChanged@uiw.abstract.WidgetContainer(obj);
-                
+
                 % Enable/Disable the Java control
                 IsEnable = strcmp(obj.Enable,'on');
                 for idx = 1:numel(obj.JScrollPane)
@@ -319,20 +317,20 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
                 for idx = 1:numel(obj.JControl)
                     obj.JControl(idx).setEnabled(IsEnable);
                 end
-                
+
             end %if obj.IsConstructed
-            
+
         end % onEnableChanged
-        
+
         function onStyleChanged(obj,~)
             % Handle updates to style - subclass may override
-            
+
             % Ensure the construction is complete
             if obj.IsConstructed
-                
+
                 % Call superclass methods
                 onStyleChanged@uiw.abstract.WidgetContainer(obj);
-                
+
                 % Set the font
                 for idx = 1:numel(obj.JControl)
                     j = obj.JControl(idx);
@@ -340,59 +338,59 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
                     j.setBackground( obj.rgbToJavaColor(obj.BackgroundColor) );
                     j.setForeground( obj.rgbToJavaColor(obj.ForegroundColor) );
                 end
-                
+
             end %if obj.IsConstructed
-            
+
         end %function
-        
+
     end % Protected methods
-    
+
     %% Static Protected methods
     methods (Static)
-        
+
         function jObj = constructJObj(JavaClass, varargin)
             % Create the Java object on the Event Dispatch Thread (EDT)
-            
+
             jObj = javaObjectEDT(JavaClass,varargin{:});
-            
+
             % Add callback properties
             jObj = handle(jObj,'CallbackProperties');
-            
+
         end %function
-        
+
         function jColor = rgbToJavaColor(rgbColor)
             % Convert a MATLAB RGB vector into a Java color resource
-            
+
             validateattributes(rgbColor,{'double'},{'<=',1,'>=',0,'numel',3})
             jColor = javax.swing.plaf.ColorUIResource(rgbColor(1),rgbColor(2),rgbColor(3));
-            
+
         end %function
-        
+
         function rgbColor = javaColorToRGB(jColor)
             % Convert a MATLAB RGB vector into a Java color resource
-            
+
             validateattributes(jColor,{'javax.swing.plaf.ColorUIResource'},...
                 {'scalar'})
             rgbColor = double([jColor.getRed(), jColor.getGreen(), jColor.getBlue()])/255;
-            
+
         end %function
-        
+
         function value = getJavaDPI()
-            
+
             persistent dpi
             if isempty(dpi)
                 defaultToolkit = java.awt.Toolkit.getDefaultToolkit();
                 dpi = defaultToolkit.getScreenResolution();
             end
             value = dpi;
-            
+
         end %function
-        
+
     end %methods
-    
+
     %% Get/Set methods
     methods
-        
+
         % CallbacksEnabled
         function value = get.CallbacksEnabled(obj)
             value = obj.IsConstructed && obj.CallbacksEnabled;
@@ -405,7 +403,7 @@ classdef (Abstract) JavaControl < uiw.abstract.WidgetContainer & uiw.mixin.HasKe
                 obj.CallbacksEnabled = value;
             end
         end
-        
+
     end %methods
-    
+
 end % classdef

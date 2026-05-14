@@ -48,8 +48,8 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
 %   for specific data types and what data to expect.
 
 % Todo: Add generic write2mat for subclasses to use...
-%   [ ] implement selection of multiple files..
-%   [ ] add cautious mode, i.e do not allow overwrting without
+%   [ ] implement selection of multiple files..
+%   [ ] add cautious mode, i.e do not allow overwrting without
 %       confirmation.
 
 % - - - - - - - - - - - - PROPERTIES - - - - - - - - - - - - - - - - - - -
@@ -63,20 +63,20 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
     properties (Abstract, Constant)
         DataType
     end
-    
+
     properties %(SetAccess = immutable) ??
         Writable = false;   % Does the file adapter have write permission?
     end
-    
+
     properties (SetAccess = private, Hidden)
         DiscardConvertedMatfile = false % Should we store matfile copy if data is converted from a different file format. false = delete file, true = keep file
         RedoFileConversion = false
     end
-    
+
     properties (Access = protected)
         FileSelectionMode = 'single'; % 'single' | 'multiple'
     end
-    
+
     properties (Abstract, Constant, Hidden, Access = protected)
         % Todo?: Support grouping of filetypes for similar files in nested
         % cell arrays, i.e { {tif, tiff}, {'png, 'jpg'}, {'mov', 'avi',
@@ -84,7 +84,7 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
         % Specify supported file extensions
         SUPPORTED_FILE_TYPES cell
     end
-    
+
     properties (Dependent, Access = protected)
         FileType % The file type as described by the file extension
     end
@@ -95,32 +95,31 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
         CachedData % Todo: Implement a global cache and make sure it is not overfilled.
         FileCleanupList % list with paths of files to clean.
     end
-    
+
 % - - - - - - - - - - - - - METHODS - - - - - - - - - - - - - - - - - - -
 
     methods (Abstract, Access = protected)
 
         % Method for reading data from file
         data = readData(obj, varargin)
-        
     end
-    
+
     methods (Static, Access = protected)
-        
+
         function S = getDefaultMetadata()
         %getDefaultMetadata Get default metadata for class
             S = struct();
             % Subclasses may override
         end
     end
-    
+
     methods % Constructor
-        
+
         function obj = FileAdapter(varargin)
         %FileAdapter Constructor of file adapter object.
-        
+
             if isempty(varargin); return; end % uninitialized file adapter
-    
+
             flagProps = {...
                 'Writable', 'DiscardConvertedMatfile', ...
                 'RedoFileConversion' };
@@ -138,21 +137,20 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             catch ME
                 warning(ME.identifier, '%s', ME.message)
             end
-            
+
             % Todo: Accept name/value pairs specifying property values
             [nvPairs, varargin] = utility.getnvpairs(varargin{:}); %#ok<ASGLU>
-            
         end
-        
+
         function delete(obj)
             if ~isempty(obj.FileCleanupList)
                 obj.deleteTemporaryFiles(); % File should be deleted when this is cleared
             end
         end
     end
-    
+
     methods (Access = private)
-        
+
         function tf = containsFlag(~, C, flagName)
         %containsFlag Check is cell array contains a specified flag
         %
@@ -162,24 +160,23 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
         %   Flag names:
         %       Writable
         %       SaveMatfileOnConversion
-        
+
             tf = false;
-            
+
             containsflag = @(str) any(cellfun(@(c) isequal(c, str), C));
-            
+
             switch flagName
                 case 'Writable'
                     tf = containsflag('-w') || containsflag('writable');
-                    
+
                 case 'DiscardConvertedMatfile'
                     tf = containsflag('-tempmat');
-                    
+
                 case 'RedoFileConversion'
                     tf = containsflag('-u');
-                    
             end
         end
-        
+
         function deleteTemporaryFiles(obj)
         %deleteTemporaryFiles Delete temporary files in file cleanup list.
             for i = 1:numel(obj.FileCleanupList)
@@ -189,20 +186,20 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             end
         end
     end
-    
+
     methods (Access = protected) % writeData (not implemented)
-        
+
         function writeData(obj, data, varargin) % Subclass can override
         %writeData Write (save) data to file
             name = strsplit( builtin('class', obj), '.');
             error('The file adapter "%s" does not support saving of data to file.', name{end})
         end
-        
+
         function writeDataToMat(obj, S, varargin)
         %writeDataToMat General method to write data to matfile
-        
+
             % Todo: Test/debug this...
-            
+
             % Use v7.3 is variable is large...
             varInfo = whos('S');
             byteSize = varInfo.bytes;
@@ -212,7 +209,7 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             else
                 versionFlag = '-v7';
             end
-            
+
             if isfile(obj.Filename)
                 warning('off', 'MATLAB:save:versionWithAppend')
                 save(obj.Filename, '-struct', 'S', '-append', versionFlag)
@@ -222,24 +219,24 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             end
         end
     end
-    
+
     methods % View/open (not implemented)
-        
+
         % Method for opening data
         function open(obj)
             % Subclass can implement
             error('View is not implemented for file adapter "%s"', class(obj))
         end
-        
+
         % Method for viewing data
         function view(obj)
             % Subclass can implement
             error('View is not implemented for file adapter "%s"', class(obj))
         end
     end
-    
+
     methods % Set/get methods
-        
+
         function set.Filename(obj, newValue)
         %SET.FILENAME Set method for Filename property
             if ~isempty(obj.Filename_) && ~isequal(obj.Filename_, newValue)
@@ -247,68 +244,68 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             elseif isequal(obj.Filename_, newValue)
                 return
             end
-            
+
             assert(ischar(newValue), ...
                 'Nansen:FileIO:InvalidInput', ...
                 'Filename must be a character vector')
-            
+
             % Make sure it looks like a file path
             [~, filename, ext] = fileparts(newValue);
             assert(~isempty(filename) && ~isempty(ext), ...
                 'Nansen:FileIO:InvalidFilename', ...
                 'Filename must be a valid filename' )
-            
+
             % Todo: Assert that file is a supported filetype
-            
+
             obj.Filename_ = newValue;
-            
+
             obj.initializeMetadata()
         end
-        
+
         function filename = get.Filename(obj)
         %GET.FILENAME Get method for Filename property
             filename = obj.Filename_;
         end
-        
+
         function name = get.Name(obj)
             [~, name, ~] = fileparts(obj.Filename);
         end
-        
+
         function fileType = get.FileType(obj)
             [~, ~, fileExt] = fileparts(obj.Filename);
             fileType = strrep(fileExt, '.', '');
         end
-        
+
         function metadata = get.Metadata(obj)
             obj.readMetadata();
             metadata = obj.Metadata_.MetadataStruct;
         end
     end
-    
+
     methods % Load/save
-                
+
         function data = load(obj, varargin)
-            
+
             obj.validateFilepath('load');
-                       
+
             if obj.isCached()
                 data = obj.getCachedData();
                 if ~isempty(data); return; end
             end
-            
+
             data = obj.readData(varargin{:});
-            
+
             obj.setCachedData(data)
         end
-        
+
         function save(obj, data, varargin)
             obj.assertIsWritable()
             obj.validateFilepath('save');
-            
+
             obj.writeData(data, varargin{:})
             obj.setCachedData(data)
         end
-        
+
         function setMetadata(obj, name, value, groupName)
             obj.validateFilepath('write meta')
             obj.readMetadata();
@@ -316,19 +313,19 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             obj.writeMetadata();
         end
     end
-    
+
     methods % Utility methods
-        
+
         function uiopen(obj, initFolderPath)
             if nargin < 2; initFolderPath = ''; end
             obj.uifind(initFolderPath)
         end
-        
+
         function uifind(obj, initFolderPath)
         %uifind Open file browser to let user select a file
-        
+
         % Todo: Implement selection mode. Property?
-        
+
             if nargin < 2
                 initFolderPath = '';
             end
@@ -336,7 +333,7 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             fileFilter = obj.getFileFilter();
             fileFilter = ['*.*'; fileFilter];
             titleStr = sprintf( 'Select a "%s" file:', class(obj) );
-            
+
             [filename, folderPath] = uigetfile(fileFilter, titleStr, ...
                 initFolderPath, 'MultiSelect', 'off'); %obj.getMultiSelectionMode());
 
@@ -344,11 +341,11 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
                 obj.Filename_ = fullfile(folderPath, filename);
             end
         end
-        
+
         function tf = uiput(obj, initFolderPath)
-            
+
             tf = false;
-            
+
             if nargin < 2
                 initFolderPath = '';
             end
@@ -356,7 +353,7 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             fileFilter = obj.getFileFilter();
             fileFilter = ['*.*'; fileFilter];
             titleStr = sprintf( 'Pick a file for saving as %s', classname(obj) );
-            
+
             [filename, folderPath] = uiputfile(fileFilter, titleStr, ...
                 initFolderPath);
 
@@ -364,29 +361,29 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
                 obj.Filename_ = fullfile(folderPath, filename);
                 tf = true;
             end
-            
+
             if ~nargout; clear tf; end
         end
-        
+
         function fileTypes = getFileTypes(obj)
             fileTypes = obj.SUPPORTED_FILE_TYPES;
         end
     end
-    
+
     methods (Access = protected) % Internal methods
-        
+
         function assertIsWritable(obj)
             assertMsg = 'This file adapter does not have write permission';
             assert(obj.Writable, assertMsg)
         end
-        
+
         function validateFilepath(obj, action)
-                        
+
             if isempty(obj.Filename)
                 error('Nansen:FileIO:FilenameMissing', ...
                     'Can not %s data because Filename is not set.', action)
             end
-            
+
             switch action
                 case 'load'
                     if ~isfile(obj.Filename) && ~exist(obj.Filename, 'file')
@@ -400,7 +397,7 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
                     end
             end
         end
-        
+
         function mode = getMultiSelectionMode(obj)
             if strcmp(obj.FileSelectionMode, 'single')
                 mode = 'off';
@@ -408,7 +405,7 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
                 mode = 'on';
             end
         end
-        
+
         function fileFilter = getFileFilter(obj)
         %getFileFilter Get file filter for use in uigetfile
             fileFilter = strcat('*.', obj.SUPPORTED_FILE_TYPES );
@@ -416,39 +413,39 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             % Note: If file filter is a cell array, its N rows x 2 columns
             % where the second column is an optional description.
         end
-        
+
         function str = getHeader(obj) % < matlab.mixin.CustomDisplay
             str = getHeader@matlab.mixin.CustomDisplay(obj);
             className = strsplit(builtin('class', obj), '.');
-            
+
             displayName = sprintf('FileAdapter (%s)', className{end});
             str = strrep(str, className{end}, displayName);
         end
-        
+
         % % Caching of data.
-        
+
         function tf = isCached(obj)
             tf = false;
             %tf = ~isempty(obj.CachedData);
         end
-        
+
         function data = getCachedData(obj)
             data = obj.CachedData;
             if isa(data, 'handle') && ~isvalid(data)
                 data = [];
             end
         end
-        
+
         function setCachedData(obj, data)
             obj.CachedData = data;
         end
-                
+
         % % Metadata (Should these be part of another class?)
-        
+
         function S = getMetadataHeader(obj) % Todo: Make metadata plugin...
         %getMetadataHeader Get human readable header for the metadata file
             [filepath, name, ext] = fileparts(obj.Filename);
-            
+
             S = struct();
             S.File = struct;
             if isprop(obj, 'Description')
@@ -461,7 +458,7 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             S.File.Filename = strcat(name, ext);
             S.File.Details = {''};
         end
-        
+
         function writeMetadata(obj, S)
         %writeMetadata Write struct to a yaml metadata file
             if isempty(obj.Metadata_); return; end
@@ -472,27 +469,27 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
                 obj.Metadata_.writeToFile();
             end
         end
-        
+
         function readMetadata(obj)
         %readMetadata Read struct from a yaml metadata file
             if isempty(obj.Metadata_); return; end
             obj.Metadata_.readFromFile();
         end
-        
+
         function initializeMetadata(obj)
             % Subclasses may override
             S = obj.getMetadataHeader();
             S.Data = obj.getDefaultMetadata;
             obj.Metadata_ = nansen.dataio.metadata.GenericMetadata(obj.Filename, S);
         end
-        
+
         function matFileName = convertToMatfile(obj)
         %convertToMatfile Convert file to matfile using default converters
-            
+
             [folderpath, name, ext] = fileparts(obj.Filename);
-            
+
             matFileName = fullfile(folderpath, [name, '.mat']);
-            
+
             if isfile(matFileName) && obj.RedoFileConversion
                 delete(matFileName)
             elseif isfile(matFileName) && ~obj.RedoFileConversion
@@ -500,21 +497,21 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             else
                 % pass, mat file does not exist, conversion is needed
             end
-            
+
             switch ext
                 case '.npy'
                     matFileName = obj.convertNumpyFile(obj.Filename, obj.DiscardConvertedMatfile);
-                    
+
                 otherwise
                     error('Conversion is not available for files with the "%s" extension', ext)
             end
-            
+
             if obj.DiscardConvertedMatfile
                 obj.FileCleanupList = [obj.FileCleanupList, {matFileName}];
             end
         end
     end
-    
+
     methods (Hidden)
         function cls = class(obj)
             className = strsplit(builtin('class', obj), '.');
@@ -525,23 +522,23 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             className = className{end};
         end
     end
-    
+
     methods (Static)
-        
+
         function filepathMat = convertNumpyFile(filepathNpy, isTemporary)
         %convertNumpyFile Convert numpy to matfile
-        
+
             thisFolderPath = fileparts(mfilename('fullpath'));
             filepathPyScript = fullfile(thisFolderPath, '+fileconvert', ...
                 'numpy2mat.py');
-            
+
             % Convert file in place:
             if isTemporary
                 filepathMat = [tempname, '.mat'];
             else
                 filepathMat = strrep(filepathNpy, '.npy', '.mat');
             end
-            
+
             if ispc
                 commandStrTemplate = 'python.exe "%s" "%s" "%s"'; % pyFile, sourceFile, targetFile
             elseif ismac
@@ -551,17 +548,17 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             else
                 error('Unknown operating system')
             end
-            
+
             commandStr = sprintf(commandStrTemplate, filepathPyScript, filepathNpy, filepathMat);
-            
+
             % Run conversion using system
             [status, cmdout] = system(commandStr);
-            
+
             if not( status == 0 )
                 error('File conversion from .npy to .mat failed with following message:\n%s\n', cmdout)
             end
         end
-        
+
         function filepathMat = convertTdmsFile(filepathTdms)
             error('not implemented yet')
         end
@@ -590,13 +587,13 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
                 'SupportedFileTypes', {}, ...
                 'DataType', {}, ...
                 'IsDynamic', {});
-                        
+
             % Loop through m-files and add to file adapter list if this
             for i = 1:numel(fileList)
 
                 currentFilePath = utility.dir.abspath(fileList(i));
                 currentFilePath = currentFilePath{1};
-                
+
                 try
                     if endsWith(currentFilePath, '.m')
                         fileAdapterMeta = nansen.dataio.FileAdapter.parseClassBasedFileAdapter(currentFilePath);
@@ -624,7 +621,7 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             fileAdapterInfo = jsondecode(fileread(filePath));
             [~, fileAdapterName] = fileparts(fileparts(filePath));
             fileAdapterName = strrep(fileAdapterName, '+', '');
-            
+
             assert(isfield(fileAdapterInfo, 'x_type'), ...
                 'NANSEN:FileAdapter:InvalidFileAdapterJson', ...
                 ['Expected fileadapter.json in location "%s" ', ...
@@ -658,9 +655,9 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             mc = meta.class.fromName(thisFcnName);
 
             if ~isempty(mc) && isa(mc, 'meta.class') && isFileAdapterClass(mc)
-            
+
                 [~, fileName] = fileparts(filePath);
-                      
+
                 result = struct();
                 result.FileAdapterName = fileName;
                 result.FunctionName = thisFcnName;

@@ -20,11 +20,10 @@ classdef TableColumnFormatter
     end
 
     methods (Abstract)
-        
+
         str = getCellDisplayString(obj)
 
         str = getCellTooltipString(obj)
-        
     end
 
     methods

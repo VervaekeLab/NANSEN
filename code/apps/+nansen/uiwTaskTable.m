@@ -11,7 +11,7 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
     %    should select new cell and rightclick when many cells are selected
     %    should not deselect..
     %  2 Select the whole row.
-    
+
 % Resizing.
 %
 %   Some tradeoffs with table resizing:
@@ -21,50 +21,48 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
 %     larger than table...
 
     properties
-        
+
         TableMode = 'queue' % Or 'history'
         ColumnNames
         ColumnEditable
         CellEditCallback = []
         KeyPressFcn = []
-        
+
         MouseButtonRightPressCallbackFcn = [] % Callback to use for modifying contextmenus based on the rightclick selection
-        
+
         UIContextMenu
         Parent
         Table
         BackendType
     end
-    
+
     properties (Dependent)
         Position
     end
-    
+
     properties (Dependent)
         selectedRows
     end
-   
+
     methods % Structors
-        
+
         function obj = uiwTaskTable(varargin)
-            
+
             obj.assignPVPairs(varargin{:})
-            
+
             obj.create()
-            
+
             obj.createListeners()
-            
         end
-        
+
         function delete(~)
-            
         end
     end
-    
+
     methods % Public
-        
+
         function addTask(obj, tableRow, insertAt)
-            
+
             if isempty(obj.Table.Data)
                 obj.Table.Data = tableRow{:,:};
             else
@@ -76,11 +74,11 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
                 end
             end
         end
-       
+
         function clearTable(obj)
             obj.Table.Data = cell(0, numel(obj.ColumnNames));
         end
-        
+
         function selectedRows = get.selectedRows(obj)
             switch obj.BackendType
                 case 'modern'
@@ -156,20 +154,19 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
             end
         end
     end
-    
+
     methods %Set/get
-        
+
         function set.Position(obj, pos)
             obj.Table.Position = pos;
         end
         function pos = get.Position(obj)
             pos = obj.Table.Position;
         end
-
     end
-    
+
     methods (Access = private)
-                
+
         function create(obj)
 
             [obj.Table, obj.BackendType] = obj.createTableBackend();
@@ -244,13 +241,13 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
                 backendType = 'legacy';
             end
         end
-        
+
         function createListeners(obj)
-            
+
             addlistener(obj.Parent, 'ObjectBeingDestroyed', @(s,e) obj.delete);
             addlistener(obj.Parent, 'SizeChanged', @(s,e) obj.onSizeChanged);
         end
-        
+
         function onLegacyMouseClicked(obj, src, event)
         %onLegacyMouseClicked Select row and prepare context menu on right click.
 
@@ -258,11 +255,11 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
 
             cellNum = event.Cell;
             rowNum = cellNum(1);
-            
+
             if rowNum == 0; return; end
-            
+
             %hFig = ancestor(obj.Parent, 'figure');
-            
+
             switch event.SelectionType
                 case {'normal', 'extend'}
                     % Do nothing.
@@ -273,17 +270,16 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
                     if ~ismember(rowNum, obj.Table.SelectedRows)
                         obj.Table.SelectedRows = rowNum;
                     end
-                    
+
                     if ~isempty(obj.MouseButtonRightPressCallbackFcn)
                         obj.MouseButtonRightPressCallbackFcn(src, event)
                     end
             end
         end
-        
+
         function onSizeChanged(obj, ~, ~)
-            
+
             obj.updateTablePosition()
-            
         end
 
         function updateTablePosition(obj)
@@ -295,7 +291,6 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
             tableSize = max(parentPos(3:4) - MARGINS*2, [1, 1]);
             newTablePosition = [contentOrigin + MARGINS - 1, tableSize];
             obj.Table.Position = newTablePosition;
-            
         end
 
         function onContextMenuSet(obj)
@@ -365,7 +360,6 @@ classdef uiwTaskTable < uiw.mixin.AssignPVPairs
                 end
             end
         end
-        
+
     end % /methods (Access = private)
-    
 end

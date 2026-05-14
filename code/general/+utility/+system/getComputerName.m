@@ -30,7 +30,7 @@ function computerName = getComputerName(doHash)
             computerName = strtrim(computerName);
         end
     end
-    
+
     if doHash
         try
             Engine = java.security.MessageDigest.getInstance('MD5');

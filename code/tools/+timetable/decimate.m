@@ -7,7 +7,6 @@ function t_out = decimate(t_in,R)
 %
 % See also: DECIMATE
 
-
 newR = ceil(size(t_in,1)/R);
 
 TDn = zeros(newR,size(t_in,2));

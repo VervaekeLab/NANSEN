@@ -10,13 +10,13 @@ if nargin < 2; chunk = true; end
     else
         [d1,d2,d3] = size(IM);
     end
-    
+
     gridSize = [d1/param.numRows, d2/param.numCols, d3];
     gridSize = ceil(gridSize);
-    
+
     [xx_s,xx_f,yy_s,yy_f,zz_s,zz_f,xx_us,xx_uf,yy_us,yy_uf,zz_us,zz_uf] = ...
             construct_grid(gridSize, [1,1,1] , d1,d2,d3, [32,32,16] );
-    
+
     if chunk
         imOut = mat2cell_ov(IM,xx_s,xx_f,yy_s,yy_f,zz_s,zz_f, [1,1,0],[d1,d2,d3]);
     else %unchunk

@@ -14,7 +14,7 @@ function varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sess
 %       varItem          : Structure with specifications for new data variable
 
 %   Todo:
-%       [ ] Make dataLocationName and sessionObject optional inputs?
+%       [ ] Make dataLocationName and sessionObject optional inputs?
 
     arguments
         filePath
@@ -35,7 +35,7 @@ function varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sess
 
     % Remove session ID from filename
     fileName = strrep(fileName, sessionObject.sessionID, '');
-    
+
     % Create a struct with fields that are required from user
     S = struct();
     S.VariableName = '';
@@ -47,7 +47,7 @@ function varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sess
     if ~isempty(options.SkipFields)
         S = rmfield(S, options.SkipFields);
     end
-    
+
     if ismissing(options.Prompt)
         nvPairs = {};
     else
@@ -58,7 +58,7 @@ function varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sess
     [S, wasAborted] = tools.editStruct(S, [], 'Create New Variable', nvPairs{:});
     S = rmfield(S, 'FileAdapter_');
     if wasAborted; return; end
-    
+
     % Add other fields that are required for the variable model.
 
     % Create a new data variable item
@@ -83,17 +83,17 @@ function varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sess
     % Get the data location uuid for the given data location
     dloc = sessionObject.getDataLocation(dataLocationName);
     varItem.DataLocationUuid = dloc.Uuid;
-    
+
     % Determine if file is located in a session subfolder
     sessionFolder = sessionObject.getSessionFolder(dataLocationName);
     varItem.Subfolder = strrep(folder, sessionFolder, '');
     if strncmp(varItem.Subfolder, filesep, 1)
         varItem.Subfolder = varItem.Subfolder(2:end);
     end
-    
+
     % Get data type from file adapter
     fileAdapterIdx = strcmp({fileAdapterList.FileAdapterName}, S.FileAdapter);
-    
+
     % Normalize to char. Todo: Should support string type
     varItem.DataType = char( fileAdapterList(fileAdapterIdx).DataType );
 end

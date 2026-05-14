@@ -6,7 +6,7 @@ function M = getAdapter()
 %       is the name of that parameter from the original toolbox options.
 
     M                               = struct();
-    
+
     M.Configuration.patchOverlap    = 'overlap_pre';
     M.Configuration.gridUpsampling  = 'mot_uf';
 
@@ -24,5 +24,4 @@ function M = getAdapter()
 
     M.Misc.Verbose                  = 'print_msg';
     M.Misc.UseParallell             = 'use_parallel';
-
 end

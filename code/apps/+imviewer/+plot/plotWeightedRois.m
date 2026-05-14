@@ -8,16 +8,16 @@ function hIm = plotWeightedRois(hAxes, spatialWeights, varargin)
 %                 'multi_layer' - plot each roiimage in a image gobject
 %       colorMap: colormap to use for coloring each rois. colors are
 %       imageUsFactor: upsample image (integer factor)
-    
+
     import nansen.wrapper.extract.util.getRoiImageMatrix
 
     params = struct;
     params.plotMode = 'single_layer'; % single_layer or multi_layer
     params.colorMap = 'viridis';
     params.imageUsFactor = 2;
-    
+
     params = utility.parsenvpairs(params, [], varargin);
-    
+
     if isa(hAxes, 'imviewer.App'); hAxes = hAxes.Axes; end
 
     if isa(spatialWeights, 'struct')
@@ -30,13 +30,13 @@ function hIm = plotWeightedRois(hAxes, spatialWeights, varargin)
     elseif islogical(spatialWeights) && ndims(spatialWeights) == 3
         roiImageArray = spatialWeights;
     end
-    
+
     if ~exist('roiImageArray', 'var')
         error('Spatial weights are not provided or not in correct format')
     end
-    
+
     [imageCData, imageAData] = getRoiImageMatrix(roiImageArray);
-    
+
     imSize = size(roiImageArray);
 
     imageCData = imresize(imageCData, params.imageUsFactor);
@@ -46,26 +46,26 @@ function hIm = plotWeightedRois(hAxes, spatialWeights, varargin)
     hIm.AlphaData = imageAData;
     hIm.XData = [1, imSize(2)];
     hIm.YData = [1, imSize(1)];
-    
+
     set(hIm, 'PickableParts', 'none', 'HitTest', 'off')
 
     return
-    
+
     % Something below is not working as expected....
-    
+
     switch params.plotMode
 
         case 'single_layer'
-         
+
             imSize = size(roiImageArray);
             imageCData = zeros([imSize(1:2), 3]);
-            
+
             axesCMap = colormap(hAxes);
             colorMap = colormap(hAxes, params.colorMap);
             colormap(hAxes, axesCMap)
-            
+
             for i = 1:size(roiImageArray, 3)
-        
+
                 thisRoiImage = roiImageArray(:, :, i);
                 S = regionprops(thisRoiImage>0, 'BoundingBox');
                 bbox = S.BoundingBox;
@@ -81,7 +81,6 @@ function hIm = plotWeightedRois(hAxes, spatialWeights, varargin)
 
                 imDataSmall = imDataSmall .* color;
                 imageCData(yData, xData, :) = imageCData(yData, xData, :) + imDataSmall;
-
             end
 
             imageCData = imresize(imageCData, params.imageUsFactor);
@@ -92,13 +91,13 @@ function hIm = plotWeightedRois(hAxes, spatialWeights, varargin)
             hIm.AlphaData = imageAData;
             hIm.XData = [1, imSize(2)];
             hIm.YData = [1, imSize(1)];
-            
+
         case 'multi_layer'
 
             for i = 1:size(roiImageArray, 3)
 
                 thisRoiImage = roiImageArray(:, :, i);
-                
+
                 S = regionprops(thisRoiImage>0, 'BoundingBox');
                 bbox = S.BoundingBox;
 
@@ -119,10 +118,8 @@ function hIm = plotWeightedRois(hAxes, spatialWeights, varargin)
                 hIm.AlphaData = imageAData;
                 hIm.XData = xData;
                 hIm.YData = yData;
-
             end
     end
-    
-    set(hIm, 'PickableParts', 'none', 'HitTest', 'off')
 
+    set(hIm, 'PickableParts', 'none', 'HitTest', 'off')
 end

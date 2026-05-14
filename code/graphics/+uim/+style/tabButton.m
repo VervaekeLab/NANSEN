@@ -1,7 +1,7 @@
 classdef tabButton < uim.style.buttonScheme
-    
+
     properties (Constant)
-        
+
         HighlightedOn = struct(...
             'ForegroundColor', ones(1,3) * 0, ...
             'BackgroundColor', ones(1,3) * 0.8, ...

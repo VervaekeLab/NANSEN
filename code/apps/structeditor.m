@@ -10,7 +10,7 @@ function hApp = structeditor(varargin)
     else
         hApp = structeditor.App(varargin{:});
     end
-    
+
     if ~nargout
         clear hApp
     end

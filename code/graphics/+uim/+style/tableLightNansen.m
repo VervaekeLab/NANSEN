@@ -1,7 +1,7 @@
 classdef tableLightNansen < uim.style.tableTheme
-    
+
     properties (Constant)
-        
+
         HeaderBackgroundColor = [48,62,76]/255;
         HeaderForegroundColor = [234,236,237]/255;
         TableBackgroundColor = [0.95, 0.95, 0.95]
@@ -17,6 +17,5 @@ classdef tableLightNansen < uim.style.tableTheme
         BorderWidth = 0
         SortArrowForeground = [240,171,15] ./ 255
         SortOrderForeground = [240,171,15] ./ 255
-        
     end
 end

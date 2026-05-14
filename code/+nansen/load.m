@@ -24,7 +24,6 @@ function data = load(filePath, options)
         isDynamic = fileAdapterList(isMatch).IsDynamic;
     end
 
-
     if isDynamic
         data = nansen.dataio.DynamicFileAdapter(fileAdapterName, filePath).load();
     else
@@ -42,7 +41,7 @@ function mustBeFileAdapterIdentifier(fileAdapterIdentifier)
     if ismissing(fileAdapterIdentifier); return; end
     return
     % Todo: Check fileAdapterIdentifier.readData as a function
-        
+
     assert(exist(fileAdapterIdentifier, "class"), ...
         'NANSEN:Validators:InvalidFileAdapterName', ...
         '"%s" is not the name of an existing MATLAB class', fileAdapterIdentifier)

@@ -1,7 +1,7 @@
 classdef tableTheme < handle
-    
+
     properties (Abstract, Constant)
-        
+
         HeaderBackgroundColor
         HeaderForegroundColor
         TableBackgroundColor

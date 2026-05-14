@@ -25,14 +25,14 @@ function sessionFolders = listSessionFolders(dataLocationModel, dataLocationName
     % Todo:
     %   [ ] Add as method in data location model.
     %   [ ] Check if folder(s) specified by rootPath exist before calling listSubDir?
-    
+
     % Set value of idx if it was not given
     if nargin < 2 || isempty(dataLocationName)
         dataLocationName = 'all';
     end
-    
+
     allDataLocationNames = {dataLocationModel.Data.Name};
-    
+
     % Get indices for datalocation items to list session folders for
     if ischar(dataLocationName) && strcmp(dataLocationName, 'all')
         ind = 1:numel(dataLocationModel.Data);
@@ -43,9 +43,9 @@ function sessionFolders = listSessionFolders(dataLocationModel, dataLocationName
     else
         error('Invalid input for listSessionFolder, please see help')
     end
-    
+
     sessionFolders = struct; % Initialize output
-    
+
     for i = ind
         rootPath = {dataLocationModel.Data(i).RootPath.Value};
         S = dataLocationModel.Data(i).SubfolderStructure;
@@ -58,7 +58,7 @@ function sessionFolders = listSessionFolders(dataLocationModel, dataLocationName
                     [rootPath, ~] = utility.path.listSubDir(rootPath, expression, ignoreList, 1);
                 else
                     %[rootPath, ~] = utility.path.listFiles(rootPath);
-    
+
                     rootPath = recursiveDir(rootPath, ...
                         "Expression", expression, ...
                         "IgnoreList", ignoreList, ...
@@ -73,7 +73,7 @@ function sessionFolders = listSessionFolders(dataLocationModel, dataLocationName
         else
             rootPath = {};
         end
-                
+
         fieldName = dataLocationModel.Data(i).Name;
         sessionFolders.(fieldName) = rootPath;
     end

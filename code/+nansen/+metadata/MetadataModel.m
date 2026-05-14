@@ -5,19 +5,17 @@ classdef MetadataModel < handle
     end
 
     methods (Abstract)
-    
-        schemaNames = listSchemaNames(obj, tableType)
 
+        schemaNames = listSchemaNames(obj, tableType)
     end
 
     methods % Set/Get methods
 
         function name = get.Name(obj)
-            
+
             className = builtin('class', obj);
             classNameSplit = strsplit(className, '.');
             name = classNameSplit{end};
-
         end
     end
 end

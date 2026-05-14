@@ -32,7 +32,6 @@ result = char(readstream(result));
 
 %Step 3: convert the csv to a cell array
 result = parseCsv(result);
-
 end
 
 function data = parseCsv(data)
@@ -58,5 +57,4 @@ isc.copyStream(inStream, byteStream);
 inStream.close();
 byteStream.close();
 out = typecast(byteStream.toByteArray', 'uint8');
-
 end

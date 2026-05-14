@@ -12,7 +12,7 @@ function changeRoiArrayDimensions(filePath, numPlanes, numChannels, force)
 % Todo: support inputting a roigroup
 
     if nargin < 4; force = false; end
-    
+
     S = load(filePath);
 
     variableName = fieldnames(S);
@@ -53,7 +53,7 @@ function changeRoiArrayDimensions(filePath, numPlanes, numChannels, force)
             end
         end
     end
-    
+
     S.(variableName) = data;
     save(filePath, '-struct', 'S')
 end

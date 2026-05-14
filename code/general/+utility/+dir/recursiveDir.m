@@ -64,7 +64,7 @@ function combinedListing = recursiveDir(rootPath, options)
 %   rootPaths = ["path1", "path2", "path3"];
 %   combinedListing = recursiveDir(rootPaths);
 
-%   Written by Eivind Hennestad | v1.0.0
+%   Written by Eivind Hennestad | v1.0.0
 
 %Todo: use this in nansen
 
@@ -79,11 +79,11 @@ function combinedListing = recursiveDir(rootPath, options)
         options.OutputType (1,1) string {mustBeMember(options.OutputType, {'FilePath', 'FileAttributes'})} = 'FileAttributes'
         options.IncludeHiddenFiles = false
     end
-    
+
     import utility.dir.recursiveDir
 
     combinedListing = getEmptyListing(); % Local function
-    
+
     % Get the OutputType from options and change the value to
     % 'FileAttributes'. Any internal (recursive) call to recursiveDir need
     % to return data as FileAttributes.
@@ -99,15 +99,15 @@ function combinedListing = recursiveDir(rootPath, options)
     else
         % Find folders in root path
         newListing = dir(fullfile(rootPath));
-        
+
         % 1. Remove current directory and parent directory references
         newListing(strcmp({newListing.name}, '.')) = [];
         newListing(strcmp({newListing.name}, '..')) = [];
-        
+
         if ~options.IncludeHiddenFiles % unix
             newListing(strncmp({newListing.name}, '.', 1)) = [];
         end
-        
+
         % 2. Filter listing by exclusion criteria
         keep = true(1, numel(newListing));
 
@@ -138,15 +138,15 @@ function combinedListing = recursiveDir(rootPath, options)
         if options.FileType ~= "" && ~strncmp(options.FileType, '.', 1)
             options.FileType = sprintf('.%s', options.FileType);
         end
-        
+
         if options.FileType ~= ""
             [~, ~, ext] = fileparts({filteredListing.name});
             isValidFiletype = strcmp(ext, options.FileType);
             keep = keep & isValidFiletype;
         end
-                
+
         keepListing = filteredListing(keep);
-        
+
         if ~isempty(keepListing)
             if ~options.IsCumulative && options.RecursionDepth > 1 && options.RecursionDepth ~= inf
                 % Skip
@@ -162,7 +162,7 @@ function combinedListing = recursiveDir(rootPath, options)
             % Continue search through subfolders that passed the filter
             newRootPath = arrayfun(@(l) string(fullfile(l.folder, l.name)), filteredListing, 'uni', 1);
             newRootPath(~[filteredListing.isdir])=[];
-            
+
             nvpairs = namedargs2cell(options);
             subListing = recursiveDir(newRootPath, nvpairs{:});
             if ~isempty(subListing)
@@ -194,7 +194,7 @@ end
 
 function absolutePathList = getAbsPathName(folderListing)
 %getAbsPathName Combine folder and name for each element in a "folder listing" struct array
-    
+
     absolutePathList = cell(size(folderListing));
     for i = 1:numel(folderListing)
         absolutePathList{i} = fullfile(folderListing(i).folder, ...

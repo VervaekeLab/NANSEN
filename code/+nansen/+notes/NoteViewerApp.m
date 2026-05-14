@@ -14,29 +14,29 @@ classdef NoteViewerApp < handle
 %
 %   [ ] Implement add, edit, remove notes
 %   [ ] Events for the above actions.
-%   [ ] Indicate type of notes in list??
-%   [ ] Indicate what type of note is being displayed?
+%   [ ] Indicate type of notes in list??
+%   [ ] Indicate what type of note is being displayed?
 %   [ ] Import/export options for notes.
 %
 %   Less important
-%   [ ] Create version for traditional figure.
-%   [ ] Update tree when filtering items. 
+%   [ ] Create version for traditional figure.
+%   [ ] Update tree when filtering items.
 %   [ ] Methods for sorting, filtering and resetting list & tree
-%   [ ] some overlap with ConfigurationApp. should they have a shared
+%   [ ] some overlap with ConfigurationApp. should they have a shared
 %       superclass?
 
     properties
         Owner
     end
-    
+
     properties
         Notebook
     end
-    
+
     properties (Dependent)
         Visible matlab.lang.OnOffSwitchState
     end
-    
+
     properties (Dependent, SetAccess = private)
         Valid
     end
@@ -46,7 +46,7 @@ classdef NoteViewerApp < handle
         NotesSessionID cell
         NotesDateCreated cell
     end
-    
+
     events
         NotebookModified
     end
@@ -81,21 +81,21 @@ classdef NoteViewerApp < handle
         function set.Visible(app, visibleState)
             app.UIFigure.Visible = visibleState;
         end
-        
+
         function visibleState = get.Visible(app)
             visibleState = app.UIFigure.Visible;
         end
-        
+
         function isValid = get.Valid(app)
             isValid = isvalid(app) && isvalid(app.UIFigure);
         end
-        
+
         function set.Notebook(app, newNotebook)
             app.Notebook = newNotebook;
             app.onNotebookSet()
         end
     end
-    
+
     % App creation and deletion
     methods (Access = public)
 
@@ -108,14 +108,14 @@ classdef NoteViewerApp < handle
 
             app.assignCallbacks()
             try app.createTooltips; end %#ok<TRYNC> % Newer matlab versions only...
-            
+
             app.updateTypeSelectionList()
-            
+
             % Todo: Implement these buttons and their actions.
             app.CreateNoteButton.Enable = 'off';
             app.LockButton.Enable = 'off';
             app.DeleteNoteButton.Enable = 'off';
-            
+
             if nargin == 1
                 try
                     app.assignNotebook(notes)
@@ -125,10 +125,10 @@ classdef NoteViewerApp < handle
             else
                 app.ListBox.Items = {};
             end
-            
+
             drawnow
             uim.utility.layout.setUiFigureMinSize(app.UIFigure, [700,400])
-            
+
             if nargout == 0
                 clear app
             end
@@ -141,14 +141,14 @@ classdef NoteViewerApp < handle
             delete(app.UIFigure)
         end
     end
-    
+
     % Callbacks that handle component events
     methods (Access = private)
 
         % Selection changed function: TabButtonGroup
         function TabButtonGroupSelectionChanged(app, ~, ~)
             selectedButton = app.TabButtonGroup.SelectedObject;
-            
+
             switch selectedButton.Tag
                 case 'List'
                     app.TabGroup.SelectedTab = app.ListTab;
@@ -159,7 +159,7 @@ classdef NoteViewerApp < handle
 
         % Button pushed function: SortButton
         function onSortButtonPushed(app, ~, ~)
-            
+
             switch app.SortButton.Tag
                 case 'Sort Descend'
                     app.SortButton.Icon =  app.getIcon('Sort Ascend');
@@ -168,17 +168,17 @@ classdef NoteViewerApp < handle
                     app.SortButton.Icon = app.getIcon('Sort Descend');
                     app.SortButton.Tag = 'Sort Descend';
             end
-           
+
             app.updateListItems();
             app.updateTreeOrder();
         end
-        
+
         function onCreateNoteButtonPushed(app, ~, ~)
             % Todo: Implement function
         end
-        
+
         function onLockButtonPushed(app, ~, ~)
-            
+
             switch app.SortButton.Tag
                 case 'Locked'
                     app.SortButton.Icon = 'Unlocked.png';
@@ -188,43 +188,41 @@ classdef NoteViewerApp < handle
                     app.SortButton.Tag = 'Locked';
             end
         end
-        
+
         function onDeleteNoteButtonPushed(app, ~, ~)
-            
         end
-        
+
         function onTreeSelectionChanged(app, src, ~)
-            
+
             selectedTitle = src.SelectedNodes.Text;
-            
+
             allTitles = app.Notebook.getTitleArray;
             noteIdx = find( strcmp(allTitles, selectedTitle) );
-            
+
             if ~isempty(noteIdx)
                 app.showNote(noteIdx)
             end
         end
-        
+
         function onListSelectionChanged(app, src, ~)
-            
+
             selectedIdx = find( strcmp(src.Items, src.Value) );
             noteIdx = app.ListBox.UserData.DisplayedIdx(selectedIdx);
             app.showNote(noteIdx)
-            
         end
-        
+
         function onSelectTagValueChanged(app, ~, ~)
             app.updateListItems()
-            
+
             % Temp (?): Switch to list tab, because tree is not filtered.
             app.TabGroup.SelectedTab = app.ListTab;
             app.TabButtonGroup.SelectedObject = app.TabButtonGroup.Children(1);
             % Todo: Update tree items
         end
-        
+
         function onSelectTypeValueChanged(app, ~, ~)
             app.updateListItems()
-            
+
             % Temp (?): Switch to list tab, because tree is not filtered.
             app.TabGroup.SelectedTab = app.ListTab;
             app.TabButtonGroup.SelectedObject = app.TabButtonGroup.Children(1);
@@ -370,43 +368,41 @@ classdef NoteViewerApp < handle
         end
 
         function assignCallbacks(app)
-            
+
             % Buttons:
             app.SortButton.ButtonPushedFcn          = @app.onSortButtonPushed;
             app.CreateNoteButton.ButtonPushedFcn    = @app.onCreateNoteButtonPushed;
             app.LockButton.ButtonPushedFcn          = @app.onLockButtonPushed;
             app.DeleteNoteButton.ButtonPushedFcn    = @app.onDeleteNoteButtonPushed;
-            
+
             app.TabButtonGroup.SelectionChangedFcn  = @app.TabButtonGroupSelectionChanged;
-            
+
             % List and tree:
             app.Tree.SelectionChangedFcn            = @app.onTreeSelectionChanged;
             app.ListBox.ValueChangedFcn             = @app.onListSelectionChanged;
-            
+
             % Dropdown menus:
             app.SelectTagDropDown.ValueChangedFcn   = @app.onSelectTagValueChanged;
             app.SelectTypeDropDown.ValueChangedFcn  = @app.onSelectTypeValueChanged;
-            
+
             % Figure:
             % app.UIFigure.SizeChangedFcn             = @app.onFigureResized;
-
         end
-        
+
         function createTooltips(app)
         %createTooltips Create tooltips for components
         %
         % These are in separate method because older versions of matlab
         % did not support tooltips for uifigure components.
-        
+
             app.TreeButton.Tooltip = {'Show Group'};
             app.ListButton.Tooltip = {'Show List'};
             app.LockButton.Tooltip = {'Lock Note'};
             app.CreateNoteButton.Tooltip = {'Create Note'};
             app.DeleteNoteButton.Tooltip = {'Delete Note'};
-
         end
     end
-    
+
     % App component update
     methods (Access = protected)
 
@@ -414,80 +410,77 @@ classdef NoteViewerApp < handle
         %onFigureResized Callback for figure size changed events
         %
         %   Note, this is not used. Figure is autoresizing children.
-        
+
             figurePosition = app.UIFigure.Position;
-            
+
             % Set position of header panel
             app.HeaderPanel.AutoResizeChildren = 'off';
             app.HeaderPanel.Position(2) = figurePosition(4) - app.HeaderHeight;
             app.HeaderPanel.Position(3) = figurePosition(3) + 100;
-            
+
             % Set heights for tabgroup and note panel
             app.TabGroup.Position(4) = figurePosition(4);
             app.NotePanel.Position(4) = figurePosition(4) - app.HeaderHeight;
-            
+
             % Calculate widths for tabgroup and note panel
             W = figurePosition(3) .* app.MainPanelWidth;
             app.TabGroup.Position(3) = W(1);
             app.NotePanel.Position(3) = W(2);
             app.NotePanel.Position(1) = W(1);
-            
+
             app.ListBox.Position(4) = figurePosition(4) - app.HeaderHeight;
             app.Tree.Position(4) = figurePosition(4) - app.HeaderHeight;
-            
         end
-        
+
         function onNotebookSet(app)
-            
+
             app.updateListItems()
             app.updateTreeItems()
-            
+
             app.updateTagSelectionList()
-            
         end
-        
+
         function updateTagSelectionList(app)
         %updateTagSelectionList Update items in tag selection dropdown
             items = ['Show All', app.Notebook.getAllTags() ];
             if ischar(items); items = {items}; end
             app.SelectTagDropDown.Items = items;
-            
         end
-        
+
         function updateTypeSelectionList(app)
         %updateTypeSelectionList Update items in type selection dropdown
             items = ['Show All', nansen.notes.Note.VALID_NOTE_TYPES];
             app.SelectTypeDropDown.Items = items;
         end
-        
+
         function updateListItems(app)
         %updateListItems Update items in list.
-            
+
             dateStrArray = app.Notebook.getFormattedDate('[yyyy.MM.dd]');
             titleStrArray = app.Notebook.getTitleArray();
-            
+
             numNotes = app.Notebook.NumNotes;
             makeLabel = @(i) sprintf('%s - %s', dateStrArray(i,:), titleStrArray{i});
             noteTitle = arrayfun(@(i) makeLabel(i), 1:numNotes, 'uni', 0 );
-            
+
             % Get sort direction
             sortDirection = app.getSortDirection;
             sortIdx = app.Notebook.getSortIdx('DateTime', sortDirection);
-            
+
             % Check the type filter
             selectedType = app.getSelectedType();
             if ~isempty(selectedType)
                 idx = app.Notebook.getTypeMatch(selectedType);
                 sortIdx = intersect(sortIdx, idx, 'stable');
             end
-            
+
             % Check the tag filter
             selectedTag = app.getSelectedTag();
             if ~isempty(selectedTag)
                 idx = app.Notebook.getTagMatch(selectedTag);
                 sortIdx = intersect(sortIdx, idx, 'stable');
             end
-            
+
             % Get titles to display in the right order
             noteTitle = noteTitle(sortIdx);
 
@@ -500,41 +493,41 @@ classdef NoteViewerApp < handle
             % Update listbox component items and values
             app.ListBox.Items = noteTitle;
             app.ListBox.Value = noteTitle{1};
-            
+
             % Store the indices (and order) of items that are displayed
             app.ListBox.UserData.DisplayedIdx = sortIdx;
-            
+
             % Update displayed note if list view is active
             if isequal(app.TabButtonGroup.SelectedObject, app.ListButton)
                 app.showNote(sortIdx(1))
             end
         end
-        
+
         function updateTreeItems(app)
-            
+
             objectIDs = app.Notebook.getObjectIds();
-            
+
             uniqueIDs = unique(objectIDs, 'sorted');
-            
+
             % Make sure groups are sorted the right way.
             if strcmp(app.getSortDirection(), 'descend')
                 uniqueIDs = fliplr(uniqueIDs);
             end
-            
+
             if ~isempty(app.Tree.Children)
                 delete(app.Tree.Children)
                 app.Tree.Children = [];
             end
-            
+
             noteTitles = app.Notebook.getTitleArray();
-            
+
             sortDirection = app.getSortDirection();
             sortIdx = app.Notebook.getSortIdx('DateTime', sortDirection);
-            
+
             for iNode = 1:numel(uniqueIDs)
                 node = uitreenode(app.Tree);
                 node.Text = uniqueIDs{iNode};
-                
+
                 nodeIdx = find(strcmp(objectIDs, uniqueIDs{iNode}));
                 nodeIdx = intersect(sortIdx, nodeIdx, 'stable');
 
@@ -544,7 +537,7 @@ classdef NoteViewerApp < handle
                 end
             end
         end
-        
+
         function updateTreeOrder(app)
         %updateTreeOrder Update order of tree nodes (i.e when sorting).
         %
@@ -552,64 +545,62 @@ classdef NoteViewerApp < handle
         %   anyone finds it necessary.
             nodeIdx = 1:numel(app.Tree.Children);
             app.Tree.Children = app.Tree.Children(fliplr(nodeIdx));
-            
         end
-        
+
         function sortList(app, sortDirection)
             %Todo
         end
-        
+
         function sortTree(app, sortDirection)
             %Todo
         end
-        
+
         function filterList(app, propertyName, value)
             %Todo
         end
-        
+
         function filterTree(app, propertyName, value)
             %Todo
         end
-        
+
         function resetListFilter(app)
             %Todo
         end
-        
+
         function resetTreeFilter(app)
             %Todo
         end
-        
+
         function showNote(app, noteIdx)
-            
+
             % Update note header
             noteObject = app.Notebook.getNoteArray(noteIdx);
             app.NoteTitleLabel.Text = noteObject.Title;
-            
+
             subtitle = strjoin({noteObject.ObjectID, char(noteObject.DateTime), noteObject.Author}, ' | ');
-            
+
             app.NoteSubtitleLabel.Text = subtitle;
-            
+
             % Update note text
             app.NoteTextArea.Value = sprintf( noteObject.Text );
         end
-        
+
         function clearNote(app)
-            
+
             app.NoteTitleLabel.Text = '';
             app.NoteSubtitleLabel.Text = '';
-            
+
             % Update note text
             app.NoteTextArea.Value = '';
-            
         end
-        
+
         function hideApp(app)
             app.UIFigure.Visible = 'off';
         end
     end
-    
+
     methods % Get states from component values
-        
+
         function sortDirection = getSortDirection(app)
             switch app.SortButton.Tag
                 case 'Sort Descend'
@@ -618,14 +609,14 @@ classdef NoteViewerApp < handle
                     sortDirection = 'ascend';
             end
         end
-        
+
         function selectedType = getSelectedType(app)
             selectedType = app.SelectTypeDropDown.Value;
             if strcmp(selectedType, 'Show All')
                 selectedType = [];
             end
         end
-        
+
         function selectedTag = getSelectedTag(app)
             selectedTag = app.SelectTagDropDown.Value;
             if strcmp(selectedTag, 'Show All')
@@ -633,17 +624,17 @@ classdef NoteViewerApp < handle
             end
         end
     end
-    
+
     methods % Public methods
-        
+
         function openNotebook(app, notes)
             app.assignNotebook(notes)
             figure(app.UIFigure)
         end
-        
+
         function assignNotebook(app, notes)
         %assignNotebook Assign notebook in various forms.
-            
+
             if isa(notes, 'nansen.notes.Note')
                 app.Notebook = nansen.notes.NoteBook( notes );
             elseif isa(notes, 'nansen.notes.NoteBook')
@@ -656,20 +647,19 @@ classdef NoteViewerApp < handle
                 throw(MException(errorId, errorMsg))
             end
         end
-        
+
         function transferOwnership(app, ownerApp)
         %transferOwnership Transfer ownership of app to another app
-            
+
         % App (figure) deletion is now controlled by another app. If figure
         % window is closed, the figure is not deleted, just made invisible
-        
+
             app.UIFigure.CloseRequestFcn = @(s,e) app.hideApp;
             addlistener(ownerApp, 'ObjectBeingDestroyed', @(s,e) app.delete);
-            
         end
-        
+
         function setClosePolicy(app, mode)
-            
+
             switch mode
                 case 'hide'
                     app.UIFigure.CloseRequestFcn = @(s,e) app.hideApp;
@@ -677,23 +667,22 @@ classdef NoteViewerApp < handle
                     app.UIFigure.CloseRequestFcn = @(s,e) app.delete();
             end
         end
-        
+
 %         function tf = isvalid(app)
 %             tf = isvalid(app.UIFigure);
 %         end
     end
-    
+
     methods (Static)
-        
+
         function iconPath = getIcon(iconName)
 
             persistent buttonIconDir
             if isempty(buttonIconDir)
                 buttonIconDir = fullfile(fileparts(mfilename('fullpath')), 'uiicons');
             end
-            
-            iconPath = fullfile(buttonIconDir, [iconName, '.png']);
 
+            iconPath = fullfile(buttonIconDir, [iconName, '.png']);
         end
     end
 end

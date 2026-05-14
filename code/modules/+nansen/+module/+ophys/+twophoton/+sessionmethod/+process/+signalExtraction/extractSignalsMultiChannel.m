@@ -16,7 +16,7 @@ classdef extractSignalsMultiChannel < nansen.session.SessionMethod
 %- `RoiSignals_MeanF`: mean ROI fluorescence traces.
 %- `RoiSignals_NeuropilF`: neuropil fluorescence traces.
 %- `OptionsSignalExtraction`: options used by the signal extractor.
-    
+
     properties (Constant) % SessionMethod attributes
         MethodName = 'Extract Signals (MultiChannel)'
         BatchMode = 'serial'
@@ -25,7 +25,7 @@ classdef extractSignalsMultiChannel < nansen.session.SessionMethod
         OptionsManager nansen.manage.OptionsManager = ...
             nansen.OptionsManager('nansen.processing.SignalExtractor')
     end
-    
+
     properties (Constant)
         DATA_SUBFOLDER = 'roisignals'       % defined in nansen.processing.DataMethod
         VARIABLE_PREFIX	= 'RoiSignals'      % defined in nansen.processing.DataMethod
@@ -34,44 +34,44 @@ classdef extractSignalsMultiChannel < nansen.session.SessionMethod
     properties
         RequiredVariables = {'TwoPhotonSeries_Corrected', 'RoiArray'}
     end
-    
+
     methods (Static)
         function S = getDefaultOptions()
             S = nansen.twophoton.roisignals.extract.getDefaultParameters();
         end
     end
-    
+
     methods
-        
+
         function obj = extractSignalsMultiChannel(varargin)
-            
+
             obj@nansen.session.SessionMethod(varargin{:})
-            
+
             if ~nargout
                 obj.runMethod()
                 clear obj
             end
         end
     end
-    
+
     methods
-        
+
         function runMethod(obj)
             import roimanager.utilities.ensureRoiGroupMatchImageStack
-            
+
             sessionData = nansen.session.SessionData(obj.SessionObjects);
             sessionData.updateDataVariables()
-            
+
             imageStack = sessionData.TwoPhotonSeries_Corrected;
             currentChannels = imageStack.CurrentChannel;
             imageStack.CurrentChannel = 1:imageStack.NumChannels;
 
             roiGroup = sessionData.RoiArray;
-            
+
             roiGroup = ensureRoiGroupMatchImageStack(roiGroup, imageStack);
-            
+
             nansen.processing.SignalExtractor(imageStack, obj.Options, roiGroup, obj.SessionObjects)
-            
+
             % Reset channels
             imageStack.CurrentChannel = currentChannels;
         end

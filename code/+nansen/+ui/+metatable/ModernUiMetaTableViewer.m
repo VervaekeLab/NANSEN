@@ -977,7 +977,6 @@ classdef ModernUiMetaTableViewer < handle
                 end
             end
         end
-
     end
 
     methods (Static)

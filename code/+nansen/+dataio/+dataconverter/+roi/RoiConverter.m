@@ -23,36 +23,35 @@ classdef RoiConverter < handle
     end
 
     methods
-        
+
         function roiData = convertRois(obj, filePath, data)
         %convertRois Converts data from given file to roidata
-            
+
             adapterName = obj.findRoiAdapter(filePath, data);
             roiAdapter = feval(adapterName, filePath);
-            
+
             roiData = roiAdapter.convertRois(data);
-            
         end
 
         function adapterName = findRoiAdapter(obj, filepathOrig, data)
         %findRoiAdapter Find valid roi adapter for given filepath and data
-            
+
             % Split filepath to get file extension
             [folderpath, name, ext] = fileparts(filepathOrig);
-            
+
             % If something else than a mat-file was given, use .mat extension
             if ~strcmp(ext, '.mat')
                 filepath = fullfile(folderpath, [name, '.mat']);
             else
                 filepath = filepathOrig;
             end
-            
+
             % Throw error if mat-file does not exist for given file
             if ~strcmp(~ext, '.mat') && ~isfile(filepath)
                 error(['File is not converted to matfile. Need a matfile ', ...
                     'to check the roi format'])
             end
-            
+
             % Load data from file if data was not given as input
             if nargin < 2 || ~exist('data', 'var')
                 S = load(filepath);
@@ -62,7 +61,7 @@ classdef RoiConverter < handle
                     data = S;
                 end
             end
-            
+
             adapterNames = obj.listRoiAdapters();
 
             % Loop through adapters and use their isRoiFormatValid to test
@@ -72,7 +71,7 @@ classdef RoiConverter < handle
                 thisAdapter = feval( adapterNames{i} );
                 isMatched(i) = thisAdapter.isRoiFormatValid(filepath, data);
             end
-            
+
             % Get name of matched adapter
             if sum(isMatched) == 1
                 adapterName = adapterNames{isMatched};
@@ -91,14 +90,14 @@ classdef RoiConverter < handle
 
             % Adapter package is located in same folder as current file
             packageRootFolder = fileparts( mfilename('fullpath') );
-            
+
             % Look for class folders in the adapter package
             L = dir( fullfile(packageRootFolder, '+adapter', '@*') );
             L = L([L.isdir]); % Just to make sure we only get folders
-            
+
             % Get names for all detected classes.
             fcnList = strrep( {L.name}, '@', '' );
-            
+
             % Assemble full class names, including package name.
             for i = 1:numel(fcnList)
                 fcnList{i} = strjoin( ...

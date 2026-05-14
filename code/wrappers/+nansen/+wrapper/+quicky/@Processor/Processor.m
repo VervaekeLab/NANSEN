@@ -40,13 +40,13 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         OptionsManager nansen.manage.OptionsManager = ...
             nansen.OptionsManager('nansen.wrapper.quicky.Processor')
     end
-    
+
     properties (Constant) % Implement property from ImageStackProcessor
         ImviewerPluginName = 'FluFinder'
     end
-    
+
     methods % Constructor
-        
+
         function obj = Processor(varargin)
         %nansen.wrapper.quicky.Processor Construct quicky processor
         %
@@ -55,7 +55,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         %   See also nansen.stack.ImageStackProcessor/ImageStackProcessor
 
             obj@nansen.processing.RoiSegmentation(varargin{:})
-        
+
             % Return if there are no inputs.
             if numel(varargin) == 0
                 return
@@ -63,7 +63,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 
             % Todo. Move to superclass
             obj.Options.Export.FileName = obj.SourceStack.Name;
-            
+
             % Call the appropriate run method
             if ~nargout
                 obj.runMethod()
@@ -71,19 +71,19 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             end
         end
     end
-        
+
     methods (Access = protected) % Implementation of ImageStackProcessor methods
-        
+
         % Step 1
         function onInitialization(obj)
-            
+
             onInitialization@nansen.processing.RoiSegmentation(obj)
-            
+
             %global fprintf; fprintf = str2func('fprintf');
-            
+
             filePath = obj.getDataFilePath('QuickyResultsTemp', '-w',...
                 'Subfolder', obj.DATA_SUBFOLDER, 'IsInternal', true);
-            
+
             if isfile(filePath)
                 obj.Results = obj.loadData('QuickyResultsTemp');
             end
@@ -102,13 +102,13 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         function results = segmentPartition(obj, Y)
         %segmentPartition Run segmentation on subpart of image stack
             options = obj.ToolboxOptions; %todo...
-            
+
             % Preprocess and binarize stack
             fprintf(sprintf('Binarizing images and detecting components...\n'))
-            
+
             Y_ = flufinder.module.preprocessImages(Y, options);
             BW = flufinder.module.binarizeImages(Y_, options);
-            
+
             [S, CC] = flufinder.detect.getBwComponentStats(BW, options);
 
             results.spatialComponents = S;
@@ -116,18 +116,18 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             results.meanFovImagePreprocessed = mean(Y_, 3);
             results.componentMatrix = labelmatrix(CC);
         end
-        
+
         function onCompletion(obj)
             onCompletion@nansen.processing.RoiSegmentation(obj)
-            
+
             if isempty(obj.MergedResults)
                 obj.mergeResults()
             end
         end
     end
-    
+
     methods (Access = protected) % Implementation of RoiSegmentation methods
-        
+
         function opts = getToolboxSpecificOptions(obj, varargin)
         %getToolboxSpecificOptions Get options from parameters or file
         %
@@ -136,21 +136,21 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 
             import nansen.wrapper.quicky.Options
             opts = Options.convert(obj.Options);
-            
+
             optionsVarname = 'QuickyOptions';
 
             % Initialize options (Load from data folder if options already
             % exist, otherwise initialize and save to data folder)
             opts = obj.initializeOptions(opts, optionsVarname);
         end
-        
+
         function saveResults(obj)
             tempResults = obj.Results;
             obj.saveData('QuickyResultsTemp', tempResults)
         end
-        
+
         function mergeSpatialComponents(obj, iPlane, iChannel)
-            
+
             import flufinder.detect.findUniqueRoisFromComponents
 
             tmpMergedResults = cat(1, obj.Results{:, iPlane, iChannel});
@@ -175,7 +175,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 % %
 % %             obj.displayFinishCurrentStep()
 % %         end
-        
+
         function finalizeResults(obj)
         %finalizeResults Finalize the results using flufinder's pipeline
             import nansen.twophoton.roi.compute.computeRoiImages
@@ -186,17 +186,17 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             end
 
             [numZ, numC] = size(obj.MergedResults);
-            
+
             obj.RoiArray = cell(numZ, numC);
 
             opts = obj.ToolboxOptions;
-             
+
             obj.StackIterator.reset()
             for i = 1:obj.StackIterator.NumIterations
                 [iZ, iC] = obj.StackIterator.next();
-                
+
                 tmpMergedResults = obj.MergedResults{iZ, iC};
-                
+
                 S = cat(1, tmpMergedResults.spatialComponents );
                 if isempty(S)
                     obj.RoiArray{iZ, iC} = RoI.empty;
@@ -217,13 +217,13 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                     fprintf('Searching for %s-shaped cells...\n', ...
                         opts.MorphologicalShape)%MorphologicalShape)
                     averageImage = mean(imArray, 3);
-    
+
                     roiArrayS = flufinder.detect.shapeDetection(averageImage, roiArrayT, opts);
                     roiArray = flufinder.utility.combineRoiArrays(roiArrayS, roiArrayT, opts);
                 else
                     roiArray = roiArrayT;
                 end
-                
+
                 obj.RoiArray{iZ, iC} = roiArray;
             end
         end
@@ -236,7 +236,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 
     methods (Static) % Method in external file.
         options = getDefaultOptions()
-        
+
         pathList = getDependentPaths()
     end
 end

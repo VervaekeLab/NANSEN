@@ -7,11 +7,11 @@ function t_out = range(t_in,R)
 % reflects the range of the points that are aggregated. The new vector
 % alternates between the min and the max of the data in each bin. That is,
 % Y values in each column are concatenated as:
-%   [Y_new_bin_x Y_new_bin_x+1] = [ Y_bin_x_min Y_bin_x_max Y_bin_x+1_max Y_bin_x+1_min ] 
-% and so on. 
-% 
+%   [Y_new_bin_x Y_new_bin_x+1] = [ Y_bin_x_min Y_bin_x_max Y_bin_x+1_max Y_bin_x+1_min ]
+% and so on.
+%
 % The number of timestamps of the returned table is 2*ceil(size(t_in,1)/R);
-% 
+%
 % See also: TIMETABLE
 
 sampleRateEpsilon = 0.01;
@@ -20,7 +20,7 @@ sampleRate = t_in.Properties.SampleRate;
 if isnan(sampleRate)
     tDiff = diff(t_in.Time);
     tDiffMean = mean(tDiff);
-    
+
     tDiffMax = max(tDiff);
     tDiffMin = min(tDiff);
 

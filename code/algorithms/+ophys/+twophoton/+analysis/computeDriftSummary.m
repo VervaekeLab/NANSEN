@@ -13,16 +13,16 @@ function results = computeDriftSummary(avgProjImageArray)
     meanFluorescenceSmooth = smoothdata(meanFluorescence); %(1x1xn)
 
     getPercentileValues = @(IM, p) prctile(prctile(IM, p, 1), p, 2);
-    
+
     %minFluorescence = getPercentileValues( avgProjectionImageArray, 5);
     maxFluorescence = getPercentileValues( avgProjImageArray, 95);
     %maxFluorescenceSmooth = smoothdata(maxFluorescence);
 
     % Correct for mean fluorescence changes across the recording
     avgProjImageArray = avgProjImageArray ./ meanFluorescenceSmooth;
-    
+
     imageCorrelation = zeros(numParts, numParts);
-    
+
     fprintf('Computing image correlations...'); fprintf(newline)
     for i = 1:numParts
         for j = 1:numParts
@@ -35,16 +35,16 @@ function results = computeDriftSummary(avgProjImageArray)
                                            avgProjImageArray(:, :, j));
         end
     end
-    
+
     % Prepare summary images:
     avgProjImageArray = avgProjImageArray ./ sqrt(avgProjImageArray);       % Not sure if this is useful
-    
+
     % 1) Colorcode first and last frame with different colors
     cMap = [ 1, 0.5, 0;
              0, 0.5, 1 ];
     imageMerged = stack.colorCodeImageStack(...
         avgProjImageArray(:, :, [1,end]), cMap);
-    
+
     imageMerged = imageMerged - min(imageMerged(:));
     imageMerged = uint8( imageMerged ./ max(imageMerged(:)) .* 255 );
 

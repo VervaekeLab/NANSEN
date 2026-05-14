@@ -20,7 +20,7 @@ function varargout = smallRoiMaskToFovPixelCoords(roiMask, fovSize, roiCenter)
     keepX = xCoords >= 1 & xCoords <= fovSize(2);
     keepY = yCoords >= 1 & yCoords <= fovSize(1);
     keep = keepX & keepY;
- 
+
     if nargout == 1
         varargout{1} = [xCoords(keep), yCoords(keep)];
     elseif nargout == 2

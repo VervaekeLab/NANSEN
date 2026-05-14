@@ -24,7 +24,7 @@ if nargin < 3 || isempty(bLims)
 end
 
 if nargin < 2 || isempty(bLims)
-    
+
     if cropAmount ~= 0
         imSize = size(imArray);
         imArrayCropped = stack.reshape.imcropcenter(imArray, imSize(1:2)-cropAmount);
@@ -32,14 +32,14 @@ if nargin < 2 || isempty(bLims)
     else
         sorted = sort(imArray(:));
     end
-    
+
     sorted(isnan(sorted)) = []; % Throw away black pixels. Usually present due to aligning...
 
     nSamples = numel(sorted);
 
     minVal = sorted(max([round(nSamples*tolerance), 1]));
     maxVal = sorted(min([round(nSamples*(1-tolerance)), nSamples]));
-    
+
 %     imMax = max(imArray, [], 3);
 %     maxVal = prctile(imMax(:), 99.9);
 else
@@ -48,5 +48,4 @@ else
 end
 
 imArray = uint8((imArray - minVal) ./ (maxVal-minVal) .* 255);
-
 end

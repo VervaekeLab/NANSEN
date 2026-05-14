@@ -1,10 +1,10 @@
 classdef Light
-    
+
     properties (Constant)
-        
+
         FigureBackgroundColor = [0.94, 0.94, 0.94];
         FigureForegroundColor = [0, 0, 0];
-        
+
         HeaderBackgroundColor = [0.95, 0.95, 0.95]
         HeaderForegroundColor = [0.05, 0.05, 0.05]
         TableBackgroundColor = [0.95, 0.95, 0.95]
@@ -18,6 +18,5 @@ classdef Light
         BorderWidth = 1
         SortArrowForeground = [240,171,15] ./ 255
         SortOrderForeground = [240,171,15] ./ 255
-        
     end
 end

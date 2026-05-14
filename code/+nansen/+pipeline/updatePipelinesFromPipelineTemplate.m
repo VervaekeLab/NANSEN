@@ -11,7 +11,7 @@ function pipelineArray = updatePipelinesFromPipelineTemplate(pipelineArray, pipe
 %       pipelineArray : cell array of pipeline structs
 %       pipelineTemplate : a pipeline template as retrieved from the
 %           getPipelineForSession method of the PipelineCatalog
-    
+
     wasConvertedToCell = false; % Add pipeline item to cell array
     if ~isa(pipelineArray, 'cell') && numel(pipelineArray) == 1
         pipelineArray = {pipelineArray};
@@ -21,26 +21,26 @@ function pipelineArray = updatePipelinesFromPipelineTemplate(pipelineArray, pipe
     templateTaskList = pipelineTemplate.TaskList;
 
     for i = 1:numel(pipelineArray)
-        
+
         if isempty( pipelineArray{i} )
             continue
         end
-        
+
         if ~strcmp(pipelineArray{i}.Uuid, pipelineTemplate.Uuid)
             continue
         end
-        
+
         % Loop through tasks and update the task state for each task that
         % is still in the new pipeline.
         thisTaskListNew = templateTaskList;
         thisTaskListOld = pipelineArray{i}.TaskList;
-        
+
         for jTask = 1:numel(templateTaskList)
-            
+
             thisTaskName = templateTaskList(jTask).TaskName;
-            
+
             isMatch = strcmp({thisTaskListOld.TaskName}, thisTaskName);
-            
+
             if sum(isMatch) == 1
                 oldTask = thisTaskListOld(isMatch);
             elseif sum(isMatch) > 1
@@ -54,10 +54,10 @@ function pipelineArray = updatePipelinesFromPipelineTemplate(pipelineArray, pipe
                 thisTaskListNew(jTask).DateFinished = oldTask.DateFinished;
             end
         end
-        
+
         pipelineArray{i}.TaskList = thisTaskListNew;
     end
-    
+
     if wasConvertedToCell % If pipeline item was placed in a cell array
         % before updating, extract if from the cell array before returning.
         pipelineArray = pipelineArray{1};

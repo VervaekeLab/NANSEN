@@ -7,7 +7,7 @@ function infoString = getTiffSoftwareTagAsString(fileRef)
 
     if isa(fileRef, 'char') && isfile(fileRef)
         [~, ~, ext] = fileparts(fileRef);
-        
+
         if strcmpi(ext, '.tif') || strcmpi(ext, '.tiff')
             tiffObj = Tiff(fileRef);
         else
@@ -15,17 +15,17 @@ function infoString = getTiffSoftwareTagAsString(fileRef)
         end
     elseif isa(fileRef, 'char') && strncmp(fileRef, 'SI', 2)
         infoString = fileRef;
-        
+
     elseif isa(fileRef, 'Tiff')
         tiffObj = fileRef;
     else
         error('Unsupported input.')
     end
-    
+
     if exist('tiffObj', 'var')
         infoString = tiffObj.getTag('Software');
     end
-    
+
     if ~exist('infoString', 'var')
         error(['ScanImage file information was not detected from input. ', ...
                'Please make sure input is a filepath or a Tiff object for a ', ...

@@ -21,12 +21,12 @@ classdef GObjectRecycler < uiw.mixin.AssignPVPairs
         HitTest = 'off'
         PickableParts = 'none'
     end
-    
+
     properties
         CacheSize = inf;    % Not implemented yet
         BlockSize = 10;     % How many new handles to create if no handles are available
     end
-    
+
     properties (SetAccess = immutable, GetAccess = protected)
         ParentAxes
     end
@@ -44,7 +44,7 @@ classdef GObjectRecycler < uiw.mixin.AssignPVPairs
         h = createNewHandles(obj, n)
         h = resetHandleData(obj, h)
     end
-    
+
     methods % Constructor
 
         function obj = GObjectRecycler(hAxes, varargin)
@@ -57,9 +57,9 @@ classdef GObjectRecycler < uiw.mixin.AssignPVPairs
             delete(obj.GObjects)
         end
     end
-    
+
     methods % Set/get
-        
+
         function n = get.NumAvailableObjects(obj)
             n = numel(obj.GObjects);
         end
@@ -68,7 +68,7 @@ classdef GObjectRecycler < uiw.mixin.AssignPVPairs
     methods
 
         function recycle(obj, h)
-            
+
             if isrow(h); h = transpose(h); end
 
             h = obj.resetHandleData(h);
@@ -81,26 +81,26 @@ classdef GObjectRecycler < uiw.mixin.AssignPVPairs
     methods (Access = protected)
 
         function h = getGobjects(obj, n)
-            
+
             if n > obj.NumAvailableObjects
                 numRequired = n - obj.NumAvailableObjects;
                 numToCreate = ceil( numRequired ./ obj.BlockSize ) .* obj.BlockSize;
-                
+
                 h = obj.createNewHandles(numToCreate);
                 set(h, 'Visible', 'off', 'HandleVisibility', 'off')
 
                 obj.GObjects = cat(1, obj.GObjects, h);
             end
-            
+
             h = obj.GObjects(1:n);
             obj.GObjects(1:n, :) = []; % Need to use both row and column indices when removing elements to preserve GObjects as column vector if it becomes empty.
 
             set(h, 'HandleVisibility', 'on')
             set(h, 'Visible', 'on'); % Turn visibility on.
         end
-        
+
         function nvPairs = getPropertiesAsNameValuePairs(obj)
-            
+
             if isempty(obj.GObjectPropertyNames)
                 propertyNames = properties(obj);
                 propertyNames = setdiff(propertyNames, ...
@@ -109,7 +109,7 @@ classdef GObjectRecycler < uiw.mixin.AssignPVPairs
             else
                 propertyNames = obj.GObjectPropertyNames;
             end
-            
+
             propertyValues = cell(1, numel(propertyNames));
             for i = 1:numel(propertyNames)
                 propertyValues{i} = obj.(propertyNames{i});

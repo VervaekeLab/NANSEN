@@ -10,15 +10,15 @@ function createRegionIndexMap()
     tmpFig = fovmanager.view.openAtlas("paxinos", "Visibility", "invisible");
     h = findobj(tmpFig, 'Type', 'Polygon');
     h(31) = []; % Ignore (This is the map borders, and should not be included)
-    
+
     ax = findobj(tmpFig, 'type', 'Axes');
-    
+
     % Get the map limits and range
     xMin = ax.XLim(1);
     yMin = ax.YLim(1);
     xRange = nansen.util.range(ax.XLim);
     yRange = nansen.util.range(ax.YLim);
-    
+
     m = 100;    % magnification factor...
 
     % Initialize the indexMap
@@ -26,7 +26,7 @@ function createRegionIndexMap()
 
     % Go through every polygonobject, and add its index number to the map.
     for i = 1:numel(h)
-        
+
         % Get x & y coordinates of region boundaries.
         edge = h(i).Shape.Vertices;
         x = (edge(:,1) - xMin) * m;
@@ -39,25 +39,24 @@ function createRegionIndexMap()
         BW = poly2mask(x, y, yRange*m, xRange*m);
         BW = imfill(BW,'holes');
         BW = imdilate(BW, ones(5,5)); % This expansion fills most of the gaps between regions at 100x magnification.
-        
+
         % Update the index map.
         indexMap(BW) = i;
     end
 
     % Get area labels form the tag of the patch objects.
     regionLabels = { h.Tag };
-    
+
     % Create filepath for saving file.
     rootPath = fileparts( mfilename('fullpath') );
     fileName = 'regionIndexMap.mat';
     savePath = fullfile(rootPath, fileName);
-    
+
     S = struct;
     S.indexMap = indexMap;
     S.regionLabels = regionLabels;
     S.magnificationFactor = m;
     S.referencePoint = [xMin, yMin];
-    
-    save(savePath, '-struct', 'S')
 
+    save(savePath, '-struct', 'S')
 end

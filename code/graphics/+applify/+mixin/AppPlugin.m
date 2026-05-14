@@ -94,7 +94,6 @@ classdef AppPlugin < matlab.mixin.Heterogeneous & uiw.mixin.AssignPVPairs
         function tf = keyReleasedHandler(obj, src, evt) %#ok<INUSD> Subclass can override
             tf = false;
         end
-
     end
 
     methods
@@ -105,7 +104,6 @@ classdef AppPlugin < matlab.mixin.Heterogeneous & uiw.mixin.AssignPVPairs
             obj.onPluginActivated()
             obj.IsActivated = true;
         end
-
     end
 
     methods (Access = protected)

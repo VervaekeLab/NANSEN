@@ -1,21 +1,20 @@
 classdef ToolboxWrapper < handle
-        
+
     % Provide properties for classes that acts as wrapper for toolbox
     % methods..
-    
+
     properties
-        
     end
-    
+
     methods (Abstract)
         %getToolboxSpecificOptions(obj)
     end
-    
+
     methods (Static)
 
         function options = getDefaultOptions(className)
         %getDefaultOptions Get default options for a toolbox method
-            
+
             % Each toolbox should have an Options class with a getDefaults
             % method. Use this to get the toolbox-specific default options.
             classNameSplit = strsplit(className, '.');

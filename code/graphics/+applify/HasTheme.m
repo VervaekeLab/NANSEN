@@ -18,7 +18,7 @@ classdef HasTheme < uim.handle
 %       [x] Implement a private Theme_ property and make Theme Dependent.
 %           Then, when setting Theme, Theme_ is set, and when getting Theme
 %           the DEFAULT_THEME is returned if Theme_ is empty... (~I~U).
-%       [ ] Use classes instead of structs for the Theme property (~I~U).
+%       [ ] Use classes instead of structs for the Theme property (~I~U).
 
     properties (Abstract, Constant, Hidden)
         DEFAULT_THEME
@@ -27,30 +27,29 @@ classdef HasTheme < uim.handle
     properties (Dependent)
         Theme
     end
-    
+
     properties (Access = private)
         Theme_ = []     % Internally set value of theme.
     end
-    
+
     methods (Abstract, Access = protected)
         onThemeChanged(obj)
     end
-    
+
     methods
         function set.Theme(obj, newTheme)
-            
+
             if ischar(newTheme)
                 newTheme = nansen.theme.getThemeColors(newTheme);
                 %Todo: validate
             end
-            
+
             obj.Theme_ = newTheme;
             obj.onThemeChanged();
-            
         end
-        
+
         function theme = get.Theme(obj)
-            
+
             if isempty(obj.Theme_)
                 theme = obj.DEFAULT_THEME;
             else

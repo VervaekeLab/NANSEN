@@ -20,7 +20,7 @@ classdef MessageDisplay < handle
 
         function hFigure = inform(obj, message, options)
         % inform - Open a message box with info message
-            
+
             arguments
                 obj (1,1) nansen.MessageDisplay
                 message (1,1) string
@@ -54,7 +54,7 @@ classdef MessageDisplay < handle
                 options.Alternatives (1,:) string = ["Yes", "No", "Cancel"]
                 options.DefaultAnswer (1,1) string = "Yes"
             end
-        
+
             promptStr = obj.getFormattedMessage(question);
             dlgOptions = obj.getDialogOptions();
 
@@ -107,7 +107,7 @@ classdef MessageDisplay < handle
                 message (1,1) string
                 options.Title (1,1) string = "Error"
             end
-            
+
             messageStr = obj.getFormattedMessage(message);
 
             if obj.useModernDialog("uialert")
@@ -185,7 +185,7 @@ classdef MessageDisplay < handle
                 % dialogs is small, so we increase it via text formatting.
                 formatSpec = sprintf('\\fontsize{%d}', obj.FontSize);
                 formattedMessage = strcat(formatSpec, message);
-                
+
                 % Fix some characters that are interpreted as tex markup
                 formattedMessage = strrep(formattedMessage, '_', '\_');
             else

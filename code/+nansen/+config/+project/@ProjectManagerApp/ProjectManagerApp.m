@@ -9,21 +9,21 @@ classdef ProjectManagerApp < nansen.config.abstract.ConfigurationApp
     end
 
     methods
-        
+
         function obj = ProjectManagerApp()
-            
+
             obj.createFigure();
             obj.Figure.Visible = 'on';
             obj.AllowResize = 'on';
             obj.UIModule{1} = nansen.config.project.ProjectManagerUI(obj.Figure);
             %obj.Figure.Resize = 'on';
-            
+
             figureSize = getpref('NansenSetup', 'ProjectManagerWindowSize', obj.FigureSize);
             obj.Figure.Position(3:4) = figureSize;
             uim.utility.centerFigureOnScreen(obj.Figure)
-            
+
             if ~nargout; clear obj; end
-            
+
             %obj@applify.ModularApp
             % Create tabs
             %obj.isConstructed = true;

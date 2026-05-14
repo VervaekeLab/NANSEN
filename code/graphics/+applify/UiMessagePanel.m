@@ -1,34 +1,34 @@
 classdef UiMessagePanel < handle %& uiw.mixin.AssignPVPairs
-    
+
     properties (Dependent)
         Position
     end
-    
+
     properties
         LabelString = 'Message Window'
     end
-    
+
     properties (Access = private)
         Parent
         UILabel
         UIListBox
         Position_ (1,4) double = [100 100 100 74];
     end
-    
+
     methods
-        
+
         function obj = UiMessagePanel(hParent, varargin)
-            
+
             obj.Parent = hParent;
             obj.assignPVPairs(varargin{:})
-            
+
             obj.createListbox()
-            
+
             if ~isempty(obj.LabelString)
                 obj.createListboxLabel()
             end
         end
-        
+
         function printMessage(obj, msg, mode)
         %printMessage Print a message in the app's message window
         %
@@ -56,9 +56,9 @@ classdef UiMessagePanel < handle %& uiw.mixin.AssignPVPairs
             drawnow
         end
     end
-    
+
     methods % Set / get
-        
+
         function set.Position(obj, newValue)
             obj.Position_ = newValue;
             if ~isempty(obj.UIListBox)
@@ -70,17 +70,17 @@ classdef UiMessagePanel < handle %& uiw.mixin.AssignPVPairs
             pos = obj.Position_;
         end
     end
-    
+
     methods (Access = private)
-        
+
         function assignPVPairs(obj, varargin)
-            
+
             names = varargin(1:2:end);
             allNamesIsChar = all( cellfun(@(c) ischar(c), names) );
             assert(allNamesIsChar, 'Name-value pairs must come in pairs')
-            
+
             value = varargin(2:2:end);
-            
+
             for i = 1:numel(names)
                 if isprop(obj, names{i})
                     obj.(names{i}) = value{i};
@@ -89,7 +89,7 @@ classdef UiMessagePanel < handle %& uiw.mixin.AssignPVPairs
                 end
             end
         end
-        
+
         function createListboxLabel(obj)
             % Create MessageWindowListBoxLabel
             obj.UILabel = uilabel(obj.Parent);
@@ -97,18 +97,17 @@ classdef UiMessagePanel < handle %& uiw.mixin.AssignPVPairs
             obj.UILabel.Text = obj.LabelString;
             obj.updateLabelPosition()
         end
-        
+
         function createListbox(obj)
             % Create MessageWindowListBox
             obj.UIListBox = uilistbox(obj.Parent);
             obj.UIListBox.Position = obj.Position_;
             obj.UIListBox.Items = {};
             obj.UIListBox.Value = {};
-            
-            %obj.UIListBox.Scrollable = 'on'; % necessary?
 
+            %obj.UIListBox.Scrollable = 'on'; % necessary?
         end
-        
+
         function updateLabelPosition(obj)
             if ~isempty(obj.UILabel)
                 position = obj.UILabel.Position;

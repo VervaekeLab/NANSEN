@@ -49,14 +49,14 @@ classdef FileViewer < nansen.AbstractTabPageModule
         SessionIDList
         SessionSelectedFcn % Function handle. Will be called with a single input: sessionID
     end
-    
+
     properties (Access = private, Hidden)
         IconFolderPath
         IsTabDirty
         IsInitialized = false
         UseModernUi (1,1) logical = false
         TreeBackend
-        
+
         CurrentNode % The current node selection in the tree
     end
 
@@ -74,7 +74,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
         hFolderTree
         jTree
         jVerticalScroller
-        
+
         % %  Menu handles
         FileContextMenu
         FolderContextMenu
@@ -85,13 +85,13 @@ classdef FileViewer < nansen.AbstractTabPageModule
         LoadDataVariableSubMenuItems
         ViewDataVariableSubMenu
         ViewDataVariableSubMenuItems
-        
+
         hPanelPreview
         hStatusLabel = gobjects().empty % Show status message (if no session is selected)
     end
-    
+
     methods % Constructor
-        
+
         function obj = FileViewer(varargin)
         %FileViewer Construct a fileviewer object
         %
@@ -103,7 +103,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
 
             % Note: The tabgroup and filetree components will be created
             % on demand.
-        
+
             obj@nansen.AbstractTabPageModule(varargin{:})
         end
 
@@ -118,9 +118,9 @@ classdef FileViewer < nansen.AbstractTabPageModule
             delete(obj.nwbContextMenu)
         end
     end
-    
+
     methods (Access = public)
-        
+
         function id = getCurrentObjectId(obj)
         %getCurrentObjectId Get ID of current session object.
             id = '';
@@ -128,29 +128,29 @@ classdef FileViewer < nansen.AbstractTabPageModule
                 id = obj.CurrentSessionObj.sessionID;
             end
         end
-        
+
         function update(obj, metaTableEntry)
         %update Update the uitree based on a session entry from a metatable
         %
         %   hFileviewer.update(sessionTableEntry)
-        
+
             % Todo: Accept multiple sessions and create entry for each.
             if isempty(metaTableEntry); return; end
-            
+
             if ~obj.IsInitialized
                 obj.createTabGroup(metaTableEntry)
             end
-            
+
             sessionID = metaTableEntry.sessionID;%{:};
-            
+
             % Determine if an update is needed.
             if ~isempty(obj.hFolderTree)
-                                
+
                 if ~strcmp(obj.getCurrentObjectId, sessionID)
-                    
+
                     obj.CurrentSessionObj = metaTableEntry;
                     obj.markTabsAsDirty()
-                                        
+
                     doUpdate = true;
                 else
                     doUpdate = false;
@@ -161,7 +161,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
             end
 
             obj.updateSessionListBoxSelection()
-            
+
             if doUpdate
                 obj.updateStatusLabelText('Updating, please wait...')
                 obj.updateFolderTree()
@@ -175,7 +175,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
             obj.updateComponentLayout()
         end
     end
-    
+
     methods % Set/get
 
         function set.SessionIDList(obj, value)
@@ -201,7 +201,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
                 W = [];
             end
         end
-    
+
         function T = get.CurrentTab(obj)
             T = obj.TabGroup.SelectedTab;
         end
@@ -214,12 +214,12 @@ classdef FileViewer < nansen.AbstractTabPageModule
         end
 
         function createComponents(obj)
-            
+
             %obj.createPanels()
             obj.UseModernUi = nansen.util.useModernUiComponents();
             obj.createTreeBackend()
             obj.setIconFolderPath()
-            
+
             obj.createTabGroup()
 
             obj.createStatusLabel()
@@ -227,7 +227,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
 
             obj.jVerticalScroller = containers.Map();
             obj.jTree = containers.Map();
-                       
+
             % obj.createPreviewPanel() % Not implemented yet
         end
 
@@ -263,7 +263,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
             [X, W] = subdividePosition(parentPosition(1)-1, parentPosition(3), [200, 1]);
             H = parentPosition(4);
             Y = parentPosition(2);
-            
+
             if ~isempty(obj.SessionListBox)
                 if obj.UseModernUi
                     for i = 1:numel(obj.SessionListBox)
@@ -294,13 +294,13 @@ classdef FileViewer < nansen.AbstractTabPageModule
             obj.onKeyPressed(src, evt)
         end
     end
-    
+
     methods (Access = {?nansen.App, ?nansen.AbstractTabPageModule})
-        
+
         function wasCaptured = onKeyPressed(obj, ~, evt)
-            
+
             wasCaptured = true;
-            
+
             switch evt.Key
                 case 'r'
                     if strcmp(evt.Modifier, 'command') | strcmp(evt.Modifier, 'control')
@@ -334,7 +334,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
                 obj.TreeBackend = nansen.ui.fileviewer.LegacyFileTreeView();
             end
         end
-        
+
         function setIconFolderPath(obj)
             rootDir = fileparts(mfilename('fullpath'));
             obj.IconFolderPath = fullfile(rootDir, '_graphics', 'icons');
@@ -342,7 +342,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
 
         function createStatusLabel(obj)
         %createBackground
-            
+
             for i = 1:numel(obj.TabGroup.Children)
                 hParent = obj.TabGroup.Children(i);
                 if obj.UseModernUi
@@ -439,7 +439,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
             obj.TabGroup.SelectionChangedFcn = @obj.changeTab;
             obj.IsInitialized = true;
         end
-        
+
         function W = createFolderTreeComponent(obj, hParent)
         % createFolderTreeComponent - Create a new folder tree component
 
@@ -453,7 +453,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
                     'KeyPressFcn', @obj.onKeyPressedInTree);
             end
             W = obj.TreeBackend.createTree(hParent, callbacks);
-            
+
             % Save components to class properties
             dataLocationName = obj.CurrentDataLocationName;
             obj.hFolderTree.(dataLocationName) = W;
@@ -466,16 +466,16 @@ classdef FileViewer < nansen.AbstractTabPageModule
         end
 
         function markTabsAsDirty(obj)
-            
+
             tabNames = fieldnames(obj.IsTabDirty);
-           
+
             for i = 1:numel(tabNames)
                 obj.IsTabDirty.(tabNames{i}) = true;
             end
         end
-        
+
         function createPreviewPanel(obj)
-            
+
             import uim.utility.layout.centerObjectInRectangle
 
             obj.hPanelPreview = uipanel(obj.Parent);
@@ -488,7 +488,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
 
         function resetTreeControls(obj)
             if isempty(obj.hFolderTree); return; end
-            
+
             for i = 1:numel(obj.DataLocationNames)
                 if isfield(obj.hFolderTree, obj.DataLocationNames{i})
                     hTree = obj.hFolderTree.(obj.DataLocationNames{i});
@@ -499,18 +499,18 @@ classdef FileViewer < nansen.AbstractTabPageModule
                 end
             end
         end
-        
+
         function changeTab(obj, ~, ~)
-            
+
             dataLocationName = obj.TabGroup.SelectedTab.Title;
-            
+
             % Create tree if the tab is dirty...
             if obj.IsTabDirty.(dataLocationName)
                 obj.updateFolderTree()
             end
             drawnow
         end
-    
+
         function onSessionIDListSet(obj)
             if isempty(obj.SessionListBox); return; end
 
@@ -558,7 +558,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
         end
 
         function updateFolderTree(obj)
-            
+
             if ~obj.UseModernUi
                 warningCleanup = nansen.ui.legacy.tempDisableJavaComponentWarning(); %#ok<NASGU>
             end
@@ -567,7 +567,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
             if isempty(obj.CurrentSessionObj); return; end
 
             sessionID = sessionObject.sessionID;
-            
+
             % Get data location type
             if ~isempty(obj.TabGroup)
                 dataLocationName = obj.TabGroup.SelectedTab.Title;
@@ -576,7 +576,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
                 alternatives = fieldnames({sessionObject.DataLocation.Name});
                 dataLocationName = alternatives{1};
             end
-                          
+
             drawnow limitrate
 
             if isfield(obj.hFolderTree, dataLocationName) ...
@@ -604,7 +604,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
             isVirtual = sessionObject.isVirtualSessionFolder(dataLocationName);
             rootNode = obj.TreeBackend.getRoot(W);
             rootLabel = sprintf('Session: %s', sessionID);
-            
+
             if isempty(dirPath)
                 obj.TreeBackend.setNodeText(rootNode, ...
                     sprintf('%s [Folder does not exist]', rootLabel));
@@ -616,7 +616,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
                 obj.setNodeFilePath(rootNode, dirPath);
                 obj.TreeBackend.setNodeContextMenu(rootNode, obj.FolderContextMenu);
             end
-            
+
             if isfolder(dirPath)
                 if isVirtual
                     obj.addSubFolderToNode(dirPath, rootNode, false, ...
@@ -636,9 +636,9 @@ classdef FileViewer < nansen.AbstractTabPageModule
                 uistack(obj.hPanelPreview, 'top')
             end
         end
-        
+
         function updateSubtree(obj, treeNode)
-            
+
             isExpanded = obj.isNodeExpanded(treeNode);
 
             obj.TreeBackend.deleteChildren(treeNode)
@@ -655,7 +655,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
         function addSubFolderToNode(obj, rootDir, nodeHandle, isRecursive, options)
         % addSubFolderToNode - Adds subfolders and files to a specified node in a
         %                     file tree structure.
- 
+
             arguments
                 obj
                 rootDir
@@ -663,7 +663,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
                 isRecursive (1,1) logical = true
                 options.FilterFcn = []
             end
-            
+
             L = dir(rootDir);
             skip = strncmp({L.name}, '.',  1);
             L(skip) = [];
@@ -671,38 +671,38 @@ classdef FileViewer < nansen.AbstractTabPageModule
             if ~isempty(options.FilterFcn)
                 L = L(options.FilterFcn({L.name}));
             end
-            
+
             if numel(L) > 100
                 numItemsNotShown = numel(L) - 100;
                 L = L(1:100);
             else
                 numItemsNotShown = 0;
             end
-            
+
             hBranches = cell(1, numel(L));
-        
+
             for i = 1:numel(L)
                 if ~isvalid(nodeHandle); continue; end
-        
+
                 if L(i).isdir
                     hBranches{i} = obj.TreeBackend.addNode(nodeHandle);
                     obj.TreeBackend.setNodeText(hBranches{i}, L(i).name);
-                    
+
                     if isRecursive
                         obj.addSubFolderToNode(fullfile(rootDir, L(i).name), hBranches{i})
                     end
-                    
+
                     obj.setNodeFilePath(hBranches{i}, fullfile(L(i).folder, L(i).name));
                     obj.TreeBackend.setNodeContextMenu(hBranches{i}, obj.FolderContextMenu);
                     folderIconPath = fullfile(obj.IconFolderPath, 'folder.gif');
                     obj.TreeBackend.setNodeIcon(hBranches{i}, folderIconPath);
-        
+
                 else
                     hBranches{i} = obj.TreeBackend.addNode(nodeHandle);
                     obj.TreeBackend.setNodeText(hBranches{i}, L(i).name);
-                    
+
                     [~, ~, fileExt] = fileparts(L(i).name);
-        
+
                     switch fileExt
                         case '.mat'
                             icoFile = fullfile(obj.IconFolderPath, 'matfile.gif');
@@ -718,26 +718,26 @@ classdef FileViewer < nansen.AbstractTabPageModule
                                     nannwb.nwbTree(nwbFileObj, hBranches{i}); % Todo: include in nansen
                                 end
                             end
-                            
+
                             icoFile = fullfile(matlabroot,'toolbox','matlab','icons','HDF_filenew.gif');
                         otherwise
                             icoFile = fullfile(matlabroot,'toolbox','matlab','icons','HDF_filenew.gif');
                     end
-        
+
                     obj.setNodeFilePath(hBranches{i}, fullfile(L(i).folder, L(i).name));
                     obj.TreeBackend.setNodeContextMenu(hBranches{i}, obj.FileContextMenu);
                     %hBranches(i).UIContextMenu = obj.createFileItemContextMenu(hBranches(i));
                     obj.TreeBackend.setNodeIcon(hBranches{i}, icoFile);
                 end
             end
-            
+
             if numItemsNotShown > 0
                 moreItemsNode = obj.TreeBackend.addNode(nodeHandle);
                 obj.TreeBackend.setNodeText(moreItemsNode, ...
                     sprintf('%d more items are present, but not shown...', numItemsNotShown));
                 obj.setNodeFilePath(moreItemsNode, '');
             end
-            
+
             if ~isRecursive % Todo: Fix/test this and recall what the meaning was
                 for i = 1:numel(L)
                     if L(i).isdir
@@ -749,7 +749,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
 
         function onMouseClickOnTree(obj, ~, event)
         %onMouseClickOnTree Callback for mouseclicks on tree
-            
+
             % Update current node
             clickedNode = event.Nodes;
             if isempty(clickedNode)
@@ -758,11 +758,11 @@ classdef FileViewer < nansen.AbstractTabPageModule
             else
                 obj.CurrentNode = clickedNode;
             end
-            
+
             % Handle click based on click type
             if event.NumClicks == 1 && strcmp(event.SelectionType, 'alt')
                 obj.handleRightClick(event)
-                
+
             elseif event.NumClicks == 2 && ~strcmp(event.SelectionType, 'alt')
                 if isempty(clickedNode); return; end
                 obj.handleDoubleClick(event)
@@ -798,11 +798,11 @@ classdef FileViewer < nansen.AbstractTabPageModule
             obj.TreeBackend.setSelectedNode(obj.CurrentTree, treeNode);
             obj.prepareContextMenuForNode(treeNode)
         end
-        
+
         function onMouseMotionOnTree(obj, src, event)
-        
+
             % Development idea: Do some preview on mouseover..
-            
+
 % %             persistent prevNode
 % %
 % %             currentNode = event.Nodes
@@ -820,10 +820,10 @@ classdef FileViewer < nansen.AbstractTabPageModule
 % %                 obj.hPanelPreview.Visible = 'on';
 % %             end
         end
-        
+
         function pos = getPositionForContextMenu(obj, mouseEventPos)
         %getPositionForContextMenu Get position for placing contextmenu
-        
+
             pixelPos = getpixelposition(obj.Parent, true);
 
             x = pixelPos(1) + mouseEventPos(1);
@@ -832,19 +832,19 @@ classdef FileViewer < nansen.AbstractTabPageModule
             % scroll
             dataLocationName = obj.CurrentDataLocationName;
             verticalScroller = obj.jVerticalScroller(dataLocationName);
-            
+
             yScroll = verticalScroller.getValue();
             y = pixelPos(4) - (mouseEventPos(2) - yScroll);
-                
+
             pos = [x, y];
         end
-        
+
         function openContextMenu(obj, treeNode, cMenuPosition)
         %openContextMenu Open contextmenu for a node on the Tree
-                           
+
         % Open context menu. Select correct contextmenu based on whether
         % node represents a file or an NWB dataset.
-            
+
             if nargin < 3
                 % Todo: remove?
             end
@@ -901,10 +901,10 @@ classdef FileViewer < nansen.AbstractTabPageModule
                 obj.createViewDataVariableSubMenu(pathName)
             end
         end
-        
+
         function m = createFolderContextMenu(obj)
         % createFolderContextMenu - Create contextmenu for folder items in tree
-        
+
             hFig = ancestor(obj.Parent, 'figure');
             m = uicontextmenu(hFig);
 
@@ -917,7 +917,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
 
             mitem = uimenu(m, 'Text', 'Create New Folder');
             mitem.Callback = @(s, e) obj.onFolderContextMenuSelected(s);
-            
+
             mitem = uimenu(m, 'Text', 'Refresh', 'Separator', 'on', 'Accelerator', 'R');
             mitem.Callback = @(s, e) obj.onFolderContextMenuSelected(s);
         end
@@ -927,15 +927,15 @@ classdef FileViewer < nansen.AbstractTabPageModule
         %
         %   Note: This contextmenu is not assigned to a specific uitree
         %   because it will be reused across uitrees.
-            
+
             project = nansen.getCurrentProject();
 
             hFig = ancestor(obj.Parent, 'figure');
             m = uicontextmenu(hFig);
-            
+
             mitem = uimenu(m, 'Text', 'Refresh', 'Accelerator', 'R');
             mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
-            
+
             appName = utility.system.getOsDependentName('Finder');
             mitem = uimenu(m, 'Text', sprintf('Show in %s', appName));
             mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
@@ -950,7 +950,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
 
             mitem = uimenu(m, 'Text', 'Copy Pathname');
             mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
-            
+
             if ~isempty( which( sprintf('%s.filemethod.downloadFile',project.Name) ) )
                 mitem = uimenu(m, 'Text', 'Download File', 'Separator', 'on');
                 mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
@@ -958,13 +958,13 @@ classdef FileViewer < nansen.AbstractTabPageModule
 
             mitem = uimenu(m, 'Text', 'Create New Variable from File...', 'Separator', 'on');
             mitem.Callback = @(s, e) obj.onCreateVariableMenuItemClicked();
-            
+
             importMenu = uimenu(m, 'Text', 'Import File Adapter');
             mitem = uimenu(importMenu, 'Text', 'From File...');
             mitem.Callback = @(s, e) obj.onImportFileAdapterFromFile();
             mitem = uimenu(importMenu, 'Text', 'From Folder...');
             mitem.Callback = @(s, e) obj.onImportFileAdapterFromFolder();
-            
+
             mitem = uimenu(m, 'Text', 'Create File Adapter for File...');
             mitem.Callback = @(s, e) obj.onCreateFileAdapterMenuItemClicked();
 
@@ -973,29 +973,29 @@ classdef FileViewer < nansen.AbstractTabPageModule
 
             mitem = uimenu(m, 'Text', 'Load Data Variable to Workspace', "Enable", "off", 'Separator', 'on');
             obj.LoadDataVariableSubMenu = mitem;
-            
+
             mitem = uimenu(m, 'Text', 'View Data Variable', "Enable", "off");
             obj.ViewDataVariableSubMenu = mitem;
 
             mitem = uimenu(m, 'Text', 'Load File to Workspace', 'Accelerator', 'L', 'Separator', 'on');
             mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
-           
+
             mitem = uimenu(m, 'Text', 'View File', 'Accelerator', 'V');
             mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
 
             % mitem = uimenu(m, 'Text', 'Plot Data in Timeseries Plotter');
             % mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
         end
-        
+
         function m = createNwbItemContextMenu(obj)
         %createNwbItemContextMenu Create context menu for NWB nodes
-        
+
             hFig = ancestor(obj.Parent, 'figure');
             m = uicontextmenu(hFig);
-            
+
             mitem = uimenu(m, 'Text', 'Preview');
             mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
-            
+
             mitem = uimenu(m, 'Text', 'Assign to Workspace');
             mitem.Callback = @(s, e) obj.onFileItemContextMenuSelected(s);
         end
@@ -1021,7 +1021,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
                 obj.LoadDataVariableSubMenuItems = menuList;
             end
         end
-        
+
         function createViewDataVariableSubMenu(obj, filePath)
             varNames = obj.detectVariablesForFile(filePath);
 
@@ -1046,7 +1046,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
 
         function createFileAdapterSubMenu(obj, filePath)
             [fileAdapter, ~] = obj.detectFileAdapter(filePath, "all");
-            
+
             if ~isempty(obj.ViewFileAdapterSubMenuItems)
                 delete(obj.ViewFileAdapterSubMenuItems)
                 obj.ViewFileAdapterSubMenuItems = [];
@@ -1069,7 +1069,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
             if obj.TreeBackend.usesAutomaticContextMenus()
                 return
             end
-            
+
             clickedNode = eventData.Nodes;
             % Set the clicked node as the current node
             if ~isempty(clickedNode)
@@ -1080,17 +1080,17 @@ classdef FileViewer < nansen.AbstractTabPageModule
             cMenuPos = obj.getPositionForContextMenu(eventData.Position);
             obj.openContextMenu(clickedNode, cMenuPos)
         end
-        
+
         function handleDoubleClick(obj, eventData)
 
             % Todo: make a preview / open data method...
-            
+
             %setIdle = obj.setBusy('Opening File...'); %#ok<NASGU>
 
             clickedNode = eventData.Nodes;
             pathName = clickedNode.UserData.filePath;
             fileAdapter = obj.detectFileAdapter(pathName);
-            
+
             if ~isempty(fileAdapter)
                 try
                     fileAdapter.view()
@@ -1105,7 +1105,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
             [~, ~, fileExt] = fileparts(obj.TreeBackend.getNodeText(clickedNode));
 
             switch fileExt
-                
+
                 case '' % Assume folder
                     folderPath = clickedNode.UserData.filePath;
                     if isfolder(folderPath)
@@ -1113,14 +1113,14 @@ classdef FileViewer < nansen.AbstractTabPageModule
                     end
                 case {'.ini', '.tif', '.avi', '.raw'}
                     imviewer(clickedNode.UserData.filePath)
-                    
+
                 case '.mat'
                     if ismac
                         unix(sprintf('open -a finder ''%s''', clickedNode.UserData.filePath));
                     else
                         uiopen(clickedNode.UserData.filePath)
                     end
-                    
+
                 case '.png'
                     if ismac
                         filepath = strrep(clickedNode.UserData.filePath, ' ', '\ ');
@@ -1128,18 +1128,18 @@ classdef FileViewer < nansen.AbstractTabPageModule
                     else
                         error('Can not open this file type')
                     end
-                    
+
                 case '.nwb'
                     if isfield(clickedNode.UserData, 'nwbNode')
                         disp(clickedNode.UserData.nwbNode)
                     end
-                    
+
                 otherwise
                     if isfile(clickedNode.UserData.filePath)
                         errorMsg = 'Can not open this file type';
                         errordlg(errorMsg)
                         error(errorMsg)
-                        
+
                     elseif isempty(clickedNode.UserData.filePath)
                         if isfield(clickedNode.UserData, 'Type') && ...
                                 strcmp(clickedNode.UserData.Type, 'nwb') && ...
@@ -1167,7 +1167,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
                     sessionID = '';
                 end
             end
-            
+
             if isNoSessionSelected
                 obj.updateStatusLabelText('No session selected')
                 obj.resetTreeControls()
@@ -1184,7 +1184,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
         end
 
         function onFolderContextMenuSelected(obj, src)
-            
+
             if ~isempty(obj.CurrentNode)
                 folderPath = obj.CurrentNode.UserData.filePath;
             else
@@ -1196,7 +1196,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
 
                 case 'Refresh'
                     obj.updateSubtree(obj.CurrentNode)
-                
+
                 case 'Create New Folder'
                     obj.createNewFolder(folderPath)
                     obj.updateSubtree(obj.CurrentNode)
@@ -1209,17 +1209,17 @@ classdef FileViewer < nansen.AbstractTabPageModule
                     utility.system.openFolder(folderPath)
             end
         end
-        
+
         function onFileItemContextMenuSelected(obj, src)
         %onFileItemContextMenuSelected Callback for context menu items
-        
+
             nodeHandle = obj.CurrentNode;
-            
+
             switch src.Text
-                
+
                 case 'Refresh'
                     obj.updateFolderTree()
-                
+
                 case {'Show in Finder', 'Show in Explorer', 'Show in File Explorer'}
                     folderPath = obj.CurrentNode.UserData.filePath;
                     utility.system.openFolder(folderPath)
@@ -1252,19 +1252,19 @@ classdef FileViewer < nansen.AbstractTabPageModule
                     obj.viewFile( nodeHandle.UserData.filePath )
 
                 case 'Create New Variable from File...'
-                    
+
                 case 'Plot Data in Timeseries Plotter'
                     S = load(nodeHandle.UserData.filePath);
                     timeSeriesData = struct2cell(S);
                     timeseriesPlot(timeSeriesData, 'Name', fieldnames(S))
-                    
+
                 case 'Preview'
                     % Todo: This is for nwb datasets, but should be general
                     % also for files.
                     name = nodeHandle.UserData.nwbNodeName;
                     nwbObj = nodeHandle.UserData.nwbNode;
                     previewNwbObject(name, nwbObj)
-                    
+
                 case 'Assign to Workspace'
                     % Todo: Combine with Load Data to workspace and
                     % generalize...
@@ -1274,14 +1274,14 @@ classdef FileViewer < nansen.AbstractTabPageModule
 
         function onLoadDataVariableItemClicked(obj, src, filePath)
             variableName = src.Text;
-            obj.loadDataVariableToWorkspace(variableName)            
+            obj.loadDataVariableToWorkspace(variableName)
         end
 
         function onViewDataVariableItemClicked(obj, src, filePath)
             variableName = src.Text;
-            obj.openDataVariableInViewer(variableName)            
+            obj.openDataVariableInViewer(variableName)
         end
-        
+
         function onViewFileAdapterItemClicked(obj, src, filePath)
             fileAdapterName = src.Text;
             fileAdapterList = nansen.dataio.listFileAdapters();
@@ -1289,13 +1289,13 @@ classdef FileViewer < nansen.AbstractTabPageModule
             isMatch = strcmp({fileAdapterList.FileAdapterName}, fileAdapterName);
             edit( sprintf('%s/read', fileAdapterList(isMatch).FunctionName) );
         end
-        
+
         function onCreateVariableMenuItemClicked(obj)
         %onCreateVariableMenuItemClicked Callback for menu item
         %
         %   Open user dialog to get information and add an item for this
         %   file to the variable model.
-        
+
             import nansen.config.varmodel.uiCreateDataVariableFromFile
             filePath = obj.CurrentNode.UserData.filePath;
 
@@ -1306,7 +1306,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
             end
             sessionObject = obj.CurrentSessionObj;
             currentDataLocation = obj.TabGroup.SelectedTab.Title;
-        
+
             try
                 newDataVariable = uiCreateDataVariableFromFile(...
                     filePath, currentDataLocation, sessionObject);
@@ -1324,7 +1324,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
 
         function createDataVariableBatch(obj)
             import nansen.ui.fileviewer.BatchDatavariableSelector
-        
+
             filePath = obj.CurrentNode.UserData.filePath;
             sessionObject = obj.CurrentSessionObj;
             currentDataLocation = obj.TabGroup.SelectedTab.Title;
@@ -1339,9 +1339,9 @@ classdef FileViewer < nansen.AbstractTabPageModule
                 return
             end
         end
-        
+
         function onCreateFileAdapterMenuItemClicked(obj)
-            
+
             nodeHandle = obj.CurrentNode;
 
             % Get information about file's path and data location
@@ -1357,7 +1357,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
             adapterType = fileAdapterAttributes.AdapterType;
             fileAdapterAttributes = rmfield(fileAdapterAttributes, 'AdapterType');
             fileAdapterMetadata = nansen.plugin.fileadapter.FileAdapterMeta(fileAdapterAttributes);
-            
+
             fileAdapterMetadata.ImplementationType = 'Class';
             nansen.plugin.fileadapter.createFileAdapter(targetPath, fileAdapterMetadata, adapterType)
         end
@@ -1430,12 +1430,12 @@ classdef FileViewer < nansen.AbstractTabPageModule
             % match the filename and file extension.
             varModel = obj.CurrentSessionObj.VariableModel;
             varName = varModel.findVariableByFilename([fileName, fileExtension], mode);
-            
+
             % Wrap in cell to be compatible with loop below
             if ~isempty(varName) && ischar(varName)
                 varName = {varName};
             end
-            
+
             fileAdapter = cell(1, numel(varName));
             isMissingFileadapter = false(1, numel(varName));
 
@@ -1449,10 +1449,10 @@ classdef FileViewer < nansen.AbstractTabPageModule
                         'Could not find file adapter for variable: %s', varName{i})
                     isMissingFileadapter(i) = true;
                     continue
-                end    
+                end
                 fileAdapter{i} = fileAdapterFcn(filePath);
             end
-            
+
             % Only pick the first file adapter if mode is first.
             if isscalar(varName) && mode == "first"
                 if isempty(fileAdapter{1})
@@ -1462,7 +1462,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
                 varName = varName{1};
                 return
             end
-    
+
             % Remove missing file adapters if any
             fileAdapter(isMissingFileadapter) = [];
 
@@ -1479,7 +1479,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
             varModel = obj.CurrentSessionObj.VariableModel;
             varNames = varModel.findVariableByFilename([fileName, fileExtension], 'all');
         end
-        
+
         function openFilePreview(obj, filePath)
             % Todo
         end
@@ -1491,7 +1491,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
         function loadFileToWorkspace(obj, pathName)
             % Todo: This should probably be either a method on the session
             % class or on a data collection class.
-            
+
             if nargin < 2
                 pathName = obj.CurrentNode.UserData.filePath;
             end
@@ -1514,7 +1514,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
     end
 
     methods (Static, Access = private)
-  
+
         function createNewFolder(folderPath)
             inputCellArray = inputdlg('Enter folder name', 's');
             if ~isempty(inputCellArray)
@@ -1527,7 +1527,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
                 end
             end
         end
-    
+
         function loadFileToWorkspaceByFileType(pathName)
         % loadFileToWorkspaceByFileType - Try to load a file by its
         % filetype
@@ -1538,14 +1538,14 @@ classdef FileViewer < nansen.AbstractTabPageModule
                 case {'.ini', '.tif', '.avi', '.raw'}
                     imageStack = nansen.stack.ImageStack(pathName);
                     assignin('base', 'imageStack', imageStack)
-                    
+
                 case '.mat'
                     S = load(pathName);
                     varNames = fieldnames(S);
                     for i = 1:numel(varNames)
                         assignin('base', varNames{i}, S.(varNames{i}))
                     end
-                    
+
                 otherwise
                     message = sprintf('Can not load files of type %s to workspace', fileExt);
                     errordlg(message)
@@ -1558,6 +1558,6 @@ classdef FileViewer < nansen.AbstractTabPageModule
     end
 
     methods (Static)
-        assertFileViewerSupported(metaTable) % function in separate file 
+        assertFileViewerSupported(metaTable) % function in separate file
     end
 end

@@ -20,9 +20,9 @@ function roiGroup = ensureRoiGroupMatchImageStack(roiGroup, imageStack)
     numZ = imageStack.NumPlanes;
 
     if size(roiGroup, 2) ~= numC || size(roiGroup, 1) ~= numZ
-        
+
         roiGroupArray(numZ, numC) = roimanager.roiGroup();
-    
+
         % Initialize with empty roi groups
         for i = 1:numZ
             for j = 1:numC
@@ -30,13 +30,13 @@ function roiGroup = ensureRoiGroupMatchImageStack(roiGroup, imageStack)
                     struct('roiArray', RoI.empty, 'PlaneNumber', i, 'ChannelNumber', j));
             end
         end
-    
+
         for i = 1:numel(roiGroup)
             iC = roiGroup(i).ChannelNumber;
             iZ = roiGroup(i).PlaneNumber;
             roiGroupArray(iZ, iC) = roiGroup(i);
         end
-    
+
         roiGroup = roiGroupArray;
     end
 end

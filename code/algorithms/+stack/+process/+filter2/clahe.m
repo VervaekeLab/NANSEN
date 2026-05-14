@@ -8,41 +8,40 @@ function varargout = clahe(imageIn, varargin)
     param.Range_ = {'full', 'original'};
     param.Distribution = 'rayleigh';
     param.Distribution_ = {'uniform', 'rayleigh', 'exponential'};
-    
+
     if nargin == 0
         varargout = {param}; return
     end
-    
+
     param = utility.parsenvpairs(param, [], varargin);
-    
+
     imclass = class(imageIn);
     imageIn = double(imageIn);
-    
+
     minVal = min(imageIn(:));
     maxVal = max(imageIn(:));
-    
+
     imageIn = (imageIn - minVal) ./ (maxVal - minVal);
-    
+
     if size(imageIn,1) < 32 ||  size(imageIn,2) < 32
         im = imageIn;
     else
         numFrames = size(imageIn, 3);
         im = zeros(size(imageIn));
-        
+
         for i = 1:numFrames
             im(:, :, i) = adapthisteq(imageIn(:, :, i), 'NumTiles', param.NumTiles, ...
                             'ClipLimit', param.ClipLimit, ...
                             'Distribution', param.Distribution, ...
                             'Range', param.Range);
         end
-                    
+
         % Should I use range = full instead???
         im = im .* (maxVal-minVal) + minVal;
         im = cast(im, imclass);
     end
 
     varargout = {im};
-
 end
 
 % Old implementation. Todo: Does above work well for single,double etc?

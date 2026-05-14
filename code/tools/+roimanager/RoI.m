@@ -61,7 +61,7 @@ properties ( Dependent = true, Transient = true )
 end
 
 methods
-    
+
     function obj = RoI(shape, coordinates, imSize)
         % RoI Constructor. Create a RoI object of specified shape.
         %   roi = RoI(SHAPE, COORDINATES, IMSIZE) creates a RoI object of
@@ -78,19 +78,19 @@ methods
         if nargin < 1
             return
         end
-        
+
         if nargin < 3 && strcmp(shape, 'Mask')
             [h, w, ~] = size(coordinates);
             imSize = [h, w];
         end
-        
+
         % Set coordinates and shape
         obj.shape = shape;
         obj = setCoordinates(obj, coordinates);
-        
+
         % Create a unique ID for the roi.
         obj.uid = nansen.util.getuuid();
-        
+
         % Set image size
         obj.imagesize = imSize;
 
@@ -98,11 +98,10 @@ methods
         obj = setBoundaries(obj);
         obj = findCenter(obj);
         obj = setArea(obj);
-        
     end
-    
+
 % % Methods for changing the spatial position/shape of the roi
-    
+
     function obj = move(obj, shift, imageUpdateMethod)
     %move Move RoI according according to specified shifts
     %
@@ -110,9 +109,9 @@ methods
     %   pixels to shift the RoI along x-direction (dx) and the second
     %   element is the number of pixels to shift the RoI in the y-direction
     %   (dy).
-    
+
         if nargin < 3; imageUpdateMethod = 'resetImage'; end
-    
+
         nRois = numel(obj);
 
         for i = nRois:-1:1
@@ -129,56 +128,54 @@ methods
             obj(i).boundary = cellfun(@(b) b+dydx, obj(i).boundary, 'uni', 0);
             obj(i).center = obj(i).center + shift;
             obj(i) = obj(i).updateImage(imageUpdateMethod);
-
         end
     end
-    
+
     function obj = reshape(obj, shape, coordinates, imageUpdateMethod)
     %reshape Reshape a RoI based on new input coordinates
-        
+
         if nargin < 4; imageUpdateMethod = 'resetImage'; end
 
         oldCenter = obj.center;
-    
+
         if ~isempty(shape)
             obj.shape = shape;
         end
         obj = setCoordinates(obj, coordinates);
-        
+
         % Update boundary, center and area
         obj = setBoundaries(obj);
         obj = findCenter(obj);
         obj = setArea(obj);
-        
+
         % Calculate the shift of the roi
         newCenter = obj.center;
         shift = round(newCenter-oldCenter);
-            
+
         % Update the roi image
         obj = obj.updateImage(imageUpdateMethod, shift);
-        
     end
-    
+
     function obj = grow(obj, npixels)
     %grow Grow a RoI by n pixels
-        
+
         switch obj.shape
             case 'Circle'
                 obj.coordinates(3) = obj.coordinates(3) + npixels;
-            
+
             case 'Polygon'
                 xedge = obj.coordinates(:, 1); xcenter = obj.center(1);
                 yedge = obj.coordinates(:, 2); ycenter = obj.center(2);
-                
+
                 % Calculate angle in polar for each edge point.
                 theta = atan2(yedge-ycenter, xedge-xcenter);
-                
+
                 % Calculate radius for each edge point
                 radius = sqrt( (yedge-ycenter).^2 + (xedge-xcenter).^2);
                 newRadius = radius + npixels;
                 obj.coordinates(:, 1) = xcenter + cos(theta) .* newRadius;
                 obj.coordinates(:, 2) = ycenter + sin(theta) .* newRadius;
-                
+
             case {'Mask', 'Donut'}
 
                 for i = 1:npixels
@@ -206,40 +203,40 @@ methods
                     else
                         tmpMask = imdilate(tmpMask, nhood);
                     end
-                
+
                     obj = obj.setCoordinates(tmpMask);
                 end
 
 %                 obj.coordinates = sparse(imdilate(tmpMask, nhood));
         end
-        
+
         % Calculate other properties
         obj = setBoundaries(obj);
         obj = findCenter(obj);
         obj = setArea(obj);
 %         obj.enhancedImage = [];
     end
-    
+
     function obj = shrink(obj, npixels)
     %shrink Shrink a RoI by n pixels
-        
+
         switch obj.shape
             case 'Circle'
                 obj.coordinates(3) = obj.coordinates(3) - npixels;
-                
+
             case 'Polygon'
                 xedge = obj.coordinates(:, 1); xcenter = obj.center(1);
                 yedge = obj.coordinates(:, 2); ycenter = obj.center(2);
-                
+
                 % Calculate angle in polar for each edge point.
                 theta = atan2(yedge-ycenter, xedge-xcenter);
-                
+
                 % Calculate radius for each edge point
                 radius = sqrt( (yedge-ycenter).^2 + (xedge-xcenter).^2);
                 newRadius = radius - npixels;
                 obj.coordinates(:, 1) = xcenter + cos(theta) .* newRadius;
                 obj.coordinates(:, 2) = ycenter + sin(theta) .* newRadius;
-                
+
             case {'Mask', 'Donut'}
                 ycenter = round(obj.center(2));
                 tmpMask = obj.mask;
@@ -253,34 +250,33 @@ methods
                     % Imdilate 1 pixel in each direction:  NE, SE, SW, NW
                     nhood = [1,0,1;0,1,0;1,0,1];
                 end
-                
+
                 if strcmp(obj.shape, 'Donut')
                     filledMask = imfill(tmpMask, 'holes');
                     nucleusMask = xor(tmpMask, filledMask);
-                    
+
                     filledMask = imerode(filledMask, nhood);
                     nucleusMask = imerode(nucleusMask, nhood);
-                    
+
                     tmpMask = filledMask & ~nucleusMask;
                 else
                     tmpMask = imerode(tmpMask, nhood);
                 end
-                
+
                 obj = obj.setCoordinates(tmpMask);
         end
-        
+
         % Calculate other properties
         obj = setBoundaries(obj);
         obj = findCenter(obj);
         obj = setArea(obj);
 %         obj.enhancedImage = [];
-
     end
-    
+
     function obj = goDonuts(obj, thickness)
-        
+
         if nargin < 2; thickness = 1; end
-        
+
         border = round(obj.boundary{1});
 
         ind = sub2ind(obj.imagesize, border(:, 1), border(:, 2));
@@ -288,7 +284,7 @@ methods
         tmpMask(ind) = true;
 
         for i = 1:thickness
-        
+
            if mod(i, 2) == 0
                 % Imdilate 1 pixel in each direction: N, E, S, W.
                 nhood = [0,1,0;1,1,1;0,1,0];
@@ -300,24 +296,23 @@ methods
                 tmpMask = imdilate(tmpMask, nhood);
            end
         end
-        
+
         donutMask = obj.mask & tmpMask;
 
         % Set coordinates based on new mask.
         obj.shape = 'Donut';
         obj = obj.setCoordinates(donutMask);
-        
+
         % Calculate other properties
         obj = setBoundaries(obj);
         obj = findCenter(obj);
         obj = setArea(obj);
         obj.enhancedImage = [];
-
     end
-    
+
     function obj = updateImage(obj, imageUpdateMethod, shift)
     %updateImage
-    
+
         if isempty(obj.enhancedImage); return; end
         if nargin < 3; shift = [0, 0]; end
 
@@ -330,9 +325,9 @@ methods
                 obj.enhancedImage = circshift(obj.enhancedImage, dydx);
         end
     end
-    
+
     function bbox = getBBox(obj, size)
-        
+
         if numel(size) == 1
             [width, height] = deal(size);
         elseif numel(size) == 2
@@ -340,7 +335,7 @@ methods
         else
             error('Size must be a 1 or 2 element vector')
         end
-        
+
         xLim = round(obj.center(1)) + [-ceil(width/2), floor(width/2)];
         yLim = round(obj.center(2)) + [-ceil(height/2), floor(height/2)];
 
@@ -349,30 +344,29 @@ methods
         elseif xLim(2) > obj.imagesize(2)
             xLim = xLim - (xLim(2) - obj.imagesize(2));
         end
-        
+
         if yLim(1) < 1
             yLim = yLim + abs(yLim(1) - 1);
         elseif yLim(2) > obj.imagesize(1)
             yLim = yLim - (yLim(2) - obj.imagesize(1));
         end
-        
+
         bbox = [xLim, yLim];
-        
     end
-    
+
     function [I, J] = getThumbnailCoords(obj, boxSize)
     %getThumbnailCoords Return image coordinates for a thumbnail picture.
     %
     % [I, J] = getThumbnailCoords(obj, boxSize) returns image coordinates
     % for a box of given boxSize centered on the current roi. I is the
     % x-coordinates  and J is the y-coordinates
-    
+
         if nargin < 2
             boxSize = size(obj.enhancedImage);
         end
-    
+
         assert(all(mod(boxSize,2))~=0)
-    
+
         indX = (1:boxSize(2)) - ceil(boxSize(2)/2);
         indY = (1:boxSize(1)) - ceil(boxSize(1)/2);
         centerCoords = obj.center;
@@ -380,7 +374,6 @@ methods
         % Image coordinates for a square box centered on the roi
         I = round(indX + centerCoords(1));
         J = round(indY + centerCoords(2));
-        
     end
 
 % % Method for splitting roi.
@@ -403,11 +396,11 @@ methods
     %   roi_uid_list is a list of unique ids for RoIs to be connected.
         obj.connectedrois = cat(1, obj.connectedrois, roi_uid_list);
     end
-    
+
 % % Methods for tagging rois and getting tagged rois.
-    
+
     function obj = addTag(obj, tag)
-        
+
         for i = 1:numel(obj)
             if ~contains(tag, obj(i).tags)
                 if isempty(obj(i).tags)
@@ -418,15 +411,15 @@ methods
             end
         end
     end
-    
+
     function obj = removeTag(obj, tag)
-        
+
         if contains(tag, '&')
             tag = strsplit(tag, '&');
         else
             tag = {tag};
         end
-        
+
         for h = 1:numel(tag)
             for i = 1:numel(obj)
                 if contains(tag{h}, obj(i).tags)
@@ -435,14 +428,14 @@ methods
             end
         end
     end
-    
+
     function [newObj, roiInd] = getTagged(obj, tag)
-        
+
         if contains(tag, '&')
             tag = strsplit(tag, '&');
             isTagged = true(size(obj));
             operator = @and;
-            
+
         elseif contains(tag, '|')
             tag = strsplit(tag, '|');
             isTagged = false(size(obj));
@@ -452,35 +445,34 @@ methods
             isTagged = true(size(obj));
             operator = @and;
         end
-                
+
         for i = 1:numel(tag)
             tmptag = tag{i};
-            
+
             if contains(tmptag, '~')
                 tmptag = strrep(tmptag, '~', '');
                 isTaggedTmp = arrayfun(@(roi) ~any(contains(roi.tags, tmptag)), obj);
             else
                 isTaggedTmp = arrayfun(@(roi) any(contains(roi.tags, tmptag)), obj);
             end
-            
-            isTagged = operator(isTagged, isTaggedTmp);
 
+            isTagged = operator(isTagged, isTaggedTmp);
         end
-        
+
         newObj = obj(isTagged);
-        
+
         if nargout == 2
             roiInd = find(isTagged);
         end
     end
-    
+
 % % Method for copying a roi (not necessary if class is not handle)
 
     function twinRoi = copy(obj)
     %copy Copy RoI object. Only useful if RoI class is handle
         nRois = numel(obj);
         twinRoi(nRois, 1) = RoI;
-        
+
         for n = 1:nRois
             twinRoi(n) = RoI(obj(n).shape, obj(n).coordinates, size(obj(n).mask) );
             propertyList = {'uid', 'connectedrois', 'group', 'celltype', ...
@@ -490,17 +482,17 @@ methods
             end
         end
     end
-    
+
 % % Methods for checking various things related to position etc.
 
     function ul = getUpperLeftCorner(obj, offset)
-        
+
         if nargin < 2; offset = []; end
-        
+
         if ~isempty(offset)
             assert(offset >= 0, 'Offset can not be negative')
         end
-        
+
         if isempty(offset)
             [I, J] = obj.getThumbnailCoords;
             minX = min(I(:)); minY = min(J(:));
@@ -518,35 +510,32 @@ methods
 
             if minX < 1; minX = 1; end
             if minY < 1; minY = 1; end
-
         end
-        
+
         ul = [minX, minY];
-        
     end
 
     function tf = isRoiInRect(obj, rectCoords)
-       
+
         % Should this be a roimanager method?
         % work in progress
         tf = false;
-        
+
         switch obj.shape
             case 'Polygon'
 
             case 'Circle'
 
             case {'Mask', 'Donut'}
-
         end
     end
-    
+
     function tf = isOverlap(obj, roiOrMask)
-        
+
         tf = false(numel(obj), 1);
-        
+
         for i = 1:numel(obj)
-        
+
             if isa(roiOrMask, 'RoI')
                 masktmp = roiOrMask.mask;
             elseif isa(roiOrMask, 'logical') && isequal(size(roiOrMask), obj(i).imagesize)
@@ -558,10 +547,9 @@ methods
             roiMask = obj(i).mask;
 
             tf(i) = any(intersect(find(roiMask), find(masktmp)));
-            
         end
     end
-    
+
     function tf = isInRoi(obj, x, y)
     %isInRoi Check if the point (x,y) is a part of the roi.
     %   bool = isInRoi(roi, x, y) returns true if x and y is within the RoI
@@ -570,11 +558,11 @@ methods
     % roi       - Single RoI object.
     % x         - (int) Position in image as pixels.
     % y         - (int) Position in image s pixels.
-    
+
     % Should this be a roimanager method?
-    
+
         tf = false;
-    
+
         switch obj.shape
             case 'Polygon'
                 xv = obj.coordinates(:,1); yv = obj.coordinates(:,2);
@@ -588,7 +576,7 @@ methods
                 end
 
             case {'Mask', 'Donut'}
-                
+
                 if isa(obj.coordinates, 'logical')
                     if obj.coordinates(round(y), round(x))
                         tf = true;
@@ -600,26 +588,26 @@ methods
                 end
         end
     end
-    
+
     function tf = isOnBoundary(obj)
-        
+
         tf = false;
-        
+
         x = obj.center(1); y = obj.center(2);
-        
+
         if x < 10 || x > obj.imagesize(2)-10
             tf = true;
         end
-        
+
         if y < 10 || y > obj.imagesize(1)-10
             tf = true;
         end
     end
-    
+
     function tf = isOutsideImage(obj)
-        
+
         tf = false(size(obj));
-        
+
         for i = 1:numel(obj)
             x = obj(i).center(1); y = obj(i).center(2);
 
@@ -632,7 +620,7 @@ methods
             end
         end
     end
-    
+
     function tf = assertImageSize(obj, imageSize)
     %assertImageSize Check whether RoI size and imageSize corresponds
         tf = true;
@@ -642,9 +630,9 @@ methods
             end
         end
     end
-    
+
 % % Methods for setting/getting property values.
-    
+
     function obj = set.imagesize(obj, imageSize)
     % Update coordinates if imagesize is set/re-set.
     %
@@ -655,12 +643,12 @@ methods
     %   the center of the image remains the same.
 
         for i = 1:numel(obj)
-           
+
             if isempty(imageSize)
                 obj(i).imagesize = [];
                 continue
             end
-            
+
             % First time initialization
             if isempty(obj(i).imagesize)
                 obj(i).imagesize = imageSize;
@@ -675,7 +663,7 @@ methods
                 % Find the image size difference:
                 sizeDiff = imageSize - obj(i).imagesize;
                 shift = sizeDiff/2;
-                
+
                 % Handle shapes differently
                 switch obj(i).shape
                     case {'Circle', 'Polygon'}
@@ -683,10 +671,10 @@ methods
                     case {'Mask', 'Donut'}
                         shiftPre = abs(floor(shift));
                         shiftPost = abs(ceil(shift));
-                        
+
                         oldMask = obj(i).mask;
                         newMask = false(imageSize);
-                        
+
                         if all(shift > 0) % Equivalent to padding
                             newMask(1+shiftPre(1):end-shiftPost(1), ...
                                     1+shiftPre(2):end-shiftPost(2)) = oldMask;
@@ -696,22 +684,21 @@ methods
                         else
                             error('So sorry, currently there is no implementation for the case where the image size grows in one dimension and shrinks in the other')
                         end
-                        
+
                         obj(i) = obj(i).reshape('Mask', newMask);
                     otherwise
                             error('Unknown shape "%s" for a RoI', obj(i).shape)
                 end
-            
+
                 obj(i).imagesize = imageSize;
-            
             end
         end
     end
-    
+
     function mask = get.mask(self)
-        
+
         imsize = self.imagesize;
-        
+
         switch self.shape
             case 'Polygon'
                 x = self.coordinates(:, 1);
@@ -727,19 +714,18 @@ methods
 
                 % Preallocate a mask.
                 mask = false(imsize);
-                
+
                 coordInt = round(self.coordinates);
 
                 % Keep all indices which are within the image boundaries
                 keep = sum(coordInt < 1, 2) == 0 & sum(coordInt > fliplr(imsize), 2) == 0;
-                
+
                 % Get linear indices for where the mask is true.
                 ind = sub2ind(imsize, coordInt(keep, 2), coordInt(keep, 1));
                 mask(ind) = true;
-
         end
     end
-    
+
     function tag = get.tag(self)
         if ~isempty(self.celltype)
             tag = [self.celltype(1), self.structure(1)];
@@ -747,19 +733,19 @@ methods
             tag = self.structure(1:2);
         end
     end
-    
+
     function obj = addImage(obj, imdata)
-        
+
         nRois = numel(obj);
         assert(size(imdata, 3) == nRois)
-        
+
         for i = 1:nRois
             roi = obj(i);
             roi.enhancedImage = imdata(:, :, i);
             obj(i) = roi;
         end
     end
-    
+
     function obj = setGroup(obj, group)
     % Unnecessary function because of stupid properties definitions.
         for i = 1:numel(obj)
@@ -809,10 +795,9 @@ methods
             end
 
             obj(i) = roi;
-
         end
     end
-    
+
 % % Methods for getting old property values
 
     function group = get.Group(self)
@@ -822,11 +807,11 @@ methods
             group = self.Group;
         end
     end
-    
+
     function PixelsX = get.PixelsX(self)
         [~, PixelsX] = find(self.Mask);
     end
-    
+
     function PixelsY = get.PixelsY(self)
         [PixelsY, ~] = find(self.Mask);
     end
@@ -838,7 +823,7 @@ methods
             center = self.Center;
         end
     end
-    
+
     function boundary = get.Boundary(self)
         if isempty(self.Boundary)
             boundary = self.boundary;
@@ -846,7 +831,7 @@ methods
             boundary = self.Boundary;
         end
     end
-    
+
     function mask = get.Mask(self)
         if isempty(self.Mask)
             mask = self.mask;
@@ -854,7 +839,7 @@ methods
             mask = self.Mask;
         end
     end
-    
+
     function tag = get.Tag(self)
         if ~isempty(self.celltype)
             tag = [self.celltype(1), self.structure(1)];
@@ -879,10 +864,10 @@ methods (Access = protected)
 %                 obj.center = [mean(x), mean(y)];
         end
     end
-    
+
     function obj = setCoordinates(obj, coordinates)
     %checkCoordinates check that coordinates are valid according to shape
-    
+
     % Todo: Change to set.coordinates
         switch obj.shape
             case 'Polygon'
@@ -912,12 +897,12 @@ methods (Access = protected)
                 obj.coordinates = [x, y];
         end
     end
-    
+
     function obj = setBoundaries(obj)
         % Find and set boundary of RoI
-        
+
     	B = bwboundaries(obj.mask);
-        
+
         % Standardize output B, so that boundary property is a cell of two
         % column vectors, where the first is y-coordinates and the seconds
         % is x-coordinates. Should ideally be an nx2 matrix of x and y.
@@ -930,11 +915,10 @@ methods (Access = protected)
         else
             B = B{1};
         end
-        
-        obj.boundary = {B};
 
+        obj.boundary = {B};
     end
-    
+
     function obj = setArea(obj)
         % Find and set area of RoI
         switch obj.shape
@@ -954,52 +938,51 @@ methods(Static)
         % Find fraction of area overlap between two RoIs.
         area1 = roi1.area;
         area2 = roi2.area;
-        
+
         if ~assertImageSize(roi1, roi2.imagesize)
             roi1.imagesize = roi2.imagesize;
         end
-        
+
         overlappingArea = sum(sum(roi1.mask & roi2.mask));
         overlap = overlappingArea / min(area1, area2);
-
     end
-    
+
     function mergedRoi = mergeRois(listOfRois, mergeOperation)
     %
     %
     %   mergeOperation: 'union', 'intersect'
-    
+
         if nargin < 2
             mergeOperation = 'union';
         end
-        
+
         combinedMasks = sum(cat(3, listOfRois.mask),3);
-        
+
         switch mergeOperation
             case 'union'
                 newMask = combinedMasks ~= 0;
             case 'intersect'
                 newMask = combinedMasks == numel(listOfRois);
         end
-        
+
         mergedRoi = RoI('Mask', newMask, listOfRois(1).imagesize);
-        
+
         mergedRoi.structure = listOfRois(1).structure;
         mergedRoi.group = listOfRois(1).group;
         mergedRoi.celltype = listOfRois(1).celltype;
     end
-    
+
     % Custom loadobj function to take care of loading older versions of RoI
     function obj = loadobj(s)
-        
+
         if isa(s, 'struct') % Object not resolved. Old version?
-            
+
             propertyNames = fieldnames(s);
-            
+
             if contains('ID', propertyNames) % Ancient version.
                 % This has to be changed I believe. Ancient version is
                 % loaded as an obj, not a struct.
-                
+
                 shape = s.Shape;
                 imsize = [s.ImageDimX, s.ImageDimY]; %This is intentional
                 num = s.ID;
@@ -1009,7 +992,7 @@ methods(Static)
                 if isempty(s.imPointsX)
                     shape = 'Mask';
                 end
-        
+
                 switch shape
                     case 'Polygon'
                         % make impoint coordinates nx2 array
@@ -1024,7 +1007,7 @@ methods(Static)
                     case {'Mask', 'Donut'}
                         coordinates = s.Mask;
                 end
-        
+
                 % Get old group
                 group = s.Group;
 
@@ -1033,7 +1016,7 @@ methods(Static)
                 % Set new group properties
                 obj = setGroup(obj, group);
                 obj.num = num;
-                 
+
             elseif contains('mask', propertyNames)
                 imsize = size(s.mask);
                 obj = RoI(s.shape, s.coordinates, imsize);
@@ -1046,10 +1029,10 @@ methods(Static)
                     obj.(propertyNames{fNo}) = s.(propertyNames{fNo});
                 end
                 %disp('updated RoI while loading...')
-                
+
             elseif contains('refpoint', propertyNames) % Unfortunate bieffect of adding a useless property during dev.
                 obj = RoI(s.shape, s.coordinates, s.imagesize);
-                
+
                 skip = {'shape', 'coordinates', 'imagesize', ...
                         'center', 'area', 'boundary', 'mask', 'refpoint'};
                 propertyNames = setdiff(propertyNames, skip);
@@ -1059,16 +1042,15 @@ methods(Static)
                 end
             else
                 obj = roimanager.utilities.struct2roiarray(s);
-
             end
 
             if contains('labels', propertyNames)
                 obj.tags = labels;
             end
-            
+
         else
             obj = s;
-            
+
 % % %             propertyNames = properties(s);
 % % %             propertyNames = cat(2, propertyNames', findPropertyWithAttribute(s, 'Hidden'));
 % % %
@@ -1110,7 +1092,7 @@ methods(Static)
 % % %                 obj = setGroup(obj, group);
 % % %                 obj.num = num;
 % % %              end
-            
+
             % 2019-08-20 - Changed coordinates of rois with shape "mask"
             % from being a sparse logical to being a list of pixel
             % coordinates.
@@ -1118,7 +1100,7 @@ methods(Static)
                 mask = full(obj.coordinates);
                 obj = obj.setCoordinates(mask);
             end
-            
+
             % Fix mistake of setting boundary to empty if roi is outside of
             % the image. Also, make sure boundary is only one cell. Updated
             % version of setBoundaries concatenates all boundaries with

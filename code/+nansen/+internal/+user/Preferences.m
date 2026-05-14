@@ -14,12 +14,12 @@ classdef Preferences < nansen.config.abstract.Preferences
         %PreferredDateFormat = "yyyy.mm.dd"
         %PreferredTimeFormat = "HH:MM:SS"
     end
-    
+
     methods (Access = ?nansen.internal.user.NansenUserSession)
 
         function obj = Preferences(preferenceDirectory)
             import nansen.internal.user.Preferences
-            
+
             if ~nargin || isempty(preferenceDirectory)
                 preferenceDirectory = prefdir;
             end
@@ -30,7 +30,7 @@ classdef Preferences < nansen.config.abstract.Preferences
     end
 
     methods (Static, Access = public)
-        
+
         function filePath = buildFilePath(preferenceDirectory)
             % - Setup preference directory
             if ~isfolder(preferenceDirectory); mkdir(preferenceDirectory); end

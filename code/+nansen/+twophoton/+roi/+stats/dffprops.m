@@ -26,13 +26,13 @@ function stats = dffprops(dff, varargin)
 
     params = struct();
     params.Properties = 'all';
-    
+
     params = utility.parsenvpairs(params, 1, varargin{:});
     getAll = ischar(params.Properties) && strcmp(params.Properties, 'all');
     get = @(name) any( strcmp(params.Properties, name) ); %getfcn
-    
+
     [nSamples, nRois] = size(dff);
-    
+
     % Initialize output
     stats = struct;
 
@@ -41,7 +41,7 @@ function stats = dffprops(dff, varargin)
         peakDff = double( max(dff, [], 1) );
         stats.DffPeak = transpose( peakDff ); % Submit as column vec
     end
-    
+
     if getAll || get('DffSnr') || get('DffActivityLevel') || get('DffStdSnr')
         noiseLevel =  zeros(nRois, 1);
         for i = 1:nRois
@@ -53,7 +53,7 @@ function stats = dffprops(dff, varargin)
         end
         stats.DffNoiseStd = noiseLevel; % Submit as column vec
     end
-    
+
     if (getAll || get('DffSnr')) && exist('snr', 'file')
         % Get SNR of all Rois.
         signalToNoise = zeros(nRois, 1);
@@ -67,7 +67,7 @@ function stats = dffprops(dff, varargin)
         end
         stats.DffSnr = signalToNoise; % Submit as column vec
     end
-    
+
     if (getAll || get('DffSnr')) && ~exist('snr', 'file') || get('DffStdSnr')
         % Get SNR of all Rois.
         signalToNoise = zeros(nRois, 1);
@@ -76,7 +76,7 @@ function stats = dffprops(dff, varargin)
         end
         stats.DffStdSnr = signalToNoise; % Submit as column vec
     end
-    
+
     if getAll || get('DffActivityLevel')
         % Get fraction of time above noise level
         dffSmooth = smoothdata(dff, 1, 'movmean', 9); % Todo, set N
@@ -85,7 +85,7 @@ function stats = dffprops(dff, varargin)
         activityLevel = sum(isHigh, 1) ./ nSamples;
         stats.DffActivityLevel = transpose(activityLevel); % -> column vec
     end
-    
+
     if getAll || get('DffSkewness')
         dffSkew = double( skewness(dff, 1, 1) );
         stats.DffSkewness = transpose(dffSkew); % submit as columnvec

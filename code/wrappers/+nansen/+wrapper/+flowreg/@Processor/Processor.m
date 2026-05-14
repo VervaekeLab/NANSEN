@@ -20,55 +20,55 @@ classdef Processor < nansen.processing.MotionCorrection & ...
 
 %   TODO:
 %       [ ] Print command line output
-%       [ ] Implement multiple channel correction
+%       [ ] Implement multiple channel correction
 %       [ ] Improve initialization of template or leave it to normcorre...
 
-%       [ ] Is there time to be saved on calculating shift metrics on
+%       [ ] Is there time to be saved on calculating shift metrics on
 %           downsampled shift data. Will metrics be quanitatively similar or
 %           not.
 
-%       [ ] Move shifts to results property of ImageStackProcessor
+%       [ ] Move shifts to results property of ImageStackProcessor
 
     properties (Constant) % Attributes inherited from nansen.processing.DataMethod
         MethodName = 'Motion Correction (FlowRegistration)'
         OptionsManager nansen.manage.OptionsManager = ...
             nansen.OptionsManager('nansen.wrapper.flowreg.Processor')
     end
-    
+
     properties (Constant, Hidden)
         DATA_SUBFOLDER = 'motion_corrected'; % Name of subfolder(s) where to save results by default
         VARIABLE_PREFIX = 'Flowreg';
     end
-    
+
     properties (Constant) % From motion correction
         ImviewerPluginName = 'FlowRegistration'
     end
-    
+
     properties (Constant, Access = protected)
         %DependentPaths = nansen.wrapper.flowreg.getDependentPaths()
     end
-    
+
     properties (Access = private)
         CorrectionParams
         CurrentShifts
     end
-    
+
     methods % Constructor
-        
+
         function obj = Processor(varargin)
         %nansen.wrapper.flowreg.Processor Construct flowreg processor
         %
         %   h = nansen.wrapper.flowreg.Processor(imageStackReference)
-            
+
             obj@nansen.processing.MotionCorrection(varargin{:})
-        
+
             obj.assertAddonInstalled()
 
             % Return if there are no inputs.
             if numel(varargin) == 0
                 return
             end
-            
+
             % Call the appropriate run method
             if ~nargout
                 obj.runMethod()
@@ -76,9 +76,9 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             end
         end
     end
-    
+
     methods (Access = protected) % Implementation of abstract, public methods
-        
+
         function S = getToolboxSpecificOptions(obj, varargin)
         %getToolboxSpecificOptions Get options from parameters or file
         %
@@ -95,14 +95,14 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             % selection and the size of the image stack to be corrected.
             import nansen.wrapper.flowreg.Options
             opts = Options.convert(obj.Options);
-            
+
             optionsVarname = 'FlowregOptions';
-            
+
             % Initialize options (Load from session if options already
             % exist, otherwise save to session)
             S = obj.initializeOptions(opts, optionsVarname);
         end
-        
+
         function tf = allIsFinished(obj)
             tf = all( cellfun(@(c) ~isempty(c), obj.ShiftsArray(:)) );
         end
@@ -111,34 +111,33 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         %checkIfPartIsFinished Check if shift values exist for given frames
             shifts = obj.ShiftsArray(:, obj.CurrentPlane);
             frameIND = obj.FrameIndPerPart{partNumber};
-            
+
             tf = all( arrayfun(@(i) ~isempty(shifts{i}), frameIND) );
         end
-        
+
         function initializeShifts(obj, numFrames)
         %initializeShifts Load or initialize shifts...
-        
+
         % Note: shifts is a cell array of numFrames x numPlanes where
         % each cell contains a matrix of shifts for the current frame and
         % plane
-            
+
             filePath = obj.getDataFilePath('FlowregShifts', '-w', ...
                 'Subfolder', obj.DATA_SUBFOLDER, 'IsInternal', true);
-            
+
             if isfile(filePath)
                 S = obj.loadData('FlowregShifts');
-                
+
                 % TODO: IF DOWNSAMPLED, SHOULD UPSAMPLE
             else
                 % Initialize blank struct array
                 S = cell(numFrames, obj.SourceStack.NumPlanes);
                 obj.saveData('FlowregShifts', S)
             end
-            
-            obj.ShiftsArray = S;
 
+            obj.ShiftsArray = S;
         end
-        
+
         function addDriftToShifts(obj, drift)
         %addDriftToShifts Add drift value to the shifts for current part
             j = obj.CurrentPlane;
@@ -147,38 +146,38 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             obj.ShiftsArray(iIndices, j) = obj.addShifts(...
                     obj.ShiftsArray(iIndices, j), drift);
         end
-        
+
         function saveShifts(obj)
         %saveShifts Save shifts in shiftarray to file
-        
+
             % TODO: SAVE DOWNSAMPLED SHIFTS.
-        
+
             shiftsArray = obj.ShiftsArray;
             obj.saveData('FlowregShifts', shiftsArray)
         end
-        
+
         function updateCorrectionStats(obj, IND)
-            
+
             import nansen.wrapper.flowreg.utility.*
-            
+
             if nargin < 2
                 IND = obj.CurrentFrameIndices;
             end
-            
+
             i = 1;
             j = obj.CurrentPlane;
-            
+
             S = obj.CorrectionStats{i, j};
-            
+
             W = cat(4, obj.CurrentShifts{:});
             displacement = sqrt( W(:,:,1,:).^2 + W(:,:,2,:).^2 );
 
             meanDisplacement = squeeze(mean(mean(displacement, 1), 2));
             maxDisplacement = squeeze(max(max(displacement, [], 1), [], 2));
-            
+
             meanDivergence = get_mean_divergence(W);
             meanTranslation = get_mean_translation(W);
-            
+
             % Compute quantities
             xOffset = squeeze(mean(mean(W(:,:,2,:), 1), 2)); %Todo: Is 2nd x-offsets?
             yOffset = squeeze(mean(mean(W(:,:,1,:), 1), 2)); %Todo: Is 1st y-offsets?
@@ -188,56 +187,55 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             S.offsetX(IND) = xOffset;
             S.offsetY(IND) = yOffset;
             S.rmsMovement(IND) = rmsmov;
-            
+
             % Todo: Add these:
 % % %             S.meanDisplacement(IND) = meanDisplacement;
 % % %             S.maxDisplacement(IND) = maxDisplacement;
 % % %             S.meanDivergence(IND) = meanDivergence;
 % % %             S.meanTranslation(IND) = meanTranslation;
-            
+
             obj.CorrectionStats{i, j} = S;
-            
+
             % Save updated image registration stats to data location
             obj.saveData('MotionCorrectionStats', obj.CorrectionStats)
-            
         end
-        
+
         function template = initializeTemplate(obj, imArray)
-                      
+
             % Todo: get frames based on options.frameNumForInitialTemplate
-            
+
             import nansen.wrapper.flowreg.utility.*
-            
+
             options = obj.ToolboxOptions;
-            
+
             if ~options.verbose
                 disp('Preregistering reference frames...');
             end
 
             % Raw images, reshaped to H x W x nCh x nSamples
             Y = obj.reshapeImageArray(imArray);
-            
+
             % Channel weightings
             weight_2d = getFlowregChannelWeights(Y, options);
-            
+
             % Preprocess images
             C1 = getFilteredImageArray(Y, options, 'sigmaOffset', [1 1 0.5]);
-            
+
             % Get a motion corrected image array
             CRef = mean(C1, 4);
             YRef = mean(Y, 4);
             [CReg, ~] = compensateSequence(C1, CRef, Y, YRef, options, weight_2d);
-            
+
             % Create template from mean projection of corrected image array
             template = mean(CReg, 4);
-            
+
             template = squeeze(template);
-            
+
             if ~options.verbose
                 disp('Finished pre-registration of the reference frames...');
             end
         end
-        
+
         function template = updateTemplate(~, C1, w)
             % Todo: Fix size bug (?) and adapt to single channel images.
             if size(C1, 3) > 100
@@ -249,24 +247,24 @@ classdef Processor < nansen.processing.MotionCorrection & ...
                     mean(double(C1(:, :, 2, :)), 4), w(:, :, :, end-100:end)), 4);
             end
         end
-        
+
         function initializeParameters(obj, imArray)
-            
+
             import nansen.wrapper.flowreg.utility.*
 
             options = obj.ToolboxOptions;
             initTemplate = obj.CurrentRefImage;
-            
+
             % Raw images, reshaped to H x W x nCh x nSamples
             Y = obj.reshapeImageArray(imArray);
 
             % Channel weightings
             weight = getFlowregChannelWeights(Y, options);
-            
+
             % Create normalized array from subset of imArray
             YSubset = Y(:, :, :, 1:min(22, size(imArray, 4)));
             CSubset = getFilteredImageArray(YSubset, options);
-            
+
             % Get a filtered reference image...
             Ygauss = imgaussfilt3_multichannel(Y, options);
             c_ref = getFilteredImageArray(initTemplate, options, ...
@@ -278,50 +276,49 @@ classdef Processor < nansen.processing.MotionCorrection & ...
 
             params.initialShifts = mean(shifts, 4);
             params.cRef = c_ref;
-           
+
             obj.CorrectionParams{obj.CurrentPlane} = params;
-            
         end
     end
-    
+
     methods (Access = protected) % Run the motion correction / image registration
-        
+
         function onInitialization(obj)
             onInitialization@nansen.processing.MotionCorrection(obj)
             obj.CorrectionParams = cell(1, obj.StackIterator.NumIterationsZ);
         end
 
         function [M, results] = registerImageData(obj, Y)
-            
+
             import nansen.wrapper.flowreg.utility.*
 
             results = true;
-            
+
             options = obj.ToolboxOptions;
             template = obj.CurrentRefImage;
-            
+
             if isempty(obj.CorrectionParams{obj.CurrentPlane})
                 obj.initializeParameters(Y);
             end
             params = obj.CorrectionParams{obj.CurrentPlane};
-            
+
             % What is the difference between cref and cref raw???
-            
+
             % Raw images, reshaped to H x W x nCh x nSamples
             Y = obj.reshapeImageArray(Y);
 
             % Channel weightings
             weight = getFlowregChannelWeights(Y, options);
-            
+
             c1 = getFilteredImageArray(mat2gray(Y), options);
-            
+
             w_init = params.initialShifts;
             c_ref = params.cRef;
             nvPairs = {'weight', weight, 'uv', w_init(:, :, 1), w_init(:, :, 2)};
             shifts = getDisplacements(c1, c_ref, options, nvPairs{:});
-            
+
             M = compensate_sequence_uv( Y, template, shifts );
-            
+
             generalOptions.updateTemplate = false; % <-- Todo
             if generalOptions.updateTemplate
             %if obj.Options.Template.updateTemplate
@@ -329,13 +326,13 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             else
                 templateOut = template;
             end
-            
+
             obj.CurrentRefImage = templateOut;
-            
+
             % Write reference image to file.
             templateOut = cast(templateOut, obj.SourceStack.DataType);
             obj.DerivedStacks.ReferenceStack.writeFrameSet(templateOut, obj.CurrentPart)
-            
+
             % todo: adapt this for cases where parts are not aligned in
             % sequence (if realigning only a subset of parts)
             if size(M, 4) > 100
@@ -343,31 +340,30 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             else
                 params.initialShifts = mean(shifts, 4); %w_init;
             end
-            
+
             % Update correction parameters for next iteration
             obj.CorrectionParams{obj.CurrentPlane} = params;
-            
+
             M = squeeze(M);
-            
+
             % Convert shifts to cell array and add to shiftarray.
             shifts = arrayfun(@(i) shifts(:, :, :, i), 1:size(shifts,4), 'uni', 0);
             obj.CurrentShifts = shifts;
-            
+
             % Downsample shifts before saving.
             for i = 1:numel(shifts)
                 shifts{i} = single(imresize(shifts{i}, [32,32]) );
             end
-            
+
             obj.ShiftsArray(obj.CurrentFrameIndices, obj.CurrentPlane) = shifts;
-            
+
             % These variables are required:
             % c_ref, c_ref_raw, w_init, weight
-            
         end
     end
-    
+
     methods (Static)
-                
+
         function imArray = reshapeImageArray(imArray)
             % Reshape imarray: imHeight x imWidth x numCh x numSamples
             if ndims(imArray) == 3
@@ -377,7 +373,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
                 error('Dimension of image array is not supported')
             end
         end
-        
+
         function shifts = addShifts(shifts, offset)
             % Add rigid shifts to struct of normcorre nonrigid shifts.
             for k = 1:numel(shifts)
@@ -386,7 +382,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             end
         end
     end
-    
+
     methods (Static)
         function options = getDefaultOptions()
             import nansen.wrapper.abstract.ToolboxWrapper
@@ -397,7 +393,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             options.Run.ChannelProcessingMode = 'batch';
             options.Run.ChannelProcessingMode_ = {'batch', 'single'};
         end
-        
+
         pathList = getDependentPaths() % Method in external file.
 
         function assertAddonInstalled()

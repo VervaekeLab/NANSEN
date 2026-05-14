@@ -9,8 +9,8 @@ classdef MetaTableCatalog < uim.handle
 
 %
 %   Todo:
-%       [ ] Subclass from StorableCatalog.
-    
+%       [ ] Subclass from StorableCatalog.
+
     properties %(SetAccess = private)
         FilePath    % Filepath where the catalog is stored locally
         Table       % Catalog represented with a table
@@ -19,27 +19,27 @@ classdef MetaTableCatalog < uim.handle
     properties (Access = private)
         FolderPath
     end
-    
+
     properties (Constant, Access = private)
         DEFAULT_FILENAME = 'metatable_catalog.mat'
     end
-    
+
     methods % Constructor
-        
+
         function obj = MetaTableCatalog(filePath)
         % Construct an instance of the metatable catalog
-        
+
             if nargin < 1
                 obj.FilePath = obj.getFilePath();
             else
                 obj.FilePath = filePath;
             end
             obj.FolderPath = fileparts(obj.FilePath);
-            
+
             obj.load();
             obj.fixCatalog()
         end
-                
+
         function delete(~)
            % Todo: Check for unsaved changes.
         end
@@ -59,7 +59,7 @@ classdef MetaTableCatalog < uim.handle
     end
 
     methods
-        
+
         function addMetatable(obj, metaTable, isMaster, isDefault)
 
             arguments
@@ -79,7 +79,7 @@ classdef MetaTableCatalog < uim.handle
 
         function fixCatalog(obj)
             % Todo: Remove this
-            
+
             % Append a table column that was added october 2022
             if ~isempty(obj.Table)
                 if ~any(strcmp(obj.Table.Properties.VariableNames, 'MetaTableIdVarname') )
@@ -92,20 +92,20 @@ classdef MetaTableCatalog < uim.handle
                 end
             end
         end
-        
+
         function disp(obj)
         %disp Override display function to show table of metatables.
             titleTxt = sprintf(['<a href = "matlab: helpPopup %s">', ...
                 '%s</a> with available metatables:'], class(obj), class(obj));
-            
+
             fprintf('%s\n\n', titleTxt)
             disp(obj.Table)
         end
-        
+
         function load(obj)
             % Todo: Call the static load method?
             filePath = obj.FilePath;
-            
+
             if isfile(filePath)
                 S = load(filePath);
                 obj.Table = S.metaTableCatalog;
@@ -115,31 +115,31 @@ classdef MetaTableCatalog < uim.handle
                 obj.Table = [];
             end
         end
-        
+
         function save(obj)
         %save Save the master table to file
-        
+
             obj.Table = obj.removeSavePathColumn(obj.Table);
             metaTableCatalog = obj.Table;
             save(obj.FilePath, 'metaTableCatalog');
         end
-        
+
         function addEntry(obj, newEntry)
         %addEntry Add entry to the metatable catalog.
-        
+
             % Convert new entry from struct to table
             if isa(newEntry, 'struct')
                 newEntry = struct2table(newEntry, 'AsArray', true);
             end
-            
+
             % Add entry to table
             if isempty(obj.Table)
                 obj.Table = newEntry;
             else
-                
+
                 % Check that there will be no name conflict
                 isNamePresent = strcmp(obj.Table.MetaTableName, newEntry.MetaTableName);
-                
+
                 if any(isNamePresent)
                     % error('A metatable with this name already exists')
                     obj.Table(isNamePresent,:) = newEntry;
@@ -149,26 +149,26 @@ classdef MetaTableCatalog < uim.handle
                 end
             end
         end
-        
+
         function removeEntry(obj, entryName)
         %removeEntry Remove entry/entries from the metatable catalog.
         %
         %   Removes entry given entryName. If no name is given, a selection
         %   dialog will open.
-            
+
             metaTableNames = obj.Table.MetaTableName;
-            
+
             if nargin == 2 && ~isempty(entryName)
                 ind = find( strcmp(metaTableNames, entryName) );
             else
-            
+
                 [ind, tf] = listdlg(...
                     'PromptString', 'Select inventories to remove:', ...
                     'SelectionMode', 'multiple', ...
                     'ListString', metaTableNames );
                 if ~tf; return; end
             end
-            
+
             if ~isempty(ind)
                 obj.Table(ind, :) = [];
                 fprintf('Removed %s from the metatable catalog\n', entryName)
@@ -178,16 +178,16 @@ classdef MetaTableCatalog < uim.handle
 
             obj.save()
         end
-        
+
         function entry = getEntry(obj, entryName)
-            
+
             metaTableNames = obj.Table.MetaTableName;
-            
+
             entryName = strrep(entryName, ' (master)', '');
             entryName = strrep(entryName, ' (default)', '');
-                    
+
             ind = find( strcmp(metaTableNames, entryName) );
-            
+
             entry = table2struct(obj.Table(ind, :));
         end
 
@@ -203,18 +203,18 @@ classdef MetaTableCatalog < uim.handle
 
             filePath = fullfile(obj.FolderPath, entry.FileName);
         end
-        
+
         function metaTable = getMetaTable(obj, entryName)
-                                
+
             filePath = obj.getMetaTableFilePath(entryName);
-                    
+
             % Open database
             metaTable = nansen.metadata.MetaTable.open(filePath);
         end
-        
+
         function updatePath(obj, newFilepath)
         %updatePath Update path for all entries in the catalog.
-        
+
             [~, oldFilename, extension] = fileparts(obj.FilePath);
             obj.FilePath = fullfile(newFilepath, [oldFilename, extension]);
         end
@@ -223,20 +223,20 @@ classdef MetaTableCatalog < uim.handle
             obj.Table = obj.removeSavePathColumn(obj.Table);
             obj.save()
         end
-        
+
         function pathStr = getDefaultMetaTablePath(obj)
         % getDefaultMetaTablePath - Get filepath for default meta table
-        
+
         % Todo:
         %   [ ] specify type
 
             if isempty(obj.Table); pathStr = ''; return; end
-            
+
             isDefault = obj.Table.IsDefault;
             fileName = obj.Table{isDefault, 'FileName'};
-            
+
             pathStr = fullfile(obj.FolderPath, fileName);
-            
+
             if isa(pathStr, 'cell')
                 pathStr = pathStr{1};
             end
@@ -249,15 +249,15 @@ classdef MetaTableCatalog < uim.handle
 
             metatableFilename = obj.Table{isMatch, 'FileName'}{1};
             metatableFilepath = fullfile(obj.FolderPath, metatableFilename);
-            
+
             metaTable = nansen.metadata.MetaTable.open(metatableFilepath);
         end
-        
+
         function metaTable = getMasterTable(obj, metaTableType)
-            
+
             isMatch = obj.Table.IsMaster & contains( lower(obj.Table.MetaTableClass), metaTableType);
             idx = find(isMatch);
-            
+
             if isscalar(idx)
                 % Continue
             elseif numel(idx) > 1
@@ -266,13 +266,13 @@ classdef MetaTableCatalog < uim.handle
             else
                 error('No master metatable of this type exists.')
             end
-            
+
             mtItem = obj.Table(idx, :);
 
             metatableFilepath = fullfile(obj.FolderPath, mtItem.FileName{1});
             metaTable = nansen.metadata.MetaTable.open(metatableFilepath);
         end
-        
+
         function tf = hasDefaultOfType(obj, className)
         %HASDEFAULTOFTYPE Check if a default MetaTable of given class exists.
             isClassMatch = strcmp(className, obj.Table.MetaTableClass);
@@ -420,27 +420,27 @@ classdef MetaTableCatalog < uim.handle
     end
 
     methods (Static)
-        
+
         function pathString = getFilePath()
         %getFilePath Get filepath where the MetaTableCatalog is located
-            
+
             % Todo: remove. this class is independent of projects..
             pm = nansen.ProjectManager();
             projectRootDir = pm.CurrentProjectPath;
-            
+
             % Todo: get this from project instance...
             metaTableDir = fullfile(projectRootDir, 'metadata', 'tables');
-            
+
             if ~isfolder(metaTableDir);  mkdir(metaTableDir);    end
-            
+
             % Get path string from project settings
             pathString = fullfile(metaTableDir, nansen.metadata.MetaTableCatalog.DEFAULT_FILENAME);
-            
+
 % %             % Alternatively:
 % %             token = 'MetaTableCatalog'
 % %             pathString = nansen.ProjectManager.getProjectSubPath(token);
         end
-        
+
         function MT = quickload(filePath)
         %QUICKLOAD Static method for loading catalog without constructing class
 
@@ -486,10 +486,10 @@ classdef MetaTableCatalog < uim.handle
             remaining = setdiff(T.Properties.VariableNames, existingPreferred, 'stable');
             T = T(:, [existingPreferred, remaining]);
         end
-        
+
         function quicksave(MT, filePath)
         %QUICKSAVE Static method for saving catalog without constructing class
-        
+
             if nargin < 2 || isempty(filePath)
                 filePath = nansen.metadata.MetaTableCatalog.getFilePath();
             end
@@ -499,14 +499,14 @@ classdef MetaTableCatalog < uim.handle
             metaTableCatalog = MT;
             save(filePath, 'metaTableCatalog');
         end
-        
+
         function quickadd(newEntry)
         %QUICKADD Static method for adding entries without constructing class
             MT = nansen.metadata.MetaTableCatalog();
             MT.addEntry(newEntry)
             MT.save()
         end
-        
+
         function quickremove(entryName)
         %QUICKREMOVE Static method for removing entries without constructing class
             if nargin == 0; entryName = ''; end
@@ -520,20 +520,20 @@ classdef MetaTableCatalog < uim.handle
             fprintf('\nMetaTable Catalog: \n\n')
             disp(MT)
         end
-        
+
         function view()
             MT = nansen.metadata.MetaTableCatalog.load();
-            
+
             f = figure('MenuBar', 'none');
             screenSize = get(0, 'ScreenSize');
             f.Position = [50, 200, screenSize(3)-100, 400];
             f.Name = 'MetaTable Catalog';
             f.Resize = 'off';
-            
+
             hTable = uitable(f, 'Position', [20,20,f.Position(3:4)-40]);
             hTable.ColumnName = MT.Properties.VariableNames;
             hTable.Data = table2cell(MT);
-            
+
             if ispref('MetaTableCatalog', 'TableColumnWidths')
                 columnWidths = getpref('MetaTableCatalog', 'TableColumnWidths');
                 hTable.ColumnWidth = num2cell(columnWidths);
@@ -541,48 +541,48 @@ classdef MetaTableCatalog < uim.handle
                 colWidth = round((f.Position(3)-40) / size(MT,2));
                 hTable.ColumnWidth = num2cell(repmat(colWidth, 1, size(MT,2)));
             end
-            
+
             if nansen.util.isJavaFrameSupported()
                 % Make some configurations on underlying java object
                 jScrollPane = findjobj(hTable);
-     
+
                 % We got the scrollpane container - get its actual contained table control
                 jTable = jScrollPane.getViewport.getComponent(0);
-                
+
                 % Add a callback upon closing figure and pass on the jTable
                 % handle
                 f.CloseRequestFcn = @(s,e,jH) nansen.metadata.MetaTableCatalog.closeTableView(s,e,jTable);
             end
         end
-        
+
         function checkMetaTableCatalog(S)
         % Check if MetaTable entry is part of MetaTableCatalog.
-            
+
             MT = nansen.metadata.MetaTableCatalog.quickload();
-            
+
             if isempty(MT)
                 isPresent = false;
             else
                 % Check if entry matches any entries in the MetaTableCatalog
                 isKeyMatched = strcmp(MT.MetaTableKey, S.MetaTableKey);
                 isNameMatched = strcmp(MT.MetaTableName, S.MetaTableName);
-                
+
                 isPresent = isKeyMatched & isNameMatched;
             end
-                        
+
             % Add MetaTable to catalog if it is not present already.
             if sum(isPresent) == 0
                 if ~S.IsMaster
                     isMasterPresent = any( isKeyMatched & MT.IsMaster );
                 end
-                
+
                 if ~S.IsMaster && ~isMasterPresent
                     error(['This is a dummy MetaTable. Please add its ', ...
                         'corresponding master MetaTable before opening.'])
                 else
                     nansen.metadata.MetaTableCatalog.quickadd(S)
                 end
-                
+
             elseif sum(isPresent) > 1
                 warning(['Multiple cases of this MetaTable is present ', ...
                     'in the MetaTableCatalog'])
@@ -593,10 +593,10 @@ classdef MetaTableCatalog < uim.handle
     methods (Static, Access=private)
         function closeTableView(src, ~, jTable)
         %closeTableView Save the table column widths to preferences
-        
+
             th = jTable.getTableHeader();
             tcm = th.getColumnModel();
-            
+
             numCols = tcm.getColumnCount();
 
             columnWidths = zeros(1, numCols);
@@ -604,7 +604,7 @@ classdef MetaTableCatalog < uim.handle
                 tc = tcm.getColumn(i-1);        % Java indexing starts at 0
                 columnWidths(i) = tc.getWidth();
             end
-            
+
             setpref('MetaTableCatalog', 'TableColumnWidths', columnWidths)
             delete(src)
         end

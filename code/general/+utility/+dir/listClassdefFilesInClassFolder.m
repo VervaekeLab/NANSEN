@@ -6,7 +6,7 @@ function L = listClassdefFilesInClassFolder(rootPath)
 
     folderList = utility.dir.recursiveDir(rootPath, ...
         'Expression', '@', 'Type', 'folder');
-    
+
     L = cell(size(folderList));
 
     for i = 1:numel(folderList)

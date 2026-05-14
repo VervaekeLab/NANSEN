@@ -9,7 +9,7 @@ classdef ImageStack < nansen.dataio.FileAdapter
 %       tiff files (tif/tiff)
 %       movie files (avi)
 %       hdf5 files (h5)
-    
+
     % Note 1: Saving data will always overwrite the existing data.
     % Note 2: Saving of data is only supported for tiff files.
 
@@ -20,18 +20,18 @@ classdef ImageStack < nansen.dataio.FileAdapter
         DataType = 'ImageStack'
         Description = 'This file contains image stack / video data';
     end
-    
+
     properties (Constant, Hidden, Access = protected)
         SUPPORTED_FILE_TYPES = {'ini', 'raw', 'tif', 'tiff', 'avi', 'h5', 'tsm'}
     end
-    
+
     methods (Access = protected)
-        
+
         function imageStack = readData(obj, varargin)
         %readData Read image data as a virtual ImageStack
-            
+
             virtualDataFcn = str2func( obj.getVirtualDataClassName() );
-            
+
             switch obj.FileType
                 case 'h5'
                     % For h5 files, a dataset name might be supplied
@@ -39,15 +39,15 @@ classdef ImageStack < nansen.dataio.FileAdapter
                 otherwise
                     virtualData = virtualDataFcn(obj.Filename);
             end
-            
+
             imageStack = nansen.stack.ImageStack(virtualData);
         end
-        
+
         function writeData(obj, data, varargin)
         %writeData Write image data to a file using virtual adapter
             virtualDataClassName = obj.getVirtualDataClassName();
             saveFcn = str2func( [virtualDataClassName, '.createFile'] );
-            
+
             try
                 saveFcn(obj.Filename, data);
             catch
@@ -55,53 +55,53 @@ classdef ImageStack < nansen.dataio.FileAdapter
             end
         end
     end
-    
+
     methods
-    
+
         function create(obj, dataSize, dataType)
             % todo
         end
-        
+
         function open(obj)
             imageStack = obj.load();
             imviewer(imageStack)
         end
-        
+
         function view(obj)
             imageStack = obj.load();
             imviewer(imageStack)
         end
-        
+
         function uifind(obj, varargin)
             %obj.FileSelectionMode = 'multiple';
             uifind@nansen.dataio.FileAdapter(obj, varargin{:})
         end
     end
-    
+
     methods (Access = private)
-        
+
         function className = getVirtualDataClassName(obj)
         %getVirtualDataClassName Get full name of class for virtual data
         %
         %   Name of the class to be used for creating a virtual data
         %   object depends on the filetype of the file adapter
-        
+
             % Check if a virtual data class exists based on the filename
             className = obj.getVirtualDataClassNameFromFilename(obj.Filename);
             if ~isempty(className); return; end
-            
+
             % Otherwise, get a "generic" data adapter based on the filetype
             switch lower(obj.FileType)
 
                 case 'h5'
                     className = 'nansen.stack.virtual.HDF5';
-                
+
                 case {'avi', 'mov', 'mpg', 'mp4'}
                     className = 'nansen.stack.virtual.Video';
-                    
+
                 case 'raw'
                     className = 'nansen.stack.virtual.Binary';
-                    
+
                 case {'tif', 'tiff'}
                     className = 'nansen.stack.virtual.TiffMultiPart';
 
@@ -118,15 +118,15 @@ classdef ImageStack < nansen.dataio.FileAdapter
             end
         end
     end
-        
+
     methods (Static)
-        
+
         function className = getVirtualDataClassNameFromFilename(filename)
 
             className = '';
-            
+
             % Todo: Make function for getting list of virtual data classes
-            
+
             % List of classes where its enough to check filename
             virtualDataClasses = { ...
                 'nansen.stack.virtual.PrairieViewTiffs', ...
@@ -134,11 +134,11 @@ classdef ImageStack < nansen.dataio.FileAdapter
                 'nansen.stack.virtual.TiffMultiPartMultiChannel', ...
                 'nansen.stack.virtual.Suite2pCorrected' ...
                 };
-            
+
             for i = 1:numel(virtualDataClasses)
                 thisClassName = virtualDataClasses{i};
                 fileNameExpression = eval([thisClassName, '.FilenameExpression']);
-                
+
                 if ~isempty( regexp(filename, fileNameExpression, 'once') )
                     className = thisClassName;
                     return
@@ -150,7 +150,7 @@ classdef ImageStack < nansen.dataio.FileAdapter
                 'nansen.stack.virtual.SciScanRaw', ...
                 'nansen.stack.virtual.ScanImageTiff' ...
                 };
-            
+
             for i = 1:numel(virtualDataClasses)
                 thisClassName = virtualDataClasses{i};
                 tf = feval( strcat(thisClassName, '.fileCheck'), filename);

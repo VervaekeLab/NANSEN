@@ -38,100 +38,100 @@ classdef ImageStackIterator < handle & uiw.mixin.AssignPVPairs
         PrimaryChannel = 1                  % Channel to process if processing mode is single, or use as reference is processing mode is serial.
         PlaneProcessingMode = 'serial'      % Mode for processing of multiple planes. 'serial' or 'batch'
     end
-    
+
     properties (SetAccess = immutable)
         NumChannels = 1
         NumPlanes = 1
     end
-    
+
     properties (SetAccess = private)
         CurrentChannel  % Current channel of ImageStack
         CurrentPlane    % Current plane of ImageStack
-        
+
         CurrentIterationC (1,1) double = 0
         CurrentIterationZ (1,1) double = 0
     end
-    
+
     properties (Dependent)
         CurrentIteration;
         NumIterations
-        
+
         NumIterationsC
         NumIterationsZ
     end
-    
+
     properties (Access = private)
         IterationValuesC cell
         IterationValuesZ cell
-        
+
         IsInitialized = false
     end
 
     methods
-        
+
         function obj = ImageStackIterator(numChannels, numPlanes, varargin)
-            
+
             if nargin < 1 || isempty(numChannels)
                 numChannels = 1;
             end
             if nargin < 2 || isempty(numPlanes)
                 numPlanes = 1;
             end
-            
+
             obj.NumChannels = numChannels;
             obj.NumPlanes = numPlanes;
-            
+
             obj.assignPVPairs(varargin{:})
-            
+
             obj.assignIterationValuesC()
             obj.assignIterationValuesZ()
         end
     end
-    
+
     methods % Set/get
-        
+
         function set.ChannelProcessingMode(obj, newValue)
             obj.assertIteratorUninitialized()
-                        
+
             validModes = {'single', 'serial', 'batch'};
             newValue = validatestring(newValue, validModes);
-            
+
             obj.ChannelProcessingMode = newValue;
             obj.assignIterationValuesC()
         end
-        
+
         function set.PrimaryChannel(obj, newValue)
             obj.assertIteratorUninitialized()
-            
+
             validAttributes = {'scalar', 'integer', 'nonnegative'};
             validateattributes(newValue, 'numeric', validAttributes)
-            
+
             obj.PrimaryChannel = newValue;
             obj.assignIterationValuesC()
         end
-        
+
         function set.PlaneProcessingMode(obj, newValue)
             obj.assertIteratorUninitialized()
-                        
+
             validModes = {'serial', 'batch'};
             newValue = validatestring(newValue, validModes);
-            
+
             obj.PlaneProcessingMode = newValue;
             obj.assignIterationValuesZ()
         end
-        
+
         function numIterC = get.NumIterationsC(obj)
             numIterC = numel(obj.IterationValuesC);
         end
-        
+
         function numIterZ = get.NumIterationsZ(obj)
             numIterZ = numel(obj.IterationValuesZ);
         end
-        
+
         function numIter = get.NumIterations(obj)
            numIter = obj.NumIterationsC * obj.NumIterationsZ;
         end
-        
+
         function currIter = get.CurrentIteration(obj)
             if ~obj.IsInitialized
                 currIter = 0; return
@@ -141,7 +141,7 @@ classdef ImageStackIterator < handle & uiw.mixin.AssignPVPairs
             end
         end
     end
-    
+
     methods %(Access = ?nansen.stack.ImageStackProcessor)
         function setChannels(obj, channelInd)
             obj.assertIteratorUninitialized()
@@ -166,38 +166,38 @@ classdef ImageStackIterator < handle & uiw.mixin.AssignPVPairs
         %   [iZ, iC] = iteratorObj.next() moves the iterator to the next
         %       iteration state and returns the current iteration numbers
         %       for planes (iZ) and channels (iC)
-        
+
             if ~obj.IsInitialized
                 obj.IsInitialized = true;
                 obj.CurrentIterationC = 1;
                 obj.CurrentIterationZ = 1;
             else
-                
+
                 if obj.CurrentIterationZ < obj.NumIterationsZ % Increment Z
                     obj.CurrentIterationZ = obj.CurrentIterationZ + 1;
                 else % Reached end of Z, increment C
                     obj.CurrentIterationZ = 1;
                     obj.CurrentIterationC = obj.CurrentIterationC + 1;
                 end
-                
+
                 if obj.CurrentIterationC > obj.NumIterationsC
                     error('Iterator has run out of iterable values.')
                 end
             end
-            
+
             obj.CurrentChannel = obj.IterationValuesC{obj.CurrentIterationC};
             obj.CurrentPlane = obj.IterationValuesZ{obj.CurrentIterationZ};
-            
+
             if nargout
                 iZ = obj.CurrentIterationZ;
                 iC = obj.CurrentIterationC;
             end
         end
-        
+
         function tf = hasMore(obj)
             tf = obj.CurrentIteration < obj.NumIterations;
         end
-        
+
         function reset(obj)
         %reset Reset the iterator
             obj.IsInitialized = false;
@@ -205,23 +205,23 @@ classdef ImageStackIterator < handle & uiw.mixin.AssignPVPairs
             obj.CurrentIterationZ = 1;
         end
     end
-        
+
     methods (Access = private)
-                
+
         function assignIterationValuesC(obj)
         %assignIterationValuesC Assign index values for channels (C)
             mode = obj.ChannelProcessingMode;
             numC = obj.NumChannels;
             refC = obj.PrimaryChannel;
-            
+
             if refC > obj.NumChannels
                 warning('The stack has %d channels, but the reference channel was set to %d. Resetting the reference channel to 1.', obj.NumChannels, refC)
                 refC = 1;
             end
-            
+
             obj.IterationValuesC = obj.getIterationValues(mode, numC, refC);
         end
-        
+
         function assignIterationValuesZ(obj)
         %assignIterationValuesZ Assign index values for channels (Z)
             mode = obj.PlaneProcessingMode;
@@ -235,9 +235,9 @@ classdef ImageStackIterator < handle & uiw.mixin.AssignPVPairs
                 'Can not set ChannelProcessingMode when iterator is running')
         end
     end
-    
+
     methods (Static, Access = private)
-        
+
         function values = getIterationValues(mode, numItems, primaryItem)
         %getIterationValues Get iteration values depending on mode
         %
@@ -253,16 +253,16 @@ classdef ImageStackIterator < handle & uiw.mixin.AssignPVPairs
         %   numItems is a numeric describing how many items to iterate over
         %   primaryItem is the item to use in 'single' mode or the item to
         %   use as reference (i.e first iteration) in 'serial' mode.
-        
+
             switch mode
                 case 'single'
                     values = {primaryItem};
-                    
+
                 case 'serial'
                     values = arrayfun(@(i) i, 1:numItems, 'uni', 0);
                     values(primaryItem) = [];
                     values = [{primaryItem}, values];
-                    
+
                 case 'batch'
                     values = {1:numItems};
             end
@@ -271,7 +271,7 @@ classdef ImageStackIterator < handle & uiw.mixin.AssignPVPairs
 end
 
 function test()
-    
+
     iterator = nansen.stack.ImageStackIterator(2,4);
     iterator.reset()
     for i = 1:iterator.NumIterations
@@ -279,7 +279,7 @@ function test()
         fprintf('Current channel %d, current plane %d\n', ...
             iterator.CurrentChannel, iterator.CurrentPlane)
     end
-    
+
     iterator.reset()
     iterator.ChannelProcessingMode = 'batch';
     for i = 1:iterator.NumIterations

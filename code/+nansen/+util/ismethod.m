@@ -1,8 +1,8 @@
 function [hasMethod, methodAttributes] = ismethod(classObj, methodName)
-    
+
     classMeta = metaclass(classObj);
     methodList = classMeta.MethodList;
-    
+
     isMethodMatch = strcmp({methodList.Name}, methodName);
     hasMethod = any(isMethodMatch);
 

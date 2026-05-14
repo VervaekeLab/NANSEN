@@ -17,62 +17,61 @@ classdef OptionsAdapter < handle
     %
     %   3.  Should the Options property provide the default options struct
     %       on demand
-    
+
     properties (Abstract, Constant)
         ToolboxName     % Name of toolbox this options adapter correspond with
         Name            % Name of options (For keeping track of options presets/variations)
         Description     % Description for an option preset/variation
     end
-    
+
     properties (Dependent)
         Options         % A struct of options. Not sure if this should be stored in the class...
     end
-    
+
     methods (Abstract, Static)
         S = getOptions()            % For nansen/ui options
         S = getAdapter()            % Adapter for converting options to toolbox names.
         S = convert(S)              % For conversion to toolbox options
     end
-    
+
     methods
 
         function S = get.Options(obj)
             S = obj.getOptions();
         end
     end
-    
+
     methods (Static)
-        
+
         function SOut = rename(S, nameMap, outputFormat)
         %rename Rename fields of options struct
-        
+
             if nargin < 3|| isempty(outputFormat)
                 outputFormat = 'struct'; % vs nvpairs
             end
-            
+
             % Get fieldnames recursively and find intersection
             fieldsOpts = fieldnamesr(S, 2);
             fieldsNames = fieldnamesr(nameMap);
-            
+
             C = intersect(fieldsOpts, fieldsNames);
 
             switch lower(outputFormat)
                 case 'struct'
                     SOut = struct();
-                    
+
                     for i = 1:numel(C)
 
                         subfields = strsplit(C{i}, '.');
                         s = struct('type', {'.'}, 'subs', subfields);
-                    
+
                         name = subsref(nameMap, s);
                         value = subsref(S, s);
-                    
+
                         s = struct('type', {'.'}, 'subs', name);
                         SOut = subsasgn(SOut, s, value);
-                        
                     end
-                    
+
                 case 'nvpairs'
 
                     % Collect normcorre parameter names and values in a cell array
@@ -86,25 +85,23 @@ classdef OptionsAdapter < handle
                         nvPairs(ind) = {name, value};
                     end
                     SOut = nvPairs;
-                    
             end
         end
 
         function S = removeUiSpecifications(S)
-            
+
             fieldNames = fieldnames(S);
             discard = endsWith(fieldNames, '_');
-            
+
             S = rmfield(S, fieldNames(discard));
-            
         end
-        
+
         function S = ungroupOptions(S)
-        
+
             SOut = struct();
-            
+
             fieldsTopLevel = fieldnames(S);
-            
+
             for i = 1:numel(fieldsTopLevel)
                 if ~isa( S.(fieldsTopLevel{i}), 'struct' )
                     SOut.(fieldsTopLevel{i}) = S.(fieldsTopLevel{i});
@@ -117,9 +114,8 @@ classdef OptionsAdapter < handle
                     end
                 end
             end
-            
+
             S = SOut;
-            
         end
     end
 end

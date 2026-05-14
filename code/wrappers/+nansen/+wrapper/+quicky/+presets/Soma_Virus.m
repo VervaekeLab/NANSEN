@@ -4,9 +4,9 @@ classdef Soma_Virus < nansen.wrapper.quicky.Options
         Name = 'Soma (Virus)'
         Description = 'Optimized for viral GCaMP expression'
     end
-    
+
     methods (Static)
-        
+
         function S = getOptions()
             S = getOptions@nansen.wrapper.quicky.Options();
             S.Detection.UseShapeDetection       = false;

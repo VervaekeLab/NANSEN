@@ -37,7 +37,7 @@ function [absPath, dirName] = listSubDir(rootPath, expression, ignoreList, depth
 
         %keep = cellfun(@(pstr) ~strncmp(pstr, '.', 1), {listing.name});
         keep = ~strncmp({listing.name}, '.', 1) & [listing.isdir];
-        
+
         % Find only foldernames that matches expression
         if isempty(expression)
             isMatch = keep;
@@ -45,18 +45,18 @@ function [absPath, dirName] = listSubDir(rootPath, expression, ignoreList, depth
             subdirFilterFun = @(fname) ~isempty(regexp(fname, expression, 'once'));
             isMatch = cellfun(@(name) subdirFilterFun(name), {listing.name} );
         end
-        
+
         % Remove folders that contain a word from the ignore list.
         if ~isempty(ignoreList)
             ignore = contains({listing.name}, ignoreList);
             isMatch = isMatch & ~ignore;
         end
-        
+
         keep = keep & isMatch;
-        
+
         dirName = {listing(keep).name};
         absPath = fullfile(rootPath, dirName);
-        
+
         if depth > 1 && sum(keep) > 0 % Todo:
             [absPathRec, dirNameRec] = utility.path.listSubDir(absPath, expression, ignoreList, depth-1, isCumulative);
             if ~isempty(absPathRec)

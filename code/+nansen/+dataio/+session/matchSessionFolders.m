@@ -42,18 +42,18 @@ function [sessionFolderListOut, sessionIDs, unmatchedSessionFolderList] = ...
     % Todo:
     %   [ ] Test and potentially deal with data locations / session folders
     %   with multiple matches per session id.
-    
+
     dataLocationNames = {dataLocationModel.Data.Name};
 
     % Todo: make an exception for this...
     msg = 'The folderlist with sessionfolders does not match the data location model';
     assert(all(ismember(fieldnames(sessionFolderList), dataLocationNames)), msg)
-    
+
     % Initialize output
     initPaths = repmat({''}, 1, numel(dataLocationNames));
     fieldValuePairs = cat(1, dataLocationNames, initPaths);
     blankList = struct(fieldValuePairs{:});
-    
+
     %numSessions = numel(sessionFolderList.(dataLocationNames{1}));
     %sessionIDs = cell(numSessions, 1); % Note: Not populated
 
@@ -69,7 +69,7 @@ function [sessionFolderListOut, sessionIDs, unmatchedSessionFolderList] = ...
     % Todo: check for empty ids?
 
     S = repmat(blankList, 1, numel(uniqueSessionIds));
-    
+
     % Check for matching session IDs in each data location
     for j = 1:numel(dataLocationNames)
         currentName = dataLocationNames{j};
@@ -101,7 +101,7 @@ function [sessionFolderListOut, sessionIDs, unmatchedSessionFolderList] = ...
 
     % Create a cell array of all folders that were not paired/matched with
     % any other:
-    
+
     for i = 1:numel(sessionFolderListOut)
         numMatch = sum( structfun(@(v) ~isempty(v), sessionFolderListOut(i)) );
         if numMatch > 1
@@ -127,7 +127,7 @@ end
 
 function sessionIds = getSessionIDsForPaths(dataLocationModel, sessionFolderList)
 % getSessionIDs - Get session ids for a list of filepaths
-    
+
     dataLocationNames = {dataLocationModel.Data.Name};
 
     sessionIds = struct;
@@ -136,10 +136,10 @@ function sessionIds = getSessionIDsForPaths(dataLocationModel, sessionFolderList
     for iDataLocation = 1:numel(dataLocationNames)
         currentDataLocationName = dataLocationNames{iDataLocation};
         currentDataLocationIdx = dataLocationModel.getItemIndex(currentDataLocationName);
-        
+
         pathStrList = sessionFolderList.(currentDataLocationName);
         sessionIDList = cell(size(pathStrList));
-        
+
         % Try to extract sessionID
         for jPath = 1:numel(pathStrList)
             currentPathStr = pathStrList{jPath};

@@ -23,29 +23,29 @@ function varargout = editRois(sessionObject, varargin)
 % % % % % % % % % % % % CONFIGURATION CODE BLOCK % % % % % % % % % % % %
 % Create a struct of default parameters (if applicable) and specify one or
 % more attributes (see nansen.session.SessionMethod.setAttributes)
-    
+
     % Get struct of parameters from local function
     params = getDefaultParameters();
-    
+
     % Create a cell array with attribute keywords
     ATTRIBUTES = {'batch', 'unqueueable'};
-    
+
 % % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % %
 % - - - - - - - - - - Please do not edit this part - - - - - - - - - - -
-    
+
     % Create a struct with "attributes" using a predefined pattern
     import nansen.session.SessionMethod
     fcnAttributes = SessionMethod.setAttributes(params, ATTRIBUTES{:});
-    
+
     if ~nargin && nargout > 0
         varargout = {fcnAttributes};   return
     end
-    
+
     % Parse name-value pairs from function input and update parameters
     params = utility.parsenvpairs(params, [], varargin);
-    
+
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
-    
+
     % - Load FOV images for all sessions
 
     numSessions = numel(sessionObject);
@@ -81,15 +81,13 @@ function varargout = editRois(sessionObject, varargin)
     roimanagerApp.addRois(sessionObjectStruct(1).RoiArray)
 
     h = MultiSessionFovSwitcher(sessionObject, sessionObjectStruct, roimanagerApp);
-    
+
     % Todo: Mount switcher in roimanager gui...
-    
 end
 
 function params = getDefaultParameters()
     params = struct();
     params.ImageStackVariableName = 'TwoPhotonSeries_Corrected'; % ImageStack shown in RoiManager.
-
 end
 
 function throwError(errorID, sessionID)

@@ -28,9 +28,9 @@ for f = 1:numel(fieldnames)
         [roiArray(:).(fieldnames{f})] = roiStruct.(fieldnames{f});
     end
 end
-    
+
 for i = 1:nRois
-    
+
     % 2019-08-20 - Changed coordinates of rois with shape "mask"
     % from being a sparse logical to being a list of pixel
     % coordinates.

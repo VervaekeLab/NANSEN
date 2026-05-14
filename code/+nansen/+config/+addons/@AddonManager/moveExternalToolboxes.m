@@ -8,7 +8,7 @@ function moveExternalToolboxes(obj)
     legacyInstallationDirectory = obj.getDefaultInstallationDirLegacy();
 
     if isfolder(legacyInstallationDirectory)
-        
+
         % Inform user that addons will be moved to the userpath.
         newInstallationDirectory = nansen.config.addons.getDefaultAddonFolder();
         msg = sprintf( ...
@@ -18,7 +18,7 @@ function moveExternalToolboxes(obj)
         title = "External Add-Ons will be moved";
 
         uiwait( msgbox(msg, title, 'help') )
-        
+
         % Copy folders and delete old ones.
         subFolders = {'general_toolboxes', 'neuroscience_toolboxes'};
 
@@ -26,14 +26,14 @@ function moveExternalToolboxes(obj)
 
             oldPath = fullfile(legacyInstallationDirectory, subFolders{i});
             newPath = fullfile(newInstallationDirectory, subFolders{i});
-            
+
             if ~isfolder( oldPath ); continue; end
-            
+
             % Remove java items from the javaclasspath
             nansen.internal.setup.java.removeFilepathFromStaticJavaPath(oldPath)
 
             rmpath(genpath(oldPath))
-            
+
             copyfile(oldPath, newPath)
             rmdir(oldPath, 's')
 
@@ -52,7 +52,7 @@ function moveExternalToolboxes(obj)
             end
         end
         obj.saveAddonList()
-        
+
         % Update javaclasspath
         nansen.internal.setup.addYamlJarToJavaClassPath()
         nansen.internal.setup.addUiwidgetsJarToJavaClassPath()

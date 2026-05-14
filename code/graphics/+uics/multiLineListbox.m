@@ -4,13 +4,13 @@ function listOut = multiLineListbox(listIn, varargin)
     params.Title = '';
     params.Theme = nansen.theme.getThemeColors('dark-purple');
     params.ReferencePosition = [];
-    
+
     params = utility.parsenvpairs(params, 1, varargin{:});
 
     if nargin < 1
         listIn = {};
     end
-    
+
     originalList = listIn;
 
     if nansen.util.useModernUiComponents()
@@ -29,7 +29,7 @@ function listOut = multiLineListbox(listIn, varargin)
 
     MARGINS = [20, 70, 20, 20];
     SPACING = [20, 20];
-    
+
     bgColor = params.Theme.FigureBgColor;
 
     f = figure('MenuBar', 'none', 'Resize', 'off');
@@ -39,41 +39,41 @@ function listOut = multiLineListbox(listIn, varargin)
     else
         f.Name = params.Title;
     end
-    
+
     hPanel = uipanel(f);
     hPanel.BorderType = 'none';
     hPanel.BackgroundColor = bgColor;
-    
+
     tmpPanel = uipanel(f);
     tmpPanel.BorderType = 'none';
     tmpPanel.BackgroundColor = bgColor;
     %tmpPanel.Visible = 'off'; % Debug...
-    
+
     %uicc = uim.UIComponentCanvas(hPanel);
-    
+
     buttonNames = {'Add', 'Edit', 'Remove', 'Move Up', 'Move Down'};
     numButtons = numel(buttonNames);
-    
+
   % % Configure layout of components
     buttonSize = [80, 18];
-    
+
     editSize = [150, 20];
-   
+
     componentWidth = editSize(1) + SPACING(1) + buttonSize(1);
     componentHeight = buttonSize(2) .* numButtons + (numButtons-1) * SPACING(2);
-    
+
     f.Position(3:4) = [componentWidth, componentHeight] + sum(MARGINS([1,2;3,4]));
     H = f.Position(4); % Figure Height
-    
+
     if ~isempty(params.ReferencePosition)
         uim.utility.layout.centerObjectInRectangle(f, params.ReferencePosition)
     end
-     
+
     x = MARGINS(1);
     y = H - MARGINS(4) - editSize(2);
-    
+
   % % Create components
-    
+
     hEdit = uicontrol(hPanel, 'Style', 'edit');
     hEdit.Position = [x, y, editSize];
     hEdit.HorizontalAlignment = 'left';
@@ -104,7 +104,6 @@ function listOut = multiLineListbox(listIn, varargin)
         %hButtons(i).FontSize = 12;
 
         y = y - SPACING(2) - buttonSize(2);
-
     end
 
     % Assign callback when all buttons are created
@@ -133,35 +132,34 @@ function listOut = multiLineListbox(listIn, varargin)
     jColor = javacolor(bgColor(1), bgColor(2), bgColor(3));
     newBorder = javax.swing.BorderFactory.createLineBorder(jColor, 0);
     jLBox.setBorder(newBorder)
-    
+
     hLBox.ForegroundColor = params.Theme.FigureFgColor;
     hEdit.ForegroundColor = params.Theme.FigureFgColor;
     hLBox.BackgroundColor = bgColor;
     hEdit.BackgroundColor = bgColor;
-    
+
     set(hLBox, 'FontSize', 12)
     set(hButtons, 'FontSize', 12)
-    
+
     delete(tmpPanel)
-    
+
     uiwait(f)
-    
+
     if ~isvalid(f); listOut = []; return; end
-    
+
     switch f.UserData.Mode
         case 'Save'
             listOut = hLBox.String;
         case 'Cancel'
             listOut = originalList;
     end
-    
+
     delete(f)
     delete(h)
-
 end
 
 function onButtonPressed(src, hEdit, hLBox, hButtons)
-    
+
     if isempty(hLBox.String) && ismember(src.String, {'Edit', 'Remove', 'Move Up', 'Move Down'})
         return
     end
@@ -175,41 +173,41 @@ function onButtonPressed(src, hEdit, hLBox, hButtons)
                 end
                 hEdit.String = '';
             end
-            
+
         case 'Remove'
             hLBox.String(hLBox.Value) = [];
             if hLBox.Value > numel(hLBox.String)
                 hLBox.Value = hLBox.Value-1;
             end
-            
+
         case 'Edit'
             hEdit.String = hLBox.String{hLBox.Value};
             src.String = 'Finish';
             hLBox.Enable = 'off';
             set(hButtons, 'Enable', 'off')
             src.Enable = 'on';
-            
+
         case 'Finish'
             hLBox.String{hLBox.Value} = hEdit.String;
             hEdit.String = '';
             src.String = 'Edit';
             hLBox.Enable = 'on';
             set(hButtons, 'Enable', 'on')
-            
+
         case 'Move Up'
             IND = 1:numel(hLBox.String);
             flipInd = hLBox.Value - fliplr(0:1);
-            
+
             if hLBox.Value > 1
                 IND(flipInd) = IND(fliplr(flipInd));
                 hLBox.String = hLBox.String(IND);
                 hLBox.Value = hLBox.Value-1;
             end
-            
+
         case 'Move Down'
             IND = 1:numel(hLBox.String);
             flipInd = hLBox.Value + (0:1);
-            
+
             if hLBox.Value < numel(hLBox.String)
                 IND(flipInd) = IND(fliplr(flipInd));
                 hLBox.String = hLBox.String(IND);

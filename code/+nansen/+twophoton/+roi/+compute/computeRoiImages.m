@@ -32,7 +32,7 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
 %           roiImageStack is a 3D array, otherwise it is a struct where
 %           each field is the name of the image and each value is a 3D
 %           array.
-    
+
     import nansen.twophoton.roi.compute.getPixelCorrelationImage
     import nansen.twophoton.roisignals.extractF
 
@@ -51,7 +51,7 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
     def.Debug               = false;
     def.MinNumFrames        = 50;
     def.Verbose             = true;
-    
+
     opt = utility.parsenvpairs(def, [], varargin);
 
     % Check that image thumbnail size is odd (symmetry around center pixel)
@@ -62,31 +62,31 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
     assert(all( mod(boxSize, 2) == 1), 'Boxsize should be odd')
 
     if ~opt.Verbose; fprintf = @(x) false; end
-    
+
     % % Check size of input data and check that they correspond
     %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    
+
     % Get number of frames and number of rois.
     numRois = numel(roiArray);
     [numTimepoints, ~, numRois_] = size(roiSignals);
-    
+
     assert(numRois == numRois_, 'roiSignal must have same number or rois as roiarray')
-    
+
     [numRows, numCols, numFrames] = size(imArray);
     assert(numFrames == numTimepoints, 'Number of frames not matching number of timepoints')
 
     % % Prepare for computing images
     %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    
+
     if opt.Debug; numFrames = zeros(numRois, 1); end
 
     % Function for autoadjusting the contrast.
     normalizearray = @(X) (X-min(X(:))) ./ (max(X(:))-min(X(:)));
-    
+
     % Initialise output
     if ischar(opt.ImageType); opt.ImageType = {opt.ImageType}; end
     numImages = numel(opt.ImageType);
-    
+
     roiImageStack = cell(numImages, 1);
     roiImageStack(1:numImages) = {zeros( [boxSize, numRois], 'uint8' )};
 
@@ -99,12 +99,12 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
     %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     dffOpts = struct('dffFcn', opt.dffFcn);
     dff = nansen.twophoton.roisignals.computeDff(roiSignals, dffOpts);
-    
+
     % % Loop through all images to compute and all provided rois
     %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    
+
     for iRoi = 1:numRois
-        
+
         currentRoiIm = zeros(boxSize); % initialize
 
         % Image coordinates for a square box centered on the roi
@@ -116,22 +116,22 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
         isValidY = tmpY >= 1 & tmpY <= numRows;
         tmpX = tmpX(isValidX);
         tmpY = tmpY(isValidY);
-        
+
         % Get image array chunk centered on roi center point
         imArrayChunk = double( imArray(tmpY, tmpX, :) );
         if opt.SubtractBaseline
             imArrayChunk = imArrayChunk - mean(imArrayChunk(:));
         end
-        
+
         for jImage = 1:numImages
-            
+
             imageType = lower( opt.ImageType{jImage} );
 
             frameInd = 1:numFrames;
 
             % % Get subset of frame indices and/or weights for each frame:
             %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-            
+
             if contains(imageType, 'enhanced')
                 % Set activity threshold. Todo: Optimize this based on more
                 % informed methods.
@@ -152,7 +152,7 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
 
             elseif contains(imageType, 'weighted')
                 W = getWeights( normalizearray(dff(:, iRoi)) );
-                
+
             else
                 % pass...
             end
@@ -167,71 +167,71 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
             if opt.Debug
                 numFrames(iRoi) = sum(frameInd);
             end
-            
+
             if contains(imageType, 'weighted')
                 imArrayChunkTmp = imArrayChunk .* reshape(W, 1, 1, []);
             else
                 imArrayChunkTmp = imArrayChunk(:, :, frameInd);
             end
-            
+
             % % Create the image:
             %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-            
+
             try
 
                 switch imageType
                     case {'mean', 'activity weighted mean', 'top 99th percentile'}
                         currentRoiIm = mean(imArrayChunkTmp, 3);
-    
+
                     case {'std', 'activity weighted std'} % not as good as mean
                         currentRoiIm = std(imArrayChunkTmp, 0, 3);
-    
+
                     case {'max', 'activity weighted max'} % crap if cell is not active
                         currentRoiIm = max(imArrayChunkTmp, [], 3);
-                        
+
                     case 'local correlation'
                         currentRoiIm = stack.zproject.localCorrelation(imArrayChunkTmp);
-    
+
                     case 'global correlation'
                         currentRoiIm = stack.zproject.globalCorrelation(imArrayChunkTmp);
-    
+
                     case 'median correlation' % use lower percentile for signal extraction to avoid selection bias?
                         f_ = extractF(imArray, roiArray(iRoi), 'pixelComputationMethod', 'median');
                         [rhoIm, ~] = getPixelCorrelationImage(f_(frameInd, 1), imArrayChunkTmp);
                         rhoIm(isnan(rhoIm)) = 0;
                         currentRoiIm = rhoIm;
-    
+
                     case 'enhanced dff' % not very good...
                         dffStack = calculateDFFStack(imArray(tmpY, tmpX, :));
                         currentRoiIm = mean(dffStack(:, :, frameInd), 3);
-    
+
                     case 'diff surround'
                         f = roiSignals(:, :, iRoi);
                         froi = smoothdata(f(:,1));
                         fpil = smoothdata(f(:,2));
-    
+
                         fdiff = normalizearray( froi - fpil );
                         W = getWeights(fdiff);
-    
+
                         imArrayChunkW = imArrayChunkTmp .* reshape(W, 1, 1, []);
                         currentRoiIm = mean(imArrayChunkW, 3);
-    
+
                     case 'diff surround orig'
                         % NB : can show signal when there is none
                         f = roiSignals(:, :, iRoi);
-                        
+
                         % Normalize each column of f:
                         f_ = (f - min(f)) ./ (max(f)-min(f));
                         W = getWeights(f_);
-    
+
                         imArrayChunkW1 = double(imArrayChunkTmp) .* reshape(W(:,1), 1, 1, []);
                         currentRoiIm1 = mean(imArrayChunkW1, 3);
                         %currentRoiIm1 = normalizeimage(currentRoiIm1);
-    
+
                         imArrayChunkW2 = double(imArrayChunkTmp) .* reshape(W(:,2), 1, 1, []);
                         currentRoiIm2 = mean(imArrayChunkW2, 3);
                         %currentRoiIm2 = normalizeimage(currentRoiIm2);
-    
+
                         if sum(currentRoiIm1(:)) > sum(currentRoiIm2(:))
                             currentRoiIm = currentRoiIm1-currentRoiIm2;
                         else
@@ -243,7 +243,7 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
                     currentRoiIm = normalizearray(currentRoiIm);
                     currentRoiIm = uint8(currentRoiIm.*255); % Todo: cast to other types?
                 end
-                
+
             catch %ME
                 currentRoiIm = zeros(boxSize); % initialize
                 currentRoiIm = currentRoiIm(isValidY, isValidX); % initialize
@@ -252,22 +252,21 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
 
             % Add image to the stack
             roiImageStack{jImage}(isValidY, isValidX, iRoi) = currentRoiIm;
-            
         end
-        
+
         % Display message indicating progress
         if mod(iRoi, 10)==0 || (iRoi == numRois && numRois > 5)
             if exist('str', 'var')
                 fprintf( char(8*ones(1,length(str))));
             end
-            
+
             str = sprintf('Created images for %d/%d rois...', iRoi, numRois);
             fprintf(str)
         end
     end
-    
+
     if exist('str', 'var'); fprintf(newline); end
-    
+
     if numImages == 1
         roiImageStack = roiImageStack{1};
     else
@@ -280,11 +279,10 @@ function dff = calculateDFFStack(im)
 
     baseline = double(prctile(im, 25, 3));
     baseline(baseline<1) = 1;
-    
+
     im = double(im);
     dff = (im-baseline) ./ baseline;
     dff = dff ./ max(dff(:));
-
 end
 
 function W = getWeights(f)

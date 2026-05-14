@@ -5,14 +5,13 @@ function IND = findActiveSamplePoints(signal, varargin)
 
     val = prctile(signal, [5, 50]);
     thresh = val(2) - (val(2)-val(1));
-    
+
     TF = signal > thresh;
     if isrow(signal)
         TF = imdilate( TF, ones(1,5) );
     elseif iscolumn(signal)
         TF = imdilate( TF, ones(5,1) );
     end
-    
+
     IND = find(TF);
-    
 end

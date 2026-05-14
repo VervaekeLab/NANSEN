@@ -1,13 +1,12 @@
 classdef Suite2p < nansen.dataio.dataconverter.roi.RoiAdapter
-    
+
     properties (Constant)
         SUITE_2P_VARNAMES = {'stat', 'ops', 'iscell'};
     end
 
     methods (Static)% Methods in separate files
-        
-        tf = isRoiFormatValid(filePath, data)
 
+        tf = isRoiFormatValid(filePath, data)
     end
 
     methods
@@ -30,25 +29,25 @@ classdef Suite2p < nansen.dataio.dataconverter.roi.RoiAdapter
 
         function S = collectSuite2pVariables(obj, data)
         %collectSuite2pVariables Collect complimentary variables from suite2p
-            
+
         % Suite2p exports roidata to multiple files. Try to collect it
         % here using the default output names of suite2p. If files are not
         % fitting this pattern, it might be necessary to create a specific
         % method(s) for handling those cases.
-            
+
             assert(~isempty(obj.FilePath), 'FilePath is not set')
-            
+
             [~, filename, fileExtension] = fileparts(obj.FilePath);
             obj.assertIsSuite2pFilename(filename)
 
             % Build a struct with fields for each of the files that are
             % output by suite 2p (stat, ops, iscell)
             S = struct.empty;
-            
+
             suite2pVariableNames = obj.SUITE_2P_VARNAMES;
-            
+
             S(1).(filename) = data;
-            
+
             complementaryVars = setdiff(suite2pVariableNames, filename);
             filenamesTemp = strrep(obj.FilePath, filename, complementaryVars);
 
@@ -73,13 +72,13 @@ classdef Suite2p < nansen.dataio.dataconverter.roi.RoiAdapter
             else
                 error('File type "%s" is not supported, please report.', fileExtension)
             end
-            
+
             % Reshape data. Some data is placed in cell arrays during
             % conversion from numpy
             for i = 1:numel(suite2pVariableNames)
-                
+
                 switch suite2pVariableNames{i}
-                    
+
                     case 'stat'
                         if iscell(S.stat); S.stat = cat(1, S.stat{:}); end
                         assert(isa(S.stat, 'struct'), 'Expected suite2p "stat" to be a struct array')
@@ -91,9 +90,9 @@ classdef Suite2p < nansen.dataio.dataconverter.roi.RoiAdapter
                 end
             end
         end
-        
+
         function assertIsSuite2pFilename(obj, filename)
-            
+
             validNames = obj.SUITE_2P_VARNAMES;
 
             % Check that filename is a suite2p output

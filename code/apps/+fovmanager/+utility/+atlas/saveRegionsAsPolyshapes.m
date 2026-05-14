@@ -33,9 +33,9 @@ numShapes = numel(polyShape);
 
 for i = 1:numel(polyShape)
     vCoords = polyShape{i}.Vertices;
-    
+
     if i == 31; continue; end
-    
+
     if any(isnan(vCoords(:,1)))
         ind = find(isnan(vCoords(:,1)));
         vCoordsPre = vCoords(1:ind-1, :);
@@ -44,10 +44,9 @@ for i = 1:numel(polyShape)
         vCoordsPost(end+1, :) =  vCoordsPost(1, :);
         vCoords = cat(1, vCoordsPre, vCoordsPost);
     end
-    
+
     xData{i} = vCoords(:,1);
     yData{i} = vCoords(:,2);
-    
 end
 
 xData(31) = [];
@@ -61,5 +60,4 @@ savePath = strrep(savePath, 'polyshapes.mat', 'patchdata.mat');
 % Save regions as patches and boundary as polygon...
 
 save(savePath, 'mapRegions', 'mapBoundary')
-
 end

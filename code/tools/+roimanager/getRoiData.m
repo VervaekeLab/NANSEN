@@ -1,11 +1,11 @@
 function [roiArray, classification, stats, images] = getRoiData(S)
 
     % Get roidata from a structure containing unknown set of fields.
-    
+
     % Initialize output
     roiArray = RoI.empty; %#ok<NASGU>
     classification = []; [stats, images] = deal( struct.empty );
-    
+
     dataVariableNames = fieldnames(S);
 
     if any( contains(fieldnames(S), 'sessionData') )
@@ -14,20 +14,19 @@ function [roiArray, classification, stats, images] = getRoiData(S)
     end
 
     refVariableNames = {'roi_arr', 'RoiArray', 'roiArray'};
-    
+
     isMatch = contains(dataVariableNames, refVariableNames);
-    
+
     if isempty(isMatch) || ~any(isMatch)
         error('Nansen:RoiGroupLoad:DataNotFound', ...
             'Did not find rois in the selected file')
-        
+
     else
         if sum(isMatch) > 1; isMatch = find(isMatch, 1, 'first'); end
 
         roiArray = S.(dataVariableNames{isMatch});
         if isa(roiArray, 'struct')
             roiArray = roimanager.utilities.struct2roiarray(roiArray);
-
         end
     end
 
@@ -35,14 +34,14 @@ function [roiArray, classification, stats, images] = getRoiData(S)
         roi_arr_struct = roimanager.utilities.roiarray2struct(roiArray);
         roiArray = roimanager.utilities.struct2roiarray(roi_arr_struct);
     end
-    
+
     % Load complimentary variables (most of this is probably redundant by
     % now, but roiClassification, roiImages and roiStats was not well
     % incorporated before)
     % - - - - - - - - - - - - - - - -
-    
+
     numRois = numel(roiArray);
-    
+
     if any( strcmp(dataVariableNames, 'roiClassification') )
         classification = S.roiClassification;
         if numel(classification) ~= numRois
@@ -53,7 +52,7 @@ function [roiArray, classification, stats, images] = getRoiData(S)
     if isempty(classification)
         classification = zeros(numRois, 1);
     end
-    
+
     if any( strcmp(dataVariableNames, 'roiStats') )
         stats = S.roiStats;
         if ~isempty(stats)
@@ -63,7 +62,7 @@ function [roiArray, classification, stats, images] = getRoiData(S)
             end
         end
     end
-    
+
     if any( strcmp(dataVariableNames, 'roiImages') )
         images = S.roiImages;
         if ~isempty(images)
@@ -73,10 +72,9 @@ function [roiArray, classification, stats, images] = getRoiData(S)
             end
         end
     end
-    
+
     % Todo.. concatenate with others...
     roiArray = roiArray.setappdata('roiClassification', classification);
     roiArray = roiArray.setappdata('roiImages', images);
     roiArray = roiArray.setappdata('roiStats', stats);
-
 end

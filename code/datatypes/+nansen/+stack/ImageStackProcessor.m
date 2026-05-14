@@ -29,7 +29,7 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
 %       whole data set along this dimension, and where splitting the data
 %       along the x- and or y- dimension is better. Such splitting should
 %       be implemented at some point.
-    
+
 %  A feature that can be developed: Use for processing different
 %  methods on each part, similar to mapreduce... Requires:
 %       - Inherit from matlab.mixin.Heterogeneous
@@ -39,18 +39,18 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
 % - - - - - - - - - - TODO - - - - - - - - - - - - - - - - - - -
 %     [v] Make separate StackIterator class
 %
-%     [ ] Abstract constant property HasOutputStack. Boolean flag
+%     [ ] Abstract constant property HasOutputStack. Boolean flag
 %     indicating if the method produces an output stack. Use this to add an
 %     options group with options for the output stack...
 %
-%     [ ] Check which parts are finished across channels and planes.
+%     [ ] Check which parts are finished across channels and planes.
 %
-%     [ ] ProcessPart should be public. How to tell which part to process
+%     [ ] ProcessPart should be public. How to tell which part to process
 %           if method is called externally? Input iPart or iInd? Or "synch"
 %           with another method?
-%           - ProcessSinglePart ??
+%           - ProcessSinglePart ??
 %
-%     [ ] Implement edit options method? To make sure number of frames per
+%     [ ] Implement edit options method? To make sure number of frames per
 %         part are not set after initialization
 %
 %     [ ] Don't allow updating options after IsInitialized = true; Here or
@@ -59,7 +59,7 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
 %     [ ] IF method is resumed, use old options and prohibit editing of
 %         options.
 %
-%     [v] Make option for resetting results before running. I.e when you
+%     [v] Make option for resetting results before running. I.e when you
 %         want to rerun the method and overwrite previous results.
 %         Implemented on superclass DataMethod.
 %
@@ -72,18 +72,18 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
 %
 %     [ ] Don't show msg if all parts are processed
 %
-%     [ ] Implement file format for results of processing (TargetStack)
+%     [ ] Implement file format for results of processing (TargetStack)
 %     some options should be Binary, Tiff etc.
 
 %
 %
 %     Display/logging
-%     [v] Create a task stack, i.e a struct that holds all the substeps that
+%     [v] Create a task stack, i.e a struct that holds all the substeps that
 %         can be run. Right now, this is done in a very opaque way...
-%     [ ] Add logging/progress messaging
+%     [ ] Add logging/progress messaging
 %     [v] Created print task method.
-%     [v] Method for logging when method finished.
-%     [ ] Output to log
+%     [v] Method for logging when method finished.
+%     [ ] Output to log
 %     [ ] Remove previous message when updating message in loop
 
 % - - - - - - - - - PROPERTIES - - - - - - - - - - - - - - - - -
@@ -100,7 +100,7 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
         % SourceStackName    % Todo
         TargetStackName = '' % Name of data variable representing a target image stack
     end
-    
+
     properties % User preferences
         %IsSubProcess = false        % Flag to indicate if this is a subprocess of another process (determines display output)
         PreprocessDataOnLoad = false; % Flag for whether to activate image stack data preprocessing...
@@ -115,29 +115,29 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
         DataPostProcessFcn  = []    % Function to apply on image data before saving (works on each part)
         DataPostProcessOpts = []    % Options to use when postprocessing image data
     end
-    
+
     properties (SetAccess = private, GetAccess = protected) % Current state of processor
         CurrentPart                 % Current part that is being processed (updated during processing)
         CurrentFrameIndices         % Current indices of frames that are being processed (updated during processing)
         NumParts                    % Number of parts that image stack is split into for processing
-        
+
         StackIterator nansen.stack.ImageStackIterator
         ImageArray                  % Store a (sub)set of images that are loaded to memory
-        
+
         NumFramePerPart_
     end
-    
+
     properties (Dependent, SetAccess = protected, GetAccess = protected)
         CurrentChannel  % Current channel of ImageStack
         CurrentPlane    % Current plane of ImageStack
     end
-    
+
     properties (Dependent) % Options
         RunOnSeparateWorker
         FrameInterval
         NumFramesPerPart
     end
-    
+
     properties (Access = protected)
         FrameIndPerPart = []        % List (cell array) of frame indices for each subpart of image stack
         IsInitialized = false;      % Boolean flag; is processor already initialized?
@@ -156,7 +156,7 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
             %S.Run.partsToProcess = 'all';
             %S.Run.redoPartIfFinished = false;
             S.Run.runOnSeparateWorker = false;
-            
+
             % Options for configuring channel/plane iterations.
             S.Run.PrimaryChannel = 1;
             S.Run.ChannelProcessingMode = 'serial';
@@ -165,13 +165,13 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
             S.Run.PlaneProcessingMode_ = {'serial', 'batch'};
         end
     end
-    
+
     methods (Abstract, Access = protected) % todo: make public??
         Y = processPart(obj, Y, iIndices);
     end
-    
+
     methods % Constructor
-        
+
         function obj = ImageStackProcessor(varargin)
         %ImageStackProcessor Construct an ImageStackProcessor instance
         %
@@ -195,15 +195,15 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
         %       DataIoModel : An instance of a DataIoModel class
 
         %   Not documented yet: The first input can also be a DataIoModel
-        
+
             if numel(varargin) == 0
                 dataLocation = struct.empty;
-                
+
             elseif numel(varargin) >= 1
-                
+
                 nvPairs = utility.getnvpairs(varargin{:});
                 dataIoModel = utility.getnvparametervalue(nvPairs, 'DataIoModel');
-                
+
                 % Get datalocation from first input argument.
                 if ~isempty(dataIoModel)
                     dataLocation = dataIoModel;
@@ -219,31 +219,31 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
             else
                 opts = struct.empty;
             end
-            
+
             % Call the constructor for the superclass (DataMethod)
             nvPairs = {};
             obj@nansen.processing.DataMethod(dataLocation, opts, nvPairs{:})
-            
+
             if numel(varargin) == 0
                 return
             end
-            
+
             if isempty(obj.Options) || (isstruct(obj.Options) && isempty(fieldnames(obj.Options)))
                 obj.Options = obj.getDefaultOptions();
             end
-            
+
             % Open source stack based on the first input argument.
             if ischar(varargin{1}) && isfile(varargin{1})
                 obj.openSourceStack(varargin{1})
-                
+
             elseif isa(varargin{1}, 'nansen.stack.ImageStack')
                 obj.openSourceStack(varargin{1})
-                
+
             elseif isa(varargin{1}, 'struct')
                 % Todo. Subclass must implement....
             end
         end
-        
+
         function delete(obj)
             if ~isempty(obj.StackIterator)
                 delete(obj.StackIterator)
@@ -255,28 +255,28 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
                     obj.TargetStack.Data.updateLastModified()
                 end
             end
-            
+
             if ~isempty(obj.TargetStack) && obj.DeleteTargetStackOnDestruction
                 delete(obj.TargetStack)
             end
-            
+
             if ~isempty(obj.SourceStack) && obj.DeleteSourceStackOnDestruction
                 delete(obj.SourceStack)
             end
-            
+
             % Delete derived stacks
             % Todo: Delete source stack if it is opened on construction...
         end
     end
 
     methods % Set/get methods
-        
+
         function set.SourceStack(obj, value)
             obj.SourceStack = value;
             obj.onSourceStackSet()
             obj.initializeStackIterator()
         end
-        
+
         function runOnSeparateWorker = get.RunOnSeparateWorker(obj)
             if isfield(obj.Options, 'Run')
                 if isfield(obj.Options.Run, 'runOnSeparateWorker')
@@ -289,9 +289,9 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
                 runOnSeparateWorker = S.Run.runOnSeparateWorker;
             end
         end
-        
+
         function numFramesPerPart = get.NumFramesPerPart(obj)
-            
+
             if isempty(obj.NumFramePerPart_)
                 if isfield(obj.Options, 'Run')
                     numFramesPerPart = obj.Options.Run.numFramesPerPart;
@@ -303,7 +303,7 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
                 numFramesPerPart = obj.NumFramePerPart_;
             end
         end
-        
+
         function set.NumFramesPerPart(obj, numFramesPerPart)
             if isfield(obj.Options, 'Run')
                 obj.Options.Run.numFramesPerPart = numFramesPerPart;
@@ -311,7 +311,7 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
             obj.NumFramePerPart_ = numFramesPerPart;
             obj.onNumFramesPerPartSet()
         end
-        
+
         function frameInterval = get.FrameInterval(obj)
             if isfield(obj.Options, 'Run')
                 frameInterval = obj.Options.Run.frameInterval;
@@ -320,7 +320,7 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
                 frameInterval = S.Run.frameInterval;
             end
         end
-        
+
         function currentChannel = get.CurrentChannel(obj)
             currentChannel = obj.SourceStack.CurrentChannel;
         end
@@ -328,7 +328,7 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
             obj.SourceStack.CurrentChannel = currentChannel;
             obj.onCurrentChannelSet(currentChannel)
         end
-        
+
         function currentPlane = get.CurrentPlane(obj)
             currentPlane = obj.SourceStack.CurrentPlane;
         end
@@ -337,9 +337,9 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
             obj.onCurrentPlaneSet(currentPlane)
         end
     end
-    
+
     methods % User accessible methods
-        
+
         function wasSuccess = preview(obj)
         %PREVIEW Open preview of data and options for method.
         %
@@ -350,7 +350,7 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
         %   algorithm/tool if such a plugin is available. Otherwise it
         %   opens a generic options editor to edit the options of the
         %   algorithm
-                
+
             pluginName = obj.ImviewerPluginName;
             pluginFcn = imviewer.App.getPluginFcnFromName(pluginName);
 
@@ -362,7 +362,7 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
                 % Todo: Should this be more specific. (I add this because
                 % the extract plugin has plot objects that can be dragged,
                 % and in that case the image should not be dragged...)
-                
+
                 % Note: Important that Modal is set to true, otherwise the
                 % program will go straight to the aligning.
                 h = hImviewer.openPlugin(pluginFcn, obj.OptionsManager, ...
@@ -374,7 +374,7 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
 
                 hImviewer.quit()
                 obj.SourceStack.DynamicCacheEnabled = 'off';
-                
+
             else
 %                 warning('NANSEN:Roisegmentation:PluginMissing', ...
 %                     'Plugin for %s was not found', CLASSNAME)
@@ -389,119 +389,119 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
             end
         end
     end
-    
+
     methods (Sealed)
-        
+
         function runInitialization(obj)
         %runInitialization Run the processor initialization stage.
             obj.initialize()
         end
-        
+
         function runMethod(obj, skipInit)
-            
+
             if obj.RunOnSeparateWorker
                 obj.runOnWorker()
                 return
             end
-            
+
             if nargin < 2; skipInit = false; end
-            
+
             obj.runPreInitialization()
-            
+
             if ~skipInit
                 obj.initialize()
             end
-        
+
             obj.processStack()
 
             obj.finish()
         end
-        
+
         function runFinalization(obj)
         %runFinalization Run the processor finalization stage.
             obj.finish()
         end
-        
+
         function matchConfiguration(obj, referenceProcessor)
             obj.Options.Run.numFramesPerPart = referenceProcessor.NumFramesPerPart;
             obj.runInitialization()
         end
-        
+
         function setCurrentPart(obj, partNumber)
             obj.CurrentPart = partNumber;
             obj.CurrentFrameIndices = obj.FrameIndPerPart{partNumber};
         end
     end
-    
+
     methods (Access = protected, Sealed) % initialize/processParts/finish
-                
+
         function initialize(obj)
-            
+
             % Check if SourceStack has been assigned.
             assert(~isempty(obj.SourceStack), 'SourceStack is not assigned')
-            
+
             % Set name for export in options
             if isfield(obj.Options, 'Export')
                 if isempty(obj.Options.Export.FileName)
                     obj.Options.Export.FileName = obj.SourceStack.Name;
                 end
             end
-            
+
             obj.printInitializationMessage()
-            
+
 %             if obj.IsInitialized
 %                 fprintf('This method has already been initialized. Skipping...\n')
 %                 return;
 %             end
 
             obj.displayProcessingSteps()
-            
+
             % Todo: Check if options exist from before, i.e we are resuming
             % this method on data that was already processed.
             % Also need to determine if the method should be resumed or
             % start over.
-            
+
             % Todo: Why not run this after onInitialization?
             obj.configureStackIterator()
             obj.configureImageStackSplitting()
 
             % Run onInitialization ( Subclass may implement this method)
             obj.onInitialization()
-            
+
             % Initialize results after onInitialization is called, in case
             % subclasses overrides method and reconfigures something
             obj.initializeResults()
-            
+
             % Todo: display message showing number of parts...
             obj.displayImageStackSplittingInfo()
 
             obj.IsInitialized = true;
         end
-        
+
         function processStack(obj)
         %processStack Run the main processing step on the ImageStack
         %
         %   This method displays information about the processing and
         %   manages the iteration over channels and/or planes for
         %   ImageStack with multiple channels/planes
-            
+
             if obj.allIsFinished()
                 fprintf('All parts have already been processed.')
                 fprintf(newline)
                 return;
             end
-        
+
             obj.displayStartStep('main')
 
             obj.printTask(sprintf('Running method: %s', class(obj) ) )
-    
+
             % Need to set these before starting...
             obj.CurrentChannel = 1;
             obj.CurrentPlane = 1;
-            
+
             % Display information about how many parts to process in total.
             obj.printStackProcessingDetails()
-            
+
             % Use stack iterator to set current channel/plane and process
             % parts for the current selection
             obj.StackIterator.reset()
@@ -509,13 +509,13 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
                 obj.StackIterator.next()
                 obj.CurrentChannel = obj.StackIterator.CurrentChannel;
                 obj.CurrentPlane = obj.StackIterator.CurrentPlane;
-                
+
                 obj.processParts()
             end
-            
+
             obj.displayFinishStep('main')
         end
-        
+
         function processParts(obj)
         %processParts Process all parts in sequence
         %
@@ -529,7 +529,7 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
         %       4) postprocess data (if image data is returned from processor)
 
             IND = obj.FrameIndPerPart;
-            
+
             % Todo: Do this here or in initialization??
             partsToProcess = obj.getPartsToProcess(IND);
 
@@ -548,7 +548,7 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
 
                 obj.CurrentPart = iPart;
                 obj.CurrentFrameIndices = iIndices;
-                
+
                 % Load data Todo: Make method?
                 Y = obj.SourceStack.getFrameSet(iIndices);
 
@@ -563,18 +563,18 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
                 if ~isempty(obj.DataPreProcessFcn)
                     Y = obj.DataPreProcessFcn(Y, iIndices, obj.DataPreProcessOpts);
                 end
-                
+
                 [Y, results] = obj.processPart(Y);
-                
+
                 if ~isempty(results)
                     obj.appendResults(results)
                 end
-                
+
                 if ~isempty(Y)
                     if ~isempty(obj.DataPostProcessFcn)
                         Y = obj.DataPostProcessFcn(Y, iIndices, obj.DataPostProcessOpts);
                     end
-                    
+
                     if ~isempty(obj.TargetStack)
                         targetIndices = obj.getTargetIndices(iIndices);
                         obj.TargetStack.writeFrameSet(Y, targetIndices)
@@ -582,14 +582,14 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
                 end
             end
         end
-        
+
         function finish(obj)
-            
+
             %if obj.IsFinished; return; end
-            
+
             % Do the merging of results from each subpart of ImageStack
             if isempty( obj.MergedResults )
-                
+
                 if obj.hasStep('merge_results')
                     obj.displayStartStep('merge_results')
                 end
@@ -600,7 +600,7 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
                     obj.displayFinishStep('merge_results')
                 end
             end
-            
+
             % Call method which can be customized in subclasses
             obj.onCompletion()
 
@@ -620,21 +620,20 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
 % %                 end
 % %             end
 % %         end
-        
     end
-   
+
     methods (Access = protected) % Subroutines (Subclasses may override)
-        
+
         function runOnWorker(obj)
-            
+
             tic
-            
+
             jobDescription = sprintf('%s : %s', obj.MethodName, obj.SourceStack.Name);
             dependentPaths = obj.getDependentPaths();
-            
+
             opts = obj.Options;
             opts.Run.runOnSeparateWorker = false;
-            
+
             % Todo: should reconcile this, using a dataiomodel
             if isprop(obj, 'SessionObjects') % Some subclasses
                 args = {obj.SessionObjects, opts};
@@ -643,7 +642,7 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
             end
 
             batchFcn = str2func( class(obj) );
-            
+
             % Todo: This stopped(?) working. Should I use parfeval instead?
             job = batch(batchFcn, 0, args);%, ...
 %                     'AutoAddClientPath', false, 'AutoAttachFiles', false, ...
@@ -652,49 +651,48 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
             % of matlab is that it can be very slow if the savepath
             % contains a lot of files (especially if git repos are part of
             % it).
-            
+
             job.Tag = jobDescription;
-            
+
             toc
         end
 
         function onSourceStackSet(obj)
-
         end
-        
+
         function onCurrentChannelSet(obj, currentChannel)
             if ~isempty(obj.TargetStack)
                 obj.TargetStack.CurrentChannel = currentChannel;
             end
-            
+
             derivedStackNames = fieldnames(obj.DerivedStacks);
             for i = 1:numel(derivedStackNames)
                 iStack = obj.DerivedStacks.(derivedStackNames{i});
                 iStack.CurrentChannel = currentChannel;
             end
         end
-        
+
         function onCurrentPlaneSet(obj, currentPlane)
             if ~isempty(obj.TargetStack)
                 obj.TargetStack.CurrentPlane = currentPlane;
             end
-            
+
             derivedStackNames = fieldnames(obj.DerivedStacks);
             for i = 1:numel(derivedStackNames)
                 iStack = obj.DerivedStacks.(derivedStackNames{i});
                 iStack.CurrentPlane = currentPlane;
             end
         end
-        
+
         function runPreInitialization(obj)
         %runPreInitialization Runs before the initialization step
             % Subclasses can override
             obj.addStep('main', obj.MethodName)
         end
-        
+
         function openSourceStack(obj, imageStackRef)
         %openSourceStack Open/assign image stack which is source
-        
+
             if isa(imageStackRef, 'nansen.stack.ImageStack')
                 obj.SourceStack = imageStackRef;
                 % Stack was handed to us, so we should not destroy it.
@@ -709,17 +707,17 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
                 end
             end
         end
-        
+
         function openTargetStack(obj, filePath, stackSize, dataType, varargin)
         %openTargetStack Open (or create) and assign the target image stack
-        
+
             if ~isfile(filePath)
                 obj.printTask('Creating target stack for method: %s...', class(obj))
                 imageStackData = nansen.stack.open(filePath, stackSize, dataType, varargin{:});
             else
                 imageStackData = nansen.stack.open(filePath, varargin{:});
             end
-            
+
             obj.TargetStack = nansen.stack.ImageStack(imageStackData);
         end
 
@@ -728,39 +726,39 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
             % source and the target are different, i.e for downsampling
             % methods.
         end
-        
+
 % %         function tf = checkIfPartIsFinished(obj, partNumber)
 % %             % Rename to isPartFinished?
 % %             % Subclass may implement
 % %             tf = false;
 % %         end
-        
+
         function tf = allIsFinished(obj)
             tf = all( cellfun(@(c) ~isempty(c), obj.Results(:)) );
         end
-        
+
         %Todo: Add Results as property and use this instead
         function tf = checkIfPartIsFinished(obj, partNumber, planeNumber, channelNumber)
             if nargin < 3; planeNumber = obj.StackIterator.CurrentIterationZ; end
             if nargin < 4; channelNumber = obj.StackIterator.CurrentIterationC; end
-            
+
             if obj.RedoIfCompleted
                 tf = false;
             else
                 tf = ~isempty(obj.Results{partNumber, planeNumber, channelNumber});
             end
         end
-        
+
         function mergeResults(obj)
         %mergeResults Merge results from subparts of ImageStack
 
             [numParts, numZ, numC] = size(obj.Results);
-            
+
             if numParts == 1
                 obj.MergedResults = reshape(obj.Results, numZ, numC);
             elseif numParts > 1
                 obj.MergedResults = cell(numZ, numC);
-                
+
                 for i = 1:numZ
                     for j = 1:numC
                         obj.MergedResults{i, j} = cat(1, obj.Results{:, i, j});
@@ -772,18 +770,18 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
                 obj.saveMergedResults()
             end
         end
-        
+
         function onInitialization(~)
             % Subclass may implement
         end
-        
+
         function onCompletion(~)
             % Subclass may implement
         end
-        
+
         function configureImageStackSplitting(obj)
         %configureImageStackSplitting Get split configuration from options
-            
+
             % Get number of frames per part
             N = obj.NumFramesPerPart;
 
@@ -808,73 +806,73 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
             if isempty(obj.StackIterator)
                 error('StackIterator is not initialized yet')
             end
-            
+
             obj.StackIterator.ChannelProcessingMode = obj.Options.Run.ChannelProcessingMode;
             obj.StackIterator.PrimaryChannel = obj.Options.Run.PrimaryChannel;
             obj.StackIterator.PlaneProcessingMode = obj.Options.Run.PlaneProcessingMode;
         end
-        
+
         function imArray = getImageArray(obj, N)
         %loadImageData Load set of image frames from ImageStack
-            
+
             % Todo: add options for how many frames to load.
             obj.printTask('Loading image data from disk')
-            
+
             if nargin < 2 || isempty(N)
                 N = obj.SourceStack.chooseChunkLength();
             end
-            
+
             obj.SourceStack.CurrentChannel = obj.StackIterator.CurrentChannel;
             obj.SourceStack.CurrentPlane = obj.StackIterator.CurrentPlane;
-            
+
             imArray = obj.SourceStack.getFrameSet(1:N);
             % Todo: Include this but fix caching for multichannel data...
             % obj.SourceStack.addToStaticCache(imArray, 1:N)
             imArray = squeeze(imArray);
-            
+
             obj.printTask('Finished loading data')
         end
-        
+
         function S = repeatStructPerDimension(obj, S)
         %repeatStructPerDimension Repeat a struct of result per dimension
         %
         %   For stack with multiple channels or planes, the input struct is
         %   repeated for the length of each of those dimensions
-        
+
 %             numChannels = obj.SourceStack.NumChannels;
 %             numPlanes = obj.SourceStack.NumPlanes;
             numChannels = obj.StackIterator.NumIterationsC;
             numPlanes = obj.StackIterator.NumIterationsZ;
-            
+
             % Todo: Use struct array instead of cell array....
-            
+
             S = repmat({S}, numChannels, numPlanes);
         end
-        
+
         function suffix = getFilenameSuffix(obj, channelNum, planeNum)
         %getFilenameSuffix Get filename suffix with channel and/or plane
-        
+
             if nargin < 2;  channelNum = obj.CurrentChannel;    end
             if nargin < 3;  planeNum = obj.CurrentPlane;        end
-            
+
             skipChannel = isequal( channelNum, 1:obj.SourceStack.NumChannels);
             skipPlane = isequal( planeNum, 1:obj.SourceStack.NumPlanes);
-            
+
             suffix = '';
-            
+
             if obj.SourceStack.NumChannels > 1 && ~skipChannel
                 suffix = strcat(suffix, sprintf('_ch%d', channelNum)) ;
             end
-            
+
             if obj.SourceStack.NumPlanes > 1 && ~skipPlane
                 suffix = strcat(suffix, sprintf('_plane%02d', planeNum)) ;
             end
         end
-        
+
         function suffix = getVariableNameSuffix(obj, channelNum, planeNum)
             if nargin < 2;  channelNum = obj.CurrentChannel;    end
             if nargin < 3;  planeNum = obj.CurrentPlane;        end
-            
+
             suffix = obj.getFilenameSuffix(channelNum, planeNum);
             suffix = strrep(suffix, '_', '');
             suffix = strrep(suffix, 'ch', 'Ch');
@@ -893,7 +891,7 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
                 'Subfolder', obj.DATA_SUBFOLDER, 'IsInternal', true)
         end
     end
-    
+
     methods (Access = protected) % Pre- and processing methods for imagedata
 
         function Y = preprocessImageData(obj, Y)
@@ -904,9 +902,9 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
             % Subclasses may override
         end
     end
-    
+
     methods (Access = private)
-        
+
         function partsToProcess = getPartsToProcess(obj, frameInd)
         %getPartsToProcess Get list of which parts to process.
         %
@@ -917,49 +915,49 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
         %   PartsToProcess property. Also if parts are processed from
         %   before, they will be skipped, unless the RedoProcessedParts
         %   property is set to true
-        
+
         % Note: frameInd might be used by subclasses(?)
-       
+
             % Set the parts to process.
             if strcmp(obj.PartsToProcess, 'all')
                 partsToProcess = 1:obj.NumParts;
             else
                 partsToProcess = obj.PartsToProcess;
             end
-            
+
             % Make sure list of parts is a numeric
             assert(isnumeric(partsToProcess), 'PartsToProcess must be numeric')
-            
+
             % Check if any parts can be skipped
             partsToSkip = [];
             for iPart = partsToProcess
-                
+
                 % Checks if shifts already exist for this part
                 isPartFinished = obj.checkIfPartIsFinished(iPart);
-                                
+
                 if isPartFinished && ~obj.RedoProcessedParts
                     partsToSkip = [partsToSkip, iPart]; %#ok<AGROW>
                 end
             end
 
             partsToProcess = setdiff(partsToProcess, partsToSkip);
-            
+
             if isempty(partsToProcess); return; end
-            
+
             % Make sure list of parts is in valid range.
             msgA = 'PartsToProcess can not be smaller than the first part';
             assert( min(partsToProcess) >= 1, msgA)
             msgB = 'PartsToProcess can not be larger than the last part';
             assert( max(partsToProcess) <= obj.NumParts, msgB)
         end
-        
+
         function onNumFramesPerPartSet(obj)
         %onNumFramesPerPartSet Callback for property set method
         %
         %   Update NumParts and the FrameIndPerPart properties
-            
+
             N = obj.NumFramePerPart_;
-            
+
             % Get cell array of frame indices per part (IND) and numParts
             [IND, numParts] = obj.SourceStack.getChunkedFrameIndices(N);
 
@@ -967,13 +965,13 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
             obj.FrameIndPerPart = IND;
             obj.NumParts = numParts;
         end
-        
+
         function initializeStackIterator(obj)
             numC = obj.SourceStack.NumChannels;
             numZ = obj.SourceStack.NumPlanes;
             obj.StackIterator = nansen.stack.ImageStackIterator(numC, numZ);
         end
-        
+
         function initializeResults(obj)
         %initializeResults Initialize cell array with results for each part
         %
@@ -983,17 +981,17 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
         %   before.
         %
         %   Results : cell array of size numParts x numPlanes x numChannels
-        
+
             % Create variable name:
             variableName = sprintf('%sResultsTemp', obj.VARIABLE_PREFIX);
-    
+
             filePath = obj.getDataFilePath(variableName, '-w',...
                 'Subfolder', obj.DATA_SUBFOLDER, 'IsInternal', true);
-            
+
             numC = obj.StackIterator.NumIterationsC;
             numZ = obj.StackIterator.NumIterationsZ;
             summarySize = [obj.NumParts, numZ, numC];
-            
+
             if isfile(filePath)
                 obj.printTask('Loading previously saved results...')
                 obj.Results = obj.loadData(variableName);
@@ -1001,18 +999,18 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
             else
                 obj.Results = cell(summarySize);
             end
-            
+
             % todo: save this (together with results?)
             info = struct;
             info.Description = sprintf('Results is a cell array that contains intermediate results from the ImageStackProcessor "%s"', obj.MethodName);
             info.ImageStackName = obj.SourceStack.Name;
-            
+
             % Load merged results if they are available.
             %variableName = sprintf('%sResultsFinal', obj.VARIABLE_PREFIX);
             variableName = obj.getVariableName('ResultsFinal');
             filePath = obj.getDataFilePath(variableName, '-w',...
                 'Subfolder', obj.DATA_SUBFOLDER, 'IsInternal', true);
-            
+
             if isfile(filePath)
                 obj.MergedResults = obj.loadData(variableName);
                 if ~isempty(obj.MergedResults) && isempty(obj.MergedResults{1}) % Todo: Is this a necessary precaution?
@@ -1020,7 +1018,7 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
                 end
             end
         end
-        
+
         function assertResultsCorrectSize(obj, summarySize)
             % Todo: Give more detailed feedback
             assert(size(obj.Results, 1) == summarySize(1), ...
@@ -1030,105 +1028,105 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
             assert(size(obj.Results, 3) == summarySize(3), ...
                 'Size of results does not match the configuration')
         end
-        
+
         function appendResults(obj, iResults)
         %appendResults Add results from current part and save
-        
+
             iPart = obj.CurrentPart;
             iC = obj.StackIterator.CurrentIterationC;
             iZ = obj.StackIterator.CurrentIterationZ;
-            
+
             obj.Results{iPart, iZ, iC} = iResults;
-            
+
             obj.saveResults()
         end
 
         function frameIndices = getFrameIndices(obj, frameIndices)
-            
+
             % Get frame indices for all frame dimensions, i.e C, Z & T
-            
+
             if nargin < 1
                 frameIndices = obj.FrameIndPerPart{obj.CurrentPart};
             end
-            
+
             % Todo: This should depend on stack dimension order.
-            
+
             if obj.SourceStack.NumPlanes > 1
                 frameIndices{end+1} = obj.StackIterator.CurrentPlane;
             end
-            
+
             if obj.SourceStack.NumChannels > 1
                 frameIndices{end+1} = obj.StackIterator.CurrentChannel;
             end
         end
     end
-    
+
     methods (Access = protected) % Methods for printing commandline output
-        
+
         function printSubTask(obj, varargin)
             msg = sprintf(varargin{:});
             nowstr = datestr(now, 'HH:MM:ss');
             fprintf('%s: %s: %s\n', nowstr, obj.MethodName, msg)
         end
-        
+
         function displayProcessingSteps(obj)
         %displayProcessingSteps Display the processing steps for process
-            
+
             if obj.IsSubProcess; return; end
             displayProcessingSteps@nansen.processing.DataMethod(obj)
         end
-        
+
         function displayStartStep(obj, stepId)
         %displayStartStep Display message when current step starts
             if obj.IsSubProcess; return; end
             displayStartStep@nansen.processing.DataMethod(obj, stepId)
         end
-        
+
         function displayFinishStep(obj, stepId)
         %displayFinishStep Display message when current step stops
             if obj.IsSubProcess; return; end
             displayFinishStep@nansen.processing.DataMethod(obj, stepId)
         end
-        
+
         function str = getCurrentPartString(obj, iPart)
         %getCurrentPartString Get string with info about current part.
-        
+
         % Get string that looks like this based on current channel/plane:
         % Processing part 2/80 (channel 1/2, plane 1/4, part 1/5)
-            
+
             currentPart = iPart;
             numParts = obj.NumParts;
-            
+
             numChannels = obj.SourceStack.NumChannels;
             numPlanes = obj.SourceStack.NumPlanes;
-            
+
             numRepetitions = obj.StackIterator.NumIterations;
             currentRepetition = obj.StackIterator.CurrentIteration;
-                        
+
             currentPartTotal = (currentRepetition-1) .* numParts + currentPart;
             numPartsTotal = numParts .* numRepetitions;
-            
+
             str = sprintf('part %d/%d', currentPartTotal, numPartsTotal);
             addendumStr = {};
-            
+
             % Add channel addendum
             if obj.StackIterator.NumIterationsC > 1
                 addendumStr{end+1} = sprintf('channel %d/%d', ...
                     obj.CurrentChannel, numChannels);
             end
-            
+
             % Add plane addendum
             if obj.StackIterator.NumIterationsZ > 1
                 addendumStr{end+1} = sprintf('plane %d/%d', ...
                     obj.CurrentPlane, numPlanes);
             end
-            
+
             % Join addendums
             if ~isempty(addendumStr)
                 addendumStr{end+1} = ...
                     sprintf('part %d/%d', currentPart, numParts);
             end
-            
+
             % Finalize str output
             if ~isempty(addendumStr)
                 addendumStr = strjoin(addendumStr, ', ');
@@ -1136,12 +1134,12 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
             end
         end
     end
-    
+
     methods (Access = private) % Should these methods be part of a data method logger class? Yes, but not all
-        
+
         function printInitializationMessage(obj)
         %printInitializationMessage Display message when method starts
-        
+
             if obj.IsSubProcess; return; end
 
             fprintf(newline); fprintf('---'); fprintf(newline)
@@ -1153,28 +1151,28 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
 
         function printCompletionMessage(obj)
         %printCompletionMessage Display message when method is completed
-        
+
             if obj.IsSubProcess; return; end
-            
+
             obj.printTask(sprintf('Completed method: %s', class(obj)))
             fprintf('---\n')
             fprintf('\n')
         end
-        
+
         function printStackInformation(obj)
             % Todo:
-            
+
             % Print size of stack (number of frames, channels, planes)
-            
+
             % Print channel processing mode...
         end
-        
+
         function printStackProcessingDetails(obj)
             % Todo: Make method for displaying the following:
-            
+
             numChans = obj.StackIterator.NumIterationsC; %obj.SourceStack.NumChannels;
             numPlanes = obj.SourceStack.NumPlanes;
-            
+
             %IND = obj.FrameIndPerPart;
             %partsToProcess = obj.getPartsToProcess(IND);
             %numParts =  numel(partsToProcess);
@@ -1184,7 +1182,7 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
             else
                 numPartsStr = sprintf('%d parts', numParts);
             end
-            
+
             if numChans > 1 && numPlanes > 1
                 obj.printSubTask(sprintf('ImageStack contains %d channels and %d planes', numChans, numPlanes))
                 obj.printSubTask(sprintf('Each channel and plane will be processed in %s', numPartsStr))
@@ -1198,14 +1196,14 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
                 obj.printSubTask(sprintf('ImageStack will be processed in %s', numPartsStr))
             end
         end
-        
+
         function displayImageStackSplittingInfo(obj)
             obj.printTask(sprintf('The ImageStack has %d frames and will be split in %d parts.', obj.SourceStack.NumTimepoints, obj.NumParts))
             obj.printTask(sprintf('Each part will consist of %d frames.', obj.NumFramesPerPart))
             fprintf('-\n')
         end
     end
-    
+
     methods (Static)
         function printTask(varargin) % Todo: move to datamethod
             msg = sprintf(varargin{:});

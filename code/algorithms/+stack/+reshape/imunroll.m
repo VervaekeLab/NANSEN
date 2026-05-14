@@ -58,7 +58,7 @@ pixPerImage = imHeight*imWidth;
 
 % Allocate the array for the unfolded image
 unrolledIm = zeros([rad, imWidth, nFrames], 'like', IM);
- 
+
 % Divide the image into concentric circles where each circle
 % is one row in the new image. Each column is one angle.
 % Pixels on the top row will be very stretched out, and pixels on the
@@ -66,12 +66,11 @@ unrolledIm = zeros([rad, imWidth, nFrames], 'like', IM);
 for j = 1:rad
     % Repeat the indices for the current radius across all images
     tmpInd = repmat( IND{j}', nFrames, 1 ) + (0:(nFrames-1))'*pixPerImage;
-    
+
     tmpInd = tmpInd';
     imLin = IM(tmpInd(:));
     imLin = reshape(imLin, [], nFrames);
     imLin = imresize(imLin, [imWidth, nFrames]);
     unrolledIm(j, :, :) = imLin;
-
 end
 end

@@ -20,7 +20,7 @@ function [P, V] = getDffParameters()
 %   method.
 
     % - - - - - - - - Specify parameters and default values - - - - - - - -
-    
+
     % Names                     Values (default)        Description
     P                           = struct;
     P.baseline                  = 20;
@@ -28,17 +28,17 @@ function [P, V] = getDffParameters()
     P.correctBaseline           = false;                % Moving baseline?
     P.correctionWindowSize      = 500;                  % Number of samples
     P.correctionPrctile         = 25;
-    
+
     % - - - - - - - - - - Specify customization flags - - - - - - - - - - -
     P.dffFcn_                   = getDffMethodChoices();
     P.correctionPrctile_        = struct('type', 'slider', 'args', {{'Min', 0, 'Max', 100, 'nTicks', 101, 'TooltipPrecision', 0}});
-    
+
     % - - - - Specify validation/assertion test for each parameter - - - -
-    
+
     V                           = struct();
     V.baseline                  = @(x) assert( isnumeric(x) && isscalar(x) && x >= 0 && round(x)==x && x <= 100, ...
                                     'Value must be a scalar, non-negative number between 0 and 100' );
-    
+
     V.dffFcn                    = @(x) assert(any(strcmp(x, P.dffFcn_)), ...
                                     sprintf('modelType must be either of: %s', strjoin(P.dffFcn_, ',')));
     V.correctBaseline           = @(x) assert( isscalar(x) && islogical(x) , ...
@@ -49,15 +49,15 @@ function [P, V] = getDffParameters()
                                     'Value must be a scalar, non-negative number between 0 and 100' );
 
     % - - - - - Adapt output to how many outputs are requested - - - - - -
-    
+
     if nargout == 0
         displayParameterTable(mfilename('fullpath'))
-        
+
 %         S = utility.convertParamsToStructArray(mfilename('fullpath'));
 %         T = struct2table(S);
 %         fprintf('\nSignal extraction default parameters and descriptions:\n\n')
 %         disp(T)
-        
+
         clear P V
     elseif nargout == 1
         clear V
@@ -65,11 +65,11 @@ function [P, V] = getDffParameters()
 end
 
 function choices = getDffMethodChoices()
-    
+
     persistent fileNames
-    
+
     if isempty(fileNames)
-        
+
         s = what(fullfile('+nansen', '+twophoton', '+roisignals', '+process', '+dff'));
         dirPath = s.path;
 
@@ -77,6 +77,6 @@ function choices = getDffMethodChoices()
         fileNames = {L.name};
         fileNames = strrep(fileNames, '.m', '');
     end
-    
+
     choices = fileNames;
 end

@@ -30,7 +30,7 @@ cleanupObj = onCleanup(@(state) recycle(oldState));
 listing = dir(dirPath);
 
 for i = 1:numel(listing)
-    
+
     if strcmp(listing(i).name, '.')
         continue
     elseif strcmp(listing(i).name, '..')

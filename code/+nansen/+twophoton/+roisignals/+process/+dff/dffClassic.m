@@ -10,12 +10,11 @@ function dff = dffClassic(signalArray, varargin)
 
     P = struct;
     P.baseline = 20;
-    
+
     params = utility.parsenvpairs(P, [], varargin{:});
-    
+
     fRoi = squeeze(signalArray(:, 1, :));
 
     fRoi0 = prctile(fRoi, params.baseline, 1);
     dff = (fRoi - fRoi0) ./ fRoi0;
-    
 end

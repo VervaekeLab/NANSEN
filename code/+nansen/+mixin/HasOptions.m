@@ -43,30 +43,30 @@ classdef HasOptions < handle
 %   register with the optionsmanager until the next clear all/clear classes
 
 %   TODO:
-%   [ ] Edit options method, or use optionsmanager?
+%   [ ] Edit options method, or use optionsmanager?
 %  *[ ] Create a method for detecting options from varargin and assigning
-%       to the options property (to be used in a subclass constructor). 
-%   [ ] 
+%       to the options property (to be used in a subclass constructor).
+%   [ ]
 
 %   QUESTIONS
-%   [ ] How to deal with options names which are necessary for storing and
+%   [ ] How to deal with options names which are necessary for storing and
 %       retrieving preset options
 %
 %   [ ]
-    
+
     properties (Abstract, Constant)
         OptionsManager nansen.manage.OptionsManager
     end
-    
+
     properties (Dependent)
         OptionsName   % here or options manager?
         Options       %
     end
-    
+
     properties (Access = protected)
         Options_    %
     end
-    
+
     methods (Static)
         function options = getDefaultOptions(className) % Subclasses should override
         %getDefaultOptions Method to provide the default options.
@@ -77,20 +77,20 @@ classdef HasOptions < handle
             if nargin < 1 || isempty(className)
                 options = struct.empty;
             else
-                
+
                 S = nansen.wrapper.suite2p.Options.getDefaults();
                 options = S;
-    
+
                 superOptions = nansen.mixin.HasOptions.getSuperClassOptions(className);
                 options = nansen.mixin.HasOptions.combineOptions(options, superOptions{:});
             end
         end
     end
-    
+
     methods % Public methods
-        
+
         function [optsStruct, wasAborted] = editOptions(obj)
-            
+
              args = {};
 % % %             if ~isempty(obj.Options)
 % % %                 args = [args, obj.Options];
@@ -103,10 +103,10 @@ classdef HasOptions < handle
 % % %                     args = ['Custom', args];
 % % %                 end
 % % % %             end
-            
+
             [~, optsStruct, wasAborted] = obj.OptionsManager.editOptions(args{:});
             obj.Options_ = optsStruct;
-            
+
             if ~nargout
                 clear optsStruct wasAborted
             elseif nargout == 1
@@ -114,13 +114,13 @@ classdef HasOptions < handle
             end
         end
     end
-    
+
     methods % Set/get methods
-        
+
         function set.Options(obj, opts)
             obj.Options_ = opts;
         end
-        
+
         function opts = get.Options(obj)
             if ~isempty(obj.Options_)
                 opts = obj.Options_;
@@ -129,55 +129,54 @@ classdef HasOptions < handle
             end
         end
     end
-    
+
     methods (Access = protected)
-        
+
         function opts = checkArgsForOptions(obj, varargin)
-            
+
             isStruct = cellfun(@isstruct, varargin);
-            
+
             if any(isStruct)
                 opts = varargin{ find(isStruct, 1) };
                 defaultOpts = obj.OptionsManager.getOptions();
-                
+
                 isValidOpts = isequal(fieldnames(opts), fieldnames(defaultOpts));
                 if isValidOpts
                     obj.Options_ = opts;
                 end
             end
-            
+
             if ~nargout
                 clear opts
             end
         end
     end
-    
+
     methods (Static, Sealed)%, Access = protected)
-        
+
         function options = getSuperClassOptions(className)
         %getSuperClassOptions Get default options from all superclasses
             if nargin < 1
                 className = mfilename('class');
             end
-            
+
             mc = meta.class.fromName(className);
             superClassNames = {mc.SuperclassList.Name};
-            
+
             numSuperClasses = numel(superClassNames);
             options = {};
-            
+
             for i = 1:numSuperClasses
                 iClassName = superClassNames{i};
                 getOptsFcn = str2func([iClassName, '.getDefaultOptions']);
                 try
                     options = [options, getOptsFcn()];
                 end
-                
+
                 options = [options, nansen.mixin.HasOptions.getSuperClassOptions(iClassName)];
-                
             end
         end
-        
+
         function options = combineOptions(options, varargin)
             for i = 1:numel(varargin)
 
@@ -186,7 +185,7 @@ classdef HasOptions < handle
                 for j = 1:numel(fields)
                     if isfield(options, fields{j}) && ...
                             isa(options.(fields{j}), 'struct')
-                        
+
                         options.(fields{j}) = utility.struct.mergestruct(...
                             options.(fields{j}), varargin{i}.(fields{j}) );
                     else

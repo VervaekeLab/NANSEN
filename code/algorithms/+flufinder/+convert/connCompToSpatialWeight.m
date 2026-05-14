@@ -6,9 +6,9 @@ function weights = connCompToSpatialWeight(S, imageSize)
 %   plane is the weights for one component.
 
     assert( all(isfield(S, {'PixelIdxList', 'PixelValues'})))
-    
+
     weights = zeros([imageSize, numel(S)]);
-    
+
     for i = 1:numel(S)
         thisWeight = weights(:,:,i);
         thisWeight(S(i).PixelIdxList) = S(i).PixelValues;

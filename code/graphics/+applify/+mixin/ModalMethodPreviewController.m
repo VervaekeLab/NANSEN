@@ -54,7 +54,6 @@ classdef (Abstract) ModalMethodPreviewController < applify.mixin.HasOptionsManag
             optionsEditor = openOptionsEditor@applify.mixin.HasOptionsManager(...
                 obj, @obj.onOptionsChanged);
         end
-
     end
 
     methods (Access = protected)
@@ -113,5 +112,4 @@ classdef (Abstract) ModalMethodPreviewController < applify.mixin.HasOptionsManag
             end
         end
     end
-
 end

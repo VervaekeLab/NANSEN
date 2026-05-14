@@ -33,17 +33,17 @@ function imArray = convertSpatialWeightsToThumbnails(roiArray, spatialWeights, t
     r = floor(thumbnailSize/2);
     imSize = roiArray(1).imagesize;
     numRois = numel(roiArray);
-    
+
     % Preallocate output
     imArray = zeros([thumbnailSize, numRois]);
-   
+
     for iRoi = 1:numRois
 
         thisSpatialWeight = spatialWeights(:, :, iRoi);
 
         x0 = roiArray(iRoi).center(1);
         y0 = roiArray(iRoi).center(2);
-    
+
         opts = {'boundaryMethod', 'none'};
         [S, L] = getImageSubsetBounds(imSize, x0, y0, r, 0, opts{:});       % imported function
         imChunk = getPixelChunk(thisSpatialWeight, S, L);                   % imported function

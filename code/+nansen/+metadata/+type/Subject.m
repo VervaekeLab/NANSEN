@@ -10,7 +10,7 @@ classdef Subject < nansen.metadata.abstract.MetadataEntity
     properties (Access = protected, SetObservable)
         ancestorID      % Add some validation scheme.... Can I dynamically set this according to some criteria?
     end
-    
+
     properties (SetObservable)
         SubjectID         char
         DateOfBirth       datetime

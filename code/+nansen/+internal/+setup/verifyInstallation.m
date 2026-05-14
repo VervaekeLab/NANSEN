@@ -6,7 +6,7 @@ function verifyInstallation(options)
     end
 
     nansen.internal.setup.checkWidgetsToolboxVersion();
-    
+
     % Check whether required Mathworks products are installed.
     nansen.internal.dependencies.checkRequiredMathworksProducts( ...
         options.MathworksProductMissingAlertMode)

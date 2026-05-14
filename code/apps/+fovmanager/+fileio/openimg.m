@@ -1,7 +1,7 @@
 function im = openimg(filePath)
-    
+
     im = [];
-    
+
     if ~nargin || isempty(filePath)
 
         [fileName, filePath] = uigetfile({ '*.tif;*.tiff;*.png;*.jpg;*.jpeg;*.JPG', ...
@@ -9,8 +9,7 @@ function im = openimg(filePath)
                                            '*', 'All Files (*.*)'}, 'Select Image File');
         filePath = fullfile(filePath, fileName);
         if fileName == 0; return; end % User pressed cancel
-
     end
-    
+
     im = imread(filePath);
 end

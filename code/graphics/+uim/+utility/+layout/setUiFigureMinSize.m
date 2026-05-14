@@ -9,5 +9,4 @@ function setUiFigureMinSize(hFigure, minimumSize)
     window.setMinSize( minimumSize )
     warning('on', 'MATLAB:structOnObject')
     warning('on', 'MATLAB:ui:javaframe:PropertyToBeRemoved')
-
 end

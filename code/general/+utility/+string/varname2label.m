@@ -37,26 +37,26 @@ end
 if issnakecase(varname)
 
     label = strrep(varname, '_', ' ');
-    
+
     [strInd] = regexp(label, ' ');
     strInd = [0, strInd] + 1;
-    
+
     for i = strInd
         label(i) = upper(label(i));
     end
-    
+
 elseif iscapitalized(varname)
     label = varname;
 
 elseif iscamelcase(varname)
-    
+
     % Insert space after a uppercase letter preceded by a lowercase letter
     % OR before a uppercase letter succeeded by a lowercase letter
     % ie aB = 'a B' and AAb = A Ab
-    
+
     expression = '((?<=[a-z])[A-Z])|([A-Z](?=[a-z]))';
     varname = regexprep(varname, expression, ' $0');
-    
+
 % % %     capLetterStrInd = regexp(varname, '[A-Z, 1-9]');
 % % %     prevI = [];
 % % %     for i = fliplr(capLetterStrInd)
@@ -68,18 +68,17 @@ elseif iscamelcase(varname)
 
     varname(1) = upper(varname(1));
     label = varname;
-    
+
 else
     varname(1) = upper(varname(1));
     label = varname;
 end
 
 label = strtrim(label);
-
 end
 
 function isCamelCase = iscamelcase(varname)
-    
+
     capLetterStrInd = regexp(varname, '[A-Z]');
     if any(capLetterStrInd > 1)
         isCamelCase = true;

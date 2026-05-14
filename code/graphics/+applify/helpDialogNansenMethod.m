@@ -18,9 +18,9 @@ function helpDialogNansenMethod(functionName, options)
     data.helptext = char(formatInlineGuideText(summary));
     data.helptopic = functionNameSplit{end};
     data.description = char(formatGuideTextAsHtml(description));
-    
+
     data.parameters = struct.empty;
-    
+
     try
         optionsManager = nansen.OptionsManager(functionName);
         data.option_presets = optionsManager.getPresetMetadata();
@@ -41,9 +41,9 @@ function helpDialogNansenMethod(functionName, options)
 
     templateFile = fullfile(nansen.toolboxdir, 'resources', 'templates', 'session_method_help.html.template');
     htmlFolder = fullfile(tempdir, 'nansen-html');
-    
+
     if ~isfolder(htmlFolder)
-        mkdir(htmlFolder); 
+        mkdir(htmlFolder);
         nansen.internal.template.copyCss(htmlFolder)
     end
     htmlFilepath = fullfile(htmlFolder, join(functionNameSplit(end-2:end), "_") + ".html");
@@ -53,14 +53,14 @@ function helpDialogNansenMethod(functionName, options)
 end
 
 function [summary, description] = extractDocString(filePath)
-   
+
     summary = "No summary";
     description = "No description";
 
     functionContent = fileread(filePath);
 
     docstringLines = string.empty;
-    
+
     functionLines = splitlines(functionContent);
     for i = 1:numel(functionLines)
         thisLine = strtrim(functionLines(i));
@@ -69,11 +69,11 @@ function [summary, description] = extractDocString(filePath)
         elseif startsWith(thisLine, '%')
             thisLine = extractAfter(thisLine, '%');
             docstringLines(end+1) = thisLine; %#ok<AGROW>
-        else           
+        else
             break
         end
     end
-    
+
     if ~isempty(docstringLines)
         summary = strtrim(docstringLines{1});
         description = trimEmptyEdgeLines(docstringLines(2:end));
@@ -249,7 +249,6 @@ function flatStruct = flattenNestedStruct(nestedStruct, parentName)
         end
     end
 end
-
 
 function value = formatValueAsString(value)
     if isinteger(value)

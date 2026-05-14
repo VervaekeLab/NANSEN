@@ -4,7 +4,7 @@ classdef ButtonGroup < handle
 % NB: Work in progress
 
 %   Todo:
-%   [ ] Add set width
+%   [ ] Add set width
 
     properties
         CurrentSelection = 'Button 1'
@@ -22,13 +22,13 @@ classdef ButtonGroup < handle
         ItemIcons
         FontName = 'helvetica'
     end
-    
+
     % Todo: ICONS and theme should be settable
     properties (Constant, Hidden = true) % Move to appwindow superclass
         DEFAULT_THEME = nansen.theme.getThemeColors('light');
         ICONS = uim.style.iconSet(nansen.App.getIconPath)
     end
-    
+
     properties (Dependent)
         Position
         Width
@@ -41,7 +41,7 @@ classdef ButtonGroup < handle
         Components (1,1) struct % Holds components of this widget Has the following fields: Group, Buttons
         ParentSizeChangedListener (1,:) event.listener
     end
-    
+
     properties (Access = private)
         Padding = [5,0,5,0]
     end
@@ -122,10 +122,10 @@ classdef ButtonGroup < handle
             obj.createButtons()
 
             panelPos = uim.utility.getContentPixelPosition(obj.Parent);
-            
+
             linePos([1,3]) = floor([obj.Width, obj.Width]+2);
             linePos([2,4]) = [1, panelPos(4)];
-            
+
             h = uim.decorator.Line(obj.Parent, ...
                 'Position', linePos, ...
                 'PositionMode', 'manual', ...
@@ -152,17 +152,17 @@ classdef ButtonGroup < handle
             xPad = 4;
 
             hToolbar = obj.Components.Group;
-            
+
             buttonConfig = {'FontSize', 15, 'FontName', obj.FontName, ...
                 'Padding', [xPad,2,xPad,2], 'CornerRadius', 7, ...
                 'Mode', 'togglebutton', 'Style', uim.style.tabButtonLight, ...
                 'IconSize', [14,14], 'IconTextSpacing', 7};
-            
+
             % Bug with toolbar so buttons are created from the bottom up
             counter = 0;
             for i = numel(obj.Items):-1:1
                 counter = counter+1;
-                
+
                 if any(strcmpi(obj.ICONS.iconNames, obj.Items{i}) )
                     icon = obj.ICONS.(lower(obj.Items{i}));
                 else
@@ -179,7 +179,7 @@ classdef ButtonGroup < handle
             end
             obj.Components.Buttons = fliplr(obj.Components.Buttons);
         end
-    
+
         function wasSwitched = switchButtonOn(obj, buttonHandle)
             % Make sure all other buttons than current is off
             for iBtn = 1:numel(obj.Components.Buttons)
@@ -197,10 +197,10 @@ classdef ButtonGroup < handle
             if ~nargout; clear wasSwitched; end
         end
     end
-    
+
     methods (Access = private)
         function onButtonPressed(obj, src, evt, pageNum)
-            
+
             wasSwitched = obj.switchButtonOn(src);
             obj.CurrentSelection = src.Text;
 
@@ -216,7 +216,7 @@ classdef ButtonGroup < handle
                 end
             end
         end
-    
+
         function onParentSizeChanged(obj, src, evt)
             obj.updateLineHeight()
             obj.updateLocation()

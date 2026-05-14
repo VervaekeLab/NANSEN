@@ -22,13 +22,13 @@ function stats = imageprops(roiImageArray, roiArray, varargin)
 
     params = struct();
     params.Properties = 'all';
-    
+
     params = utility.parsenvpairs(params, 1, varargin{:});
     getAll = ischar(params.Properties) && strcmp(params.Properties, 'all');
     get = @(name) any( strcmp(params.Properties, name) ); %getfcn
-    
+
     [imageHeight, imageWidth, numRois] = size(roiImageArray);
-    
+
     % Initialize output
     stats = struct;
 
@@ -36,21 +36,19 @@ function stats = imageprops(roiImageArray, roiArray, varargin)
         salience = nansen.twophoton.roi.stats.roiSalience(roiArray, ...
             roiImageArray.Top99thPercentile);
         stats.RoiSalience = salience;
-        
-        % Todo: This should be improved for soma with a dark nucleus!
-        
-    end
-    
-    if getAll || get('RoiEdgyness')
 
+        % Todo: This should be improved for soma with a dark nucleus!
     end
-    
+
+    if getAll || get('RoiEdgyness')
+    end
+
     if getAll || get('MeanImageSimilarity')
         IM = roiImageArray.ActivityWeightedMean;
         similarity = nansen.twophoton.roi.stats.templateSimilarity(IM);
         stats.MeanImageSimilarity = similarity;
     end
-    
+
     if getAll || get('CorrelationSimilarity')
         IM = roiImageArray.LocalCorrelation;
         similarity = nansen.twophoton.roi.stats.templateSimilarity(IM);

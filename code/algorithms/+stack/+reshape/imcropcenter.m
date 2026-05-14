@@ -21,5 +21,4 @@ ind = repmat({':'}, 1, ndims(imArrayIn));
 ind(1:2) = {yInd, xInd};
 
 imArrayOut = imArrayIn(ind{:});
-
 end

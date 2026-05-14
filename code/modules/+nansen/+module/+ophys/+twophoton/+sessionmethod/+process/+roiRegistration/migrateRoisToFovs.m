@@ -30,30 +30,30 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
 % Create a struct of default parameters (if applicable) and specify one or
 % more attributes (see nansen.session.SessionMethod.setAttributes) for
 % details.
-    
+
     % Get struct of parameters from local function
     params = getDefaultParameters();
-    
+
     % Create a cell array with attribute keywords
     ATTRIBUTES = {'batch', 'unqueueable'};
-    
+
 % % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % %
 % - - - - - - - - - - Please do not edit this part - - - - - - - - - - -
-    
+
     % Create a struct with "attributes" using a predefined pattern
     import nansen.session.SessionMethod
     fcnAttributes = SessionMethod.setAttributes(params, ATTRIBUTES{:});
-    
+
     if ~nargin && nargout > 0
         varargout = {fcnAttributes};   return
     end
-    
+
     % Parse name-value pairs from function input.
     params = utility.parsenvpairs(params, [], varargin);
-    
+
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
 % Implementation of the session method.
-    
+
     % Count number of sessions
     numSessions = numel(sessionObject);
 
@@ -61,7 +61,7 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
     sessionIDs = {sessionObject.sessionID};
     refSessionID = nansen.ui.dialog.uiSelectString(sessionIDs, 'single', 'reference session');
     if isempty(refSessionID); return; end % User canceled
-    
+
     % Reorder sessions to place the reference session first in the list.
     idx = find(strcmp(refSessionID, sessionIDs));
     newOrder = unique( [idx, 1:numSessions], "stable" );
@@ -101,7 +101,7 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
 
     assert( numel(unique(numChannels))==1, ...
         'All sessions must have the same number of channels')
-    
+
     assert( numel(unique(numPlanes))==1 && unique(numPlanes)==1, ...
         'This method is not implemented for multiplane recordings yet')
 
@@ -121,7 +121,7 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
     % the same channels? Probably yes...
 
     % Store indices of missing sessions
-    
+
     % Concatenate the fov images into an array
     fovImageArray = cat(3, fovImages{:});
 
@@ -130,7 +130,7 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
 
     % Load rois for reference session
     sessionData = sessionObject(1).Data;
-    
+
     varName = sessionData.uiSelectVariableName('roiArray', 'single');
     roiArray = sessionObject(1).loadData(varName{1}, 'FileAdapter', 'nansen.internal.dataio.fileadapter.RoiArray');
 
@@ -165,21 +165,21 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
     hAxes = axes(hFigure, 'Position', [0,0,1,1]);
 
     for i = 1:numSessions
-        
+
         fileName = sprintf('fov_roi_registration_%s.png', sessionIDs{i});
         savePath = fullfile(saveFolder, fileName);
-        
+
         if i == 1 % Reference session
             hImage = imshow(uint8(fovImageArray(:, :, 1)));
             hold(hAxes, 'on')
-            
+
             thisRoiArray = roiArray;
         else
             hImage.CData = uint8( fovImageArray(:, :, i) );
             cellfun(@delete, hRois)
             thisRoiArray = roiArrayMigrated{i-1};
         end
-        
+
         for jChannel = 1:numChannels
             if ~isempty( thisRoiArray{jChannel} )
                 hRois{jChannel} = imviewer.plot.plotRoiArray(hAxes, thisRoiArray{jChannel});
@@ -188,7 +188,7 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
                 hRois{jChannel} = plot(hAxes, nan, nan);
             end
         end
-        
+
         % Add legend for roi channels
         legendLines = cellfun(@(c) c(1), hRois);
         legendLabels = arrayfun(@(i) sprintf('Rois Channel %d', i), 1:numChannels, 'uni', 0);
@@ -204,18 +204,18 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
     L = dir( fullfile(saveFolder, 'fov_roi_registration_*.png') );
 
     imviewer( fullfile(saveFolder, {L.name}) )
-    
+
     % Ask to save results
     % Todo
 
     % Initialize MultiSession Roi Array
     multiSessionRoiFilename = sprintf('%s_multi_session_roi_collection.mat', sessionIDs{1});
     multiSessionRoiFilepath = fullfile(saveFolder, multiSessionRoiFilename);
-    
+
     % todo: rois is a vector/matrix (i.e multichannel/plane)
-    
+
     numChannels = unique(numChannels);
-    
+
     S = struct;
     S.multiSessionRois = flufinder.longitudinal.MultiSessionRoiCollection.empty;
     %S.multiSessionRois = S.multiSessionRois.addEntry(sessionIDs{1}, fovImageArray(:,:,1), roiArray);
@@ -231,12 +231,12 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
             thisRoiArray = roiArrayMigrated{i-1};
             %isReference = false;
         end
-    
+
         skipUpdate = true; % This update was essentially done during the "migration" step above
         S.multiSessionRois = S.multiSessionRois.addEntry(sessionIDs{i}, fovImageArray(:,:,i), thisRoiArray, skipUpdate);
         %S.multiSessionRois(i).ImageChannel = %params.WorkingChannel;
         sessionObject(i).saveData('RoiArrayLongitudinal', thisRoiArray, 'Subfolder', 'roi_data')% todo:?, 'FileAdapter', 'RoiArray')
-        
+
         sessionObject(i).saveData('MultisessionRoiCrossReference', multiSessionRoiFilepath, 'Subfolder', 'roi_data')
     end
 
@@ -246,15 +246,13 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
 end
 
 function initializeMultiSessionRois()
-
 end
 
 function saveMultiSessionRois()
-
 end
 
 function S = getDefaultParameters()
-    
+
     S = struct();
     S.WorkingChannel = 2; % Imaging channel used for aligning FOVs and migrating ROIs.
     S.WorkingChannel_ = {1,2};
@@ -262,5 +260,4 @@ function S = getDefaultParameters()
     %  S.MultisessionRoiSynchMode ?
     % 'LoadFromMaster', struct('Alternatives', {{'Use Master', 'Use Single', 'Merge'}}, 'Selection', {'Merge'}), ...
     % 'SaveToMaster', struct('Alternatives', {{'Only Add', 'Mirror'}}, 'Selection', {'Mirror'}), ...
-
 end

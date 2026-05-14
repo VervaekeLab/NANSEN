@@ -25,7 +25,7 @@ classdef BatchDatavariableSelector < handle
             app.PathName = pathName;
             app.DataLocationName = dataLocationName;
             app.SessionObject = sessionObject;
-            
+
             app.createComponents()
             app.DataTree.loadFile(pathName)
         end
@@ -79,7 +79,7 @@ classdef BatchDatavariableSelector < handle
                 char(app.PathName), app.DataLocationName, app.SessionObject, ...
                 "SkipFields", "VariableName", ...
                 "Prompt", "Select initial options to apply for all new variables:");
-            
+
             if ~isempty(newDataVariable)
                 variableModel = app.SessionObject.VariableModel;
 

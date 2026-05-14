@@ -9,10 +9,10 @@ function fileAdapterList = listFileAdapters(fileExtension, refresh)
 %       FunctionName        (char) : Name of function for file adapter
 %       SupportedFileTypes  (cell) : File types that are supported with this fileadapter
 %       DataType            (char) : Name of datatype returned by this file adapter
-    
+
     % Todo: Ignore file adapters with a name that are already in the list
     % Todo: Start adding from project dir, then watchfolder, then internal?
-    
+
     if nargin < 2 || isempty(refresh); refresh = false; end
 
     project = nansen.getCurrentProject();
@@ -22,7 +22,7 @@ function fileAdapterList = listFileAdapters(fileExtension, refresh)
 
     if nargin < 1; fileExtension = ''; end
     if ~isempty(fileExtension); fileExtension = strrep(fileExtension, '.', ''); end
-    
+
     if ~isempty(fileExtension)
         validationFcn = @(extList) any(contains(extList, fileExtension, "IgnoreCase", true));
         keep = arrayfun(@(s) validationFcn(s.SupportedFileTypes), ...
@@ -30,7 +30,7 @@ function fileAdapterList = listFileAdapters(fileExtension, refresh)
     else
         keep = true(1, numel(fileAdapterList));
     end
-    
+
     fileAdapterList = fileAdapterList(keep);
 
     if isempty(fileAdapterList)
@@ -49,5 +49,4 @@ function fileAdapterList = listFileAdapters(fileExtension, refresh)
         fileFormats = cellfun(@(c) string(strjoin(c, ', ')), fileFormats);
         fileAdapterList.SupportedFileTypes = fileFormats;
     end
-
 end

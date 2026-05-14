@@ -4,12 +4,12 @@ function createABO_VisualCoding_CalciumImaging_Project()
 
     assert( exist('+bot/listSessions', 'file') == 2, ...
         'This action requires the Brain-Observatory-Toolbox to be installed' )
-    
+
     % Define project name and project description:
     projectName = 'abo_ophys';
     projectDescription = "Allen Brain Observatory - Visual Coding - Two Photon Calcium Imaging";
     projectDirectory = fullfile( userpath, 'Nansen', 'New Projects', 'ABO-VisualCoding-TwoPhoton-Test');
-    
+
     % Create a project
     project = nansen.config.project.Project.new(projectName, projectDescription, projectDirectory);
 

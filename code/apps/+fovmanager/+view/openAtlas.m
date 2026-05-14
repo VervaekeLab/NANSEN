@@ -9,7 +9,7 @@ function hFigure = openAtlas(atlasName, options)
         options.Visibility (1,1) string {mustBeMember(options.Visibility, ["visible", "invisible"])} = "visible"
     end
 
-%   Todo: 
+%   Todo:
 %   - Add saggittal maps.
 %   - Add lambda and bregma
 
@@ -20,10 +20,10 @@ function hFigure = openAtlas(atlasName, options)
     % Version were we are agnostic to package name. Todo: clean up
     % pkgFolderPath = utility.path.getAncestorDir( mfilename('fullpath'), 2);
     % atlasFolderPath = fullfile(pkgFolderPath, 'resources', 'brain_atlas');
-    
+
     % Version were we know package name but local path is centrally hardcoded.
     atlasFolderPath = fovmanager.localpath( 'brain_atlas' );
-    
+
     loadPath = fullfile(atlasFolderPath, atlasName, 'dorsal_map.fig');
     hFigure = openfig(loadPath, options.Visibility);
 

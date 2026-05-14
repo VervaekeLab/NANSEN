@@ -11,7 +11,7 @@ function tiffObject = getTiffObject(fileRef)
 
     elseif isa(fileRef, 'char') && isfile(fileRef)
         [~, ~, ext] = fileparts(fileRef);
-        
+
         if strcmpi(ext, '.tif') || strcmpi(ext, '.tiff')
             tiffObject = Tiff(fileRef);
         else

@@ -10,7 +10,7 @@ function pathStr = localpath(keyword)
 pkgRootPath = fileparts(mfilename('fullpath'));
 
 switch keyword
-    
+
     case 'brain_atlas'
         pathStr = fullfile(pkgRootPath, 'resources', 'brain_atlas');
     case 'toolbar_icons'
@@ -21,5 +21,4 @@ switch keyword
 %     case 'allen-map'
 %         pathStr = fullfile(fovmanager.localpath('brain_atlas'));
 %         pathStr = fullfile(pathStr, 'allen');
-
 end

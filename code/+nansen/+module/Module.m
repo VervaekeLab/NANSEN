@@ -40,7 +40,7 @@ classdef Module < handle
     properties (Dependent)
         ID
     end
-    
+
     properties (Access = private)
         FolderPath
         PackageName
@@ -80,31 +80,31 @@ classdef Module < handle
 % %             end
 
             if ~nargin; return; end
-            
+
             % Check if the given path is a folder
             if isfolder(pathStr)
                 pathStr = fullfile(pathStr, obj.MODULE_CONFIG_FILENAME);
             end
-            
+
             % Read the configuration file
             obj.readConfigurationFile(pathStr)
-            
+
             obj.FolderPath = fileparts(pathStr);
             obj.PackageName = utility.path.pathstr2packagename(obj.FolderPath);
 
             obj.CachedFilePaths = containers.Map();
             obj.ItemTables = containers.Map();
 
-            % NB: Explicitly assigning a new containers.Map instance to 
-            % avoid the default empty value assigned by the property type 
-            % validator. This prevents multiple objects from 
+            % NB: Explicitly assigning a new containers.Map instance to
+            % avoid the default empty value assigned by the property type
+            % validator. This prevents multiple objects from
             % unintentionally sharing the same handle object.
             obj.LastUpdateTimeForItemTable = containers.Map();
         end
     end
 
     methods (Access = public)
-        
+
         function names = listMixins(obj, mixinType)
             arguments
                 obj
@@ -122,9 +122,9 @@ classdef Module < handle
         function fileAdapterFolder = getFileAdapterFolder(obj)
             fileAdapterFolder = fullfile(obj.FolderPath, '+fileadapter');
         end
-        
+
         function objectMethodFolder = getObjectMethodFolder(obj, itemType)
-            
+
             if strcmpi(itemType, 'session') % Todo: Consolidate
                 objectMethodFolder = fullfile(obj.FolderPath, '+sessionmethod');
             else
@@ -153,7 +153,7 @@ classdef Module < handle
     end
 
     methods % Get dependent properties
-        
+
         % Todo: get from cache? Or do the following:
         % - rehash
         % - update if necessary
@@ -190,7 +190,7 @@ classdef Module < handle
             pipelines = "N/A";
         end
     end
-    
+
     methods % Set methods for configuration properties
 
         function set.Name(obj, newValue)
@@ -215,7 +215,7 @@ classdef Module < handle
     end
 
     methods (Access = protected)
-        
+
         function rootPath = getItemRootFolder(obj, itemType)
         %getItemRootFolder Get root folder for files of specified item
 
@@ -227,10 +227,9 @@ classdef Module < handle
 
                 case {'datavariables', 'pipeline', 'datalocations'}
                     rootPath = fullfile(obj.FolderPath, 'resources', itemType);
-                
+
                 otherwise % Assume mixin
                     rootPath = fullfile(obj.FolderPath, '+mixin', ['+', itemType]);
-
             end
         end
 
@@ -257,19 +256,19 @@ classdef Module < handle
                 end
             end
         end
-        
+
         function readConfigurationFile(obj, filePath)
         % readConfigFile - Read a module config file and assign properties
             fileStr = fileread(filePath);
             moduleSpecification = jsondecode(fileStr);
-            
+
             obj.Name = moduleSpecification.Properties.Name;
             obj.Description = moduleSpecification.Properties.Description;
         end
     end
 
     methods (Access = private)
-        
+
         function itemTable = rehash(obj, itemType, forceRefresh)
         %rehash Check for changes to modulefiles and perform update if necessary
             if nargin < 3; forceRefresh = false; end
@@ -283,9 +282,9 @@ classdef Module < handle
             deltaT = 1; % Update interval in seconds for checking file system for changes.
 
             if toc(lastTic) > deltaT
-            
+
                 fileList = obj.listFiles(itemType);
-    
+
                 if ~isKey(obj.CachedFilePaths, itemType)
                     itemTable = obj.updateItemList(itemType, fileList);
                 else
@@ -327,17 +326,17 @@ classdef Module < handle
             end
             obj.ItemTables(itemType) = itemTable;
         end
-    
+
         function resultTable = buildTableFromJsonFiles(~, filePaths)
-            
+
             % Initialize an empty table
             resultTable = table.empty;
-        
+
             % Loop over all file paths
             for i = 1:length(filePaths)
                 % Read the JSON file
                 jsonData = jsondecode(fileread(filePaths{i}));
-        
+
                 % Convert the JSON data to a table
                 try
                     tempTable = struct2table(jsonData.Properties, 'AsArray', true);
@@ -354,16 +353,16 @@ classdef Module < handle
 
         function module = fromName(moduleName)
         %fromName - Get a module instance from name
-            
+
             % Build the folder path
             moduleRootFolder = nansen.common.constant.ModuleRootDirectory;
             modulePackageFolder = utility.path.packagename2pathstr(moduleName);
             moduleFolder = fullfile(moduleRootFolder, modulePackageFolder);
-            
+
             % Get the filename and build the full filepath
             configFileName = nansen.module.Module.MODULE_CONFIG_FILENAME;
             moduleConfigFilePath = fullfile(moduleFolder, configFileName);
-            
+
             if isfile(moduleConfigFilePath)
                 module = nansen.module.Module(moduleConfigFilePath);
             else
@@ -384,7 +383,7 @@ classdef Module < handle
         end
 
         function fileList = listMFiles(rootFolder, ignoreList)
-            
+
             import utility.dir.listClassdefFilesInClassFolder
 
             if nargin < 2
@@ -393,16 +392,16 @@ classdef Module < handle
 
             % List all class definition files that are located in a class folder
             fileListA = listClassdefFilesInClassFolder(rootFolder);
-            
+
             % List all m-files that are not located in a class folder
             % fileListB = utility.dir.recursiveDir(rootFolder, ...
             %     'IgnoreList', "@", 'Type', 'file', 'FileType', 'm', ...
             %     'RecursionDepth', 2, 'IsCumulative', false, ...
             %     'OutputType', 'FilePath');
-            
+
             fileListB = utility.dir.recursiveDir(rootFolder, ...
                 'IgnoreList', ["@", "deprecated", ignoreList], 'Type', 'file', 'FileType', 'm');
-            
+
             fileList = cat(1, fileListA, fileListB);
         end
 
@@ -421,14 +420,14 @@ classdef Module < handle
                 'FileType', 'json', ...
                 'Expression', expression);
         end
-        
+
         function tf = isFileListModified(oldFileList, newFileList)
-            
+
             tf = true; % Assume list is modified.
 
             [oldFilePathList, indOld] = sort( utility.dir.abspath(oldFileList) );
             [newFilePathList, indNew] = sort( utility.dir.abspath(newFileList) );
-            
+
             if ~isequal(oldFilePathList, newFilePathList)
                 return
             end
@@ -446,7 +445,7 @@ classdef Module < handle
             % If we got here, the file lists are identical
             tf = false;
         end
-    
+
         function moduleTemplateFolder = getModuleTemplateDirectory()
         % getModuleTemplateDirectory - Get pathstring for template folder
             rootFolder = fileparts( mfilename('fullpath') );

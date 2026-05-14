@@ -17,7 +17,7 @@ classdef UserSettings < applify.mixin.UserSettings
 %   See also uim.mixin.UserSettings
 
     methods (Access = protected)
-        
+
         function pathStr = getSettingsFilePath(obj)
         %getSettingsFilePath Get settings file path
         %
@@ -26,38 +26,37 @@ classdef UserSettings < applify.mixin.UserSettings
         %   The purpose of this is to call the static method for creating a
         %   filepath for the settings file. A subclass needs to redefine
         %   the reference for calling up the static method.
-            
+
             className = class(obj);
             pathStr = nansen.mixin.UserSettings.createFilePath(className);
-            
         end
     end
-    
+
     methods (Static)
-        
+
         function S = getSettings(className)
         %getSettings Get default settings or load settings from file.
-            
+
             % Get the filepath where the settings are saved.
             filePath = nansen.mixin.UserSettings.createFilePath(className);
-            
+
             % Use the static load method to get settings for this class
             S = applify.mixin.UserSettings.staticLoad(className, filePath);
         end
-        
+
         function pathStr = createFilePath(className)
         %createSettingsPath Create filepath for settings of subclass
-            
+
             % Save settings into the nansen/_userdata folder.
             settingsFolderPath = fullfile(nansen.prefdir, 'settings');
-        
+
             % Create a filename
             className = lower( strrep(className, '.', '_') );
             settingsFileName = strcat(className, '_settings.mat');
-            
+
             % Create folder to save settings file in if it does not exist
             if ~isfolder(settingsFolderPath); mkdir(settingsFolderPath); end
-            
+
             % Return the filepath where to save and load settings from
             pathStr = fullfile(settingsFolderPath, settingsFileName);
         end

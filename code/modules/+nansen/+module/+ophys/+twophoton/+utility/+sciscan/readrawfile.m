@@ -76,7 +76,7 @@ else
     disp([filename ' is not a recognized file format.']);
 return
 end
-    
+
 if ~exist('frames') || isempty(frames)
     frames=framecount;
 end
@@ -86,13 +86,13 @@ fid=fopen(filename,'r','b');
     if exist('skipframes') && ~isempty(skipframes)
         fseek(fid,skipframes.*recorded_ch.*precparam2.*prod([x y]),'bof');
     end
-    
+
     switch channel
-        
+
         case 'first'
             eval(['data=' precparam3 '(zeros(x*y,frames));']);
             for fr=1:frames;
-                
+
 % % %                 if ~rem(fr, 100) && frames > 1
 % % %                     str=['loading frame ' num2str(fr) '/' num2str(frames)];
 % % %
@@ -108,15 +108,15 @@ fid=fopen(filename,'r','b');
                 end
             end
             data=reshape(data,[x y fr]);
-            
+
         case 'second'
             eval(['data=' precparam3 '(zeros(x*y,frames));']);
             if recorded_ch > 1
                 dump = fread(fid,prod([x y]),['1' precparam1]);
             end
-            
+
             for fr=1:frames;
-                
+
 % % %                 if ~rem(fr,10) && frames > 1
 % % %                     str=['loading frame ' num2str(fr) '/' num2str(frames)];
 % % %
@@ -132,11 +132,11 @@ fid=fopen(filename,'r','b');
                 end
             end
             data=reshape(data,[x y fr]);
-            
+
         case 'all'
             y=y*recorded_ch;
             eval(['data=' precparam3 '(zeros(x*y,frames));']);
-            
+
             for fr=1:frames;
 % % %                 if ~rem(fr,10) && frames > 1
 % % %                     str=['loading frame ' num2str(fr) '/' num2str(frames)];
@@ -155,7 +155,7 @@ fid=fopen(filename,'r','b');
             data=reshape(data,[x y/recorded_ch recorded_ch fr]);
             data=permute(data,[1 2 4 3]);
     end
-    
+
 % % % if frames > 1
 % % %     fprintf(char(8*ones(1,length(prevstr))));
 % % %     fprintf('Loaded all images.');

@@ -9,11 +9,11 @@ classdef AddonManagerApp < nansen.config.abstract.ConfigurationApp
     end
 
     methods
-        
+
         function obj = AddonManagerApp(addonManager)
 
             import nansen.config.addons.AddonManagerUI
-            
+
             obj.FigureSize = [699+40, 349];
 
             obj.createFigure()
@@ -25,13 +25,13 @@ classdef AddonManagerApp < nansen.config.abstract.ConfigurationApp
             %obj.setLayout()
             panelSize = obj.Figure.Position(3:4) - [40, 60];
             cPanel.Position = [20, 20, panelSize];
-            
+
             obj.applyTheme()
 
             obj.UIModule{1} = AddonManagerUI(cPanel, addonManager);
 
             if ~nargout; clear obj; end
-            
+
             %obj@applify.ModularApp
             % Create tabs
             %obj.isConstructed = true;

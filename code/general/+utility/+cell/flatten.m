@@ -12,7 +12,7 @@ function [flatCellArray, numElementsPerCell] = flatten(cellArray)
 %   Note1: Assume homogeneous cell array, i.e all elements in the cells are
 %          same type.
 %   Note2: Does not work on nested cell arrays.
-    
+
     if isa(cellArray, 'cell')
         numElementsPerCell = cellfun(@numel, cellArray);
         flatCellArray = [cellArray{:}];

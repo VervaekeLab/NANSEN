@@ -39,7 +39,7 @@ classdef Preferences < matlab.mixin.CustomDisplay & handle
             propertyNames = {};
         end
     end
-    
+
     methods (Static, Hidden) % Get singleton instance
 
         function obj = getSingleton(className)
@@ -129,10 +129,10 @@ classdef Preferences < matlab.mixin.CustomDisplay & handle
 
             numOutputs = nargout;
             varargout = cell(1, numOutputs);
-            
+
             isPropertyAssigned = strcmp(s(1).type, '.') && ...
                 any( strcmp(properties(obj), s(1).subs) );
-            
+
             % Use the builtin subsref with appropriate number of outputs
             if numOutputs > 0
                 [varargout{:}] = builtin('subsasgn', obj, s, value);
@@ -144,7 +144,7 @@ classdef Preferences < matlab.mixin.CustomDisplay & handle
                 obj.save()
             end
         end
-        
+
         function n = numArgumentsFromSubscript(obj, s, indexingContext)
             n = builtin('numArgumentsFromSubscript', obj, s, indexingContext);
         end
@@ -160,7 +160,7 @@ classdef Preferences < matlab.mixin.CustomDisplay & handle
 
         function groups = getPropertyGroups(obj)
             propNames = obj.getActivePreferenceGroup();
-            
+
             s = struct();
             for i = 1:numel(propNames)
                 s.(propNames{i}) = obj.(propNames{i});
@@ -171,7 +171,7 @@ classdef Preferences < matlab.mixin.CustomDisplay & handle
     end
 
     methods (Access = private)
-        
+
         function S = toStruct(obj)
             propNames = properties(obj);
             S = struct();
@@ -179,7 +179,7 @@ classdef Preferences < matlab.mixin.CustomDisplay & handle
                 S.(propNames{i}) = obj.(propNames{i});
             end
         end
-                
+
         function fromStruct(obj, S)
             propNames = fieldnames(S);
             for i = 1:numel(propNames)
@@ -201,7 +201,7 @@ classdef Preferences < matlab.mixin.CustomDisplay & handle
         %   not active.
 
             propertyNames = properties(obj);
-            
+
             namesToHide = obj.getPropertiesToHide();
 
             propertyNames = setdiff(propertyNames, namesToHide, 'stable');

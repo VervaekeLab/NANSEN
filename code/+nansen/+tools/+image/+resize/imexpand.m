@@ -38,5 +38,4 @@ shift = floor((newSize - [nRows, nCols]) ./ 2);
 
 % put original array in center of zeroes array
 imArrayOut(shift(1) + (1:nRows), shift(2) + (1:nCols), :) = imArrayIn;
-
 end

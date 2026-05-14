@@ -101,7 +101,7 @@ switch method
         diffY = horzcat(diffY(1), diffY);
 
         nBins = width / binSize;
-        
+
         % Calculate new binsizes for all the bins.
         newBinSizes = binSize - round(sum(reshape(diffY,  [], nBins), 1));
         newBinSizes(newBinSizes<=0) = 1;
@@ -123,33 +123,33 @@ switch method
             imStrip = imresize(imStrip, [height, newBinSizes(c)]);
             new_im(:, newBinStartIdx(c):newBinStopIdx(c), :) = imStrip;
         end
-        
+
     case 'imwarp'
-        
+
         % Create displacement grid.
-        
+
         displacementX = destretchLookup(lookupIdx).DisplacementX;
         if ~isa(displacementX, 'cell'); displacementX = {displacementX}; end
         nIter = numel(displacementX);
-        
+
         for iter = 1%:nIter
             Dx = repmat(displacementX{iter}, size(im, 1), 1);
             Dy = zeros(size(Dx));
-            
+
             % Fixed the displacementfield, no need for multiple
             % iterations. Important that the dim argument is 2, so that
             % interpolation happens along the xaxis.
             D = createDisplacementFieldFromPixelShifts(-Dx, -Dy, 2);
-            
+
 %             D = round(cat(3, Dx, Dy));
-        
+
 %             % Apply displacement field
 %             for i = 1:nFrames
 %                 im(:,:,i) = imwarp(im(:,:,i), D, 'cubic');
 %             end
 
             im = imwarp(im, D, 'cubic');
-            
+
             if isa(im, 'logical')
                 dummy = ones(size(im)); dummy = imwarp(dummy, D, 'cubic');
                 cropLeft = find(dummy(round(size(im, 1)/2),:,1) ~= 0, 1, 'first') - 1;
@@ -158,13 +158,12 @@ switch method
                 cropLeft = find(im(round(size(im, 1)/2),:,1) ~= 0, 1, 'first') - 1;
                 cropRight = width - find(im(round(size(im, 1)/2),:,1) ~= 0, 1, 'last');
             end
-            
+
             im = im(:, cropLeft+1:end-cropRight, :);
             [height, width, nFrames] = size(im);
         end
-        
-        new_im = im;
 
+        new_im = im;
 end
 
 %     % Print progress in command window
@@ -192,7 +191,6 @@ new_im = reshape(new_im, stackSize);
 
 % Remove singleton dimension...
 new_im = squeeze(new_im);
-
 end
 
 function [D, BW] = createDisplacementFieldFromPixelShifts(shiftX, shiftY, dim)

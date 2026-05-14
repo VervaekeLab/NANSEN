@@ -21,25 +21,25 @@ classdef roiGroup < handle
 %   applications.
 
 %   Todo:
-%       [ ] Better solution to visible rois. Specifically: Now, every time a
+%       [ ] Better solution to visible rois. Specifically: Now, every time a
 %           roi is added or removed the filtering for visible rois is reset.
-%       [ ] Add channel number and plane number as arguments that can be
+%       [ ] Add channel number and plane number as arguments that can be
 %           passed on construction
 
     properties
         ParentApp = [] % Used for storing undo/redo commands.
     end
-    
+
     properties
         Description
         ChannelNumber = 1
         PlaneNumber = 1
     end
-    
+
     properties (SetAccess = private)
         FovImageSize = [] % Todo: Make dependent
     end
-    
+
     properties (SetAccess = protected) % RoiGroupData...
         roiArray RoI
 
@@ -48,31 +48,31 @@ classdef roiGroup < handle
         roiImages struct % Struct array
         roiStats  struct % Struct array
     end
-    
+
     properties % Preferences
         NextRoiSelectionMode = 'Next in list'
         VisibleClassification = 'All'   % (Todo: Not implemented. Should this be implemented here on the roigroup or on the roidisplays?)
         isActive = true                 % Active (true/false) indicates whether rois should be kept in memory as an object or a struct array.
     end
-    
+
     properties (Dependent, SetAccess = private)
         roiCount            % Number of rois contains in roiGroup
         IsDirty
     end
-    
+
     properties (Access = private)
         isDirty_ = false    % Internal flag for whether roigroup has unsaved changes
     end
-    
+
     events
         roisChanged                     % Triggered when rois are changed
         classificationChanged           % Triggered when roi classifications are changed
         roiSelectionChanged             % Triggered when roi selection is changed...
         VisibleRoisChanged
     end
-    
+
     methods % Constructor
-        
+
         function obj = roiGroup(varargin)
         %roiGroup Create a roiGroup object
         %
@@ -82,7 +82,7 @@ classdef roiGroup < handle
         %
         %   roiGoupObj = roimanager.roiGroup(roiGroupStuct) creates a
         %   roigroup
-        
+
             if ~isempty(varargin)
 
                 % Parse inputs. Parser might replace obj (todo: test)
@@ -98,22 +98,21 @@ classdef roiGroup < handle
 
                 elseif isa(varargin{1}, 'RoI')
                     obj.addRois(varargin{1})
-                    
+
                 elseif isa(varargin{1}, 'struct') && isfield(varargin{1}, 'roiArray')
                     obj.populateFromStruct(varargin{1})
-                    
+
                 elseif isa(varargin{1}, 'struct') && isfield(varargin{1}, 'uid')
                     roiArray = roimanager.utilities.struct2roiarray(varargin{1});
                     obj.addRois(roiArray)
                 else
-
                 end
             end
         end
     end
 
     methods (Access = private) % Methods for construction / initialization
-        
+
         function obj = parseConstructorInputs(obj, varargin)
         %parseConstructorInputs Parse inputs to constructor
 
@@ -125,23 +124,22 @@ classdef roiGroup < handle
                 else
                     error('First input is a character vector, but is not a filename for an existing file')
                 end
-            
+
             % Check if first input is a RoI object/object array
             elseif isa(varargin{1}, 'RoI')
                 obj.addRois(varargin{1})
-                
+
             % Check if first input is a struct/struct array holding
             % roigroup fields
             elseif isa(varargin{1}, 'struct') && isfield(varargin{1}, 'roiArray')
                 obj.populateFromStruct(varargin{1})
-                
+
             % Check if first input is a struct/struct array holding
             % items that can be converted to RoIs
             elseif isa(varargin{1}, 'struct') && isfield(varargin{1}, 'uid')
                 roiArray = roimanager.utilities.struct2roiarray(varargin{1});
                 obj.addRois(roiArray)
             else
-                
             end
         end
     end
@@ -154,20 +152,20 @@ classdef roiGroup < handle
                 uiundo(obj.ParentApp.Figure, 'execUndo')
             end
         end
-        
+
         function redo(obj)
             if ~isempty(obj.ParentApp) && ~isempty(obj.ParentApp.Figure)
                 obj.changeRoiSelection(nan, []) % Note: unselect all rois before executing undo!
                 uiundo(obj.ParentApp.Figure, 'execRedo')
             end
         end
-        
+
         function markClean(obj)
             for i = 1:numel(obj)
                 obj(i).isDirty_ = false;
             end
         end
-        
+
         function addRois(obj, newRois, roiInd, mode, isUndoRedo)
         % addRois Add new rois to the roiGroup.
 
@@ -184,11 +182,11 @@ classdef roiGroup < handle
 
             % Count number of rois
             nRois = numel(newRois);
-            
+
             if nargin < 3 || isempty(roiInd)
                 roiInd = obj.roiCount + (1:nRois);
             end
-            
+
             if isempty(obj.FovImageSize)
                 obj.FovImageSize = newRois(1).imagesize;
             end
@@ -210,7 +208,7 @@ classdef roiGroup < handle
 
             % Make sure classification is part of userdata
             newRois = obj.initializeRoiClassification(newRois);
-            
+
             % Make sure roi stats are initialized.
             newRois = obj.initializeRoiStats(newRois);
 
@@ -230,28 +228,28 @@ classdef roiGroup < handle
                     obj.roiArray = newRois;
                     roiInd = 1:numel(obj.roiArray);
             end
-            
+
             try
                 obj.assignAppdata()
             catch ME
                 disp(getReport(ME, 'extended'))
                 error('This is a bug, please report...')
             end
-            
+
             if strcmp(mode, 'replace')
                 %return %Todo, make sure this is not misused. I.e what if rois that are replaced are different...
             end
-            
+
             % Notify that rois have changed
             % fprintf('\nIndex pre event notification: %d\n', roiInd) % debug
             eventData = roimanager.eventdata.RoiGroupChanged(newRois, roiInd, mode);
             obj.notify('roisChanged', eventData)
-            
+
             % Update roi relations. (i.e if rois are added that have
             % relations). Relevant if there was an undo/redo action.
             % This needs to be done after all rois are added.
             obj.updateRoiRelations(newRois, 'added')
-            
+
             % Register the action with the undo manager
             if ~isUndoRedo && ~isempty(obj.ParentApp) && ~isempty(obj.ParentApp.Figure)
                 cmd.Name            = 'Add Rois';
@@ -262,19 +260,19 @@ classdef roiGroup < handle
 
                 uiundo(obj.ParentApp.Figure, 'function', cmd);
             end
-            
+
             obj.isDirty_ = true;
         end
-        
+
         function modifyRois(obj, modifiedRois, roiInd, isUndoRedo)
         %modifyRois Modify the shape of rois.
-        
+
             if nargin < 4; isUndoRedo = false; end
 
             originalRois = obj.roiArray(roiInd);
-            
+
             if iscolumn(roiInd); roiInd = transpose(roiInd); end
-            
+
             cnt = 1;
             for i = roiInd
                 % Todo: Clean up this mess!
@@ -286,14 +284,14 @@ classdef roiGroup < handle
 
                 cnt = cnt+1;
             end
-            
+
             % Use assignAppdata instead?
             obj.roiImages = getappdata(obj.roiArray, 'roiImages');
             obj.roiStats = getappdata(obj.roiArray, 'roiStats');
-            
+
             eventData = roimanager.eventdata.RoiGroupChanged(obj.roiArray(roiInd), roiInd, 'modify');
             obj.notify('roisChanged', eventData)
-            
+
             % Register the action with the undo manager
             if ~isUndoRedo && ~isempty(obj.ParentApp) && ~isempty(obj.ParentApp.Figure)
                 cmd.Name            = 'Modify Rois';
@@ -307,34 +305,34 @@ classdef roiGroup < handle
 
             obj.isDirty_ = true;
         end
-        
+
         function removeRois(obj, roiInd, isUndoRedo)
         %removeRois Remove rois from the roiGroup.
-        
+
             if nargin < 2; roiInd = 1:obj.roiCount; end
             if nargin < 3; isUndoRedo = false; end
-            
+
             roiInd = sort(roiInd);
             removedRois = obj.roiArray(roiInd);
-            
+
             if isUndoRedo
                 % Remove selection of all rois if this was a undo/redo
                 obj.changeRoiSelection(nan, []) % Note: unselect all rois before executing undo!
             end
-            
+
             obj.roiArray(roiInd) = [];
-            
+
             % Update the appdata properties.
             obj.assignAppdata()
 
             eventData = roimanager.eventdata.RoiGroupChanged([], roiInd, 'remove');
             obj.notify('roisChanged', eventData)
-            
+
             % Update roi relations. (i.e if rois are removed that have
             % relations). Relevant if there was an undo/redo action for
             % example. This needs to be done after all rois are removed.
             obj.updateRoiRelations(removedRois, 'removed')
-            
+
             % Register the action with the undo manager
             if ~isUndoRedo && ~isempty(obj.ParentApp) && ~isempty(obj.ParentApp.Figure)
                 cmd.Name            = 'Remove Rois';
@@ -348,24 +346,24 @@ classdef roiGroup < handle
                 % Remove selection of all rois if this was a undo/redo
                 obj.changeRoiSelection(nan, []) % Note: unselect all rois before executing undo!
             end
-            
+
             obj.isDirty_ = true;
         end
-        
+
         function changeRoiProperties(obj, modifiedRois, roiInd, isUndoRedo)
-            
+
             % The modifyRois method was created to only edit the roi shape.
             % This method was added later to add support for changing
             % values of other roi properties
 
             if nargin < 4; isUndoRedo = false; end
-    
+
             originalRois = obj.roiArray(roiInd);
             obj.roiArray(roiInd) = modifiedRois;
 
             eventData = roimanager.eventdata.RoiGroupChanged(obj.roiArray(roiInd), roiInd, 'modify');
             obj.notify('roisChanged', eventData)
-            
+
             % Register the action with the undo manager
             if ~isUndoRedo && ~isempty(obj.ParentApp) && ~isempty(obj.ParentApp.Figure)
                 cmd.Name            = 'Modify Rois';
@@ -378,11 +376,10 @@ classdef roiGroup < handle
             end
 
             obj.isDirty_ = true;
-
         end
 
         function roiLabels = getRoiLabels(obj, roiInd)
-            
+
             numRois = obj.roiCount;
             charLength = ceil( log10(numRois+1) );
             formatStr = sprintf(' %%0%dd', charLength);
@@ -404,72 +401,72 @@ classdef roiGroup < handle
         %       - 'Next unclassified roi'
         %       - 'Closest' (euclidean distance)
         %       - 'None'
-        
+
             if nargin < 3 || isempty(direction)
                 direction = 'forward';
             end
-            
+
             if nargin < 4 || isempty(selectionMode)
             	selectionMode = obj.NextRoiSelectionMode;
             end
-            
+
             if strcmp(selectionMode, 'None')
                 roiInd = []; return
             end
-            
+
             currentRoi = obj.roiArray(currentRoiInd);
 
             if contains(selectionMode, 'with same classification')
             % Limit roi candidates for selection to rois that have the same
             % tag as current roi.
-            
+
                 thisClsf = getappdata(currentRoi, 'roiClassification');
                 allClsf = getappdata(obj.roiArray, 'roiClassification');
-                
+
                 roiIndCandidates = find(allClsf == thisClsf);
-            
+
             elseif strcmp(selectionMode, 'Next unclassified roi')
                 allClsf = getappdata(obj.roiArray, 'roiClassification');
                 roiIndCandidates = find(allClsf == 0);
             else
                 roiIndCandidates = 1:obj.roiCount;
             end
-            
+
             if iscolumn(roiIndCandidates)
                 roiIndCandidates = transpose(roiIndCandidates);
             end
-                
+
             roiIndCandidates = unique( [roiIndCandidates, currentRoiInd] );
-            
+
             if contains(selectionMode, 'Closest')
             % Sort list of candidates by their distance from current roi
-                
+
                 centerCoords = cat(1, obj.roiArray.center);
-                
+
                 deltaX = currentRoi.center(1) - centerCoords(:,1);
                 deltaY = currentRoi.center(2) - centerCoords(:,2);
 
                 % Absolute distance:
                 distance = hypot(deltaX, deltaY);
                 distance = distance(roiIndCandidates);
-                
+
                 % Add a direction to the distance metric. Go from left to
                 % right, but split in two rows. %TODO Add a 1 dimensional
                 % metric, so that each roi is connected to one other along
                 % a 1D space.
                 sgnX = sign( centerCoords(roiIndCandidates,1) - currentRoi.center(1));
-                
+
                 distance = sgnX .* distance;
-                
+
                 [~, sortInd] = sort(distance);
                 roiIndCandidates = roiIndCandidates(sortInd);
                 roiIndCandidates = transpose(roiIndCandidates); % make row vector
             end
-            
+
             if strcmp(direction, 'backward')
                 roiIndCandidates = fliplr(roiIndCandidates);
             end
-            
+
             % Select the next roi among candidates.
             matchInd = find(roiIndCandidates == currentRoiInd);
 
@@ -487,9 +484,9 @@ classdef roiGroup < handle
         %   oldSelection : indices of rois that were selected before.
         %   newSelection : indices of rois that are newly selected.
         %   origin       : the class/interface that originated this call
-        
+
             if nargin < 4; origin = []; end
-            
+
             getEventData = @roimanager.eventdata.RoiSelectionChanged;
             eventData = getEventData(oldSelection, newSelection, origin);
             obj.notify('roiSelectionChanged', eventData)
@@ -497,19 +494,19 @@ classdef roiGroup < handle
 
         function changeVisibleRois(obj, newSelection, eventType)
             if nargin < 3; eventType = []; end
-            
+
             % Filter selection by current classification state
             %newSelection = obj.filterByCurrentClassification(newSelection);
-            
+
             eventData = uiw.event.EventData('NewVisibleInd', newSelection, ...
                 'Type', eventType);
             obj.notify('VisibleRoisChanged', eventData)
         end
-        
+
         function ind = filterByCurrentClassification(obj, ind)
-            
+
             clsf = obj.roiClassification;
-                        
+
             switch obj.VisibleClassification % Todo: Should read cases from some config...
                 case 'All'
                     isVisibleRoi = clsf >= 0;
@@ -522,61 +519,61 @@ classdef roiGroup < handle
                 case 'Unresolved'
                     isVisibleRoi = clsf == 3;
             end
-            
+
             ind = intersect(ind, find(isVisibleRoi));
         end
-        
+
         function setRoiClassification(obj, roiInd, newClass)
             %mode: add, insert, append...
-            
+
             obj.roiArray(roiInd) = setappdata(obj.roiArray(roiInd), ...
                 'roiClassification', newClass);
-            
+
             evtData = roimanager.eventdata.RoiClsfChanged(roiInd, newClass);
             obj.roiClassification(roiInd) = newClass;
             obj.notify('classificationChanged', evtData)
-            
+
             obj.isDirty_ = true;
         end
-        
+
         function connectRois(obj, parentInd, childInd)
-            
+
             childRois = obj.roiArray(childInd);
             parentRoi = obj.roiArray(parentInd);
-            
+
             obj.roiArray(parentInd) = parentRoi.addChildren(childRois);
-            
+
             for i = childInd
                 obj.roiArray(i) = obj.roiArray(i).addParent(parentRoi);
             end
-            
+
             eventData = roimanager.eventdata.RoiGroupChanged(parentRoi, [parentInd,childInd], 'connect');
             obj.notify('roisChanged', eventData)
-            
+
             % Todo: Add as action to undomanager.
         end
-        
+
         function disconnectRois(obj)
             % todo
         end
-        
+
         function updateRoiRelations(obj, updatedRois, action)
         %updateRoiRelations Update relations in roi array, if rois with
         % relations are added or removed.
-        
+
             allRoiUid = {obj.roiArray.uid};
             if isempty(allRoiUid); return; end
-            
+
             % Temp function for checking property of all rois in
             % roiarray... Should be a method of RoI...?
             isPropEmpty = @(prop) arrayfun(@(roi) isempty(roi.(prop)), updatedRois);
-            
+
             % Find all rois that are parents or children among updated rois
             parentInd = find( ~isPropEmpty('connectedrois') );
             childInd = find( ~isPropEmpty('parentroi') );
-            
+
             if isempty(parentInd) && isempty(childInd); return; end
-            
+
             switch action
                 case 'added'
                     parentAction = 'addChildren';       % Add child to parent
@@ -585,7 +582,7 @@ classdef roiGroup < handle
                     parentAction = 'removeChildren';    % Remove child from parent
                     childAction = 'removeParent';       % Remove parent from children. Kind of sad considering this is 2020...
             end
-            
+
             % Add/remove parent to/from children
             for i = 1:numel(parentInd)
                 parentRoi = updatedRois(parentInd(i));
@@ -595,7 +592,7 @@ classdef roiGroup < handle
                     obj.roiArray(j) = obj.roiArray(j).(childAction)(parentRoi);
                 end
             end
-            
+
             % Add/remove children to/from parent
             for i = 1:numel(childInd)
                 childRoi = updatedRois(childInd(i));
@@ -604,7 +601,7 @@ classdef roiGroup < handle
                     obj.roiArray(j) = obj.roiArray(j).(parentAction)(childRoi);
                 end
             end
-            
+
             % For simplicity, just notify that all rois are updated and do a
             % relink. Relations are plotted on children references, but if
             % parent has been re-added, this needs to be updated on children
@@ -615,26 +612,26 @@ classdef roiGroup < handle
             obj.notify('roisChanged', eventData)
         end
     end
-    
+
     methods % Methods for saving rois
-        
+
         function [wasSuccess, savePath] = saveRois(obj, savePath)
-            
+
             import nansen.dataio.fileadapter.roi.RoiGroup
-                        
+
             if nargin < 2; savePath = ''; end
-            
+
             fileObj = nansen.dataio.fileadapter.roi.RoiGroup(savePath);
             if isempty(savePath)
                 wasSuccess = fileObj.uiput();
                 if ~wasSuccess; return; end
             end
-            
+
             fileObj.save(obj)
             obj.markClean()
-            
+
             wasSuccess = true;
-            
+
             if nargout == 1
                 clear savePath
             elseif nargout == 0
@@ -643,21 +640,20 @@ classdef roiGroup < handle
 
             saveMsg = sprintf('Rois Saved to %s', savePath);
             obj.PrimaryApp.displayMessage(saveMsg, 2)
-                        
+
             obj.roiFilePath = savePath;
         end
     end
-    
+
     methods
-        
+
         function roiCount = get.roiCount(obj)
             roiCount = numel(obj.roiArray);
         end
 
         function set.VisibleClassification(obj, newValue)
-            
         end
-        
+
         function isDirty = get.IsDirty(obj)
             if obj.roiCount == 0
                 isDirty = false;
@@ -665,32 +661,32 @@ classdef roiGroup < handle
                 isDirty = obj.isDirty_;
             end
         end
-        
+
         function tf = validateForClassification(obj)
-            
+
             %temporary to get things up and running
-            
+
             tf = false(1,3);
-            
+
             fields = {'roiImages', 'roiStats', 'roiClassification'};
-            
+
             for i = 1:numel(fields)
-            
+
                 D = obj.roiArray.getappdata(fields{i});
-                
+
                 if numel(D) == obj.roiCount
                     obj.(fields{i}) = D;
                     tf(i) = true;
                 end
             end
-            
+
             if isempty(obj.roiClassification)
                 obj.roiClassification = zeros(size(obj.roiArray));
                 obj.roiArray = setappdata(obj.roiArray, 'roiClassification', ...
                     obj.roiClassification);
                 tf(3) = true;
             end
-            
+
             tf = all(tf);
         end
     end
@@ -698,7 +694,7 @@ classdef roiGroup < handle
     methods (Access = protected)
 
         function tf = isUiUndoSupported(obj)
-            
+
             hasApp = ~isempty(obj.ParentApp);
 
             if hasApp
@@ -712,7 +708,7 @@ classdef roiGroup < handle
     end
 
     methods (Access = private)
-        
+
         function assignAppdata(obj)
         %assignAppdata Assign roi appdata to properties of this object
             if obj.roiCount > 0
@@ -725,13 +721,13 @@ classdef roiGroup < handle
                 obj.roiStats = [];
             end
         end
-        
+
         function populateFromStruct(obj, S)
         %populateFromStruct Assign properties from fields of a struct
-           
+
             fields = fieldnames(S);
             numRois = numel(S.roiArray);
-            
+
             for i = 1:numel(fields)
                 switch fields{i}
                     case 'roiArray'
@@ -754,22 +750,22 @@ classdef roiGroup < handle
                         obj.PlaneNumber = S.PlaneNumber;
                 end
             end
-                        
+
             if isempty(obj.roiClassification)
                 obj.roiClassification = zeros(size(obj.roiArray));
             end
-            
+
             obj.roiArray = setappdata(obj.roiArray, 'roiClassification', obj.roiClassification);
             obj.roiArray = setappdata(obj.roiArray, 'roiImages', obj.roiImages);
             obj.roiArray = setappdata(obj.roiArray, 'roiStats', obj.roiStats);
         end
     end
-    
+
     methods (Access = private)
 
         function roiArray = initializeRoiClassification(~, roiArray)
         %initializeRoiClassification Initialize roi classification for roi
-        
+
             % Add the 0 classification if roi does not have a
             % classification
             for i = 1:numel(roiArray)
@@ -778,34 +774,34 @@ classdef roiGroup < handle
                 end
             end
         end
-        
+
         function roiArray = initializeRoiStats(obj, roiArray)
         %initializeRoiStats Initialize roi stats for roi
-            
+
             if obj.roiCount == 0; return; end
-            
+
             referenceStats = getappdata(obj.roiArray(1), 'roiStats');
             if isempty(referenceStats); return; end
-            
+
             blankStats = utility.struct.clearvalues( referenceStats, true );
-            
+
             for i = 1:numel(roiArray)
                 if isempty(getappdata(roiArray(i), 'roiStats'))
                     roiArray(i) = setappdata(roiArray(i), 'roiStats', blankStats);
                 end
             end
         end
-        
+
         function roiArray = initializeRoiImages(obj, roiArray)
         %initializeRoiImages Initialize roi images for roi
-            
+
             if obj.roiCount == 0; return; end
-            
+
             referenceImages = getappdata(obj.roiArray(1), 'roiImages');
             if isempty(referenceImages); return; end
-            
+
             blankImages = utility.struct.clearvalues( referenceImages, true );
-            
+
             for i = 1:numel(roiArray)
                 if isempty(getappdata(roiArray(i), 'roiImages'))
                     roiArray(i) = setappdata(roiArray(i), 'roiImages', blankImages);

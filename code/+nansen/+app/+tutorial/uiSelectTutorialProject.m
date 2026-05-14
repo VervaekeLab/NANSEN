@@ -4,7 +4,7 @@ function tutorialEnum = uiSelectTutorialProject()
     tutorialTitles = [tutorialEnums.Title];
 
     [selection, ok] = listdlg('ListString', tutorialTitles, 'ListSize', [360, 240]);
-    
+
     if ok
         tutorialEnum = tutorialEnums(selection);
     else

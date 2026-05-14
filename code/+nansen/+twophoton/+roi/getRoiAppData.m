@@ -24,20 +24,20 @@ function [roiImages, roiStats] = getRoiAppData(imArray, roiArray, varargin)
     opt = utility.parsenvpairs(def, [], varargin);
 
     import nansen.twophoton.roi.compute.computeRoiImages
-    
+
     global fprintf % Use global fprintf if available
     if isempty(fprintf); fprintf = str2func('fprintf'); end
-    
+
     % Compute rois signals for given image array
     fprintf('Extracting signals for computation of roi images...\n')
     signalOpts = struct('createNeuropilMask', true);
     signalArray = nansen.twophoton.roisignals.extractF(imArray, roiArray, signalOpts);
     fprintf('Finished signal extraction\n')
-    
+
     % Compute rois images
     imageTypes = {'Activity Weighted Mean', 'Diff Surround', 'Top 99th Percentile', 'Local Correlation'};
     roiImageStruct = computeRoiImages(imArray, roiArray, signalArray, 'ImageType', imageTypes, 'BoxSize', opt.RoiImageSize); % imported function
-    
+
     % Compute roi stats
     dff = nansen.twophoton.roisignals.computeDff(signalArray);
     dffStats = nansen.twophoton.roi.stats.dffprops(dff);
@@ -56,5 +56,4 @@ function [roiImages, roiStats] = getRoiAppData(imArray, roiArray, varargin)
 
     % Rearrange roi stats to a (nRoi x 1) struct array
     roiStats = table2struct(struct2table(stats));
-
 end

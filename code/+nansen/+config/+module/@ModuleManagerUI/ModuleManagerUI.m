@@ -2,7 +2,7 @@ classdef ModuleManagerUI < handle
 %ModuleManagerUI Provides UI functionality for the ModuleManager class
 
     % Todo:
-    %  [ ] Create a class wrapping around a table for selecting rows.
+    %  [ ] Create a class wrapping around a table for selecting rows.
 
     % Note: This is currently only used for selecting optional modules.
     % Some time in the future, there might be a need for the user to also
@@ -19,7 +19,7 @@ classdef ModuleManagerUI < handle
         UIControls struct = struct
         UILabels struct = struct
     end
-    
+
     properties (Access = protected)
         SelectedRows = []
         SelectedRowBgColor = [74,86,99]/255
@@ -30,7 +30,7 @@ classdef ModuleManagerUI < handle
         ToolbarButtonFontColor = [0.15,0.15,0.15]
         ToolbarButtonBackgroundColor = [0.94,0.94,0.94]
     end
-    
+
     properties (Access = private) % Component appearance
         ToolbarButtons matlab.ui.control.Button
         GridLayout matlab.ui.container.GridLayout
@@ -43,7 +43,7 @@ classdef ModuleManagerUI < handle
     end
 
     methods % Constructor
-        
+
         function obj = ModuleManagerUI(hParent, hModuleManager, varargin)
 
             % Todo: parent might not be given as first input, it might be
@@ -57,7 +57,7 @@ classdef ModuleManagerUI < handle
             if nargin < 2
                 hModuleManager = nansen.config.module.ModuleManager();
             end
-            
+
             % Assign object to ModuleManager property.
             assert(isa(hModuleManager, 'nansen.config.module.ModuleManager'))
             obj.ModuleManager = hModuleManager;
@@ -84,7 +84,7 @@ classdef ModuleManagerUI < handle
         %   selectedModules = obj.getSelectedModules() returns a list of
         %   the currently selected modules from the table. selectedModules
         %   is a struct array with information about each module.
-        
+
             % Only optional modules are selectable from table
             optionalModules = obj.ModuleManager.listModules('optional');
             selectedData = optionalModules(obj.SelectedRows, :);
@@ -97,7 +97,7 @@ classdef ModuleManagerUI < handle
         %   setSelectedModules(obj, selectedModules) sets the given modules
         %   as the current selection in the ui. selectedModules should be a
         %   cell array of module package names
-            
+
             obj.resetSelectedRows()
             if isempty(selectedModules); return; end
 
@@ -113,7 +113,7 @@ classdef ModuleManagerUI < handle
     end
 
     methods (Access = protected) % Component creation
-        
+
         function createLayout(obj)
 
             % Create GridLayout
@@ -155,14 +155,14 @@ classdef ModuleManagerUI < handle
             % % % obj.UIControls.CoreModuleDropdown.Layout.Row = 1;
             % % % obj.UIControls.CoreModuleDropdown.Layout.Column = 1;
         end
-        
+
         function configureUiTable(obj)
-            
+
             obj.updateTableData()
-            
+
             obj.UIControls.ModuleTable.ColumnWidth = {75, 200, 'auto'};
             obj.UIControls.ModuleTable.ColumnEditable = [true, false, false];
-            
+
             obj.UIControls.ModuleTable.CellEditCallback = @obj.onTableCellEdited;
 
             obj.setTablePosition()
@@ -171,36 +171,36 @@ classdef ModuleManagerUI < handle
         function configureUiDropdown(obj)
             obj.updateDropdown()
         end
-        
+
         function updateTableData(obj)
         %updateTableData Update data in the uitable
         %
         % Updates uitable data based on available modules from the
         % ModuleManager
-        
+
             if isempty(obj.ModuleManager); return; end
             if ~isfield(obj.UIControls, 'ModuleTable'); return; end
-            
+
             T = obj.ModuleManager.listModules();
             T = T(~T.isCoreModule, :);
-            
+
             T = T(:, 1:2);
             T.Properties.VariableNames{1} = 'Module Name';
             T.Properties.VariableNames{2} = 'Description';
 
             isSelected = false(size(T, 1), 1);
             tableColumn = table(isSelected, 'VariableNames', {'Selection'});
-            
+
             T = [tableColumn, T];
-            
+
             try
                 obj.UIControls.ModuleTable.Data = T;
-                
+
             catch
                 obj.UIControls.ModuleTable.Data = table2cell(T);
                 obj.UIControls.ModuleTable.ColumnName = T.Properties.VariableNames;
             end
-            
+
             try % Only available in newer matlab versions...
 %                 if any(isCurrent)
 %                     obj.setRowStyle('Selection', find(isCurrent))
@@ -214,27 +214,27 @@ classdef ModuleManagerUI < handle
             catch
                 warning('Some features of the table are not created properly. Matlab 2018b or newer is required.')
             end
-            
+
             if isempty(obj.UIControls.ModuleTable.CellSelectionCallback)
                 %obj.UIControls.ModuleTable.CellSelectionCallback = @obj.onTableCellSelected;
             end
         end
-        
+
         function updateDropdown(obj)
-            
+
             T = obj.ModuleManager.listModules();
             T = T(T.isCoreModule, :);
-            
+
             numRows = size(T, 1);
             options = arrayfun( @(row) sprintf('%s (%s)', T{row, 'Name'}, T{row, 'Description'}), 1:numRows, 'uni', 0);
-            
+
             obj.UIControls.CoreModuleDropdown.Items = options;
             obj.UIControls.CoreModuleDropdown.Value = options{1};
         end
 
         function setTablePosition(obj)
         %setTablePosition Position the table within the UI
-        
+
             margin = 10;
             drawnow
             pause(0.05)
@@ -245,26 +245,26 @@ classdef ModuleManagerUI < handle
             tablePosition = [10,10,parentPosition(3:4)-20];
             obj.UIControls.ModuleTable.Position = tablePosition;
         end
-        
+
         function createTableContextMenu(obj)
             % Not implemented
             cMenu = uicontextmenu(ancestor(obj.hParent, 'figure'));
-            
+
             contextMenuItemNames = {...
                 'N/A' };
-            
+
             hMenuItem = gobjects(numel(contextMenuItemNames), 1);
             for i = 1:numel(contextMenuItemNames)
                 hMenuItem(i) = uimenu(cMenu, 'Text', contextMenuItemNames{i});
                 hMenuItem(i).Callback = @obj.onContextMenuItemClicked;
             end
-            
+
             obj.UIControls.ModuleTable.UIContextMenu = cMenu;
         end
     end
-    
+
     methods % Set/get
-        
+
         function set.ToolbarButtonFontColor(obj, newValue)
             try
                 obj.onToolbarButtonFontColorSet(newValue)
@@ -283,11 +283,11 @@ classdef ModuleManagerUI < handle
             end
         end
     end
-    
+
     methods (Access = private) % Uicontrol callbacks
 
         function onTableCellEdited(obj, src, evt)
-            
+
             rowIdx = evt.Indices(1); colIdx = evt.Indices(2);
 
             if colIdx == 1
@@ -303,7 +303,7 @@ classdef ModuleManagerUI < handle
             end
         end
     end
-    
+
     methods (Access = private) % Actions
         function onRowSelected(obj, rowNumber)
             obj.SelectedRows = unique([obj.SelectedRows, rowNumber]);
@@ -323,7 +323,7 @@ classdef ModuleManagerUI < handle
             evtData = nansen.config.module.SelectionChangedEventData(selectedData);
             obj.notify('ModuleSelectionChanged', evtData)
         end
-    
+
         function resetSelectedRows(obj)
             if isempty(obj.UIControls.ModuleTable.Data); return; end
             selectedRows = find(obj.UIControls.ModuleTable.Data{:,1});
@@ -336,7 +336,7 @@ classdef ModuleManagerUI < handle
     end
 
     methods (Access = private) % Style components (Todo, move to superclass)
-        
+
         function onToolbarButtonBackgroundColorSet(obj, newValue)
             set(obj.ToolbarButtons, 'BackgroundColor', newValue)
         end
@@ -353,10 +353,10 @@ classdef ModuleManagerUI < handle
         %
         %   Only one style of each type are allowed at any time, so if the
         %   style already exists it is removed before it is added again.
-        
+
             % Remove this style type if it exists on another row
             sConfig = obj.UIControls.ModuleTable.StyleConfigurations;
-            
+
             switch styleType
                 case 'Selected Row'
                     for i = 1:numel(rowIdx)

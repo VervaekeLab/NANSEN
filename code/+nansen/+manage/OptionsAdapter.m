@@ -17,65 +17,63 @@ classdef OptionsAdapter < handle
     %
     %   3.  Should the Options property provide the default options struct
     %       on demand
-    
+
     properties (Abstract, Constant)
         ToolboxName     % Name of toolbox this options adapter correspond with
         Name            % Name of options (For keeping track of options presets/variations)
         Description     % Description for an option preset/variation
     end
-    
+
     properties (Dependent)
         Options         % A struct of options. Not sure if this should be stored in the class...
     end
-    
+
     methods (Abstract, Static)
         S = getOptions()            % For nansen/ui options
         S = convert(S)              % For conversion to toolbox options
-        
+
         %S = getAdapter()            % Adapter for converting options to toolbox names.
-        
     end
-    
+
     methods
 
         function S = get.Options(obj)
             S = obj.getOptions();
         end
     end
-    
+
     methods (Static)
-        
+
         function SOut = rename(S, nameMap, outputFormat)
-            
+
             if nargin < 3|| isempty(outputFormat)
                 outputFormat = 'struct'; % vs nvpairs
             end
-            
+
             % Get fieldnames recursively and find intersection
             fieldsOpts = fieldnamesr(S, 2);
             fieldsNames = fieldnamesr(nameMap);
-            
+
             C = intersect(fieldsOpts, fieldsNames);
 
             switch outputFormat
                 case 'struct'
                     SOut = struct();
-                    
+
                     for i = 1:numel(C)
 
                         subfields = strsplit(C{i}, '.');
                         s = struct('type', {'.'}, 'subs', subfields);
-                    
+
                         name = subsref(nameMap, s);
                         value = subsref(S, s);
-                    
+
                         s = struct('type', {'.'}, 'subs', name);
                         SOut = subsasgn(SOut, s, value);
-                        
                     end
-                    
+
                 case 'nvpairs'
-                    
+
                     % Todo: O
                     % Collect normcorre parameter names and values in a cell array
                     % of name-value pairs.

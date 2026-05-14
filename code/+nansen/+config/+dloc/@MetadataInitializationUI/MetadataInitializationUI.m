@@ -13,7 +13,6 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
 %
 %   See also nansen.config.dloc.DataLocationModel
 
-
 % Todo: Simplify component creation.
 %    [ ] Get cell locations as array with one entry for each column of a row.
 %    [ ] Do the centering when getting the cell locations.

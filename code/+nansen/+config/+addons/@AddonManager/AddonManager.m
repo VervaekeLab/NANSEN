@@ -365,7 +365,7 @@ classdef AddonManager < handle
         % Check if specified Add-On is installed
         function tf = isAddonInstalled(obj, addonName)
         %isAddonInstalled Check if addon is tracked as installed.
-            
+
             tf = false;
             if any(strcmpi({obj.AddonList.Name}, addonName))
                 addonIndex = obj.getAddonIndex(addonName);
@@ -391,14 +391,14 @@ classdef AddonManager < handle
             obj.IsDirty = false;
         end
     end
-    
+
     methods % Set/get
         function managedAddons = get.ManagedAddons(obj)
             T = struct2table(obj.AddonList);
             numberColumn = table((1:size(T,1))', 'VariableNames', {'Num'});
             managedAddons = [numberColumn T];
-            
-            % Enrich name with link to online documentation if present 
+
+            % Enrich name with link to online documentation if present
             for i = 1:height(managedAddons)
                 if ~isempty(managedAddons{i, 'DocsSource'}{1})
                     name = nansen.internal.utility.createCommandWindowWebLink(...
@@ -424,7 +424,7 @@ classdef AddonManager < handle
                 obj (1,1) nansen.config.addons.AddonManager
                 modules (1,:) string = string.empty
             end
-            
+
             resolvedRequirements = nansen.internal.dependencies.resolveRequirements( ...
                 "DependencyTypes", "community-toolbox", ...
                 "SelectedModules", modules, ...
@@ -494,7 +494,7 @@ classdef AddonManager < handle
                 obj.saveAddonList()
             end
         end
-    
+
         function viewFullAddonListAsTable(obj)
             disp( struct2table(obj.AddonList) )
         end
@@ -696,7 +696,7 @@ classdef AddonManager < handle
 
             obj.refreshManagedAddons();
         end
-    
+
         function tf = isSameFolder(obj, folderB)
             folderA = nansen.internal.utility.stripTrailingFilesep(obj.InstallationFolder);
             folderB = nansen.internal.utility.stripTrailingFilesep(folderB);
@@ -731,7 +731,7 @@ classdef AddonManager < handle
             addonEntry.InstallationType = '';
             addonEntry.ToolboxIdentifier = '';
             addonEntry.HasMultipleInstancesOnPath = false;
-            
+
             if entry.IsInstalled
                 addonEntry.DateInstalled = char(datetime("now"));
             end
@@ -795,28 +795,28 @@ classdef AddonManager < handle
         function addonEntry = getDefaultAddonEntry()
             addonEntry = nansen.config.addons.AddonManager.DefaultAddonEntry;
         end
-        
+
         function addonEntry = initializeAddonList()
         %initializeAddonList Create an empty struct with addon fields.
             addonEntry = nansen.config.addons.AddonManager.DefaultAddonEntry;
             addonEntry(1) = [];
         end
-        
+
         function newAddonList = migrateLegacyAddonList(oldAddonList)
         %migrateLegacyAddonList Remap legacy addon struct fields to new names.
         %   Handles old addon lists that have DownloadUrl, WebUrl,
         %   SetupFileName, FunctionName fields.
-            
+
             import nansen.config.addons.AddonManager
 
             newAddonList = AddonManager.initializeAddonList();
             if isempty(oldAddonList); return; end
 
             if isfield(oldAddonList, 'DownloadUrl') && ~isfield(oldAddonList, 'Source')
-                
+
                 for i = 1:numel(oldAddonList)
                     newAddonList(i) = AddonManager.getDefaultAddonEntry();
-                                        
+
                     newAddonList(i).Name = oldAddonList(i).Name;
                     newAddonList(i).Description = oldAddonList(i).Description;
                     newAddonList(i).Source = oldAddonList(i).DownloadUrl;

@@ -4,7 +4,7 @@ function strValue = getStringRepresentationForValue(value, wrapString)
     import nansen.internal.templating.getStringRepresentationForValue
 
     if nargin < 2 || isempty(wrapString); wrapString = false; end
-    
+
     if isa(value, 'char') || isa(value, 'string')
         if wrapString
             strValue = sprintf('''%s''', value);

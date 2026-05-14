@@ -9,7 +9,7 @@ function pathArray = checkClipboard()
     str = clipboard('paste');
 
     if isunix && ~ismac
-        
+
         str  = strsplit(str, 'file://');
         if numel(str) == 1
            warning('This might not work')
@@ -17,18 +17,18 @@ function pathArray = checkClipboard()
         elseif numel(str) == 2
            str = str{2};
            str = strrep(str, newline, '');
-           
+
         else
             error('Not implemented')
         end
     end
-    
+
     if ~isempty(str)
-        
+
         % Remove " and ' from string.
         str = strrep(str, '"', '');
         str = strrep(str, '''', '');
-        
+
         % Split by newline. String is multiline if many files are on the
         % clipboard
         str = strsplit(str, '\n');
@@ -39,7 +39,7 @@ function pathArray = checkClipboard()
         else
             pathArray = '';
         end
-        
+
     else
         pathArray = '';
     end

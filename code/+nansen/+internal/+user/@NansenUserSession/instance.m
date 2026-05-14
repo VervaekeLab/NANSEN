@@ -33,7 +33,7 @@ function obj = instance(userName, mode, skipProjectCheck)
 
     resetUserSessionInstance = false;
     userSessionObject = getappdata(0, SINGLETON_NAME);
-    
+
     % - If user session exists, check that name is correct
     if ~isempty(userSessionObject) && isvalid(userSessionObject)
         if (userSessionObject.CurrentUserName ~= userName) & changeUser
@@ -49,7 +49,7 @@ function obj = instance(userName, mode, skipProjectCheck)
                     "Do you want to end that session and start " + ...
                     "a new one?\n(y/n):", ...
                     userSessionObject.CurrentUserName);
-                
+
                 fprintf(newline)
                 answer = input(message, 's');
                 fprintf(newline)
@@ -69,7 +69,7 @@ function obj = instance(userName, mode, skipProjectCheck)
     else
         % Pass
     end
-    
+
     if strcmp(mode, 'reset')
         resetUserSessionInstance = true;
     end
@@ -86,7 +86,7 @@ function obj = instance(userName, mode, skipProjectCheck)
     if isempty(userSessionObject) && ~strcmp(mode, 'nocreate') && ~strcmp(mode, 'reset')
         userSessionObject = nansen.internal.user.NansenUserSession(userName, skipProjectCheck);
         setappdata(0, SINGLETON_NAME, userSessionObject)
-        
+
         % Check if user's data need to be updated due to changes in the
         % code base. Important that this is done after the singleton is created.
         userSessionObject.runPostConstructionUpdateActions()

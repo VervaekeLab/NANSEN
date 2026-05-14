@@ -21,7 +21,7 @@ function [tileIndices, tileCorners, tileIndexMap] = ...
     if nargin < 5
         plotOrder = 'rowwise';
     end
-    
+
     pixelWidth = nCols .* imageSize(2);
     pixelWidth = pixelWidth + pixelPadding .* (nCols-1);
     pixelHeight = nRows .* imageSize(1);

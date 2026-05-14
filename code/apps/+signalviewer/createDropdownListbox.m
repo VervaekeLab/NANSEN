@@ -23,12 +23,11 @@ function [hAppbar, hBtn] = createDropdownListbox(parent, strings, options)
         'CornerRadius', 0};
 
     hBtn = uim.control.Button.empty;
-    
+
     for i = 1:numel(strings)
         hBtn(i) = hAppbar.addButton('String', strings{i}, ...
             'Padding', [0,0,0,0], 'Style', uim.style.listboxButton, ...
             'ButtonDownFcn', @(s,e,m) disp('test click'), ...
             'Type', 'togglebutton', buttonArgs{:});
-        
     end
 end

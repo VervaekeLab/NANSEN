@@ -4,7 +4,7 @@ function targetFolder = createFunctionBasedFileAdapter(templateFolder, targetFol
     if ~isfolder(targetFolder)
         mkdir(targetFolder);
     end
-    
+
     templateFolder = fullfile( templateFolder, 'function_template');
 
     % Also rename read (and write) template files

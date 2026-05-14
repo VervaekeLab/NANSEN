@@ -27,5 +27,4 @@ function M = getAdapter()
     M.Model.sigma                   = 'sigma';
     M.General.binSize               = 'bin_size';
     M.General.verbose               = 'verbose';
-    
 end

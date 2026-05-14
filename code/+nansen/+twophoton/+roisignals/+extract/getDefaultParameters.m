@@ -28,7 +28,7 @@ function [P, V] = getDefaultParameters()
 %       nansen.twophoton.roisignals.extract.getDefaultParameters()
 
     % - - - - - - - - Specify parameters and default values - - - - - - - -
-    
+
     % Names                       Values (default)      Description
     P                           = struct();             %
     P.roiInd                    = 'all';                % A list of indices for rois to extract signals from. Default is to use all rois.
@@ -43,16 +43,16 @@ function [P, V] = getDefaultParameters()
     P.maxNeuropilRadius         = 50;                   % Maximum radius of neuropil region.
     P.roiMaskFormat             = 'struct';             % Format to use when rois are prepared for signal extraction. Alternatives: 'sparse' | 'struct'. (Should be internal...)
     P.extractFcn                = [];                   % Function handle for function to use for extraction (If using different than inbuilt) (Should be internal..?)
-    
+
     % - - - - - - - - - - Specify customization flags - - - - - - - - - - -
     P.roiInd_                   = 'internal';
     P.imageMask_                = 'internal';
     P.pixelComputationMethod_   = {'mean'};
     P.roiMaskFormat_            = 'internal';
     P.extractFcn_               = 'internal';
-    
+
     % - - - - Specify validation/assertion test for each parameter - - - -
-    
+
     V                           = struct();
     V.roiInd                    = @(x) assert(isempty(x) || (isvector(x) && all(x==round(x))), ...
                                     'Value must be a vector of integers');
@@ -78,15 +78,15 @@ function [P, V] = getDefaultParameters()
                                     'Value must be ''sparse'' or ''struct''');
     V.extractFcn                = @(x) assert(isempty(x) || isa(x, 'function_handle'), ...
                                     'Value must be function handle');
-    
+
     % - - - - - Adapt output to how many outputs are requested - - - - - -
-    
+
     if nargout == 0
         S = utility.convertParamsToStructArray(mfilename('fullpath'));
         T = struct2table(S);
         fprintf('\nSignal extraction default parameters and descriptions:\n\n')
         disp(T)
-        
+
         clear P V
     elseif nargout == 1
         clear V

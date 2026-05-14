@@ -1,9 +1,9 @@
 classdef ImageClassifier < mclassifier.manualClassifier
-    
+
     % Todo: Consider whether the superclass need to be abstract.
 
     properties
-        
+
         classificationColors = { [0.174, 0.697, 0.492], ...
                                  [0.920, 0.339, 0.378], ...
                                  [0.176, 0.374, 0.908] }
@@ -57,7 +57,7 @@ classdef ImageClassifier < mclassifier.manualClassifier
             % setting the tileUnits property of tiledImageAxes. Todo: Add
             % this to super class constructor...
             obj.setTileCallbacks()
-            
+
             if ~nargout
                 clear obj
             end
@@ -76,45 +76,45 @@ classdef ImageClassifier < mclassifier.manualClassifier
         function specs = get.itemSpecs(obj)
             specs = obj.ClassificationData.Name;
         end
-        
+
         function imData = get.itemImages(obj)
             imData = obj.ClassificationData.ImageData;
         end
-           
+
         function classification = get.itemClassification(obj)
             classification = obj.ClassificationData.Classification;
         end
         function set.itemClassification(obj, newClassification)
             obj.ClassificationData.setClassification(newClassification);
         end
-        
+
         function stats = get.itemStats(obj)
             stats = obj.ClassificationData.Statistics;
         end
     end
 
     methods
-            
+
         function removeItems(obj, indToRemove) %#ok<INUSD>
             errordlg('Removal of items is not implemented yet.')
             return
         end
 
         function saveClassification(obj, ~, ~, varargin)
-            
+
             if isempty(obj.SavePath)
                 fileSpec = {'*.mat', 'Mat Files (*.mat)'};
                 [filename, filePath, ~] = uiputfile(fileSpec);
                 obj.SavePath = fullfile(filePath, filename);
             end
-            
+
             S.ClassificationData = obj.ClassificationData;
             save(obj.SavePath, '-struct', 'S')
         end
     end
 
     methods (Access = protected) % Implement methods from mclassifier.manualClassifier
-        
+
         function  nvpairs = parseInputs(obj, varargin)
             if isa(varargin{1}, 'nansen.ui.data.ClassificationData')
                 obj.ClassificationData = varargin{1};
@@ -128,7 +128,7 @@ classdef ImageClassifier < mclassifier.manualClassifier
             else
                 error('First input must be of type "nansen.ui.data.ClassificationData" ')
             end
-            
+
             nvpairs = varargin;
 
             def = struct('SavePath', '');
@@ -138,7 +138,7 @@ classdef ImageClassifier < mclassifier.manualClassifier
                 obj.(propNames{i}) = opt.(propNames{i});
             end
         end
-        
+
         function updateTile(obj, itemIndices, tileNumbers)
 
             % Accepts vector of item indices and tile numbers
@@ -174,7 +174,7 @@ classdef ImageClassifier < mclassifier.manualClassifier
             %tileNumbers = ismember(obj.displayedItems, obj.selectedItem);
             %obj.hTiledImageAxes.updateTilePlotLinewidth(tileNumbers, 2)
         end
-        
+
         function onSelectedItemChanged(obj) %#ok<MANU>
             % Pass
         end

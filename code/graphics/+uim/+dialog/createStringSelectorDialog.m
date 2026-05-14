@@ -59,16 +59,15 @@ hToolbar = uim.widget.toolbar_(f, 'Spacing', 2, 'BackgroundAlpha',0, ...
     'Margin', componentMargins, 'Padding', [0,0,0,0] );
 
 for i = 1:numel(inputString)
-    
+
     letter = inputString(i);
-    
+
     hToolbar.addButton('Text', letter, 'Mode', 'togglebutton', ...
         'MechanicalAction', 'Switch when pressed', 'Size', buttonSize, ...
         'Style', uim.style.buttonLetterSelection, 'CornerRadius', 0, 'FontSize', 12, ...
         'HorizontalTextAlignment', 'center', 'Padding', [0,0,0,0], ...
         'VerticalTextALignment', 'middle', ...
         'Callback', @(src, evt, hTB) onLetterSelected(src, evt, hToolbar) )
-
 end
 
 % % buttonOk = uim.control.Button_(f, 'Position', [200, 20, 100,24], 'Size', [100,26], 'PositionMode', 'manual', 'SizeMode', 'manual', 'Text', 'Ok', 'Style', uim.style.buttonLightMode);
@@ -93,12 +92,11 @@ elseif isa(f, 'matlab.ui.Figure')
 
     buttonOk.Callback = @closeStringSelectorDialog;
     buttonCancel.Callback = @closeStringSelectorDialog;
-    
+
     h = uicontrol(f, 'style', 'text', 'Position', [10,figSize(2)-20,300,18]);
     h.String = 'NB: Use shift to select multiple letters';
     h.FontSize = 12;
     h.HorizontalAlignment = 'left';
-    
 end
 
 f.UserData.ExitMode = 'Cancel';
@@ -119,16 +117,15 @@ end
 end
 
 function closeStringSelectorDialog(src, event)
-    
+
     hFig = ancestor(src, 'figure');
-    
+
     if isuifigure(hFig)
         switchExpression = 'Text';
     else
         switchExpression = 'String';
-
     end
-    
+
     switch src.(switchExpression)
         case 'Ok'
             hFig.UserData.ExitMode = 'Finish';
@@ -139,26 +136,26 @@ function closeStringSelectorDialog(src, event)
 end
 
 function onLetterSelected(src, ~, hToolbar)
-    
+
     hFig = ancestor(src.Parent, 'figure');
     buttons = hToolbar.Children;
     currentInd = find(ismember(buttons, src));
-    
+
     switch hFig.SelectionType
         case 'normal'
             hFig.UserData.PrevSelectedIndex = currentInd;
-            
+
         case 'extend'
             if isempty(hFig.UserData.PrevSelectedIndex)
                 hFig.UserData.PrevSelectedIndex = currentInd;
             else
-                
+
                 prevInd = hFig.UserData.PrevSelectedIndex;
-                
+
                 for i = prevInd:currentInd
                     buttons(i).Value = true;
                 end
-                
+
                 hFig.UserData.PrevSelectedIndex = currentInd;
             end
     end
@@ -176,7 +173,6 @@ function tf = isuifigure(h)
     else                                % version >= 18b (written in r21a)
         isuifig = @(h)matlab.ui.internal.isUIFigure(h);
     end
-    
-    tf = isuifig(h);
 
+    tf = isuifig(h);
 end

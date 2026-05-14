@@ -12,7 +12,7 @@ function [roiImages, roiStats] = createRoiUserdata(roiArray, imArray, dff)
         dff = nansen.twophoton.roisignals.computeDff(f, 'dffFcn', 'dffRoiMinusDffNpil');
         dff = dff'; % NOTE: Should be nrois x nsamples
     end
-    
+
     roiImA = autosegment.extractRoiImages(imArray, roiArray, dff);
     roiImB = autosegment.extractRoiImages(imArray, roiArray, dff, 'ImageType', 'peak dff');
     roiImC = autosegment.extractRoiImages(imArray, roiArray, dff, 'ImageType', 'correlation');
@@ -36,5 +36,4 @@ function [roiImages, roiStats] = createRoiUserdata(roiArray, imArray, dff)
     roiImages = struct('enhancedAverage', roiImA, 'peakDff', roiImB, 'correlation', roiImC);%, 'enhancedCorrelation', roiImD);
 
     roiStats = autosegment.calculateRoiStats(roiArray, roiImages, dff, ringW, diskW);
-
 end

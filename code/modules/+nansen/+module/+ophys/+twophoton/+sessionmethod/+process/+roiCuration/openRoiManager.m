@@ -25,29 +25,29 @@ function varargout = openRoiManager(sessionObj, varargin)
     % % % Get struct of default parameters for function.
     params = getDefaultParameters();
     ATTRIBUTES = {'serial', 'unqueueable'};
-    
+
 % % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % %
 % - - - - - - - - - - Please do not edit this part - - - - - - - - - - -
 
     % % % Initialization block for a session method function.
     fcnAttributes = nansen.session.SessionMethod.setAttributes(params, ATTRIBUTES{:});
-    
+
     if ~nargin && nargout > 0
         varargout = {fcnAttributes};   return
     end
-    
+
     % % % Parse name-value pairs from function input.
     params = utility.parsenvpairs(params, [], varargin);
-    
+
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
 % Implementation of the method : Add you code here:
-        
+
     %sessionObj.validateVariable('TwoPhotonSeries_Corrected')
 
 % %     filepath = fullfile(nansen.toolboxdir, 'resources', 'images', 'nansen_roiman.png');
 % %     [jFrame, jLabel, C] = nansen.ui.showSplashScreen(filepath, 'RoiManager'); %#ok<ASGLU>
 % %     jLabel.setText('Retrieving Session Data')
-    
+
     sessionData = nansen.session.SessionData( sessionObj );
     sessionData.updateDataVariables()
 
@@ -59,18 +59,18 @@ function varargout = openRoiManager(sessionObj, varargin)
 
     imageStack = sessionData.TwoPhotonSeries_Corrected;
     imageStack.DynamicCacheEnabled = true;
-    
+
     hRoimanager = nansen.roimanager(imageStack);
-    
+
     try
 % %         roiFilePath = sessionObj.getDataFilePath('RoiArray');
 % %         if ~isfile(roiFilePath)
-            
+
         varName = sessionData.uiSelectVariableName('roiArray', 'single');
         if ~isempty(varName)
             if isa(varName, 'cell'); varName = varName{1}; end
             roiFilePath = sessionObj.getDataFilePath(varName);
-            
+
             if ~isfile(roiFilePath)
                 return
             else
@@ -90,5 +90,4 @@ end
 function S = getDefaultParameters()
 
     S = struct();
-    
 end

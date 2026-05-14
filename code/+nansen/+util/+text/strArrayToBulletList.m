@@ -7,7 +7,7 @@ function result = strArrayToBulletList(strArray, options)
     end
 
     indentation = string( repmat(' ', 1, options.Indentation) );
-    
+
     result = indentation + options.BulletChar + " " + strArray;
     result = strjoin(result, newline);
 end

@@ -5,13 +5,13 @@ function [sOut, wasAborted] = editStruct(sIn, fieldNames, titleStr, varargin)
     if nargin < 2 || isempty(fieldNames) || isequal(fieldNames, 'all')
         if isa(sIn, 'struct')
             fieldNames = fields(sIn);
-            
+
         elseif isobject(sIn) && isa(sIn, 'handle')
             fieldNames = properties(sIn);
 %             dependentProperties = findAttrValue(sIn, 'Dependent');
 %             fieldNames = setdiff(fieldNames, dependentProperties, 'stable');
             warning('Cancel functionality of handle objects not implemented')
-        
+
         elseif isobject(sIn) && ~isa(sIn, 'handle')
            %TODO get properties of a class
            	warning('Non-handle class object not implemented')
@@ -20,20 +20,20 @@ function [sOut, wasAborted] = editStruct(sIn, fieldNames, titleStr, varargin)
             error('Input must be a struct or an object')
         end
     end
-    
+
     if nargin >= 3 && ~isempty(titleStr) % Preserve backwards compatibility.
         varargin = [varargin, {'Title', titleStr}];
     end
-    
+
     wasAborted = false;
-    
+
     % Check if this is a struct of structs.
     % In that case, make a tab/page for each of them.
     convertOutputToStruct = false;
     if isstruct(sIn)
         subfields = fieldnames(sIn);
         isSubstruct = cellfun(@(name) isstruct(sIn.(name)), subfields);
-        
+
         if all(isSubstruct)
             convertOutputToStruct = true;
             names = fieldnames(sIn);
@@ -41,16 +41,16 @@ function [sOut, wasAborted] = editStruct(sIn, fieldNames, titleStr, varargin)
             varargin = [varargin, {'Name', names}];
         end
     end
-    
+
     try
         if strcmp( getpref('StructEditor', 'Version', 'legacy'), 'appdesigner')
             sEditor = structeditor.StructEditorApp(sIn);
             sEditor.uiwait();
-    
+
             switch sEditor.FinishState
                 case "Finished"
                     sOut = sEditor.Data;
-    
+
                 otherwise
                     sOut = sEditor.Data;
                     wasAborted = true;
@@ -60,7 +60,7 @@ function [sOut, wasAborted] = editStruct(sIn, fieldNames, titleStr, varargin)
             sEditor = structeditor(sIn, varargin{:});
             sEditor.IsModal = true;
             sEditor.waitfor()
-    
+
             if sEditor.wasCanceled
                 sOut = sEditor.dataOrig;
                 wasAborted = true;
@@ -68,32 +68,32 @@ function [sOut, wasAborted] = editStruct(sIn, fieldNames, titleStr, varargin)
                 sOut = sEditor.dataEdit;
             end
         end
-        
+
         if convertOutputToStruct % See above conversion...
             sOut = cell2struct(sOut, names);
         end
-        
+
         delete(sEditor)
-        
+
         if nargout == 1
             clear wasAborted
         end
-    
+
     catch ME
-        
+
         switch ME.identifier
             case 'MATLAB:class:InvalidSuperClass'
-                
+
                 if contains(ME.message, 'uiw.mixin.AssignPVPairs')
                     msg = 'Settings window requires the Widgets Toolbox to be installed';
                     errordlg(msg)
                     error(msg)
                 end
-                
+
             otherwise
                 rethrow(ME)
         end
-        
+
         % Create the figure
         guiFig = createFigure(titleStr);
         guiFig.UserData.sBak = sIn;
@@ -110,11 +110,11 @@ function [sOut, wasAborted] = editStruct(sIn, fieldNames, titleStr, varargin)
             uiwait(guiFig)
             sOut = guiFig.UserData.sOut;
             delete(guiFig)
-            
+
             if nargout == 1
                 clear wasAborted
             end
-            
+
         catch
             errordlg('Something went wrong')
             delete(guiFig)
@@ -141,7 +141,6 @@ function guiFig = createFigure(titleStr)
 %     guiFig.WindowScrollWheelFcn = @mouseScrollCallback;
     guiFig.WindowKeyPressFcn = @keyboardShortcuts;
     guiFig.CloseRequestFcn = {@quit, 'Cancel'};
-
 end
 
 function keyboardShortcuts(src, event)
@@ -176,7 +175,7 @@ function createComponents(guiFig, S, fieldNames)
     rowSep = 10;
     totHeight = guiPanel.Position(4);
 %     guiPanel.Units = 'normalized';
-    
+
     y = rowSep;
 
     % Go through each property and make an inputfield for it. Each
@@ -186,7 +185,7 @@ function createComponents(guiFig, S, fieldNames)
 
         currentProperty = fieldNames{p};
         propertyClass = class(S.(currentProperty));
-        
+
         if strcmp(currentProperty, 'sessionID')
             continue
         elseif ~contains(propertyClass, {'logical', 'cell', 'double', 'char', 'struct', 'uint16', 'single', 'uint8'})
@@ -198,7 +197,7 @@ function createComponents(guiFig, S, fieldNames)
         switch propertyClass
             case 'struct'   % Make input for each field of struct property
                 propertyFields = fields(S.(currentProperty));
-                
+
                 % Make a dropdown selection
                 if contains('Selection', propertyFields)
                     val = S.(currentProperty);
@@ -220,7 +219,7 @@ function createComponents(guiFig, S, fieldNames)
                 y = y + rowHeight + rowSep;
         end
     end
-    
+
     if y < totHeight
         difference = totHeight - y;
         guiPanel.Position(4) = guiPanel.Position(4) - difference;
@@ -228,9 +227,9 @@ function createComponents(guiFig, S, fieldNames)
         screenSize = get(0, 'ScreenSize');
         guiFig.Position(1:2) = screenSize(3:4)/2 - guiFig.Position(3:4)/2;
     end
-    
+
     % Add save and cancel buttons
-    
+
     saveButton = uicontrol(guiFig, 'style', 'pushbutton');
 %     saveButton.Units = 'normalized';
     saveButton.Position = [guiFig.Position(3)/4-75, 15, 150, 20];
@@ -246,7 +245,6 @@ function createComponents(guiFig, S, fieldNames)
     cancelButton.FontUnits = 'normalized';
     cancelButton.FontSize = 0.7;
     cancelButton.Callback = {@quit, 'Cancel'};
-    
 end
 
 % Note inputbox belongs to guiPanel
@@ -255,7 +253,7 @@ function addInputField(guiPanel, y, name, val)
 %       y       : y position in panel
 %       name    : name of property. Used for text field and Tag
 %       val     : value f property. Assigned to input field.
-    
+
     % Create a textbox with the property name
     textbox = uicontrol(guiPanel, 'style', 'text');
     textbox.String = varname2label(name);
@@ -277,7 +275,7 @@ function addInputField(guiPanel, y, name, val)
         case 'char'
             inputbox = uicontrol(guiPanel, 'style', 'edit');
             inputbox.String = val;
-            
+
         case 'struct'
             fields = fieldnames(val);
             % Create a dropdown selection
@@ -288,13 +286,13 @@ function addInputField(guiPanel, y, name, val)
             else
                 % Not implemented
             end
-            
+
             % skip for now
-            
+
         case {'double', 'single', 'uint16', 'uint8'}
             inputbox = uicontrol(guiPanel, 'style', 'edit');
             inputbox.String = num2str(val);
-            
+
         otherwise
             % skip for now
     end
@@ -323,7 +321,7 @@ function editCallback_propertyValueChange(src, ~)
 
     guiPanel = src.Parent;
     guiFig = guiPanel.Parent;
-    
+
     name = src.Tag;
 
     switch src.Style
@@ -356,7 +354,7 @@ function editCallback_propertyValueChange(src, ~)
 
         case 'char'
             val = ['''' val ''''];
-            
+
         case 'struct'
             fields = fieldnames(guiFig.UserData.sTmp.(name));
             if contains('Selection', fields)
@@ -410,7 +408,7 @@ function createScrollBar(guiFig)
         set(jScroller, 'maximum',  panelHeight * 100, 'VisibleAmount', 100);
         scrollPos = [0.95, yPad, 0.05, 1-topMargin-yPad]; %% need y coordinates...
         set(jScrollContainer, 'Parent', guiPanel, 'units', 'normalized', 'Position', scrollPos)
-        
+
         guiPanel.UserData.scrollBar = jScroller;
         guiPanel.UserData.lastScrollValue = get(jScroller, 'value');
     end
@@ -467,7 +465,7 @@ end
 
 function buttonCallback_openBrowser(src, ~)
 % Button callback for browse button. Used to change path
-    
+
     guiPanel = src.Parent;
     guiFig = guiPanel.Parent;
 
@@ -502,7 +500,7 @@ end
 
 % Is src always guiFig? What are userdata fieldnames?
 function quit(src, ~, action)
-    
+
     if isa(src, 'matlab.ui.control.UIControl')
         guiFig = src.Parent;
     else
@@ -510,7 +508,7 @@ function quit(src, ~, action)
     end
 
     switch action
-        
+
         case 'Cancel'
             guiFig.UserData.sOut = guiFig.UserData.sBak;
             guiFig.UserData.sOut.Canceled = true;
@@ -518,9 +516,8 @@ function quit(src, ~, action)
             guiFig.UserData.sOut = guiFig.UserData.sTmp;
             guiFig.UserData.sOut.Canceled = false;
     end
-    
+
     uiresume(guiFig)
-    
 end
 
 function label = varname2label(varname)
@@ -548,5 +545,4 @@ end
 
 varname(1) = upper(varname(1));
 label = varname;
-
 end

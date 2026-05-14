@@ -39,5 +39,4 @@ kernel = m1+m2+m3;
 kernel = single(kernel);
 
 kernel = stack.process.filter2.gauss2d(single(kernel), opt.Sigma);
-
 end

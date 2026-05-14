@@ -28,5 +28,4 @@ end
 ops.imageRate              = 30;   % imaging rate (cumulative over planes!). Approximate, for initialization of deconvolution kernel.
 ops.sensorTau              = 2; % decay half-life (or timescale). Approximate, for initialization of deconvolution kernel.
 ops.maxNeurop              = 1; % for the neuropil contamination to be less th
-
 end

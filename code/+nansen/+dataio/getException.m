@@ -10,11 +10,10 @@ switch errID
 
     case 'Nansen:IOModel:WrongInput'
         msg = 'Expected input to be a file- or a folderpath';
-    
+
     case 'Nansen:IOModel:FileNotFound'
         msg = 'The input file does not exist';
 end
 
 ME = MException(errID, msg);
-
 end

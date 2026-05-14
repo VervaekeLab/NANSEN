@@ -27,7 +27,7 @@ function [S, wasAborted] = uigetFileAdapterAttributes(varargin)
         'Prompt', 'Configure new file adapter:');
 
     if wasAborted; S = struct.empty; return; end
-    
+
     % Postprocess output
     S.SupportedFileTypes = strsplit(S.SupportedFileTypes, ',');
     if strcmp(S.AdapterType, 'Read only')
@@ -40,7 +40,7 @@ function [S, wasAborted] = uigetFileAdapterAttributes(varargin)
 end
 
 % Todo:
-%   [ ] Output a struct with 3 fields: Name, Attributes, Configuration:
+%   [ ] Output a struct with 3 fields: Name, Attributes, Configuration:
 %
 %     S = struct();
 %     S.Name = S_.Name;

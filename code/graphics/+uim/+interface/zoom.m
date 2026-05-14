@@ -1,28 +1,28 @@
 classdef zoom < handle
-    
+
     % TODO:
     % [ ] Add switcher to only zoom in x or only zoom in y.
-    % [ ] Add plot zoom region here.
+    % [ ] Add plot zoom region here.
     %
     % [ ] Make this super class for both zoom and panning, i.e an
     %     axesDataLimits mixin (abstract) pointer tool...
-    
+
     properties (Abstract)
         zoomFactor
         xLimOrig
         yLimOrig
     end
-    
+
     properties
         zoomFinishedCallback
         % LimitsChangedFcn % Function to run when limits change.
     end
 
     methods
-        
+
         function shiftView(obj, shift)
         % Move visible portion of axes according to shift
-            
+
             % todo...
 
             % Get current axes limits
@@ -35,9 +35,8 @@ classdef zoom < handle
             yLimNew = ylim + imshift(2);
 
             obj.setNewImageLimits(xLimNew, yLimNew)
-
         end
-    
+
         function imageZoom(obj, direction, speed)
             % Zoom in image
 
@@ -52,7 +51,7 @@ classdef zoom < handle
 
             xLim = get(obj.hAxes, 'XLim');
             yLim = get(obj.hAxes, 'YLim');
-            
+
             % Get cursor position in figure (in pixels). The point which is
             % clicked should appear under the pointer when zooming in.
             figUnits = obj.hFigure.Units;
@@ -65,7 +64,7 @@ classdef zoom < handle
             mp_a = get(obj.hAxes, 'CurrentPoint');
             obj.hAxes.Units = axUnits;
             mp_a = mp_a(1, 1:2);
-            
+
             axPos = getpixelposition(obj.hAxes, true); % Need axes position in figure
 
             axLim = axPos + [0, 0, axPos(1), axPos(2)];
@@ -84,18 +83,18 @@ classdef zoom < handle
                 % divided by 2?
 
                 shiftX = (axPos(3)-mp_f(1)+0.25) / axPos(3)               * diff(xLimNew) - (xLim(1) + diff(xLim)/2 + diff(xLimNew)/2 - mp_a(1)) ;
-                
+
                 switch obj.hAxes.YDir
                     case 'normal'
                         shiftY = (axPos(4)-mp_f(2)) / axPos(4) * diff(yLimNew) - (yLim(1) + diff(yLim)/2 + diff(yLimNew)/2 - mp_a(2)) ;
                     case 'reverse'
                         shiftY = (axPos(4)-abs(axPos(4)-mp_f(2)-0.25)) / axPos(4) * diff(yLimNew) - (yLim(1) + diff(yLim)/2 + diff(yLimNew)/2 - mp_a(2)) ;
                 end
-                
+
                 xLimNew = xLimNew + shiftX;
                 yLimNew = yLimNew + shiftY;
             end
-            
+
             if diff(xLimNew) > diff(obj.xLimOrig)
                 xLimNew = obj.xLimOrig;
             elseif xLimNew(1) <= obj.xLimOrig(1)
@@ -113,17 +112,16 @@ classdef zoom < handle
             end
 
             setNewImageLimits(obj, xLimNew, yLimNew)
-
         end
 
         function setNewImageLimits(obj, xLimNew, yLimNew)
 
             % Todo: Have tests here to prevent setting limits outside of
             % image limits.
-            
+
             pos = getpixelposition(obj.hAxes);
             axAR = pos(3)/pos(4); % Axes aspect ratio.
-            
+
             xRange = diff(xLimNew); yRange = diff(yLimNew);
 
             % Adjust limits so that the zoomed image fills up the display
@@ -132,7 +130,7 @@ classdef zoom < handle
             elseif xRange/yRange < axAR
                 xLimNew = xLimNew + [-1, 1] * (yRange*axAR-xRange)/2;
             end
-    
+
             if diff(xLimNew) > diff(obj.xLimOrig)
                 xLimNew = obj.xLimOrig;
             elseif xLimNew(1) <= obj.xLimOrig(1)
@@ -156,27 +154,26 @@ classdef zoom < handle
                 obj.zoomFinishedCallback()
             end
         end
-        
+
         function setNewXLims(obj, newLimits)
-                      
+
             if nargin == 1 || isempty(newLimits)
                 newLimits = obj.xLimOrig;
             end
-            
+
             % Todo: Make sure XLim2 > XLim1
-            
+
             newLimits(1) = max([obj.xLimOrig(1), newLimits(1)]);
             newLimits(2) = min([obj.xLimOrig(2), newLimits(2)]);
-            
+
             % Set new limits
             set(obj.ax, 'XLim', newLimits);
 
             drawnow limitrate
-            
         end
-        
+
         function setNewYLims(obj, newLimits)
-            
+
             % Set new limits
             if nargin == 1 || isempty(newLimits)
                 set(obj.ax, 'YLim', obj.YLimExtreme.(obj.ActiveYAxis))

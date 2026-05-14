@@ -24,7 +24,7 @@ function uuid = getuuid()
     else
         % continue
     end
-    
+
     if useJava
         uuid = char( java.util.UUID.randomUUID() );
     end

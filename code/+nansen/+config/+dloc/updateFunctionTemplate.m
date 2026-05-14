@@ -14,7 +14,6 @@ function updateFunctionTemplate(functionFilePath, datalocation)
 %                      Name - The data location name
 %                      Uuid - The unique identifier for the data location
 
-    
     % Todo: Verify that this function works as expected
 
     functionStr = fileread(functionFilePath);
@@ -34,15 +33,15 @@ function updateFunctionTemplate(functionFilePath, datalocation)
     for i = 1:numel(datalocation)
         datalocationMapNew(datalocation(i).Uuid) = datalocation(i).Name;
     end
-    
+
     % Determine if data locations have been added or removed.
     addedDataLocations = setdiff(datalocationMapNew.keys, datalocationMapOld.keys);
     removedDataLocations = setdiff(datalocationMapOld.keys, datalocationMapNew.keys);
-    
+
     % Extract all case blocks:
     expression = 'case[\s\S]*?(?=case|otherwise)';
     extractedBlocks = regexp(functionStr, expression, 'match');
-    
+
     % Remove cases for removed data locations
     for i = 1:numel(extractedBlocks)
         for j = 1:numel(removedDataLocations)
@@ -52,7 +51,7 @@ function updateFunctionTemplate(functionFilePath, datalocation)
             end
         end
     end
-    
+
     % Add cases for added data locations
     caseBlockTemplate = '        case ''%s'' %% <%s> [Do not remove]\n';
 
@@ -62,9 +61,9 @@ function updateFunctionTemplate(functionFilePath, datalocation)
         dataLocationName = datalocationMapNew(dataLocationUuid);
         newCaseBlocks{i} = sprintf(caseBlockTemplate, dataLocationName, dataLocationUuid);
     end
-    
+
     newCaseBlocksStr = strjoin(newCaseBlocks, newline);
-    
+
     % Insert new blocks before the otherwise statement
     if ~isempty(newCaseBlocksStr)
         otherwisePattern = '\s*otherwise';
@@ -82,7 +81,7 @@ function updateFunctionTemplate(functionFilePath, datalocation)
         uuid = commonUuids{i};
         oldName = datalocationMapOld(uuid);
         newName = datalocationMapNew(uuid);
-        
+
         if ~strcmp(oldName, newName)
             % Find and replace the case statement for this UUID
             oldCasePattern = sprintf('case ''%s'' %%%% <%s>', oldName, uuid);

@@ -6,8 +6,7 @@ function dff = getDff(imArray, roiArray)
 
     signalOpts = struct('createNeuropilMask', true);
     signalArray = extractF(imArray, roiArray, signalOpts);
-    
+
     dffOpts = struct('dffFcn', 'dffRoiMinusDffNpil');
     dff = computeDff(signalArray, dffOpts{:});
-
 end

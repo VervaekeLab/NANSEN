@@ -18,24 +18,24 @@ classdef suite2p < nansen.session.SessionMethod & nansen.wrapper.suite2p.Process
 %- `roiArraySuite2pAuto`: automatically detected ROIs.
 %- `Suite2pOptions`, `Suite2pResultsTemp`, and `Suite2pResultsFinal` are
 %  saved as method outputs for provenance and restart support.
-    
+
     properties (Constant) % SessionMethod attributes
         BatchMode = 'serial' % Move to data method?
     end
-    
+
     methods
-        
+
         function obj = suite2p(varargin)
-            
+
             % Dont want this to be in charge, use session task/method instead.
             obj@nansen.wrapper.suite2p.Processor()
-            
+
             % Call the SessionTask constructor last to make sure the
             % session's data I/O model is used.
             obj@nansen.session.SessionMethod(varargin{:})
 
             if ~nargin; return; end
-            
+
             % Todo: ParseVararginForOptions Move to session method???
             obj.checkArgsForOptions(varargin{:});
 
@@ -43,9 +43,9 @@ classdef suite2p < nansen.session.SessionMethod & nansen.wrapper.suite2p.Process
 
             sessionData = nansen.session.SessionData( varargin{1} );
             sessionData.updateDataVariables()
-            
+
             obj.openSourceStack(sessionData.TwoPhotonSeries_Corrected)
-            
+
             if ~nargout % how to generalize this???
                 obj.runMethod()
                 clear obj

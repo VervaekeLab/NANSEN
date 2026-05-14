@@ -3,11 +3,11 @@ classdef ImviewerPlugin < applify.mixin.AppPlugin
 
     % Abstract class providing properties and methods that gives plugin
     % functionality for imviewer.
-    
+
     properties (Dependent)
         ImviewerObj                     % Alias for PrimaryApp % Rename to ImviewerApp
     end
-    
+
     properties (GetAccess = protected, SetAccess = private)
         Axes                            % Axes for plotting into
     end
@@ -24,7 +24,7 @@ classdef ImviewerPlugin < applify.mixin.AppPlugin
     end
 
     methods % Constructor
-        
+
         function obj = ImviewerPlugin(varargin)
             % Make sure the given handle is an instance of imviewer.App
             [h, varargin] = imviewer.ImviewerPlugin.checkForImviewerInArgList(varargin);
@@ -34,33 +34,33 @@ classdef ImviewerPlugin < applify.mixin.AppPlugin
     end
 
     methods %Set/get methods
-        
+
         function numChannels = get.NumChannels(obj)
             numChannels = obj.ImviewerObj.ImageStack.NumChannels;
         end
-      
+
         function numPlanes = get.NumPlanes(obj)
             numPlanes = obj.ImviewerObj.ImageStack.NumPlanes;
         end
     end
-    
+
     methods
-        
+
         function imviewerObj = get.ImviewerObj(obj)
             imviewerObj = obj.PrimaryApp;
         end
     end
-    
+
     methods (Access = protected)
-        
+
         function showImageInImviewer(obj, image, imageName)
             obj.PrimaryApp.showExternalImage(image, imageName)
         end
-        
+
         function setImviewerUpdateFunction(obj, fcnHandle)
             obj.PrimaryApp.ImageProcessingFcn = fcnHandle;
         end
-        
+
         function updateImviewerDisplay(obj)
             obj.PrimaryApp.updateImage()
             obj.PrimaryApp.updateImageDisplay()
@@ -68,7 +68,7 @@ classdef ImviewerPlugin < applify.mixin.AppPlugin
     end
 
     methods (Access = protected) % Consider private
-        
+
         function onPluginActivated(obj)
         %onPluginActivated Run subroutines when plugin is activated.
             onPluginActivated@applify.mixin.AppPlugin(obj)
@@ -76,7 +76,7 @@ classdef ImviewerPlugin < applify.mixin.AppPlugin
             assert(isa(obj.PrimaryApp, 'imviewer.App'), ...
                 ['Can not activate plugin because the parent app has to be' ...
                 'an instance of imviewer.App'])
-            
+
             obj.Axes = obj.PrimaryApp.Axes;
             obj.onImviewerSet()
         end
@@ -96,7 +96,7 @@ classdef ImviewerPlugin < applify.mixin.AppPlugin
         function onCurrentPlaneChanged(obj)
             % Subclasses can implement
         end
-    
+
         function onCurrentFrameChanged(obj)
             % Subclasses can implement
         end
@@ -119,23 +119,23 @@ classdef ImviewerPlugin < applify.mixin.AppPlugin
                 obj.ImviewerObj, 'currentPlane', 'PostSet', ...
                 @(s, e) obj.onCurrentPlaneChanged );
         end
-        
+
         function resetImviewerListeners(obj)
         %resetImviewerListeners Reset listeners if they are active
 
             obj.resetListener( obj.CurrentFrameChangedListener )
             obj.CurrentFrameChangedListener = event.listener.empty;
-            
+
             obj.resetListener( obj.CurrentChannelChangedListener )
             obj.CurrentChannelChangedListener = event.listener.empty;
-            
+
             obj.resetListener( obj.CurrentPlaneChangedListener )
             obj.CurrentPlaneChangedListener = event.listener.empty;
         end
 
         function resetListener(~, listenerHandle)
             isdeletable = @(x) ~isempty(x) & isvalid(x);
-            
+
             if isdeletable( listenerHandle )
                 delete( listenerHandle )
             end

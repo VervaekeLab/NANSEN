@@ -49,7 +49,7 @@ classdef HasUserData < handle
     properties (Access = private)
         OriginalData % The original state of the data.
     end
-    
+
     events
         % DataChanged - Event that is triggered whenever the Data is
         % modified.
@@ -78,7 +78,7 @@ classdef HasUserData < handle
             if isequaln(newData, oldData); return; end
             obj.Data = newData;
             if isempty(oldData); obj.OriginalData = newData; end %#ok<MCSUP>
-            
+
             % Todo: Create event data and pass oldData and newData
             obj.notify('DataChanged', event.EventData)
         end
@@ -89,7 +89,7 @@ classdef HasUserData < handle
         % resetData - Reset the data to its original state.
             obj.Data = obj.OriginalData;
         end
-        
+
         function markClean(obj)
         % markClean - Update original data to match current data.
             obj.OriginalData = obj.Data;

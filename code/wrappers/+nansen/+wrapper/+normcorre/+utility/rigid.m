@@ -24,7 +24,7 @@ if ~isa(Y, 'single') || ~isa(Y, 'double')
 end
 
 switch optsFlag
-    
+
     case 'standard'
         ncOpts = NoRMCorreSetParms( ...
                     'd1', size(Y,1), 'd2', size(Y,2), 'max_shift', 50, ...
@@ -36,13 +36,13 @@ switch optsFlag
                     'bin_width', 60, 'us_fac', 50, 'print_msg', 0, 'boundary', 'copy', ...
                     'shifts_method', 'fft');
 end
-    
+
 if isempty(ref)
     [Y, ncShifts, ref] = normcorre(Y, ncOpts);
 else
     [Y, ncShifts, ref] = normcorre(Y, ncOpts, ref);
 end
-    
+
 M = cast(Y, 'like', Y);
 
 if nargout == 3

@@ -17,39 +17,39 @@ function fovLocs = assignFovLocation(fovArray, varargin)
     % this function might be called many times. Also, the file will have a
     % small footprint in memory.
     persistent S
-    
+
     opt = struct('mergeRegions', true);
     opt = utility.parsenvpairs(opt, [], varargin);
-    
+
     % Load file with region index map
     if isempty(S)
         S = fovmanager.utility.atlas.loadRegionIndexMap();
     end
-    
+
     % Get some values from S
     m = S.magnificationFactor;
     regionLabels = S.regionLabels;
     [mapHeight, mapWidth] = size(S.indexMap);
-    
+
     % Merge regions / region labels if requested
     if opt.mergeRegions
         regionLabels = fovmanager.utility.atlas.mergeRegions(regionLabels);
     end
     uniqueRegions = unique(regionLabels);
-    
+
     numFovs = numel(fovArray);
     fovLocs = cell(numFovs, 1);
-    
+
     for iFov = 1:numFovs
-    
+
         thisFov = fovArray(iFov);
-        
+
         % Make binary mask of the fov with same size and coordinates as the
         % region index map.
         fovX = (thisFov.edge(:,1) - S.referencePoint(1)) .* m;
         fovY = (thisFov.edge(:,2) - S.referencePoint(2)) .* m;
         fovMask = poly2mask(fovX, fovY, mapHeight, mapWidth);
-        
+
         % Get the reigion indices for each coordinate in the fov.
         regionIndices = S.indexMap(fovMask);
 
@@ -61,6 +61,5 @@ function fovLocs = assignFovLocation(fovArray, varargin)
         [~, bestRegionInd] = max(N);
 
         fovLocs(iFov) = uniqueRegions(bestRegionInd);
-        
     end
 end

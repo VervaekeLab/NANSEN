@@ -10,10 +10,10 @@ function stat = convertRegionPropsToS2pStat(S, imageSize)
         [y, x]          = ind2sub(imageSize, S(i).PixelIdxList);
         stat(i).xpix    = x;
         stat(i).ypix    = y;
-        
+
         stat(i).lam     = S(i).PixelValues;
         stat(i).lambda  = S(i).PixelValues;
-        
+
         % Make sure lam is normalized
         if sum(stat(i).lam) ~= 1
             stat(i).lam = stat(i).lam ./ sum(stat(i).lam);

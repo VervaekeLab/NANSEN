@@ -87,9 +87,9 @@ function manifestPaths = collectManifestPaths(includeCore, selectedModules)
     if ~isempty(selectedModules)
 
         for i = 1:numel(selectedModules)
-            
+
             currentModulePath = utility.path.packagename2pathstr(selectedModules(i));
-            
+
             moduleInfo = what(currentModulePath);
             if isempty(moduleInfo)
                 warning('NANSEN:Dependencies:ModuleNotFound', ...

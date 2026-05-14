@@ -4,20 +4,20 @@ classdef ProjectManagerUI < handle
 %   This class manages the graphical user interface for the project
 %   manager. It creates ui controls, validates input data and responds to
 %   user interactions.
-    
+
     % Todo:
-    %   [ ] Flag for whether to create tabs or not (should not create on setup?)
+    %   [ ] Flag for whether to create tabs or not (should not create on setup?)
     %   [ ] Only disable create new project controls if this is the initial setup...
-    %   [v] Add a context menu on the table. 
+    %   [v] Add a context menu on the table.
     %   [v] Add boolean column to table. Configure it like a
     %       radiobuttongroup... Use for selecting current project.
     %   [ ] Add menu item for editing preferences
-    
+
     properties
         ProjectManager
         ProjectRootFolderPath
     end
-    
+
     properties (Access = protected) % UI Components
         hParent
         MainGridLayout
@@ -26,7 +26,7 @@ classdef ProjectManagerUI < handle
         UIControls struct = struct
         UILabels struct = struct
     end
-    
+
     properties (Access = protected) % Internal configurations
         ActiveRow = []
         SelectedRow = []
@@ -37,11 +37,11 @@ classdef ProjectManagerUI < handle
     properties (Constant, Access = private)
         DefaultColumnWidth = {65, 100, 100, 200, 500};
     end
-    
+
     methods % Constructor
-        
+
         function obj = ProjectManagerUI(hParent)
-            
+
             obj.assignInitialProjectRootFolderPath()
 
             userSession = nansen.internal.user.NansenUserSession.instance();
@@ -53,29 +53,29 @@ classdef ProjectManagerUI < handle
             else
                 obj.hParent = hParent;
             end
-            
+
             % Create tabs
             obj.createTabGroup()
             obj.createUiControls()
             obj.createProjectTable()
         end
     end
-    
+
     methods % Public methods
-        
+
         function tf = isProjectInformationEntered(obj)
             tf = ~isempty(obj.UIControls.ProjectShortNameInput.Value);
         end
-        
+
         function tf = wasProjectCreated(obj)
             tf = strcmp(obj.UIControls.CreateNewProjectButton.Enable, 'off');
         end
-        
+
         function [success, projectName] = addExistingProject(obj)
         %addExistingProject Add existing project from file
-            
+
             success = false;
-            
+
             hFigure = ancestor(obj.hParent, 'figure');
             if ~isempty(hFigure)
                 answer = uiconfirm(hFigure, 'Please select a project folder', ...
@@ -85,7 +85,7 @@ classdef ProjectManagerUI < handle
             end
 
             folderPath = uigetdir(obj.ProjectRootFolderPath);
-            
+
             % Bring figure back to view
             if ~isempty(hFigure)
                 hFigure.WindowState = 'normal';
@@ -95,7 +95,7 @@ classdef ProjectManagerUI < handle
             if folderPath == 0
                 return
             end
-            
+
             if ~isempty(hFigure)
                 progressDlg = uiprogressdlg(hFigure, ...
                     'Message', 'Importing project...', ...
@@ -117,25 +117,25 @@ classdef ProjectManagerUI < handle
                 obj.ProjectManager.changeProject(projectName);
             end
             obj.updateProjectTableData()
-            
+
             if ~nargout
                 clear success projectName
             elseif nargout == 1
                 clear projectName
             end
         end
-        
+
         function createProject(obj)
         % createProject - Validate entered information and create new project
-           
+
         % Question: Does this method have to be public?
 
             projectDescription = obj.UIControls.ProjectName.Value;
             projectShortName = obj.UIControls.ProjectShortNameInput.Value;
             projectFolderPath = obj.UIControls.ProjectPathInput.Value;
-            
+
             isValidProjectName = isvarname(projectShortName);
-            
+
             if ~isValidProjectName
                 if isempty(projectShortName)
                     message = 'Please enter a name for the project';
@@ -144,11 +144,11 @@ classdef ProjectManagerUI < handle
                     message = 'Project short name can only consist of letters, numbers and underscores';
                     title = 'Invalid Project Name';
                 end
-                
+
                 obj.uialert(message, title)
                 return
             end
-    
+
 % %             if isempty(projectLongName)
 % %                 message = 'Please enter a name for project';
 % %                 title = 'Project Name Missing';
@@ -162,18 +162,18 @@ classdef ProjectManagerUI < handle
             if isempty(projectFolderPath)
                 message = 'Please enter a directory for saving project metadata';
                 title = 'Project Path Missing';
-                
+
                 obj.uialert(message, title)
                 return
             end
 
             if strcmp(obj.UIControls.CreateNewProjectButton.Text, 'Create New Project')
-                
+
                 % Todo: Check that project does not exist...
-                                
+
                 % Create new project
                 args = {projectShortName, projectDescription, projectFolderPath};
-                
+
                 try
                     obj.ProjectManager.createProject(args{:})
                 catch ME
@@ -185,30 +185,30 @@ classdef ProjectManagerUI < handle
                 % Should this be triggered by a listener on ProjectManager
                 % for ProjectCreatedEvent? Todo: set up that event.
                 obj.updateProjectTableData()
-                
+
                 % Disable controls for creating new project
                 % Todo: only do this during the initial setup
                 obj.disableCreateNewProjectControls()
             end
         end
-        
+
         function uialert(obj, message, title, alertType)
-            
+
             VALID_ALERT_TYPES = {'info', 'warning', 'error', 'success'};
-            
+
             if nargin < 4
                 alertType = 'info';
             end
-            
+
             alertType = validatestring(alertType, VALID_ALERT_TYPES);
-            
+
             hFig = ancestor(obj.hParent, 'figure');
             uialert(hFig, message, title, 'Icon', alertType)
         end
     end
-    
+
     methods (Access = protected) % Component creation
-        
+
         function createTabGroup(obj)
             obj.MainGridLayout = uigridlayout(obj.hParent);
             obj.MainGridLayout.ColumnWidth = {'1x'};
@@ -216,20 +216,20 @@ classdef ProjectManagerUI < handle
             obj.MainGridLayout.Padding = 0;
 
             tabNames = {'Create New Project', 'Add Existing Project', 'Manage Projects'};
-            
+
             obj.TabGroup = uitabgroup(obj.MainGridLayout);
             obj.TabGroup.SelectionChangedFcn = @obj.TabGroupSelectionChanged;
-            
+
             for i = 1:numel(tabNames)
                 obj.TabList(i) = uitab(obj.TabGroup);
                 obj.TabList(i).Title = tabNames{i};
             end
-            
+
             set(obj.TabList, 'BackgroundColor', 'w')
         end
-        
+
         function createUiControls(obj)
-            
+
             % Use gridlayout for better positioning of components
             uigrid = uigridlayout(obj.TabList(1));
             uigrid.ColumnWidth = {'1x',170, '1x'};
@@ -252,7 +252,7 @@ classdef ProjectManagerUI < handle
             obj.UIControls.BrowseButton.FontWeight = 'bold';
             obj.UIControls.BrowseButton.Position = [525 y0 100 25];
             obj.UIControls.BrowseButton.Text = 'Change Folder';
-            
+
             % Create label and input field for the project name
             obj.UILabels.ProjectName = uilabel(controlPanel);
             obj.UILabels.ProjectName.FontName = 'Segoe UI';
@@ -264,7 +264,7 @@ classdef ProjectManagerUI < handle
             obj.UIControls.ProjectName = uieditfield(controlPanel, 'text');
             obj.UIControls.ProjectName.Visible = 'off';
             obj.UIControls.ProjectName.Position = [336 141 279 22];
-            
+
             % Create label for the project path input field
             obj.UILabels.ProjectPathInput = uilabel(controlPanel);
             obj.UILabels.ProjectPathInput.FontName = 'Segoe UI';
@@ -275,34 +275,34 @@ classdef ProjectManagerUI < handle
             % Create control for the project path input field
             obj.UIControls.ProjectPathInput = uieditfield(controlPanel, 'text');
             obj.UIControls.ProjectPathInput.Position = [29 y0+1 489 22];
-            
+
             y0 = 72;
-            
+
             % Create label and input field for the project short name
             hLabel = uilabel(controlPanel);
             hLabel.FontName = 'Segoe UI';
             hLabel.FontWeight = 'bold';
             hLabel.Position = [31 y0+22 158 22];
             hLabel.Text = 'Enter a short project name';
-            
+
             hEditField = uieditfield(controlPanel, 'text');
             hEditField.ValueChangedFcn = @obj.ProjectLabelEditFieldValueChanged;
             hEditField.ValueChangingFcn = @obj.ProjectLabelEditFieldValueChanging;
             hEditField.FontName = 'Segoe UI';
             hEditField.FontWeight = 'bold';
             hEditField.Position = [29 y0 169 22];
-            
+
             try
                 hLabel.Tooltip = {'(a-z, A-Z, 1-9, _)'};
                 hEditField.Tooltip = {'(a-z, A-Z, 1-9, _)'};
             catch
-                % Skip setting tooltips, there was no tooltip prop in older 
+                % Skip setting tooltips, there was no tooltip prop in older
                 % releases of matlab
             end
-            
+
             obj.UILabels.ProjectShortNameInput = hLabel;
             obj.UIControls.ProjectShortNameInput = hEditField;
-            
+
             % Create CreateNewProjectButton
             obj.UIControls.CreateNewProjectButton = uibutton(uigrid, 'push');
             obj.UIControls.CreateNewProjectButton.ButtonPushedFcn = @obj.CreateNewProjectButtonValueChanged;
@@ -315,7 +315,7 @@ classdef ProjectManagerUI < handle
 
             % Create controls on the Add Existing Project tab page
             tabIdx = strcmp({obj.TabList.Title}, 'Add Existing Project');
-            
+
             uigrid = uigridlayout(obj.TabList(tabIdx));
             uigrid.ColumnWidth = {'1x', 170, '1x'};
             uigrid.RowHeight = {'2x', 34, '3x'};
@@ -327,53 +327,53 @@ classdef ProjectManagerUI < handle
             hButton.Text = 'Add Existing Project';
             hButton.ButtonPushedFcn = @(s, e) obj.onAddExistingProjectButtonPushed;
             hButton.FontWeight = 'bold';
-            
+
             obj.UIControls.AddExistingButton = hButton;
             %uim.utility.layout.centerObjectInRectangle(hButton, obj.TabList(tabIdx))
-            
+
             tabIdx = strcmp({obj.TabList.Title}, 'Manage Projects');
-            
+
             obj.UIControls.ProjectTable = uitable(obj.TabList(tabIdx));
             obj.UIControls.ProjectTable.Position = [10,10,530,200];
 
             addlistener(obj.UIControls.ProjectTable, ...
                 "SizeChanged", @(s,e) obj.setProjectTablePosition);
         end
-        
+
         function createProjectTable(obj)
-            
+
             obj.updateProjectTableData()
-            
+
             obj.UIControls.ProjectTable.ColumnWidth = obj.DefaultColumnWidth;
             obj.UIControls.ProjectTable.ColumnEditable = [true,false,false,true,false];
             obj.UIControls.ProjectTable.CellEditCallback = @obj.onTableCellEdited;
 
             obj.setProjectTablePosition()
         end
-        
+
         function updateProjectTableData(obj)
         %updateProjectTableData Update data in the uitable
-        
+
             if isempty(obj.ProjectManager.Catalog); return; end
             if ~isfield(obj.UIControls, 'ProjectTable'); return; end
-        
+
             T = struct2table(obj.ProjectManager.Catalog, 'AsArray', true);
-            
+
             % Add column to indicate current/active project
             currentProjectName = obj.ProjectManager.CurrentProject;
             isCurrent = strcmp(T.Name, currentProjectName);
             tableColumn = table(isCurrent, 'VariableNames', {'Current'});
-            
+
             T = [tableColumn, T];
-            
+
             try
                 obj.UIControls.ProjectTable.Data = T;
-                
+
             catch
                 obj.UIControls.ProjectTable.Data = table2cell(T);
                 obj.UIControls.ProjectTable.ColumnName = T.Properties.VariableNames;
             end
-            
+
             try % Only available in newer matlab versions...
                 if any(isCurrent)
                     obj.setRowStyle('Current Project', find(isCurrent))
@@ -387,54 +387,54 @@ classdef ProjectManagerUI < handle
             catch
                 warning('Some features of the project table are not created properly. Matlab 2018b or newer is required.')
             end
-            
+
             if isempty(obj.UIControls.ProjectTable.CellSelectionCallback)
                 obj.UIControls.ProjectTable.CellSelectionCallback = @obj.onTableCellSelected;
             end
         end
-        
+
         function setProjectTablePosition(obj)
         %setProjectTablePosition Position the table within the UI
-        
+
             margin = 10;
 
             % We need the figure to draw before we position the table in
-            % the parent panel. Do a small polling loop 
+            % the parent panel. Do a small polling loop
             numTries = 5;
             lastException = [];
-            
+
             for iTry = 1:numTries
                 try
                     parentPosition = obj.TabList(2).InnerPosition;
                     tablePosition = parentPosition + [1, 1, -2, -2] * margin;
                     obj.UIControls.ProjectTable.Position = tablePosition;
                     break
-            
+
                 catch exception
                     lastException = exception;
-            
+
                     if iTry == numTries
                         rethrow(lastException)
                     end
-            
+
                     drawnow
                     pause(0.05)
                 end
             end
 
             maxTableWidth = sum( [obj.DefaultColumnWidth{:}] );
-            
+
             if tablePosition(3) > maxTableWidth
                 obj.UIControls.ProjectTable.ColumnWidth = [obj.DefaultColumnWidth(1:end-1), '1x'];
             else
                 obj.UIControls.ProjectTable.ColumnWidth = obj.DefaultColumnWidth;
             end
         end
-        
+
         function createTableContextMenu(obj)
-            
+
             cMenu = uicontextmenu(ancestor(obj.hParent, 'figure'));
-            
+
             contextMenuItemNames = {...
                 'Set current project', ...
                 'Remove project', ...
@@ -442,17 +442,17 @@ classdef ProjectManagerUI < handle
                 'Update project folder location', ...
                 'Open project folder', ...
                 'Open project folder in MATLAB'};
-            
+
             hMenuItem = gobjects(numel(contextMenuItemNames), 1);
             for i = 1:numel(contextMenuItemNames)
                 hMenuItem(i) = uimenu(cMenu, 'Text', contextMenuItemNames{i});
                 hMenuItem(i).Callback = @obj.onContextMenuItemClicked;
             end
             set(hMenuItem([2,5]), 'Separator', 'on')
-            
+
             obj.UIControls.ProjectTable.UIContextMenu = cMenu;
         end
-        
+
         function disableCreateNewProjectControls(obj)
 
             % Disable all input fields.
@@ -473,13 +473,13 @@ classdef ProjectManagerUI < handle
             % not implemented
         end
     end
-    
+
     methods (Access = protected) % Project context menu action handlers
-        
+
         function changeProject(obj, rowIdx)
         % changeProject - Changes the current project
             projectName = obj.getNameFromRowIndex(rowIdx);
-            
+
             try
                 obj.ProjectManager.changeProject(projectName);
                 msg = sprintf('Current NANSEN project was changed to "%s".', projectName);
@@ -488,7 +488,7 @@ classdef ProjectManagerUI < handle
                 obj.uialert(ME.message, 'Failed to Change Project')
                 return
             end
-            
+
             try % Note: Does not work in older versions of matlab
                 obj.setRowStyle('Current Project', rowIdx)
                 obj.UIControls.ProjectTable.Data(:, 'Current') = {false};
@@ -498,7 +498,7 @@ classdef ProjectManagerUI < handle
                 obj.UIControls.ProjectTable.Data(rowIdx, 1) = {true};
             end
         end
-        
+
         function updateProjectDirectory(obj, rowIdx, newProjectDirectory)
             projectName = obj.getNameFromRowIndex(rowIdx);
             if ~isequal(projectName, 0)
@@ -506,14 +506,14 @@ classdef ProjectManagerUI < handle
                 obj.UIControls.ProjectTable.Data(rowIdx, 'Path') = {newProjectDirectory};
             end
         end
-        
+
         function deleteProject(obj, rowIdx)
         % deleteProject - Delete project from project manager and project table
         %
         % NB: This removes the project and deletes the project files from disk.
 
             projectName = obj.getNameFromRowIndex(rowIdx);
-            
+
             % Display message
             hFig = ancestor(obj.hParent, 'figure');
             message = sprintf(['This action will remove the project "%s" ', ...
@@ -522,7 +522,7 @@ classdef ProjectManagerUI < handle
             title = 'Confirm Delete';
             opts = {'Options', {'Delete Project', 'Cancel'}};
             selection = uiconfirm(hFig, message, title, opts{:});
-            
+
             switch selection
                 case 'Delete Project'
                     % Call removeProject with flag for deleting project folder
@@ -531,7 +531,7 @@ classdef ProjectManagerUI < handle
                     % Cancel
             end
         end
-        
+
         function removeProject(obj, rowIdx, deleteFolder)
         % removeProject - Remove project from project manager and project table
         %
@@ -541,9 +541,9 @@ classdef ProjectManagerUI < handle
             if nargin < 3
                 deleteFolder = false;
             end
-            
+
             projectName = obj.getNameFromRowIndex(rowIdx);
-            
+
             % Remove project before removing table row
             % (In case project can not be removed)
             try
@@ -555,7 +555,7 @@ classdef ProjectManagerUI < handle
                 obj.uialert(ME.message, 'Project Not Removed', 'error')
             end
         end
-        
+
         function openProjectFolder(obj, rowIdx)
         % Open project folder in operating system i.e Finder or Explorer
 
@@ -581,10 +581,10 @@ classdef ProjectManagerUI < handle
         %
         %   Only one style of each type are allowed at any time, so if the
         %   style already exists it is removed before it is added again.
-        
+
             % Remove this style type if it exists on another row
             sConfig = obj.UIControls.ProjectTable.StyleConfigurations;
-            
+
             switch styleType
                 case 'Selected Row'
                     s = uistyle('BackgroundColor', obj.SelectedRowBgColor,...
@@ -592,28 +592,28 @@ classdef ProjectManagerUI < handle
                 case 'Current Project'
                     s = uistyle('FontWeight', 'bold');
             end
-            
+
             isStyleActive = arrayfun(@(h) isequal(s, h), sConfig.Style);
             if any(isStyleActive)
                 removeStyle(obj.UIControls.ProjectTable, find(isStyleActive))
             end
-            
+
             addStyle(obj.UIControls.ProjectTable, s, 'row', rowIdx);
         end
-        
+
         function name = getNameFromRowIndex(obj, rowIndex)
         %getNameFromRowIndex Get name of project from row index
-            
+
             try
                 name = obj.UIControls.ProjectTable.DisplayData{rowIndex, 'Name'};    % Name column index = 2
                 if iscell(name)
                     name = name{1};
                 end
-                
+
             catch % DisplayData not available in older versions of matlab.
                 name = obj.UIControls.ProjectTable.Data{rowIndex, 2};
             end
-            
+
             if iscell(name)
                 name = name{1};
             end
@@ -621,17 +621,17 @@ classdef ProjectManagerUI < handle
     end
 
     methods (Access = protected) % UIControl callbacks
-       
+
         % Button pushed function: ChangeProjectFolderButton
         function ChangeProjectFolderButtonPushed(obj, ~, ~)
         %   Lets user select a folder to save project files to.
-        
+
             import nansen.config.project.uisetProjectFolder
-            
+
             % Get values from UIControls and assign to local variables
             currentProjectPath = obj.UIControls.ProjectPathInput.Value;
             projectShortName = obj.UIControls.ProjectShortNameInput.Value;
-            
+
             currentRootFolder = fileparts(currentProjectPath);
 
             % Call function that's asks user to interactively select a new folder
@@ -639,39 +639,39 @@ classdef ProjectManagerUI < handle
 
             % Bring ui figure back into focus.
             figure( ancestor(obj.hParent, 'figure') )
-            
+
             % Return if user canceled / update the folderpath ui control
             if newFolder == 0
                 return;
             else
                 obj.UIControls.ProjectPathInput.Value = newFolder;
             end
-            
+
             % Set current project root folder (This is added to prefs in
             % uisetProjectFolder if it was changed)
             obj.ProjectRootFolderPath = getpref('NansenSetup', 'DefaultProjectPath');
         end
-        
+
         % Button pushed function: CreateNewProjectButton
         function CreateNewProjectButtonValueChanged(obj, ~, ~)
             obj.createProject()
         end
-        
+
         % Value changed function: ProjectLabelEditField
         function ProjectLabelEditFieldValueChanged(obj, ~, event)
-            
+
             projectOldName = event.PreviousValue;
-            
+
             % Get the project name and current path
             projectNewName = obj.UIControls.ProjectShortNameInput.Value;
             currentProjectPath = obj.UIControls.ProjectPathInput.Value;
-            
+
             % Make sure its a valid name (letters/numbers/underscore only)
             isNameValid = isvarname(projectNewName);
-            
+
             if isempty(projectNewName) || isNameValid
                 return
-                
+
             elseif ~isNameValid
                 msg = 'Project name can only consist of letters, numbers and underscores';
                 obj.uialert(msg, 'Invalid input')
@@ -680,11 +680,11 @@ classdef ProjectManagerUI < handle
                 projectOldName = projectNewName;
                 projectNewName = '';
             end
-            
+
             % Update/create the project path based on new name selection
             projectFolder = nansen.config.project.autoUpdateProjectPath(...
                 projectNewName, projectOldName, currentProjectPath);
-            
+
             % Update the value of the local path field
             obj.UIControls.ProjectPathInput.Value = projectFolder;
         end
@@ -692,7 +692,7 @@ classdef ProjectManagerUI < handle
         % Value changing function: ProjectLabelEditField
         function ProjectLabelEditFieldValueChanging(obj, ~, event)
             changingValue = event.Value;
-            
+
             % Dynamically update the project folder path
             obj.UIControls.ProjectPathInput.Value = fullfile(obj.ProjectRootFolderPath, changingValue);
             obj.UIControls.ProjectPathInput.Tooltip = obj.UIControls.ProjectPathInput.Value;
@@ -700,7 +700,7 @@ classdef ProjectManagerUI < handle
 
         % Tab selection changed function: TabGroupSelectionChanged
         function TabGroupSelectionChanged(obj, ~, event)
-            
+
             switch event.NewValue.Title
                 case 'Manage Projects'
                     obj.setProjectTablePosition()
@@ -712,21 +712,21 @@ classdef ProjectManagerUI < handle
                     end
             end
         end
-        
+
         function onTableCellSelected(obj, ~, evt)
         %onTableCellSelected Change selected row
-            
+
             if isprop(evt, 'Indices')
                 displayIndices = evt.Indices;
             elseif isprop(evt, 'DisplayIndices')
                 displayIndices = evt.DisplayIndices;
             end
-        
+
             if isempty(displayIndices)
                 obj.SelectedRow = [];
                 return
             end
-        
+
             obj.SelectedRow = displayIndices(1);
             try
                 obj.setRowStyle('Selected Row', displayIndices(1))
@@ -734,9 +734,9 @@ classdef ProjectManagerUI < handle
                 % Skip: Does not work for older MATLAB releases
             end
         end
-        
+
         function onTableCellEdited(obj, src, evt)
-            
+
             rowIdx = evt.Indices(1); colIdx = evt.Indices(2);
 
             if colIdx == 3 % Description
@@ -753,25 +753,25 @@ classdef ProjectManagerUI < handle
                 error('Could not update data in column %d', colIdx)
             end
         end
-        
+
         function onContextMenuItemClicked(obj, src, ~)
-            
+
             if isempty(obj.SelectedRow)
                 msg = 'No project is selected. Please select a project and try again.';
                 obj.uialert(msg, 'No project is selected', 'error')
                 return
             end
-            
+
             switch src.Text
                 case 'Set current project'
                     obj.changeProject(obj.SelectedRow)
 
                 case 'Remove project'
                     obj.removeProject(obj.SelectedRow)
-                    
+
                 case 'Delete project'
                     obj.deleteProject(obj.SelectedRow)
-                    
+
                 case 'Open project folder'
                     obj.openProjectFolder(obj.SelectedRow)
 
@@ -782,7 +782,7 @@ classdef ProjectManagerUI < handle
                     obj.uiLocateProjectFolder(obj.SelectedRow)
             end
         end
-       
+
         function onAddExistingProjectButtonPushed(obj)
             try
                 obj.addExistingProject()
@@ -794,7 +794,7 @@ classdef ProjectManagerUI < handle
     end
 
     methods (Access = private)
-        
+
         function assignInitialProjectRootFolderPath(obj)
             % Set default value of path for project root folder
             defaultProjectFolder = nansen.common.constant.DefaultProjectPath;

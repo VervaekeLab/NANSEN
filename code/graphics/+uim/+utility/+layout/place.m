@@ -10,7 +10,7 @@ function place(hFigure, location, offset)
 
     if nargin < 3; offset = [0, 0]; end
     screenSize = uim.utility.getCurrentScreenSize(hFigure);
-    
+
     if numel(offset) == 1
         offset = [offset, offset];
     end
@@ -31,22 +31,21 @@ function place(hFigure, location, offset)
 
         case 'right'
             hFigure.Position(1) = screenSize(3) - hFigure.Position(3) + offset(1);
-           
+
         case 'southeast'
             uim.utility.layout.place(hFigure, 'bottom', offset(1))
             uim.utility.layout.place(hFigure, 'right', offset(2))
-            
+
         case 'southwest'
             uim.utility.layout.place(hFigure, 'bottom', offset(1))
             uim.utility.layout.place(hFigure, 'left', offset(2))
-            
+
         case 'northeast'
             uim.utility.layout.place(hFigure, 'top', offset(1))
             uim.utility.layout.place(hFigure, 'left', offset(2))
-            
+
         case 'northwest'
             uim.utility.layout.place(hFigure, 'top', offset(1))
             uim.utility.layout.place(hFigure, 'left', offset(2))
-            
     end
 end

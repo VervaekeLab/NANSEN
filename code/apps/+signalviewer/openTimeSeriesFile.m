@@ -6,5 +6,4 @@ function timeSeries = openTimeSeriesFile(filePath)
 
     fileAdapter = signalviewer.getTimeseriesFileAdapter(filePath);
     timeSeries = fileAdapter.load();
-    
 end

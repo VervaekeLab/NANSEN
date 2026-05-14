@@ -31,7 +31,7 @@ P.Deconvolution.maxNeuropil             = 1;                    % for the neurop
 % - - - - - - - - - - Specify customization flags - - - - - - - - - - -
 
 P.CellDetection.signalExtractionType_    = {'surround', 'raw', 'regression'};
-    
+
 % - - - - Specify validation/assertion test for each parameter - - - -
 
 V                           = struct();

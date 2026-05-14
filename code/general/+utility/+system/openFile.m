@@ -7,10 +7,10 @@ function openFile(pathName, mode)
 %   openFile(pathName, mode) opens file using a specified mode (optional).
 %       Mode is either 'default' or 'text'. The text option is not
 %       supported on windows.
-    
+
     if nargin < 2; mode = 'default'; end
     mode = validatestring(mode, {'default', 'text'}, 2);
-    
+
     if isfile(pathName)
 
         if ismac || isunix

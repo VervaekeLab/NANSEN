@@ -300,7 +300,6 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable & nansen.metadata
                         allRootPaths = [{rootPath}, allRootPaths];
                     end
                     S.(fieldName_) = allRootPaths;
-
                 end
 
                 h = structeditor.App(S, 'AdjustFigureSize', true, ...
@@ -366,7 +365,6 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable & nansen.metadata
 
                     value(i).RootPath = strjoin(folders(1:end-numFolders), filesep);
                     value(i).Subfolders = strjoin(folders(end-numFolders+1:end), filesep);
-
                 end
             end
         end
@@ -393,7 +391,6 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable & nansen.metadata
 
             sizeSpec = sprintf('width="%d" height="%d"', iconSize, iconSize);
             str = sprintf('<img src="file:%s" %s margin="0">', iconPath, sizeSpec);
-
         end
 
         function str = getEmojiHtmlString(iconName)

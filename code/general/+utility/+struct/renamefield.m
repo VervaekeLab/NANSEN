@@ -23,9 +23,9 @@ function S = renamefield(S, oldNames, newNames)
         oldNames = {oldNames};
         newNames = {newNames};
     end
-    
+
     fieldOrder = fieldnames(S);
-    
+
     % Find indices of oldNames in the fieldOrder cell array
     [~, ~, replacementIdx] = intersect(oldNames, fieldOrder, 'stable');
 
@@ -35,7 +35,7 @@ function S = renamefield(S, oldNames, newNames)
     end
 
     S = rmfield(S, oldNames);
-    
+
     fieldOrder(replacementIdx) = newNames;
     S = orderfields(S, fieldOrder);
 end

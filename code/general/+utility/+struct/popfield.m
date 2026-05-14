@@ -3,7 +3,7 @@ function [S, value] = popfield(S, fieldName, warnIfMissing)
     % Todo: Support struct arrays
     if nargin < 3; warnIfMissing = true; end
     value = [];
-        
+
     if isfield(S, fieldName)
         value = S.(fieldName);
         S = rmfield(S, fieldName);

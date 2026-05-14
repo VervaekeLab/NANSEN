@@ -103,13 +103,12 @@ unfoldedIm = zeros([rad, imWidth, nFrames], 'like', IM);
 for j = 1:rad
     % Repeat the indices for the current radius across all images
     tmpInd = repmat( IND{j}', nFrames, 1 ) + (0:(nFrames-1))'*pixPerImage;
-    
+
     tmpInd = tmpInd';
     imLin = IM(tmpInd(:));
     imLin = reshape(imLin, [], nFrames);
     imLin = imresize(imLin, [imWidth, nFrames]);
     unfoldedIm(j, :, :) = imLin;
-
 end
 
 % Downsample to original image size before running the fft.
@@ -136,5 +135,4 @@ xshifts = arrayfun(@(row) row.shifts(:,:,:,2), ncShifts, 'uni', 1);
 % If these are big, could run a second step of rigid aligning.
 
 dtheta(rotating) = xshifts ./ imWidth * 360;
-
 end

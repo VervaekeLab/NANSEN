@@ -29,7 +29,7 @@ function initializeSubjectTable(metatableCatalog, subjectClassName)
     S.MetaTableClass = subjectClassName;
     S.IsDefault = false;
     S.IsMaster = true;
-    
+
     % Register the metatable in the catalog and save to disk
     try
         metatableCatalog.registerMetaTable(metaTable, S);

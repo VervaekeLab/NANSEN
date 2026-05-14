@@ -60,17 +60,17 @@ if (~exist('ctype', 'var') | ~exist('cname', 'var') | ~exist('ncol', 'var'))
     disp('  - cname: name of colortable. It changes depending on ctype.')
     disp('  - ncol:  number of color in the table. It changes according to ctype and cname')
     disp('  - interp_method:  interpolation method  (see interp1.m). Default is "cubic" )')
-    
+
     disp(' ')
     disp('Sequential tables:')
     z={'Blues','BuGn','BuPu','GnBu','Greens','Greys','Oranges','OrRd','PuBu','PuBuGn','PuRd',...
              'Purples','RdPu', 'Reds', 'YlGn', 'YlGnBu', 'YlOrBr', 'YlOrRd', 'Spectral'};
     disp(z')
-         
+
     disp('Divergent tables:')
     z={'BrBG', 'PiYG', 'PRGn', 'PuOr', 'RdBu', 'RdGy', 'RdYlBu', 'RdYlGn'};
     disp(z')
-    
+
     disp(' ')
     disp('Qualitative tables:')
     %getfield(colorbrewer, 'qual')
@@ -110,7 +110,7 @@ if (ncol>length(colorbrewer.(ctype).(cname)))
 end
 
 if (isempty(colorbrewer.(ctype).(cname){ncol}))
-    
+
     while(isempty(colorbrewer.(ctype).(cname){ncol}))
         ncol=ncol+1;
     end
@@ -123,5 +123,4 @@ if (isempty(colorbrewer.(ctype).(cname){ncol}))
 end
 
 colormap=(colorbrewer.(ctype).(cname){ncol})./255;
-
 end

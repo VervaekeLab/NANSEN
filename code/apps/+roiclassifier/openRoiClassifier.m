@@ -11,24 +11,24 @@ function hClassifier = openRoiClassifier(varargin)
 
     roiData = struct.empty;
     roiGroup = [];
-    
+
     vararginType = cellfun(@(c) class(c), varargin, 'uni', 0);
-        
+
     if isa( varargin{1}, 'struct' )
         dataFields = fieldnames(varargin{1});
-        
+
         if all( ismember({'roiArray', 'roiImages', 'roiStats', 'roiClassification'}, dataFields) )
             roiData = varargin{1};
         end
         varargin(1) = [];
-       
+
     elseif isa(varargin{1}, 'RoI')
-        
+
         if isa(varargin{2}, 'nansen.stack.ImageStack')
             roiData = roiclassifier.prepareRoiData(varargin{1:2});
             varargin(1:2) = [];
         end
-        
+
     elseif isa(varargin{1}, 'roimanager.roiGroup')
         if nargin >= 2 && ~isempty(varargin{2}) && isa(varargin{2}, 'nansen.stack.ImageStack')
             roiData = roiclassifier.prepareRoiData(varargin{1:2});
@@ -40,7 +40,7 @@ function hClassifier = openRoiClassifier(varargin)
     end
 
     nvPairs = varargin;
-    
+
     if ~isempty(roiData)
         roiArray = roiData.roiArray;
         roiArray = roiArray.setappdata('roiImages', roiData.roiImages);
@@ -49,7 +49,7 @@ function hClassifier = openRoiClassifier(varargin)
 
         roiGroup = roimanager.roiGroup(roiArray);
     end
-    
+
     if isempty(roiGroup)
         error('Input is not valid for roi classifier app')
     end
@@ -65,5 +65,4 @@ function hClassifier = openRoiClassifier(varargin)
     end
 
     hClassifier = roiclassifier.App(roiGroup, 'tileUnits', 'scaled', nvPairs{:});
-
 end

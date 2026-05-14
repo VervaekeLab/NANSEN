@@ -17,7 +17,6 @@ classdef IntegratedMessageDisplay < nansen.MessageDisplay
             obj.App = app;
             obj.Figure = app.Figure;
         end
-
     end
 
     methods (Access = private)
@@ -31,5 +30,4 @@ classdef IntegratedMessageDisplay < nansen.MessageDisplay
             obj.MessageBox = uim.widget.messageBox(obj.MessagePanel);
         end
     end
-    
 end

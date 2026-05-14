@@ -2,23 +2,23 @@ classdef Project < nansen.module.Module
 %Project A class to represent a Project
 
     % Work in progress.
-    
+
     % This object should reflect the content of a project folder and have
     % methods for interacting with data in the project folder.
-    
+
     % Todo :
-    %   [ ] Clean up object display
+    %   [ ] Clean up object display
     %   [ ] Define preferences explicitly somehow.
-    %   [ ] Should there be a project preference whether to save task lists
+    %   [ ] Should there be a project preference whether to save task lists
     %       for a project?
-    %   [ ] implement onPreferencesChanged callback function...
+    %   [ ] implement onPreferencesChanged callback function...
     %   [ ] Create method for getting data variables.
     %   [ ] Better system for distinguishing between optional and required
     %       modules. Also, the required module should come last (?) in the
     %       list, and that also needs to be handled better. IncludedModules
     %       could be dependent, and there could be additional properties to
     %       store optional and base/required modules.
-    
+
     properties % Inherited from module
         %Name                        % Name of the project
     end
@@ -26,7 +26,7 @@ classdef Project < nansen.module.Module
     properties (SetAccess = private)
         IncludedModules nansen.module.Module
     end
-    
+
     properties (SetAccess = private)
         FolderPath char             % Path to the project folder
     end
@@ -34,7 +34,7 @@ classdef Project < nansen.module.Module
     properties (SetAccess = private, Hidden)
         ModuleLoadWarningMessage (1,1) string = ""
     end
-    
+
     properties (Dependent, SetAccess = private)
         Preferences                 % Preferences for the project
     end
@@ -49,7 +49,7 @@ classdef Project < nansen.module.Module
     properties (Access = private)
         PackageName                 % Name of matlab package folder for the project
     end
-    
+
     properties (Access = private)
         MetaTableCatalog_   % internal store if catalog is already loaded. However, this would not be up to date it the catalog is changed. Think it is better that this is just a dependent property...
         DataLocationModelSingleton
@@ -69,7 +69,7 @@ classdef Project < nansen.module.Module
         % manager/preferences?
         RequiredModuleName = nansen.common.constant.BaseModuleName;
     end
-    
+
     % Constructor.
     methods (Access = {?nansen.config.project.ProjectManager, ?nansen.config.project.Project})
         function obj = Project(projectName, projectFolder)
@@ -83,15 +83,15 @@ classdef Project < nansen.module.Module
             packageName = strcat('+', projectName); % Todo: Short name
 
             obj@nansen.module.Module(fullfile(projectFolder, 'code', packageName, configFileName));
-            
+
             obj.Name = projectName; % Todo: Full Name
             obj.PackageName = packageName; % Todo: Short name
-            
+
             obj.FolderPath = projectFolder;
             obj.initializeModules()
         end
     end
-    
+
     methods
         function cd(obj)
             cd(obj.FolderPath)
@@ -104,14 +104,14 @@ classdef Project < nansen.module.Module
         function removeFromSearchPath(obj)
             obj.removeProjectFromSearchPath(obj.FolderPath) % delegate to static
         end
-        
+
         function addMetaTable(obj, metaTable, metaTableType)
             arguments
                 obj (1,1) nansen.config.project.Project
                 metaTable (1,1) nansen.metadata.MetaTable
                 % Todo: Add support for passing a standard MATLAB table,
                 % and specifying a type manually using the metaTableType arg
-                metaTableType (1,1) string = missing % Only relevant if we are adding a MATLAB table. 
+                metaTableType (1,1) string = missing % Only relevant if we are adding a MATLAB table.
             end
             if ~ismissing(metaTableType)
                 warning('Passing a metatable type is not supported yet.')
@@ -121,10 +121,10 @@ classdef Project < nansen.module.Module
             MTC.addMetatable(metaTable, true, true);
             MTC.save()
         end
-        
+
         function mixinNames = listMixins(obj, itemType)
         %listFiles List files in a folder hierarchy for given item type
-            
+
             % Todo: Module method should just look like this:
             fileList = obj.listFiles(itemType);
             filePaths = utility.dir.abspath(fileList);
@@ -145,7 +145,7 @@ classdef Project < nansen.module.Module
                 options.Subfolder (1,:) string = string.empty
                 options.NoCreate (1,1) logical = false
             end
-            
+
             folderPath = fullfile(obj.FolderPath, obj.CONFIG_FOLDER_NAME);
             if ~isempty(options.Subfolder)
                 folderPath = fullfile(folderPath, options.Subfolder{:});
@@ -167,13 +167,11 @@ classdef Project < nansen.module.Module
         function folderPath = getModuleFolder(obj)
             folderPath = fullfile(obj.FolderPath, 'code', obj.PackageName);
         end
-        
-        function addModules(obj)
 
+        function addModules(obj)
         end
 
         function removeModules(obj)
-
         end
 
         function setOptionalModules(obj, optionalModulesNames)
@@ -185,12 +183,12 @@ classdef Project < nansen.module.Module
             obj.Preferences.DataModule = newModuleNames;
             obj.updateModules()
         end
-        
+
         function initializeProjectFolder(obj)
             % Todo: implement? I.e if a project object is created
             % programmatically
         end
-        
+
         function folderPaths = getSessionMethodFolder(obj)
             folderPaths = obj.getObjectMethodFolder('Session');
         end
@@ -208,7 +206,7 @@ classdef Project < nansen.module.Module
             else
                 numModules = 0;
             end
-            
+
             folderPaths = cell(1, numModules+1);
 
             folderPaths{1} = getObjectMethodFolder@nansen.module.Module(obj, objectType);
@@ -225,7 +223,7 @@ classdef Project < nansen.module.Module
         %listFiles List files in a folder hierarchy for given item type
 
             [fileList, relFilePath] = listFiles@nansen.module.Module(obj, itemType);
-            
+
             for i = 1:numel(obj.IncludedModules)
                 [fileList_, relFilePath_] = obj.IncludedModules(i).listFiles(itemType);
                 fileList = cat(1, fileList, fileList_);
@@ -239,7 +237,7 @@ classdef Project < nansen.module.Module
             fileList = fileList(IND); % utility.dir.abspath(fileList);
         end
     end
-    
+
     methods % TODO: implement a dataiomodel on project
         function saveData(obj, varName, data, options)
             arguments
@@ -250,7 +248,7 @@ classdef Project < nansen.module.Module
             end
 
             filePathStr = obj.getDataFilePath(varName);
-            
+
             if options.SaveToJson
                 jsonStr = jsonencode(data, 'PrettyPrint', true);
                 utility.filewrite(strcat(filePathStr, '.json'), jsonStr);
@@ -266,7 +264,7 @@ classdef Project < nansen.module.Module
                 varName
                 options.LoadFromJson (1,1) logical = false
             end
-            
+
             filePathStr = obj.getDataFilePath(varName);
             if options.LoadFromJson
                 try
@@ -297,7 +295,7 @@ classdef Project < nansen.module.Module
 
         function folderPath = getProjectPackagePath(obj, packageName)
             % Note, this should be a module method...
-            
+
             try
                 folderPath = obj.getProjectFolderPathStatic(obj.FolderPath, packageName);
             catch
@@ -307,16 +305,16 @@ classdef Project < nansen.module.Module
     end
 
     methods (Access = ?nansen.config.project.ProjectManager)
-        
+
         function rename(obj, newName)
-            
+
             oldName = obj.Name;
             oldModuleFolder = obj.getModuleFolder();
 
             % Change name property
             obj.Name = newName;
             obj.PackageName = strcat('+', obj.Name);
-            
+
             % Update the project.nansen.json
             newProjectInfo = struct(...
                 'Name', newName, 'Description', obj.Description);
@@ -352,12 +350,12 @@ classdef Project < nansen.module.Module
             obj.Preferences.DataModule = {};
         end
     end
-    
+
     methods % Set/get
 
         function preferences = get.Preferences(obj)
             filePath = fullfile(obj.FolderPath, obj.PROJECT_CONFIG_FILENAME);
-            
+
             S = utility.io.loadjson(filePath);
             if isfield(S, 'Preferences')
                 preferences = S.Preferences;
@@ -378,25 +376,25 @@ classdef Project < nansen.module.Module
             S.Preferences = preferences;
             utility.io.savejson(filePath, S);
         end
-        
+
         function metatableCatalog = get.MetaTableCatalog(obj)
             filePath = obj.getCatalogPath('MetaTableCatalog');
             metatableCatalog = nansen.metadata.MetaTableCatalog(filePath);
         end
-                
+
         function metatableCatalog = get.MetaTableViewCatalog(obj)
             % Todo: What is this?
             filePath = obj.getCatalogPath('MetatableViewCatalog');
             metatableCatalog = nansen.metadata.MetaTableCatalog(filePath);
         end
-        
+
         function dataLocationModel = get.DataLocationModel(obj)
             if isempty(obj.DataLocationModelSingleton)
                 obj.initializeDataLocationModel()
             end
             dataLocationModel = obj.DataLocationModelSingleton;
         end
-        
+
         function variableModel = get.VariableModel(obj)
             if isempty(obj.VariableModelSingleton)
                 obj.initializeVariableModel()
@@ -404,7 +402,7 @@ classdef Project < nansen.module.Module
             variableModel = obj.VariableModelSingleton;
         end
     end
-    
+
     methods
         function synchronizeMetaTableVariables(obj, metaTable, options)
         %synchronizeMetaTableVariables Sync MetaTable columns with project variable definitions
@@ -587,41 +585,41 @@ classdef Project < nansen.module.Module
         end
 
         function initializeConfigurations(obj)
-            
+
             % Initialize a datalocation catalog
             modelFilePath = obj.getCatalogPath('DataLocationModel');
             nansen.config.initializeDataLocationModel(modelFilePath)
-            
+
             % Initialize the variable model.
             modelFilePath = obj.getCatalogPath('VariableModel');
             variableModel = nansen.config.varmodel.VariableModel(modelFilePath);
-            
+
             % Get variable list from included modules
             variableList = table2struct( obj.getTable('DataVariables') );
 
             % Call the method to initialize the variable list
             variableModel.addDataVariableSet(variableList)
         end
-        
+
         function initializeModules(obj)
         % initializeModules - Initialize the included modules for a project
-            
+
             % Note: Base module (required module) should be added last in
             % the list.
 
             obj.ModuleLoadWarningMessage = "";
 
             if isfield(obj.Preferences, 'DataModule')
-                
+
                 moduleNames = obj.Preferences.DataModule;
 
                 if isempty(moduleNames) || ~any(contains(moduleNames, obj.RequiredModuleName))
                     moduleNames = [moduleNames, {obj.RequiredModuleName}];
                     obj.Preferences.DataModule = moduleNames;
                 end
-               
+
                 moduleNames = unique(moduleNames, 'stable'); % Just in case...
-                
+
                 failedModuleNames = strings(1, 0);
                 failureMessages = strings(1, 0);
 
@@ -653,16 +651,16 @@ classdef Project < nansen.module.Module
         % Note: The base module should always be added last in this list.
         % When finding unique files, the prioritized order for selecting
         % files is: project, optional modules, base module.
-            
+
             currentModules = obj.IncludedModules;
             currentModuleIDs = [currentModules.ID];
-            
+
             if isfield(obj.Preferences, 'DataModule')
 
                 baseModule = obj.RequiredModuleName; % QTodo: remove this?
                 newModuleIDs = [obj.Preferences.DataModule, {baseModule}];
                 newModuleIDs = unique(newModuleIDs, 'stable'); % Just in case...
-    
+
                 addedModuleID = setdiff(newModuleIDs, currentModuleIDs, 'stable');
                 [~, removeIdx] = setdiff(currentModuleIDs, newModuleIDs);
 
@@ -670,7 +668,7 @@ classdef Project < nansen.module.Module
                 for i = numel(removeIdx):-1:1
                     % removedModule = obj.IncludedModules(removeIdx(i));
                     obj.IncludedModules(removeIdx(i)) = [];
-                    
+
                     % Remove variables (Not needed?):
                     %variableList = removedModule.DataVariables;
                     %obj.VariableModel.removeDataVariableSet(variableList)
@@ -680,7 +678,7 @@ classdef Project < nansen.module.Module
                 for i = 1:numel(addedModuleID)
                     module = nansen.module.Module.fromName(addedModuleID{i});
                     obj.IncludedModules = [module, obj.IncludedModules];
-                    
+
                     % Update variable model based on module's template variables
                     variableList = table2struct( module.getTable('DataVariables') );
                     obj.VariableModel.addDataVariableSet(variableList)
@@ -693,7 +691,7 @@ classdef Project < nansen.module.Module
             filePath = obj.getCatalogPath('VariableModel');
             obj.VariableModelSingleton = nansen.config.varmodel.VariableModel(filePath);
         end
-        
+
         function initializeDataLocationModel(obj)
         % initializeDataLocationModel - Initialize a dataloction model
             filePath = obj.getCatalogPath('DataLocationModel');
@@ -702,31 +700,31 @@ classdef Project < nansen.module.Module
 
         function filePathStr = getCatalogPath(obj, catalogName)
         %getCatalogPath Get absolute path for catalog as character vector
-        
+
             switch catalogName
-                
+
                 case 'MetaTableCatalog'
                     foldername = obj.METATABLE_FOLDER_NAME;
                     filename = 'metatable_catalog.mat';
-                      
+
                 % % Todo: Should this be here?
                 % % case 'MetatableColumnSettingsCatalog'
                 % %     foldername = obj.METATABLE_FOLDER_NAME;
                 % %     filename = 'metatable_column_settings.mat';
-                    
+
                 case 'DataLocationModel'
                     foldername = obj.CONFIG_FOLDER_NAME;
                     filename = 'datalocation_settings.mat';
-                    
+
                 case 'VariableModel'
                     foldername = obj.CONFIG_FOLDER_NAME;
                     filename = 'filepath_settings.mat';
             end
-            
+
             folderPathStr = fullfile(obj.FolderPath, foldername);
             filePathStr = fullfile(folderPathStr, filename);
         end
-        
+
         function folderPath = getLocalProjectFolderPath(obj)
         % getLocalProjectFolderPath - Get folder for local project configs
 
@@ -737,23 +735,23 @@ classdef Project < nansen.module.Module
         % Todo: Rename to getProjectPreferenceDirectory()
 
             localProjectPath = fullfile(nansen.prefdir, 'projects');
-            
+
             folderPath = fullfile(localProjectPath, obj.Name);
             if ~isfolder(folderPath); mkdir(folderPath); end
         end
     end
-    
+
     methods (Static)
         function project = new(name, description, projectRootFolder)
-            
+
             % Todo: Just add these as arguments to the project constructor...
-            
+
             projectInfo = struct();
             projectInfo.Name = name; % Todo: This should be different from short name...
             projectInfo.ShortName = name;
             projectInfo.Description = description;
             projectInfo.Path = projectRootFolder;
-            
+
             nansen.config.project.Project.initializeProjectDirectory(projectInfo)
 
             % Todo: Why is this here and not in the initialization function?
@@ -806,18 +804,17 @@ classdef Project < nansen.module.Module
             switch fileKey
                 case 'Metatable Catalog'
                     filePath = Project.getProjectFolderPathStatic(projectFolderPath, 'Metadata Tables');
-
             end
         end
 
         function folderPath = getProjectFolderPathStatic(projectDirectory, folderKey)
         % getProjectFolderPathStatic - Get path to subfolder within project directory
-            
+
             import nansen.config.project.Project
-            
+
             [~, projectName] = fileparts(projectDirectory);
             moduleDirectory = fullfile(projectDirectory, 'code', ['+', projectName]);
-            
+
             switch folderKey
                 case 'Session Methods'
                     folderPath = fullfile(moduleDirectory, '+sessionmethod');
@@ -831,7 +828,7 @@ classdef Project < nansen.module.Module
                     error('No folder with name %s is defined for projects.', folderKey)
             end
         end
-    
+
         function S = readConfigFile(projectFolderPath)
             % Check if project folder exists
             if ~isfolder(projectFolderPath)
@@ -862,13 +859,13 @@ classdef Project < nansen.module.Module
             end
         end
     end
-    
+
     % Methods related to initializing a project
     methods (Static, Access = {?nansen.config.project.ProjectManager, ?nansen.config.project.Project})
 
         function initializeProjectDirectory(projectInfo)
         % initializeProjectDirectory - Initialize a project  directory
-            
+
             projectDirectoryPath = char( projectInfo.Path );
             projectName = char( projectInfo.Name );
 
@@ -893,7 +890,7 @@ classdef Project < nansen.module.Module
         % updateProjectConfiguration - Update project configuration file
             configFileName = nansen.config.project.Project.PROJECT_CONFIG_FILENAME;
             configFilePath = fullfile(projectDirectory, configFileName);
-            
+
             S = utility.io.loadjson(configFilePath);
 
             S.Properties.Name = projectInfo.Name; % Todo: Should be a full name. Todo: Should be collected in app...
@@ -909,10 +906,10 @@ classdef Project < nansen.module.Module
             configFileName = nansen.module.Module.MODULE_CONFIG_FILENAME;
             L = utility.dir.recursiveDir(projectDirectory, 'Expression', configFileName);
             assert(numel(L)==1, 'Expected to found exactly one module configuration file, but found %s', numel(L))
-            
+
             configFilePath = utility.dir.abspath(L);
             configFilePath = configFilePath{1};
-            
+
             S = utility.io.loadjson(configFilePath);
 
             S.Properties.Name = projectInfo.Name;

@@ -21,7 +21,7 @@ classdef ModuleManagerApp < nansen.config.abstract.ConfigurationApp
             obj.createFigure()
             obj.AllowResize = 'on';
             obj.Figure.Visible = 'on';
-            
+
             obj.UIControlPanel = obj.createControlPanel(obj.Figure);
             obj.UIControlPanel.BorderType = "None";
             obj.UIControlPanel.BackgroundColor = "white";
@@ -34,7 +34,7 @@ classdef ModuleManagerApp < nansen.config.abstract.ConfigurationApp
 
             obj.UIModule{1} = nansen.config.module.ModuleManagerUI(obj.UIControlPanel);
             addlistener(obj.UIModule{1}, 'ModuleSelectionChanged', @obj.onSelectionChanged);
-            
+
             if nargin >= 1
                 obj.UIModule{1}.setSelectedModules(selectedModules)
             end

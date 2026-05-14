@@ -19,7 +19,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
     properties (SetAccess=private, SetObservable)
         IsModified = false;
     end
-    
+
     properties (SetAccess = private)
 
         IsMaster = true
@@ -54,7 +54,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
     properties (Dependent)
         VariableNames
     end
-    
+
     % Public properties to access MetaTable contents
     properties (SetAccess = protected)
 
@@ -65,14 +65,14 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
     properties (Dependent = true, Hidden = true)
         SchemaIdName % The property name for id of a schema/object of this table
     end
-    
+
     properties (Constant, Access = private) % Variable names for export
-        
+
         % These are variables that will be saved to a MetaTable mat file.
         FILEVARS = struct(  'MetaTableMembers', {{}}, ...
                             'MetaTableEntries', {{}}, ...
                             'MetaTableVariables', {{}});
-        
+
         % These are variables that will be saved to the MetaTableCatalog.
         CATALOG_VARIABLES = struct( ...
             'IsMaster', false, ...
@@ -94,7 +94,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
     end
 
     methods % Structor
-        
+
         function obj = MetaTable(metadata, propValues)
             arguments
                 metadata table = table.empty
@@ -102,7 +102,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 propValues.ItemClassName
                 propValues.MetaTableIdVarname
             end
-            
+
             if ~isempty(metadata)
                 obj.entries = metadata;
             end
@@ -113,7 +113,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             end
         end
     end
-    
+
     methods
 
         function tf = hasSameMasterKey(obj, otherMetaTable)
@@ -128,7 +128,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         function markClean(obj)
             obj.IsModified = false;
         end
-        
+
         function schemaIdName = get.SchemaIdName(obj)
         %GET.SCHEMAIDNAME Get the propertyname of the ID of current schema
             if ~isempty(obj.MetaTableIdVarname)
@@ -145,11 +145,11 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         function variableNames = get.VariableNames(obj)
             variableNames = obj.entries.Properties.VariableNames;
         end
-        
+
         function members = get.members(obj)
             members = obj.MetaTableMembers;
         end
-         
+
         function set.entries(obj, value)
             obj.entries = value;
             obj.onEntriesChanged()
@@ -169,7 +169,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         function typeName = getTableType(obj)
             typeName = utility.string.getSimpleClassName(obj.MetaTableClass);
         end
-          
+
         function setMetaTableVariables(obj, variableNames)
         %setMetaTableVariables Set the MetaTableVariables property
         %
@@ -201,19 +201,19 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             schemaName = obj.MetaTableClass;
             schemaNameSplit = strsplit(schemaName, '.');
             metaTableName = schemaNameSplit{end};
-            
+
             if nargout
                 name = metaTableName;
             else
                 obj.MetaTableName = metaTableName;
             end
         end
-        
+
 % % % %  Methods for saving/loading MetaTable from/to file
 
         % Load contents of MetaTable file
         % Todo: Check if file is present in MetaTable Catalog
-        
+
         function wasSaved = save(obj, force)
         %save Save MetaTable to file
         %
@@ -246,7 +246,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         %   (checking for MetaTableClass field) happens in fromFileStruct().
             load@nansen.metadata.mixin.VersionedFile(obj);
         end
-        
+
         function S = toStruct(obj, source)
         %toStruct Add property values from class to struct for saving.
         %
@@ -256,49 +256,49 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         %
         % Input:
         %   Source (char) : 'metatable_catalog' | 'metatable_file' (default)
-        
+
             if nargin < 2
                 source = 'metatable_file';
             end
-        
+
             switch source
                 case 'metatable_catalog'
                     S = obj.CATALOG_VARIABLES;
-                    
+
                 case 'metatable_file'
                     S = obj.FILEVARS;
                     f = fieldnames(obj.CATALOG_VARIABLES);
-                    
+
                     % Append CATALOG_VARIABLES to FILEVARS
                     for i = 1:length(f)
                         S.(f{i}) = obj.CATALOG_VARIABLES.(f{i});
                     end
             end
-            
+
             varNames = fieldnames(S);
 
             for i = 1:numel(varNames)
                 switch varNames{i}
-                    
+
                     case 'MetaTableClass'
                         S.MetaTableClass = obj.MetaTableClass;
-                    
+
                     case 'MetaTableEntries'
                         S.MetaTableEntries = obj.entries;
-                        
+
                     case 'FileName'
                         [~, S.FileName] = fileparts(obj.filepath);
                         S.FileName = strcat(S.FileName, '.mat');
-                        
+
                     case 'IsDefault'
                         % This is not a property of MetaTable object
-                        
+
                     otherwise
                         S.(varNames{i}) = obj.(varNames{i});
                 end
             end
         end
-        
+
         function fromStruct(obj, S)
         %fromStruct Reverse of toStruct function
 
@@ -336,7 +336,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             T = nansen.metadata.utility.formatTableForDisplay(...
                 obj, columnIndices, rowIndices, displayContext);
         end
-        
+
 % % % % Methods for modifying entries
 
         function tf = isVariable(obj, varName)
@@ -385,7 +385,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         %   MetaTable. If the table is missing ID values, UUIDs will be
         %   generated automatically. This is useful for importing data
         %   from external sources or merging MetaTables.
-        
+
             % Set MetaTable class if this is the first time entries are added
 
             arguments
@@ -410,7 +410,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 newEntryIds = arrayfun(@(i) nansen.util.getuuid, 1:height(T), 'uni', 0);
                 T.(idName) = newEntryIds';
             end
-            
+
             % Use common append logic
             obj.appendTableRows(T, "AutoUpdateValues", options.AutoUpdateValues);
         end
@@ -423,7 +423,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         %   to the MetaTable. The schema objects are validated to ensure
         %   they inherit from MetadataEntity and match the MetaTable's class,
         %   then converted to a table and appended.
-        
+
             % Make sure entries are based on the MetadataEntity class.
 
             arguments
@@ -436,7 +436,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             message = 'MetaTable entries must inherit from the MetadataEntity class';
 
             assert(isValid, message)
-            
+
             % If this is the first time entries are added, set the
             % MetaTable class property. Otherwise, validate class match.
             if isempty(obj.MetaTableMembers)
@@ -452,7 +452,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
 
             % Convert schema objects to a table
             newTableRows = newEntries.makeTable();
-            
+
             % Use common append logic
             obj.appendTableRows(newTableRows, "AutoUpdateValues", options.AutoUpdateValues);
         end
@@ -483,7 +483,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
 
             assert( isa(columnValues, 'cell') && numel(columnValues) == size(obj.entries, 1), ...
                 'column values must be a cell array with one cell per table row')
-            
+
             % Convert to struct in order to assign values that does not
             % match type or size of current values
             tempS = table2struct(obj.entries);
@@ -639,10 +639,10 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 obj.notify('EntryAdded')
             end
         end
-        
+
         % Remove entry/entries from MetaTable
         function removeEntries(obj, listOfEntryIds)
-            
+
             idName = obj.SchemaIdName;
 
             if isa(listOfEntryIds, 'cell')
@@ -673,7 +673,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             end
             obj.IsModified = true;
         end
-        
+
         function sort(obj)
         %sort Sort entries by schema identifier
         %
@@ -690,7 +690,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 obj.onEntriesChanged()
             end
         end
-        
+
 % % % % Get names of all (dummy) MetaTables connected to the current master
         function names = getAssociatedMetaTables(obj, mode)
         %getAssociatedMetaTables Get associated MetaTables
@@ -702,40 +702,40 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         %   respectively.
         %
         %   Useful for listing names of associated metatables in guis etc.
-        
+
             MT = nansen.metadata.MetaTableCatalog.quickload();
             if isempty(MT); names = ''; return; end
-            
+
             if nargin < 2 || isempty(mode)
                 mode = 'same_master'; % Alt: 'same_class' | 'all'
             end
-            
+
             switch mode
                 case 'same_master'
                     currentKey = obj.MetaTableKey;
-                    
+
                     % Pick out rows with matching key
                     rows = strcmp(MT.MetaTableKey, currentKey);
 
                 case 'same_class'
                     rows = strcmp(MT.MetaTableClass, obj.MetaTableClass);
-                
+
                 case 'all'
                     rows = 1:size(MT, 1);
             end
-            
+
             MT = MT(rows, :);
-            
+
             names = MT.MetaTableName;
 
             % Add master to name for master MetaTable
             names(MT.IsMaster) = strcat(names(MT.IsMaster), ' (master)');
             names(MT.IsDefault) = strcat(names(MT.IsDefault), ' (default)');
-            
+
             % Sort names alphabetically..
             names(~MT.IsMaster) = sort(names(~MT.IsMaster));
         end
-    
+
         function wasUpdated = updateTableVariable(obj, variableName, tableRowIndices, updateFunction, options)
             arguments
                 obj (1,1) nansen.metadata.MetaTable
@@ -745,7 +745,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 options.ProgressMonitor = [] % Todo: waitbar class?
                 options.MessageDisplay = [] % Constrain to message display
             end
-            
+
             wasUpdated = false(1, numel(tableRowIndices));
             hasWarned = false;
             defaultValue = updateFunction();
@@ -782,7 +782,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                     [isValid, newValue] = ...
                         nansen.metadata.tablevar.validateVariableValue(...
                             defaultValue, newValue);
-                    
+
                     if isValid
                         wasUpdated(iItem) = true;
                         updatedValues{iItem} = newValue;
@@ -838,7 +838,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         %           created. Same length as tableEntries.
 
             % Todo: Use containers.Map / dictionary for cache...
-            
+
             arguments
                 obj (1,1) nansen.metadata.MetaTable
                 rowIndices (1,:) {mustBeA(rowIndices, ["logical", "double"])}
@@ -861,19 +861,19 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 ids = obj.getObjectId(tableEntries);
                 ids = nansen.metadata.MetaTable.normalizeIdentifier(ids);
                 allCachedIds = nansen.metadata.MetaTable.normalizeIdentifier(obj.MetaObjectCacheMembers);
-                
+
                 [matchedIds, indInTableEntries, indInMetaObjects] = ...
                     intersect(ids, allCachedIds, 'stable');
-    
+
                 metaObjectsCached = obj.MetaObjectCache(indInMetaObjects);
                 tableEntries(indInTableEntries, :) = []; % Don't need these anymore
-                                
+
                 statusOld = false(1, numel(ids));
                 statusOld(indInTableEntries) = true;
-                
+
                 % Create meta objects for remaining entries if any
                 [metaObjectsNew, statusNew] = obj.createMetaObjects(tableEntries, propertyArgs{:});
-            
+
                 % Collect outputs
                 if isequal(matchedIds, ids)
                     metaObjects = metaObjectsCached;
@@ -901,7 +901,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 clear status
             end
         end
-        
+
         function resetMetaObjectCache(obj)
         %resetMetaObjectCache Delete all meta objects from the cache
             for i = numel(obj.MetaObjectCache):-1:1
@@ -996,23 +996,23 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             end
 
             schemaIdName = obj.SchemaIdName;
-            
+
             % Get new entry IDs and normalize them
             newEntryIds = newTableRows.(schemaIdName);
             newEntryIds = nansen.metadata.MetaTable.normalizeIdentifier(newEntryIds);
-            
+
             % Get existing member IDs and normalize them
             existingIds = nansen.metadata.MetaTable.normalizeIdentifier(obj.MetaTableMembers);
-            
+
             % Find duplicates
             [~, iA] = intersect(newEntryIds, existingIds, 'stable');
-            
+
             if ~isempty(iA)
                 % Skip entries that are already present in the MetaTable
                 newTableRows(iA, :) = [];
                 newEntryIds(iA) = [];
             end
-            
+
             if isempty(newEntryIds)
                 return; % Nothing to add
             end
@@ -1022,7 +1022,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             tempMetaTable = nansen.metadata.MetaTable.newLike(newTableRows, obj);
             nansen.getCurrentProject().synchronizeMetaTableVariables(tempMetaTable, ...
                 "AutoUpdateValues", options.AutoUpdateValues);
-            
+
             cleanup = obj.beginEntriesUpdate(); %#ok<NASGU>
 
             % Concatenate tables
@@ -1034,16 +1034,16 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 obj.entries = struct2table([table2struct(obj.entries); ...
                                             table2struct(tempMetaTable.entries)]);
             end
-            
+
             % Update member list
             obj.MetaTableMembers = obj.entries.(schemaIdName);
-            
+
             % Synchronize from master if this is a dummy MetaTable
             if ~obj.IsMaster
                 catalog = nansen.metadata.MetaTableCatalog();
                 catalog.synchronizeFromMaster(obj)
             end
-            
+
             % Sort entries by ID
             obj.sort()
 
@@ -1055,7 +1055,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         function [metaObjects, status] = createMetaObjects(obj, tableEntries, ...
                 objectPropertyName, objectPropertyValue)
         % createMetaObjects - Create new meta objects from table entries
-        
+
             arguments
                 obj (1,1) nansen.metadata.MetaTable
                 tableEntries
@@ -1064,7 +1064,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 objectPropertyName string
                 objectPropertyValue
             end
-            
+
             % Relevant for meta objects that have datalocations:
             if any(strcmp(tableEntries.Properties.VariableNames, 'DataLocation'))
                 % Filter out DataLocationModel and VariableModel from
@@ -1191,7 +1191,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                     @(~, evt) obj.onMetaObjectObservablePropertySet(evt, propertyName));
             end
         end
-        
+
         function onMetaObjectPropertyChanged(obj, src, evt)
         % onMetaObjectPropertyChanged - Callback to handle value change of meta object
             obj.updateEntryFromMetaObjectProperty(src, evt.Property, evt.NewValue)
@@ -1216,7 +1216,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             if isempty(metaTableEntryIdx)
                 return
             end
-            
+
             if numel(metaTableEntryIdx) > 1
                 objectIDForDisplay = objectID;
                 if iscell(objectIDForDisplay) && isscalar(objectIDForDisplay)
@@ -1246,12 +1246,12 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
 
             obj.editEntries(metaTableEntryIdx, propertyName, newValue)
         end
-        
+
         function onMetaObjectDestroyed(obj, src, ~)
             if ~isvalid(obj); return; end
-            
+
             objectID = obj.getObjectId(src);
-                        
+
             [~, ~, iC] = intersect(objectID, obj.MetaObjectCacheMembers);
             if isempty(iC)
                 warning('Object was not found in cache member registry. Object will not be removed.')
@@ -1306,7 +1306,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 "MetaTableClass", metaTable.MetaTableClass, ...
                 "MetaTableIdVarname", metaTable.MetaTableIdVarname);
         end
-        
+
         function metaTable = new(varargin)
         %NEW Create a new MetaTable
         %
@@ -1316,30 +1316,30 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         %
         %       - A keyword ('master' or 'dummy') to create a blank
         %         MetaTable
-            
+
             if numel(varargin) > 1
                 nvPairs = varargin(2:end);
             else
                 nvPairs = {};
             end
             metaTable = nansen.metadata.MetaTable(nvPairs{:});
-            
+
             if isempty(varargin) || isempty(varargin{1})
                 return
-                
+
             % If entries are provided, add them to MetaTable:
             elseif isa(varargin{1}, 'nansen.metadata.abstract.MetadataEntity')
                 metaTable.addEntries(varargin{1})
-                
+
             elseif isa(varargin{1}, 'table')
                 metaTable.addTable(varargin{1})
-            
+
             % If keyword is provided, use this:
             elseif any( strcmp(varargin{1}, {'master', 'dummy'} ) )
                 throw(nansen.common.exception.NotImplemented("New MetaTable from keywords."))
             end
         end
-        
+
         function metaTable = open(nameOrFilepath)
         % open - Open a MetaTable from a specified file or name
         %
@@ -1393,7 +1393,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         %
         %   This method is static because the expected input is a
         %   MetaTableCatalog entry (which is a struct)
-            
+
             filename = matlab.lang.makeValidName(S.MetaTableName);
             filename = utility.string.camel2snake(filename);
 
@@ -1402,7 +1402,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             else
                 nameExtension = 'dummy_metatable';
             end
-            
+
             filename = sprintf('%s_%s.mat', filename, nameExtension);
         end
 
@@ -1410,13 +1410,13 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         %   addTableVariable(obj, variableName, initValue) adds a new
         %   variable to the table and initializes all column values to the
         %   initValue.
-        
+
             % This is kind of a more general table utility function..
-            
+
             numTableRows = size(T, 1);
             if isempty(initValue); initValue = {initValue}; end
             columnValues = repmat(initValue, numTableRows, 1);
-            
+
             T{:, variableName} = columnValues;
         end
     end
@@ -1440,30 +1440,30 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         %       normalizedIds - Cell array of character vectors
 
         % Todo: Future: Represent ids as string arrays
-        
+
             if isempty(ids)
                 normalizedIds = {};
                 return
             end
-            
+
             % Handle numeric inputs
             if isnumeric(ids)
                 normalizedIds = arrayfun(@(x) num2str(x), ids, 'UniformOutput', false);
                 return
             end
-            
+
             % Handle string inputs
             if isstring(ids)
                 normalizedIds = cellstr(ids);
                 return
             end
-            
+
             % Handle character vector
             if ischar(ids) && isrow(ids)
                 normalizedIds = {ids};
                 return
             end
-            
+
             % Handle cell array inputs
             if iscell(ids)
                 % Check if cells contain numeric values
@@ -1478,14 +1478,14 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 end
                 return
             end
-            
+
             % Fallback: convert to string
             normalizedIds = {char(string(ids))};
         end
-        
+
         function propertyArgs = filterMetaObjectPropertyArgs( ...
                 objectPropertyName, objectPropertyValue, keepNames)
-                
+
             arguments
                 objectPropertyName (1,:) string
                 objectPropertyValue (1,:) cell

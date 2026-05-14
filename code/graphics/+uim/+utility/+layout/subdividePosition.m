@@ -26,7 +26,7 @@ function [pos, siz] = subdividePosition(posInit, lengthInit, componentLengths, s
 
     if nargin < 5; alignment = 'left'; end  % 'left', 'center', 'right'
     if nargin < 4; spacing = 10; end
-    
+
     % Count number of panels
     numDivisions = numel(componentLengths);
 
@@ -60,7 +60,7 @@ function [pos, siz] = subdividePosition(posInit, lengthInit, componentLengths, s
 
     lengthPix = floor( lengthPix ); % Round down
     rem = floor( availableLength - sum(lengthPix) ); % Get remainders
-    
+
     % Only add these corrections if components "almost" fill entire length
     if rem < numDivisions && any(~isPixelSize)
 
@@ -72,10 +72,10 @@ function [pos, siz] = subdividePosition(posInit, lengthInit, componentLengths, s
     else
         siz = lengthPix;
     end
-        
+
     % Calculate the location values for all panels
     pos = cumsum( [1, siz(1:end-1)] ) + (0:numDivisions-1) .* spacing;
-    
+
     switch alignment
         case 'left'
             % posInit is already left-aligned
@@ -88,9 +88,9 @@ function [pos, siz] = subdividePosition(posInit, lengthInit, componentLengths, s
             totalComponentWidth = sum(siz);
             posInit = posInit + (lengthInit - totalSpacing - totalComponentWidth) - 1;
     end
-    
+
     pos = pos + posInit;
-   
+
     if nargout == 1
         clear siz
     end

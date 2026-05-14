@@ -11,7 +11,7 @@ classdef RoiAdapter < handle
     end
 
     methods % Constructor
-        
+
         function obj = RoiAdapter(filepath)
             if ~nargin; return; end
             obj.FilePath = filepath;
@@ -19,17 +19,15 @@ classdef RoiAdapter < handle
     end
 
     methods (Abstract)
-        
+
         % Return the following outputs given data as input
         [roiArray, classification, stats, images] = convertRois(obj, data)
-
     end
 
     methods (Abstract, Static)
-        
+
         % Return true if a filePath and/or data matches the roi format of
         % the specific adapter.
         tf = isRoiFormatValid(filePath, data)
-
     end
 end

@@ -21,9 +21,9 @@ function rearrangeRoiArrayChannels(filePath, newChannelOrder)
     assert(size(data, 2)==numel(newChannelOrder), ...
         'Roi array has %d channels but the number of elements in the newChannelOrder is %d', ...
         size(data, 2), numel(newChannelOrder))
-   
+
     data(:, newChannelOrder) = data(:, :);
-    
+
     S.(variableName) = data;
     save(filePath, '-struct', 'S')
 end

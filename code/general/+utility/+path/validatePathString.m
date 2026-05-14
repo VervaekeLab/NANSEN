@@ -2,7 +2,7 @@ function newPathStr = validatePathString(pathStr, currentPath)
 
     % Current path is empty is not supplied
     if nargin < 2; currentPath = ''; end
-    
+
     if ~isempty(currentPath)
         if isequal(currentPath(end), filesep)
             currentPath = currentPath(1:end-1);
@@ -20,7 +20,7 @@ function newPathStr = validatePathString(pathStr, currentPath)
         end
 
         newPathStr = fullfile(currentPath, pathStr(strmatch(end)+3:end));
-        
+
     % Check if input is an absolute path
     elseif isequal(pathStr(1), '/') || isequal(pathStr(2), ':') % Mac/win
         if ismac && isequal(pathStr(1), '/')
@@ -30,7 +30,7 @@ function newPathStr = validatePathString(pathStr, currentPath)
         else
             % Leave for other possibilities?
         end
-        
+
     else
         newPathStr = fullfile(currentPath, pathStr);
     end

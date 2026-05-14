@@ -9,5 +9,4 @@ names = fieldnames(S);
 values = struct2cell(S);
 
 nvPairs = reshape( cat(1, names', values'), 1, [] );
-
 end

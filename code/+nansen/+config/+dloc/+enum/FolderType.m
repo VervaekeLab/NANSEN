@@ -41,7 +41,6 @@ classdef FolderType
                 case 'Other'
                     obj.Description = ...
                         "A folder containing any other type of elements.";
-
             end
         end
     end

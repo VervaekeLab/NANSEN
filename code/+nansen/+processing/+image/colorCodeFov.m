@@ -95,31 +95,31 @@ end
 % run this in a loop and work on substack of the whole image series.
 
 for i = 1:numParts
-    
+
     imdata = imageStack.getFrameSet(IND{i});
-    
+
     iFirst = IND{i}(1);
     iLast = IND{i}(end);
 
     % Bin images in projection stacks based on the binning vector
     for j = 1:nOutputs
-        
+
         % Check that vectors are long enough, and skip frames if so
         if iLast > numel(binningVector{j})
             iLast = numel(binningVector{j});
             frameInd = iFirst:iLast;
         end
-        
+
         nBins = numel(unique(binningVector{j}(temporalMask{j})));
         bins = unique(binningVector{j}(temporalMask{j}));
-        
+
         for k = 1:nBins
-            
+
             matchingFrames = binningVector{j}(frameInd) == bins(k) & temporalMask{j}(frameInd);
             tmpImdata = imdata(:, :, matchingFrames);
-        
+
             numAllMatching = sum(binningVector{j} == bins(k) & temporalMask{j});
-            
+
             projectionStack{j}(:, :, k) = ...
                 projectionStack{j}(:, :, k) + ...
                     (sum(tmpImdata, 3) ./ numAllMatching );
@@ -129,10 +129,10 @@ end
 
 % Colorcode. % Todo: use stack.colorcodeImageStack
 for l = 1:nOutputs
-    
+
     % make 3 dubplicates of the projection stack
     projectionStackRGB = repmat(projectionStack{l}, 1,1,1,3);
-    
+
     % Weight each duplicate with the rgb colorcode for each bin.
     for m = 1:size(projectionStack{l}, 3)
         tmpColor = colorMap{l}(m, :);
@@ -142,7 +142,6 @@ for l = 1:nOutputs
     % Get the average of each color channel.
     colorcodedImage{l} = squeeze(nanmean(projectionStackRGB, 3));
     colorcodedImage{l} = stack.makeuint8(colorcodedImage{l}, opt.BLim);
-
 end
 
 if nOutputs == 1

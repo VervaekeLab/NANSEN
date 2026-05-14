@@ -4,23 +4,23 @@ function roiArray = run(Y, roiDiameter)
     % specified by the autodetection size property.
 %     numRois = str2double(inputdlg('Enter number of Rois to search for'));
 %     if isempty(numRois); return; end
-    
+
     video = uint16(Y);
-    
+
     N = size(Y, 3);
 
     radius = roiDiameter/2;
-    
+
     meanIm = mean(Y,3);      % mean image
     corrIm = crossCorr(Y);   % correlation image
-    
+
     %% Initialisation
     retune_alpha  = 0;           % if 1, retune the value of alpha
 
     % Parameters
     alpha                       = 0.55;
     init_opt.blur_radius        = 1.5;
-    
+
     if retune_alpha
 
         % Format figure that is used for tuning alpha
@@ -156,8 +156,7 @@ function roiArray = run(Y, roiDiameter)
     linkaxes([h(1), h(2), h(3), h(4)])
 
     all_ROIs = cat(3, larger_ROIs, smaller_ROIs);
-    
+
     imSize = [size(Y,1), size(Y,2)];
     roiArray = autosegment.able.getRoiArray(all_ROIs, imSize);
-
 end

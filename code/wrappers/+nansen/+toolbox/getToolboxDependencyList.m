@@ -20,38 +20,37 @@ function pathList = getToolboxDependencyList(toolboxInfo)
     if ~isfield(toolboxInfo, 'FolderExcludeTokens')
         toolboxInfo.FolderExcludeTokens = {};
     end
-    
+
     initPath = nansen.toolboxdir();
     % Get all subfolders in the nansen toolbox directory.
     folderPath = strsplit(genpath(initPath), pathsep);
     nansenPathList = folderPath(1:end-1);
-    
+
     % Find local toolbox location
     S = which(toolboxInfo.FunctionName);
-    
+
     if isempty(S)
         error(['%s was not found on MATLAB''s search path. Please make', ...
             ' sure the %s\ntoolbox is added to MATLAB''s search path'], ...
             toolboxInfo.ToolboxName, toolboxInfo.ToolboxName);
     end
-    
+
     toolboxPath = fileparts(fileparts(S));
     toolboxPathList = genpath(toolboxPath);
-    
+
     for i = 1:numel(toolboxInfo.FolderExcludeTokens)
         iToken = toolboxInfo.FolderExcludeTokens{i};
         toolboxPathList = utility.path.excludeItemsFromPathList(toolboxPathList, iToken);
     end
-    
+
     toolboxPathListCell = strsplit(toolboxPathList, pathsep);
-    
+
     pathList = [nansenPathList, toolboxPathListCell];
-    
+
     if isrow(pathList)
        pathList = transpose(pathList);
     end
 
     isEmpty = cellfun(@isempty, pathList);
     pathList(isEmpty) = [];
-    
 end

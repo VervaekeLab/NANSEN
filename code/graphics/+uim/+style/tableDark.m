@@ -1,7 +1,7 @@
 classdef tableDark < uim.style.tableTheme
-    
+
     properties (Constant)
-        
+
         HeaderBackgroundColor = [0.15, 0.15, 0.15]
         HeaderForegroundColor = [0.95, 0.95, 0.95]
         TableBackgroundColor = [0.05, 0.05, 0.05]

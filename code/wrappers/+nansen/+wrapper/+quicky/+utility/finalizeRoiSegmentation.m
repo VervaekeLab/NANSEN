@@ -1,30 +1,30 @@
 function roiArray = finalizeRoiSegmentation(imArray, avgIm, roiArrayT, varargin)
 %finalizeRoiSegmentation Finalize roi segmentation
-    
+
     % Todo: extract dff
 
     import nansen.twophoton.roi.compute.computeRoiImages
-    
+
     % Calculate average projection here if not given
     if nargin < 2; avgIm = mean(imArray, 3); end
-    
+
     % Parse name, value pairs
     def = struct('RingConvolutionSearch', true); % add roiSize...
     opt = utility.parsenvpairs(def, [], varargin);
-    
+
     tBegin = tic; % Start timer
-    
+
     roiArrayT = roimanager.utilities.mergeOverlappingRois(roiArrayT);
-        
+
     % Remove candidates very close to edge of the image
     roiArrayT = roimanager.utilities.removeRoisOnBoundary(roiArrayT);
-    
+
     if opt.RingConvolutionSearch
         % Search for ring shaped candidates (spatial footprint only)
         fprintf('Searching for ring-shaped cells...\n')
         param = struct('InnerRadius', 4, 'OuterRadius', 6);
         roiArrayS = flufinder.detect.shapeDetection(single(avgIm), [], param);
-        
+
         if ~isempty(roiArrayS)
             roiArrayS = roimanager.utilities.mergeOverlappingRois(roiArrayS);
             roiArrayS = roimanager.utilities.removeRoisOnBoundary(roiArrayS);
@@ -41,7 +41,7 @@ function roiArray = finalizeRoiSegmentation(imArray, avgIm, roiArrayT, varargin)
             % and roi images for improving estimates
             signalOpts = struct('createNeuropilMask', true);
             signalArrayS = nansen.twophoton.roisignals.extractF(imArray, roiArrayS, signalOpts);
-            
+
             % Add roi images to rois. Use to improve roi boundary estimate
             roiImageArray = computeRoiImages(imArray, roiArrayS, signalArrayS);
             roiArrayS = roiArrayS.addImage(roiImageArray);
@@ -49,7 +49,7 @@ function roiArray = finalizeRoiSegmentation(imArray, avgIm, roiArrayT, varargin)
     end
 
     fprintf('Extracting signals for temporally active cells...\n')
-    
+
     signalOpts = struct('createNeuropilMask', true);
     signalArray = nansen.twophoton.roisignals.extractF(imArray, roiArrayT, signalOpts);
     dffT = nansen.twophoton.roisignals.computeDff(signalArray);
@@ -66,21 +66,21 @@ function roiArray = finalizeRoiSegmentation(imArray, avgIm, roiArrayT, varargin)
     roiImageArray = roimanager.autosegment.extractRoiImages(imArray, roiArrayT, dffT', 'ImageType', 'correlation');
     roiArrayT = roiArrayT.addImage(roiImageArray);
     [roiArrayT1, ~] = roimanager.binarize.improveMaskEstimate2(roiArrayT);
-    
+
     % Merge overlapping rois in the activity based roi Array.
     roiArrayT = roimanager.utilities.mergeOverlappingRois(roiArrayT);
-    
+
     % Do a final check for overlapping rois...
     if opt.RingConvolutionSearch && ~isempty(roiArrayS)
         [iA, iB] = roimanager.utilities.findOverlappingRois(roiArrayS, roiArrayT, 0.75);
         roiArrayT(iB) = [];
     end
-        
+
     % Remove small rois:
     areas = [roiArrayT.area];
     keep = areas > 50 & areas < 200;
     roiArrayT = roiArrayT(keep);
-    
+
     if opt.RingConvolutionSearch
         roiArrayS = roiArrayS.addTag('spatial_segment');
         roiArrayT = roiArrayT.addTag('temporal_segment'); % To distinguish when loading to roimanager
@@ -90,10 +90,9 @@ function roiArray = finalizeRoiSegmentation(imArray, avgIm, roiArrayT, varargin)
     else
         roiArray = roiArrayT;
     end
-    
+
     t2 = toc(tBegin);
     nRois = numel(roiArray);
-    
+
     fprintf(sprintf('Autodetection finished. Found %d rois in %d seconds.\n', nRois, round(t2) ))
-    
 end

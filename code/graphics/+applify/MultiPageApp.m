@@ -29,12 +29,12 @@ classdef MultiPageApp < uiw.abstract.AppWindow
     end
 
     methods (Access = protected) % Creation
-       
+
         function createLayout(app)
-            
+
             app.hLayout.MainPanel = uipanel('Parent', app.Figure, 'Tag', 'Main Panel');
             app.hLayout.MainPanel.BorderType = 'none';
-            
+
             app.hLayout.TabGroup = uitabgroup(app.hLayout.MainPanel);
             app.hLayout.TabGroup.Units = 'normalized';
             %app.hLayout.TabGroup.Position = [0.025, 0.025, 0.95, 0.95];
@@ -43,24 +43,24 @@ classdef MultiPageApp < uiw.abstract.AppWindow
         end
 
         function createTabPages(app)
-            
+
             for i = 1:numel(app.PageTitles)
-                
+
                 pageTitle = app.PageTitles{i};
-                
+
                 hTab = uitab(app.hLayout.TabGroup);
                 hTab.Title = pageTitle;
 
                 %pageModule = app.createPageModule( hTab );
                 %app.PageModules(pageTitle) = {pageModule};
             end
-            
+
             % Add a callback function for when tab selection is changed
             app.hLayout.TabGroup.SelectionChangedFcn = @app.onTabChanged;
         end
 
         function initializeModules(app)
-            
+
             for i = 1:numel(app.PageTitles)
                 pageTitle = app.PageTitles{i};
                 hTab = app.hLayout.TabGroup.Children(i);
@@ -77,7 +77,6 @@ classdef MultiPageApp < uiw.abstract.AppWindow
 
         % Subclass may override
         function updateLayoutPositions(app)
-        
         end
     end
 
@@ -90,7 +89,7 @@ classdef MultiPageApp < uiw.abstract.AppWindow
         end
 
         function onTabChanged(app, src, evt)
-            
+
             pageTitle = evt.NewValue.Title;
 
             % % if ~isKey(app.PageModules, pageTitle)
@@ -112,7 +111,7 @@ classdef MultiPageApp < uiw.abstract.AppWindow
                 %Reset tab selected
                 return
             end
-            
+
             currentPageModule.deactivate()
             app.ActivePageModule.activate()
         end

@@ -15,15 +15,15 @@ function [imArrayOut, yLim, xLim] = imtrim(imArrayIn, backgroundValue, polarity,
     if nargin < 2 || isempty(backgroundValue);  backgroundValue = 0;    end
     if nargin < 3 || isempty(polarity);         polarity = 'dark';      end
     if nargin < 4 || isempty(mode);             mode = 'ne';            end
-    
+
     % todo: get bg value automatically from polarity and data type
     % todo: convert operators '<=' etc to function names
-    
+
     mode = validatestring(mode, {'ne', 'ge', 'gt', 'le', 'lt'});
     op = str2func(mode);
-    
+
     val = cast(backgroundValue, 'like', imArrayIn);
-    
+
     % Crop left and right
     [height, width, ~] = size(imArrayIn);
     imRef = imArrayIn(:, :, 1);
@@ -33,7 +33,7 @@ function [imArrayOut, yLim, xLim] = imtrim(imArrayIn, backgroundValue, polarity,
 
     cropLeft = min([A{:}]);
     cropRight = max([B{:}]);
-    
+
     if cropLeft == 0; cropLeft = 1; end
     if cropRight > width; cropRight = width; end
 
@@ -52,7 +52,7 @@ function [imArrayOut, yLim, xLim] = imtrim(imArrayIn, backgroundValue, polarity,
     if cropBot > height; cropBot = height; end
 
     imArrayOut = imArrayOut(cropTop:cropBot, :, :);
-    
+
     if nargout > 1
         yLim = [cropTop, cropBot];
         xLim = [cropLeft, cropRight];

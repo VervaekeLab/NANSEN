@@ -18,7 +18,7 @@ classdef AbstractTabPageModule < handle
     end
 
     methods % Constructor
-    
+
         function obj = AbstractTabPageModule(varargin)
         %AbstractTabPageModule - Constructor
         %
@@ -27,7 +27,7 @@ classdef AbstractTabPageModule < handle
         %           container it is assigned to the Parent property and all
         %           components are added to it.
         %       varargin - Optional name value pairs?
-            
+
             obj.parseInputs(varargin)
 
             obj.createComponents()
@@ -43,9 +43,9 @@ classdef AbstractTabPageModule < handle
     methods (Access = private)
 
         function parseInputs(obj, listOfArgs)
-            
+
             if isempty(listOfArgs);    return;    end
-            
+
             if isgraphics(listOfArgs{1})
                 obj.Parent = listOfArgs{1};
                 listOfArgs = listOfArgs(2:end);
@@ -69,13 +69,12 @@ classdef AbstractTabPageModule < handle
     end
 
     methods (Abstract, Access = protected) % Required subclass methods
-        
-        createComponents(obj)
 
+        createComponents(obj)
     end
-    
+
     methods (Access = protected) % Optional subclass methods
-        
+
         function onStartup(obj) %#ok<*MANU>
             % Subclasses may override.
         end
@@ -90,8 +89,8 @@ classdef AbstractTabPageModule < handle
     end
 
     methods (Access = {?nansen.App, ?nansen.AbstractTabPageModule})
-        
-        function wasCaptured = onKeyPressed(obj, ~, evt) 
+
+        function wasCaptured = onKeyPressed(obj, ~, evt)
             % Subclasses may override.
             wasCaptured = false;
         end

@@ -12,17 +12,17 @@ classdef LegacyJavaMetaTableViewer < handle & uiw.mixin.AssignPVPairs
 
 % - - - - - - - - - - - - - - - TODO - - - - - - - - - - - - - - - - -
     %  *[ ] Update table without emptying data! Use add column/remove
-    %   [ ] jTable.setPreserveSelectionsAfterSorting(true); Is this useful
+    %   [ ] jTable.setPreserveSelectionsAfterSorting(true); Is this useful
     %       here???
-    %   [ ] Save table settings to project folder
+    %   [ ] Save table settings to project folder
 
     %       column from the java column model when hiding/showing columns
     %   [ ] Outsource everything column related to column model
     %   [ ] Create table with all columns and store the tablecolumn objects in the column model if rows are hidden?
     %
     %   [x] Make ignore column editable
-    %   [x] Set method for metaTable...
-    %   [x] Revert change from metatable. need to get formatted data from
+    %   [x] Set method for metaTable...
+    %   [x] Revert change from metatable. need to get formatted data from
     %       table!
     %   [ ] Should the filter be a RowModel?
     %   [ ] Make method for getting colorcoded column names (based on
@@ -31,7 +31,7 @@ classdef LegacyJavaMetaTableViewer < handle & uiw.mixin.AssignPVPairs
     %   [ ] Will ColumnFilter.isColumnFilterActive always match the columns
     %       in the column model? Need to verify
     %   [ ] Straighten out what to do about the MetaTable property.
-    %       Problem: if the input metatable was a MetaTable object, it
+    %       Problem: if the input metatable was a MetaTable object, it
     %       might contain data which is not renderable in the uitable, i.e
     %       structs. If table data is changed, and data is put back into
     %       the table version of the MetaTable, the set.MetaTable methods
@@ -258,7 +258,6 @@ classdef LegacyJavaMetaTableViewer < handle & uiw.mixin.AssignPVPairs
         end
 
         function set.KeyPressCallback(obj, newValue)
-
         end
 
         function set.GetTableVariableAttributesFcn(obj, newValue)
@@ -571,7 +570,6 @@ classdef LegacyJavaMetaTableViewer < handle & uiw.mixin.AssignPVPairs
             end
 
             if isempty(remainingArgs);    return;    end
-
         end
 
         function createUiTable(obj)
@@ -635,7 +633,6 @@ classdef LegacyJavaMetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 'MouseDraggedInHeader', @obj.onMouseDraggedInTableHeader);
 
             obj.HTable.Theme = uim.style.tableLight;
-
         end
 
         function createColumnContextMenu(obj)
@@ -695,7 +692,6 @@ classdef LegacyJavaMetaTableViewer < handle & uiw.mixin.AssignPVPairs
 
             hTmp = uimenu(obj.ColumnContextMenu, 'Label', 'Delete this column');
             hTmp.Tag = 'Delete Column';
-
         end
 
         function createColumnFilterComponents(obj)
@@ -946,7 +942,6 @@ classdef LegacyJavaMetaTableViewer < handle & uiw.mixin.AssignPVPairs
             end
 
             obj.HTable.ColumnEditable = allowEdit;
-
         end
 
         function changeColumnNames(obj, newNames)
@@ -1130,7 +1125,6 @@ classdef LegacyJavaMetaTableViewer < handle & uiw.mixin.AssignPVPairs
             clickPosX = get(evt, 'X');
             clickPosY = get(evt, 'Y');
             obj.openColumnFilter(clickPosX, clickPosY)
-
         end
 
         function onMousePressedInHeader(obj, src, evt)
@@ -1360,7 +1354,6 @@ classdef LegacyJavaMetaTableViewer < handle & uiw.mixin.AssignPVPairs
             end
         end
 
-
         function onMouseMotionInTable(obj, src, evt)
             % This functionality is put in the nansen app for now.
         end
@@ -1438,7 +1431,6 @@ classdef LegacyJavaMetaTableViewer < handle & uiw.mixin.AssignPVPairs
             mPos = java.awt.Point(x, y);
             columnIdx = obj.HTable.JTable.columnAtPoint(mPos) + 1;
             % Note, java indexing starts at 0, so added 1.
-
         end
 
         function position = getTableContextMenuPosition(obj, eventPosition)
@@ -1461,7 +1453,6 @@ classdef LegacyJavaMetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % obj.HTable.RowHeight??
             positionY = tableHeight - clickPosY + 19; % +15 because ad hoc... size of table header?
             position = [positionX, positionY];
-
         end
 
         function figureCoords = javapoint2figurepoint(obj, javaCoords)
@@ -1487,7 +1478,6 @@ classdef LegacyJavaMetaTableViewer < handle & uiw.mixin.AssignPVPairs
             yPosition = y0 + tableHeight - javaCoords(2);
 
             figureCoords = [xPosition, yPosition];
-
         end
 
         function openColumnContextMenu(obj, x, y)
@@ -1593,7 +1583,6 @@ classdef LegacyJavaMetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % Set position and make menu visible.
             obj.ColumnContextMenu.Position = figurePoint;
             obj.ColumnContextMenu.Visible = 'on';
-
         end
 
         function openTableContextMenu(obj, x, y)
@@ -1603,7 +1592,6 @@ classdef LegacyJavaMetaTableViewer < handle & uiw.mixin.AssignPVPairs
             % Set position and make menu visible.
             obj.TableContextMenu.Position = [x,y];
             obj.TableContextMenu.Visible = 'on';
-
         end
 
         function openColumnFilter(obj, x, y)
@@ -1616,7 +1604,6 @@ classdef LegacyJavaMetaTableViewer < handle & uiw.mixin.AssignPVPairs
             dataColumnIndex = colIndices(tableColumnIdx);
 
             obj.ColumnFilter.openFilterControl(dataColumnIndex)
-
         end
 
         function filterColumn(obj, columnNumber)
@@ -1627,7 +1614,6 @@ classdef LegacyJavaMetaTableViewer < handle & uiw.mixin.AssignPVPairs
 
             obj.ColumnFilter.openFilterControl(dataColumnIndex)
             obj.AppRef.showSidePanel()
-
         end
 
         function sortColumn(obj, columnIdx, sortDirection)
@@ -1636,7 +1622,6 @@ classdef LegacyJavaMetaTableViewer < handle & uiw.mixin.AssignPVPairs
             sortDescend = strcmp(sortDirection, 'descend');
 
             obj.HTable.JTable.sortColumn(columnIdx-1, 1, sortAscend)
-
         end
 
         function hideColumn(obj, columnNumber)

@@ -162,7 +162,6 @@ classdef HasOptionsManager < handle
                 obj.onOptionsEditorResumed()
             end
         end
-
     end
 
     methods (Access = ?matlab.unittest.TestCase)
@@ -176,7 +175,6 @@ classdef HasOptionsManager < handle
         %setOptionsEditorVisibleForTesting Set editor visibility in tests.
             obj.OptionsEditorVisible = visibleState;
         end
-
     end
 
     methods (Access = protected)
@@ -237,7 +235,6 @@ classdef HasOptionsManager < handle
                 titleStr = sprintf('Options Editor (%s)', obj.(propertyName));
             end
         end
-
     end
 
     methods (Access = private)
@@ -259,7 +256,6 @@ classdef HasOptionsManager < handle
             end
             obj.OptionsEditorDestroyedListener = event.listener.empty;
         end
-
     end
 
     methods (Static)
@@ -283,7 +279,5 @@ classdef HasOptionsManager < handle
         %optionsCheck Backward-compatible name for splitOptionsArgument.
             [opts, cellOfArgs] = applify.mixin.HasOptionsManager.splitOptionsArgument(cellOfArgs);
         end
-
     end
-
 end

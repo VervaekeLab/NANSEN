@@ -11,7 +11,7 @@ function mustBeValidProjectName(name)
 
     % Create a valid MATLAB identifier from the provided name.
     validName = matlab.lang.makeValidName(name);
-    
+
     % Compare the provided name with its valid MATLAB identifier.
     if ~isequal(name, validName)
         error('NANSEN:validator:InvalidProjectName', ...

@@ -11,7 +11,7 @@ classdef TableVariable
 %   arrays of formatted strings with one cell for each object.
 
 %   Todo:
-%       [ ] Static update function. Think more about this. All table
+%       [ ] Static update function. Think more about this. All table
 %           variables should have an update function, but should it be static,
 %           and how to implement that in a way where it is optional for the
 %           subclass to implement it or not?
@@ -20,18 +20,18 @@ classdef TableVariable
         IS_EDITABLE
         DEFAULT_VALUE % Todo: rename to BLANK_VALUE or NULL_VALUE to clearly indicate that this is an unset value
     end
-    
+
     properties
         Value
     end
-    
+
 %     events % Need to inherit from handle if this is implemented:
 %         ValueChanged
 %     end
-    
+
     methods % Constructor
         function obj = TableVariable(S)
-            
+
             if nargin < 1 || isempty(S)
                 obj.Value = struct.empty;
                 return
@@ -40,10 +40,10 @@ classdef TableVariable
             if iscell(S)
                 numObjects = numel(S);
                 [obj(1:numObjects).Value] = deal( S{:} );
-                
+
             elseif isa(S, 'nansen.metadata.abstract.MetadataEntity')
                 varName = obj.getVariableName;
-                
+
                 % Todo: Should retrieve value from dynamic prop if prop is
                 % not hardcoded...
                 if isprop(S, varName)
@@ -51,7 +51,7 @@ classdef TableVariable
                 else
                     obj.Value = obj.DEFAULT_VALUE;
                 end
-                
+
             else
                 obj.Value = S;
             end
@@ -59,7 +59,7 @@ classdef TableVariable
     end
 
     methods % Subclasses can override (Methods for cell display & interaction)
-        
+
         function str = getCellDisplayString(obj)
         %getCellDisplayString Get formatted string to display in table cell
             if numel(obj) > 1
@@ -77,23 +77,23 @@ classdef TableVariable
                 str = '';
             end
         end
-        
+
         function [] = onCellDoubleClick(obj, metaObj, varargin) %#ok<INUSD>
             % Do nothing. Subclass may override
         end
     end
-    
+
     methods
-        
+
         function varName = getVariableName(obj)
         %getVariableName Get variable name from the class definition name
-            
+
             className = class(obj);
             classNameSplit = strsplit(className, '.');
             varName = classNameSplit{end};
         end
     end
-    
+
     methods (Static)
         function update(metaObj) %#ok<INUSD>
             % Do nothing. Subclass may implement/override
@@ -101,7 +101,7 @@ classdef TableVariable
             % functions
         end
     end
-    
+
     methods (Static)
         function T = viewTableAttributeTable(options)
             arguments

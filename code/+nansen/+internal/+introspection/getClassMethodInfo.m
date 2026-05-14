@@ -1,8 +1,8 @@
 function methodInfo = getClassMethodInfo(metaclassObject, methodName, options)
 % getClassMethodInfo - Get a table of attribute values for specified methods of a class.
 %
-%   methodInfo = nansen.internal.introspection.getClassMethodInfo(metaclassObject, methodName) 
-%   returns a table where each row corresponds to one of the specified 
+%   methodInfo = nansen.internal.introspection.getClassMethodInfo(metaclassObject, methodName)
+%   returns a table where each row corresponds to one of the specified
 %   methods and each column corresponds to a meta.method attribute.
 %
 %   methodInfo = nansen.internal.introspection.getClassMethodInfo(metaclassObject, methodName, AttributeName=names)
@@ -25,7 +25,7 @@ function methodInfo = getClassMethodInfo(metaclassObject, methodName, options)
     allMethodNames = string({metaclassObject.MethodList.Name});
     matchIdx = ismember(allMethodNames, methodName);
     methodInfo = metaclassObject.MethodList(matchIdx);
-    
+
     missingMethods = methodName(~ismember(methodName, allMethodNames));
     assert(numel(methodInfo) == numel(methodName), ...
         'NANSEN:Introspection:GetClassMethodInfo', ...

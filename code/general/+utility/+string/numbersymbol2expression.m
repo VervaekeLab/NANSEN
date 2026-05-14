@@ -11,7 +11,6 @@ for i = numChars:-1:1
 
     searchStr = repmat('#', 1, i);
     replaceStr = ['\', sprintf('d{%d}', i)];
-    
+
     str = strrep(str, searchStr, replaceStr);
-    
 end

@@ -17,7 +17,7 @@ classdef extractSignals < nansen.session.SessionMethod
 %- `RoiSignals_MeanF`: mean ROI fluorescence traces.
 %- `RoiSignals_NeuropilF`: neuropil fluorescence traces.
 %- `OptionsSignalExtraction`: options used for the extraction run.
-    
+
     properties (Constant) % SessionMethod attributes
         MethodName = 'Extract Signals'
         BatchMode = 'serial'
@@ -26,7 +26,7 @@ classdef extractSignals < nansen.session.SessionMethod
         OptionsManager nansen.manage.OptionsManager = ...
             nansen.OptionsManager(mfilename('class')) % todo...
     end
-    
+
     properties (Constant)
         DATA_SUBFOLDER = 'roisignals' % defined in nansen.processing.DataMethod
         VARIABLE_PREFIX	= 'RoiSignals'          % defined in nansen.processing.DataMethod
@@ -35,47 +35,47 @@ classdef extractSignals < nansen.session.SessionMethod
     properties
         RequiredVariables = {'TwoPhotonSeries_Corrected', 'roiArray'}
     end
-    
+
     methods (Static)
         function S = getDefaultOptions()
             S = nansen.twophoton.roisignals.extract.getDefaultParameters();
         end
     end
-    
+
     methods
-        
+
         function obj = extractSignals(varargin)
-            
+
             obj@nansen.session.SessionMethod(varargin{:})
-            
+
             if ~nargout
                 obj.runMethod()
                 clear obj
             end
         end
     end
-    
+
     methods
-        
+
         function runMethod(obj)
-            
+
             sessionData = nansen.session.SessionData(obj.SessionObjects);
             sessionData.updateDataVariables()
-            
+
             imageStack = sessionData.TwoPhotonSeries_Corrected;
 
             roiArray = sessionData.RoiArray;
-            
+
             extractF = @nansen.twophoton.roisignals.extractF;
             [signalArray, P] = extractF(imageStack, roiArray, 'verbose', true, obj.Options);
-            
+
             % Todo: Save results...
             obj.saveData('RoiSignals_MeanF', squeeze(signalArray(:, 1, :)) )
             obj.saveData('RoiSignals_NeuropilF', squeeze(signalArray(:, 2:end, :)) )
-            
+
             obj.saveData('OptionsSignalExtraction', P, ...
                 'Subfolder', 'roisignals', 'IsInternal', true)
-            
+
             % Inherit metadata from image stack
             fileAdapter = obj.SessionObjects.getFileAdapter('RoiSignals_MeanF');
             fileAdapter.setMetadata('SampleRate', imageStack.getSampleRate(), 'Data')

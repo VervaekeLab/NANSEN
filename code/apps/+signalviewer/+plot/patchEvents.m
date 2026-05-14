@@ -28,7 +28,7 @@ if nargin < 6
     if ~isempty(lines)
         % Find length of data that is plotted. Used for patching of all samples
         lineLengths = arrayfun(@(x) length(lines(x).XData), 1:length(lines) );
-        
+
         if any(lineLengths == numel(eventMask))
             lineInd = find(lineLengths == numel(eventMask));
             xCoords = lines(lineInd).XData;

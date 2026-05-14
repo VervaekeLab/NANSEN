@@ -28,9 +28,9 @@ function [numDirs, finished] = findNumTiffDirectories(tiffRef, dirNumInit, stepS
 %   'MATLAB:imagesci:Tiff:unableToChangeDir' error ID, current directory is
 %   set to the last directory in the file. In this case, recursive search
 %   is not necessary.
-    
+
     import nansen.stack.utility.findNumTiffDirectories
-    
+
     if ischar(tiffRef) && isfile(tiffRef)
         [~, ~, ext] = fileparts(tiffRef);
         if strcmp(ext, '.tif') || strcmp(ext, '.tiff')
@@ -43,15 +43,15 @@ function [numDirs, finished] = findNumTiffDirectories(tiffRef, dirNumInit, stepS
     else
         error('First input must be a Tiff object or the path to a tiff file')
     end
-    
+
     if nargin < 2; dirNumInit = 1; end
     if nargin < 3; stepSize = 10000; end
 
     numDirs = dirNumInit;
     finished = false;
-    
+
     while ~finished
-        
+
         try
             tiffObj.setDirectory(numDirs);
             numDirs = numDirs + stepSize;
@@ -60,7 +60,7 @@ function [numDirs, finished] = findNumTiffDirectories(tiffRef, dirNumInit, stepS
             switch ME.identifier
                 case 'MATLAB:imagesci:Tiff:tagRetrievalFailed'
                     warning('Unexpected error, please report..')
-                
+
                 case 'MATLAB:imagesci:Tiff:unableToChangeDir'
                     numDirs = tiffObj.currentDirectory();
                     finished = tiffObj.lastDirectory();
@@ -74,12 +74,12 @@ function [numDirs, finished] = findNumTiffDirectories(tiffRef, dirNumInit, stepS
                         % newStepSize = stepSize / 10;
                         % [numDirs, finished] = findNumTiffDirectories(tiffObj, dirNumInit, newStepSize);
                     end
-                
+
                 case 'MATLAB:imagesci:validate:argumentOutOfBounds'
                     dirNumInit = tiffObj.currentDirectory();
                     newStepSize = stepSize / 10;
                     [numDirs, finished] = findNumTiffDirectories(tiffObj, dirNumInit, newStepSize);
-                
+
                 otherwise
                     numDirs = numel( imfinfo(tiffRef.FileName) );
                     finished = true;
@@ -87,7 +87,7 @@ function [numDirs, finished] = findNumTiffDirectories(tiffRef, dirNumInit, stepS
             end
         end
     end
-    
+
     if nargout == 1
         clear finished
     end

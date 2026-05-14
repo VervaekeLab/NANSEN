@@ -2,40 +2,40 @@ classdef Notebook < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
 %Notebook A table variable implementation for a notebook variable.
 %
 %   See also nansen.metadata.abstract.TableVariable nansen.notes.Note
-    
+
     properties (Constant)
         IS_EDITABLE = false
         DEFAULT_VALUE = struct.empty
     end
-   
+
     methods % Constructor
-        
+
         function obj = Notebook(S)
             if nargin < 1; S = struct.empty; end
             obj@nansen.metadata.abstract.TableVariable(S);
-            
+
             assert( all( arrayfun(@isstruct, [obj.Value])), 'Value must be a struct')
         end
     end
-    
+
     methods % Implementation of abstract superclass methods
-       
+
         function str = getCellDisplayString(obj)
-                        
+
             % Struct is wrapped in a cell. This was done because
             % structarrays are not compatible with tables as far as I could
             % figure out...
-            
+
             str = cell(1, numel(obj));
-            
+
             for i = 1:numel(obj)
-           
+
                 commentStruct = obj(i).Value;
-            
+
                 if iscell(commentStruct)
                     commentStruct = commentStruct{1};
                 end
-            
+
                 str{i} = sprintf('%d Notes', numel(commentStruct));
 
                 if isempty(commentStruct)
@@ -45,7 +45,7 @@ classdef Notebook < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
     % %                 numComments = sum(contains(lower(msgLevel), 'informal'));
     % %                 numWarnings = sum(contains(lower(msgLevel), 'important'));
                 end
-            
+
                 formattedStr = sprintf('<html><font color="#000000"> %s </font>', str{i});
 
                 if contains('Informal', {commentStruct.Type})
@@ -78,7 +78,7 @@ classdef Notebook < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
 % % %             else
 % % %
 % % %             end
-            
+
                 str{i} = formattedStr;
             end
         end
@@ -134,17 +134,17 @@ classdef Notebook < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
                 str{i} = formattedStr;
             end
         end
-       
+
         function str = getCellTooltipString(obj)
-           
+
             noteStruct = obj.Value;
-            
+
             if isempty(noteStruct)
                 str = '';
             else
-                
+
                 str = sprintf('<html>&nbsp;<b>%s</b>', noteStruct(1).ObjectID);
-                
+
                 for j = 1:numel(noteStruct)
                     newLine1 = sprintf('<br>&nbsp; %d) %s (%s)', j, noteStruct(j).Title, noteStruct(j).TimeStamp);
                     str = [str, newLine1]; %#ok<AGROW>
@@ -153,7 +153,7 @@ classdef Notebook < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
                 end
             end
         end
-        
+
         function onCellDoubleClick(obj, ~)
             if ~isempty(obj.Value)
                 obj.openNotebookUI()
@@ -162,7 +162,7 @@ classdef Notebook < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
     end
 
     methods (Access = private)
-        
+
         function openNotebookUI(obj)
         %openNotebookUI Open the notebook ui using this notebook instance.
             hApp = obj.getNotebookViewer();
@@ -170,9 +170,9 @@ classdef Notebook < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
             hApp.openNotebook(obj.Value);
         end
     end
-        
+
     methods (Static)
-        
+
         function hApp = getNotebookViewer()
         %getNotebookViewer Get notebook viewer from global variable.
         %
@@ -180,24 +180,22 @@ classdef Notebook < nansen.metadata.abstract.TableVariable & nansen.metadata.abs
         %   variable is empty, create a new notebook viewer.
 
             global NoteBookViewer
-            
+
             if isempty(NoteBookViewer) || ~isvalid(NoteBookViewer)
                 NoteBookViewer = nansen.notes.NoteViewerApp();
                 NoteBookViewer.setClosePolicy('hide')
             end
-            
+
             hApp = NoteBookViewer;
-            
         end
-        
+
         function str = getIconHtmlString(iconName)
-            
+
             % Todo: Create better icons and place in nansen...
 
             %warn, error, quest, help
             iconPath = sprintf( '/Applications/MATLAB_R2017b.app/toolbox/matlab/uitools/private/icon_%s_32.png', iconName);
             str = sprintf('<img src="file:%s" width="10" height="10" margin="0">', iconPath);
-            
         end
 
         function str = getEmojiHtmlString(noteType)

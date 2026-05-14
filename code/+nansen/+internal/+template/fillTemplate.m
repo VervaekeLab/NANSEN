@@ -10,10 +10,10 @@ function renderedHTML = fillTemplate(templatePath, outputPath, data)
     %
     % Outputs:
     %    renderedHTML - Rendered HTML as a string
-    
+
     % Read the template file
     template = fileread(templatePath);
-    
+
     % Replace top-level fields
     fields = fieldnames(data);
     for i = 1:numel(fields)
@@ -22,7 +22,7 @@ function renderedHTML = fillTemplate(templatePath, outputPath, data)
             template = strrep(template, placeholder, string(data.(fields{i})));
         end
     end
-    
+
     % Process repeating sections for option presets
     if isfield(data, 'option_presets')
         template = processForLoop(template, 'option_presets', data.option_presets);
@@ -44,13 +44,12 @@ function renderedHTML = fillTemplate(templatePath, outputPath, data)
 
     % Define the pattern to match the target text without removing spaces
     patterns = sprintf('(^|\\s)%s(\\s|$)', pattern);
-    
+
     % Define the replacement pattern, ensuring the match is replaced without altering spaces
     replacePattern = sprintf('$1<span class="helptopic">%s</span>$2', pattern);
-    
+
     % Perform the replacement
     renderedHTML = regexprep(renderedHTML, patterns, replacePattern);
-
 
     fid = fopen(outputPath, 'w');
     if fid == -1
@@ -71,7 +70,7 @@ function template = processForLoop(template, sectionName, loopParams)
     %
     % Output:
     %    template    - Updated template string
-    
+
     template = char(template);
     template_lines = splitlines(template);
     trimmed_lines = strtrim(template_lines);
@@ -79,7 +78,7 @@ function template = processForLoop(template, sectionName, loopParams)
     % Define loop directive placeholders
     startPlaceholder = sprintf('{%% for .* %s %%}', sectionName);
     endPlaceholder = sprintf('{%% endfor %%}');
-    
+
     % Locate the loop section
     lineMatch = regexp(trimmed_lines, startPlaceholder, 'once');
     startIdx = find(cellfun(@(c) ~isempty(c), lineMatch));
@@ -104,29 +103,29 @@ function template = processForLoop(template, sectionName, loopParams)
         % Extract everything between the loop directives
         loopContent = template_lines(startIdx+1:endIdx-1);
         loopContent = strjoin(loopContent, newline);
-    
+
         placeholderPattern = '\{\{\s*([a-zA-Z0-9_\.]+)\s*\}\}';
         % Extract unique placeholders
         tokens = regexp(loopContent, placeholderPattern, 'tokens');
         tokens = string(tokens);
         placeholders = compose('{{ %s }}', tokens);
-    
+
         loopTemplate = regexprep(loopContent, placeholders, '%s');
-    
+
         % Filter loopParams by detected tokens:
         A = squeeze( split(tokens, '.') );
         fieldNames = A(:,2);
         allFieldNames = fieldnames(loopParams);
         loopParams = rmfield(loopParams, setdiff(fieldNames, allFieldNames));
         loopParams = orderfields(loopParams, fieldNames);
-    
+
         strValues = squeeze( string( struct2cell(loopParams) ))';
-    
+
         % Build array of replace values for compose
         loopContentFinal = compose(loopTemplate, strValues);
         loopContentFinal = strjoin(loopContentFinal, newline);
     end
-    
+
     % Replace the loop section in the template
     template = strjoin( cat(1, ...
         template_lines(1:startIdx-1), ...
@@ -145,10 +144,10 @@ function result = replaceUrlsWithHyperlinks(inputText)
 
     % Regular expression to detect URLs
     urlPattern = '(https?://[^\s<]+)';
-    
+
     % Replacement pattern to create hyperlinks
     replacementPattern = '<a href="$1">$1</a>';
-    
+
     % Replace URLs with HTML hyperlinks
     result = regexprep(inputText, urlPattern, replacementPattern, 'ignorecase');
 end

@@ -17,7 +17,7 @@ classdef uiSearchSelect < handle
 
     methods
         function obj = uiSearchSelect(options, title)
-            
+
             obj.Options = options;
 
             obj.Figure = figure('MenuBar','none');
@@ -48,20 +48,20 @@ classdef uiSearchSelect < handle
 
     methods (Access = private)
         function createComponents(obj)
-            
+
             figSize = getpixelposition(obj.Figure);
 
             obj.Parent = obj.Figure;
             obj.AutoCompleteWidget = uics.searchAutoCompleteInputDlg(obj.Parent, obj.Options);
             obj.AutoCompleteWidget.PromptText = 'Search for a dataset';
-           
+
             obj.AutoCompleteWidget.Position(2) = 50;
             obj.AutoCompleteWidget.Position(3) = figSize(3)-20;
-            
+
             % Create buttons
             buttonProps = {'Style', uim.style.buttonLightMode, ...
                 'HorizontalTextAlignment', 'center'};
-            
+
             obj.OkButton = uim.control.Button_(obj.Parent, 'Text', 'Ok', buttonProps{:});
             obj.OkButton.Position = [15,10, figSize(3)-30, 22];
             obj.OkButton.CornerRadius = 7;

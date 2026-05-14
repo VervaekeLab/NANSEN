@@ -10,7 +10,7 @@ function hApp = signalviewer(varargin)
     else
         hApp = signalviewer.App(varargin{:});
     end
-    
+
     if ~nargout
         clear hApp
     end

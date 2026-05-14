@@ -17,12 +17,12 @@ function [IM, batchSize, lineShifts] = correctLineOffsets(IM, batchSize)
 %       (https://github.com/flatironinstitute/NoRMCorre)
 %
 %   Written by Eivind Hennestad | Vervaeke Lab
-    
+
 % Do the bidirectional offset correction.
 nFrames = size(IM, 3);
 colShiftPrev = [];
 finished = false;
-    
+
 lineShifts = zeros(nFrames, 1);
 
 imHeight = size(IM, 1);
@@ -34,28 +34,27 @@ end
 % Do it in smaller batches. Mostly relevant in the beginning of a scan
 first = 1;
 while ~finished
-        
+
     if first + batchSize >= nFrames
         last = nFrames;
         finished = true;
     else
         last = first + batchSize - 1;
     end
-    
+
     ind = first:last;
-    
+
     [colShift, IM(:,:,ind)] = correct_bidirectional_offset(IM(:,:,ind), numel(ind), 10);
     lineShifts(first:last) = colShift;
-        
+
     if ~isempty(colShiftPrev)
         if colShiftPrev == colShift
             batchSize = batchSize * 2;
         end
     end
-        
+
     colShiftPrev = colShift;
     first = last+1;
-    
 end
 
 if mod(imHeight, 2) == 1
