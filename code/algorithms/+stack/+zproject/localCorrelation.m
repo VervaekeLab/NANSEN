@@ -16,8 +16,7 @@ function im = localCorrelation(imArray, dim)
 
     showWaitbar = false;
 
-    getChunkedData = @stack.reshape.imsplit;
-    tmpIm = getChunkedData(imArray, true, [], 'numRows', numRows, 'numCols', numCols);
+    tmpIm = stack.reshape.splitImage(imArray, numRows, numCols);
 
     tmpC = cell(size(tmpIm));
 
@@ -45,7 +44,7 @@ function im = localCorrelation(imArray, dim)
     end
 
     [d1,d2,~] = size(imArray);
-    cIm = getChunkedData(tmpC, false, [d1,d2,1], 'numRows', numRows, 'numCols', numCols);
+    cIm = stack.reshape.mergeImageBlocks(tmpC, [d1,d2]);
     %cIm = stack.makeuint8(cIm);
 
     cIm = cIm .* nansen.util.range(P) + P(1);
