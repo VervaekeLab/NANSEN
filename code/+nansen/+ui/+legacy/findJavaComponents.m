@@ -8,13 +8,13 @@ function jhUic = findJavaComponents(hUic, hParent)
 %    finding uicontrols in a specific panel container.
 
     %% Find java handle of parent container Credit: findjobj @ Yair Altman
-    try     jContainer = hParent.JavaFrame.getGUIDEView;
+    try     jContainer = hParent.JavaFrame.getGUIDEView; %#ok<JAVFM>
     catch,  jContainer = [];
     end
 
     if isempty(jContainer)
         hFig = ancestor(hUic(1), 'figure');
-        jf = get(hFig, 'JavaFrame');
+        jf = get(hFig, 'JavaFrame'); %#ok<JAVFM>
         jContainer = jf.getFigurePanelContainer.getComponent(0);
     end
 
