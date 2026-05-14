@@ -734,7 +734,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
 
                 if isa(dataValue, 'nansen.metadata.abstract.TableVariable') %|| isa(dataValue, 'nansen.metadata.tablevar.mixin.HasTableColumnFormatter')
                     if isempty(dataValue)
-                        isEditable = eval(sprintf('%s.IS_EDITABLE', class(dataValue)));
+                        isEditable = nansen.internal.introspection.getConstantPropertyValue(class(dataValue), 'IS_EDITABLE');
                     else
                         isEditable = dataValue.IS_EDITABLE;
                     end

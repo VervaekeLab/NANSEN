@@ -956,14 +956,12 @@ classdef OptionsManager < handle
             fcnName = strcat(obj.FunctionName, '.getDefaultOptions');
             fcnHandle = str2func(fcnName);
 
-            methodNameFcnName = strcat(obj.FunctionName, '.MethodName');
-
             % Return as options entry (struct)
             opts = fcnHandle();
             name = 'Preset Options';
 
             try
-                methodName = eval(methodNameFcnName);
+                methodName = nansen.internal.introspection.getConstantPropertyValue(obj.FunctionName, 'MethodName');
             catch
                 methodName = obj.FunctionName;
             end
@@ -1010,7 +1008,7 @@ classdef OptionsManager < handle
         function optionsEntry = getPresetsFromSuperclass(obj)
         %getPresetsFromSuperclass
 
-            optManager = eval(sprintf('%s.OptionsManager', obj.FunctionName));
+            optManager = nansen.internal.introspection.getConstantPropertyValue(obj.FunctionName, 'OptionsManager');
             presetOptionsNames = optManager.PresetOptionNames;
 
             for i = 1:numel(presetOptionsNames)

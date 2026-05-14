@@ -135,7 +135,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 schemaIdName = obj.MetaTableIdVarname;
             else
                 try
-                    schemaIdName = eval(strjoin({obj.MetaTableClass, 'IDNAME'}, '.'));
+                    schemaIdName = nansen.internal.introspection.getConstantPropertyValue(obj.MetaTableClass, 'IDNAME');
                 catch
                     schemaIdName = 'id';
                 end
