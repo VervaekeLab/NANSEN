@@ -1384,20 +1384,19 @@ classdef roiMap < roimanager.roiDisplay
             obj.roiMaskAll = {};
 
             roiInd = sort(roiInd, 'descend');
+            roiInd = reshape(roiInd, 1, []);
 
             switch lower(action)
-
                 case 'add'
                     for i = roiInd
                         thisRoi = obj.roiArray(i);
                         obj.roiIndexMap{i} = thisRoi.getPixelIdxList();
-
-%                         mask = obj.roiArray(roiInd(i)).mask;
-%                         obj.roiIndMap(mask) = roiInd(i);
                     end
 
                 case 'remove'
-                    obj.roiIndexMap{i} = [];
+                    for i = roiInd
+                        obj.roiIndexMap{i} = [];
+                    end
             end
 
             % Todo: How does this work for inserts?
