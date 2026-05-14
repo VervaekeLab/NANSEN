@@ -365,11 +365,7 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
                 end
             end
 
-            set(app.hFigure, 'Resize', 'on')
-
-            jFrame = get(app.hFigure, 'JavaFrame');
-    %         jWindow = jFrame.getFigurePanelContainer.getTopLevelAncestor;
-    %         jWindow.setFullScreen(false)
+            set(app.hFigure, 'Resize', 'on') % Todo: reset?
 
             newFigurePos = screenSize;
             app.hPanel.SizeChangedFcn = [];
