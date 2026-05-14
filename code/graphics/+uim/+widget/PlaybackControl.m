@@ -657,7 +657,7 @@ classdef PlaybackControl < uim.mixin.assignProperties
 
     % % % Callbacks for playback buttons
 
-        function onPlaybackButtonPressed(obj, src, event)
+        function onPlaybackButtonPressed(obj, src, ~)
 
             if ~strcmp(src.Tag, 'Scrollbar')
                 src.FaceColor = 'w';
@@ -788,7 +788,7 @@ classdef PlaybackControl < uim.mixin.assignProperties
 
     % % % Callbacks for the scroller knob
 
-        function knobPressed(obj, src, event)
+        function knobPressed(obj, ~, ~)
 
             el = listener(obj.ParentApp.Figure, 'WindowMouseMotion', @obj.knobMoving);
             obj.WindowMouseMotionListener = el;
@@ -799,7 +799,7 @@ classdef PlaybackControl < uim.mixin.assignProperties
             obj.knobDown = true;
         end
 
-        function knobMoving(obj, src, event)
+        function knobMoving(obj, ~, ~)
 
             if obj.knobDown % Just in case???
                 mousePoint = obj.SliderAxes.CurrentPoint(1);
@@ -817,7 +817,7 @@ classdef PlaybackControl < uim.mixin.assignProperties
             end
         end
 
-        function knobReleased(obj, src, event)
+        function knobReleased(obj, ~, ~)
 
             obj.knobDown = false;
 

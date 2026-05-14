@@ -18,7 +18,7 @@ classdef RoiDisplayInputHandler < handle
 
     methods
 
-        function wasCaptured = roiKeypressHandler(obj, src, event)
+        function wasCaptured = roiKeypressHandler(obj, ~, event)
 
             wasCaptured = false;
 

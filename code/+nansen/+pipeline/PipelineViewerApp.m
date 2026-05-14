@@ -138,7 +138,7 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
             %app.UITable.ColumnFormatData = colFormatData;
         end
 
-        function onTableCellEdited(app, src, evt)
+        function onTableCellEdited(app, ~, evt)
         %onTableCellEdited Callback for table cell edits..
 
             rowNumber = evt.Indices(1);
@@ -200,7 +200,7 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
 
     methods (Access = protected) % Component and user invoked callbacks
 
-        function onKeyPressedInTable(app, src, evt)
+        function onKeyPressedInTable(app, ~, evt)
 
             switch evt.Key
             end
@@ -216,11 +216,11 @@ classdef PipelineViewerApp < uiw.abstract.AppWindow
             app.TaskTableData = T;
         end
 
-        function onFigureResized(app, src, evt)
+        function onFigureResized(app, ~, ~)
             app.setComponentLayout()
         end
 
-        function onTableCellClicked(app, src, evt)
+        function onTableCellClicked(app, ~, evt)
 
             if evt.Button == 1 && evt.NumClicks == 2
                 rowNum = evt.Cell(1);

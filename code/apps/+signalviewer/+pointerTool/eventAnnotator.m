@@ -108,7 +108,7 @@ classdef eventAnnotator < uim.interface.abstractPointer
             obj.isActive = true;
         end
 
-        function onRectanglePositionChanging(obj, src, evtData)
+        function onRectanglePositionChanging(obj, ~, evtData)
            obj.hRectangle.Position([2,4]) = [0,1];
         end
         function set.EventVectorName(obj, newName)
@@ -117,13 +117,13 @@ classdef eventAnnotator < uim.interface.abstractPointer
 
     methods (Access = public) % Methods for mouse interactive callbacks
 
-        function onButtonDown(obj, src, event)
+        function onButtonDown(obj, ~, ~)
         end
 
-        function onButtonMotion(obj, src, event)
+        function onButtonMotion(obj, ~, ~)
         end
 
-        function onButtonUp(obj, src, event)
+        function onButtonUp(obj, ~, ~)
         end
     end
 

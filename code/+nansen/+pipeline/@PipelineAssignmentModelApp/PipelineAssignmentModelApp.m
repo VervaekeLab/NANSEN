@@ -41,7 +41,7 @@ classdef PipelineAssignmentModelApp < nansen.config.abstract.ConfigurationApp
 
     methods (Access = protected)
 
-        function onFigureClosed(obj, src, evt)
+        function onFigureClosed(obj, src, ~)
 
             % Check if changes were made to the model.
 

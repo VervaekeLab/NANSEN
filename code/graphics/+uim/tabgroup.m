@@ -166,7 +166,7 @@ classdef tabgroup < uim.abstract.virtualContainer & uim.mixin.assignProperties
         end
 
         % Tab selected
-        function onTabSelected(obj, src, evt)
+        function onTabSelected(obj, ~, ~)
         end
     end
 
@@ -204,7 +204,7 @@ classdef tabgroup < uim.abstract.virtualContainer & uim.mixin.assignProperties
             end
         end
 
-        function onTabButtonPressed(obj, src, evt)
+        function onTabButtonPressed(obj, src, ~)
         %onTabButtonPressed Callback handler for when a button is pressed
 
             % Determine which tab is selected

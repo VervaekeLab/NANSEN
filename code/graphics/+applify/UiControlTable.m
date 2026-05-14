@@ -715,7 +715,7 @@ classdef UiControlTable < handle & matlab.mixin.Heterogeneous
             uialert(hFigure, msg, title, 'Icon', 'info')
         end
 
-        function onParentResized(obj, src, evt)
+        function onParentResized(obj, ~, ~)
             % Todo: Recall how to do this with uifigures...
             obj.autoAssignPosition()
             obj.configureLayout()

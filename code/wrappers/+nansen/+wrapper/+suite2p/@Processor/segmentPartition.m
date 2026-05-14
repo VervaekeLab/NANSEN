@@ -113,7 +113,7 @@ function results = segmentPartition(obj, imArray)
     % reshape U to be (nMaps x Y x X)
     U =  reshape(U, [], size(U,ndims(U)))';
 
-    [nSVD, Npix] = size(U);
+    nSVD = size(U, 1);
     U = reshape(U, nSVD, Ly, Lx);
 
     % compute neuropil basis functions for cell detection

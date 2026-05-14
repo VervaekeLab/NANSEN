@@ -2786,7 +2786,7 @@ methods % Event/widget callbacks
         end
     end
 
-    function changeChannelColor(obj, src, evtData)
+    function changeChannelColor(obj, ~, evtData)
         rgbColor = evtData.RgbColor;
         channelNumber = evtData.ChannelNumber;
         if ~strcmp(obj.ImageStack.ColorModel, 'Custom')
@@ -3278,7 +3278,7 @@ methods % Misc, most can be outsourced
         end
     end
 
-    function onAutoAdjustLimitsPressed(obj, src, ~, chNum)
+    function onAutoAdjustLimitsPressed(obj, ~, ~, chNum)
 
         [~, iA, ~] = intersect(obj.currentChannel, chNum, 'stable');
         if isempty(iA);

@@ -1103,7 +1103,7 @@ classdef App < handle & applify.mixin.UserSettings
 
 % % % % Mouse and keyboard callbacks
 
-        function onDataCursorToggled(obj, src, evtData)
+        function onDataCursorToggled(obj, ~, evtData)
             if evtData.Value
                 obj.showGraphicalHandle(obj.hInfoBox)
                 %obj.showGraphicalHandle(obj.hCurrentPoint)
@@ -1115,7 +1115,7 @@ classdef App < handle & applify.mixin.UserSettings
             end
         end
 
-        function onMouseOver(obj, src, evt)
+        function onMouseOver(obj, ~, ~)
 
             % Todo: Debug, updating of textbox size might be a bit slow.
 
@@ -1191,7 +1191,7 @@ classdef App < handle & applify.mixin.UserSettings
             end
         end
 
-        function mousePressAxes(obj, src, event)
+        function mousePressAxes(obj, ~, ~)
 
             if ~isempty(obj.pointerManager.currentPointerTool)
                 return
@@ -1205,7 +1205,7 @@ classdef App < handle & applify.mixin.UserSettings
             end
         end
 
-        function keyPress(obj, src, event)
+        function keyPress(obj, ~, event)
 
             wasCaptured = obj.pointerManager.onKeyPress([], event);
 
@@ -1247,7 +1247,7 @@ classdef App < handle & applify.mixin.UserSettings
             end
         end
 
-        function keyPressObject(obj, src, event)
+        function keyPressObject(obj, ~, event)
 
             wasCaptured = obj.pointerManager.onKeyPress([], event);
 
@@ -2460,7 +2460,7 @@ classdef App < handle & applify.mixin.UserSettings
             end
         end
 
-        function showInfoCursor(obj, src, ~)
+        function showInfoCursor(obj, ~, ~)
 
             if isempty(obj.hFigure.WindowButtonMotionFcn)
                 obj.showGraphicalHandle(obj.hInfoBox)

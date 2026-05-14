@@ -196,7 +196,7 @@ classdef uicontrolSchemer < handle
             obj.highlightColor = cmap(randi([128,255], 1), :);
         end
 
-        function onPanelSizeChanged(obj, src, evt)
+        function onPanelSizeChanged(obj, ~, ~)
 
             numUIControls = numel( obj.hUicontrol );
 
@@ -243,7 +243,7 @@ classdef uicontrolSchemer < handle
             drawnow
         end
 
-        function onButtonResized(obj, src, evt)
+        function onButtonResized(obj, src, ~)
             obj.removeJButtonStyle(src)
         end
 

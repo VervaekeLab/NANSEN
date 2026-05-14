@@ -983,7 +983,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             end
         end
 
-        function tf = onSignalsToShowChanged(obj, src, evt)
+        function tf = onSignalsToShowChanged(obj, src, ~)
 
             signalName = src.Label;
 
@@ -1215,7 +1215,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             end
         end
 
-        function updateDownsampledData(obj, src, evt)
+        function updateDownsampledData(obj, ~, ~)
             % Todo: Update specific variables...
             newLim = obj.ax.XLim;
 
@@ -1877,7 +1877,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             start( obj.SynchTimer )
         end
 
-        function checkFrameUpdate(obj, src, evt)
+        function checkFrameUpdate(obj, ~, ~)
 
             if ~isvalid(obj); return; end
 
@@ -2135,7 +2135,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             end
         end
 
-        function onMouseMotion(obj, ~, event)
+        function onMouseMotion(obj, ~, ~)
 
             isOnAxis = obj.isPointOnAxis();
 
@@ -2168,7 +2168,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             end
         end
 
-        function onMouseReleased(obj, src, event)
+        function onMouseReleased(obj, ~, ~)
             obj.isMouseDown = false;
             obj.PreviousMouseClickPoint = [];
         end

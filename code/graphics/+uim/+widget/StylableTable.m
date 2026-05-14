@@ -455,7 +455,7 @@ classdef StylableTable < uiw.widget.Table
             jHeader.setPreferredSize(headerSize)
         end
 
-        function onMouseDraggedInHeader(obj, src, evt)
+        function onMouseDraggedInHeader(obj, ~, evt)
         %onMouseDraggedInHeader Used to test if column widths are changed
 
             persistent allowInterrupt

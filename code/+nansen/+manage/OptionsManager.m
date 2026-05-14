@@ -438,8 +438,8 @@ classdef OptionsManager < handle
                 if ~isempty(optsName)
                     optsStruct = obj.getOptions(optsName);
                 else
-                    optsName = obj.listPresetOptions();
-                    optsStruct = obj.getOptions(optsName);
+                    optsNames = obj.listPresetNames();
+                    optsStruct = obj.getOptions(optsNames{1});
                 end
             elseif nargin == 2
                 optsStruct = obj.getOptions(optsName);

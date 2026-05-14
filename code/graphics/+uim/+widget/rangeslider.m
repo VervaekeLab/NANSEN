@@ -472,7 +472,7 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
             end
         end
 
-        function onSliderKnobReleased(obj, src, event)
+        function onSliderKnobReleased(obj, src, ~)
 
             obj.IsKnobPressed = false;
 
@@ -557,7 +557,7 @@ classdef rangeslider < uim.abstract.virtualContainer & uim.mixin.assignPropertie
             end
         end
 
-        function onValueChanged(obj, src, event)
+        function onValueChanged(obj, ~, ~)
 
             persistent ticAtLastUpdate
             if isempty(ticAtLastUpdate); ticAtLastUpdate = tic; end

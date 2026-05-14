@@ -55,7 +55,7 @@ classdef TaskBatchViewer < nansen.pipeline.PipelineViewerApp
             end
         end
 
-        function onTableCellEdited(app, src, evt)
+        function onTableCellEdited(app, ~, evt)
             % Todo?
             rowNumber = evt.Indices(1);
             colNumber = evt.Indices(2);
@@ -95,14 +95,14 @@ classdef TaskBatchViewer < nansen.pipeline.PipelineViewerApp
             app.h.RemoveFromListButton = hButton;
         end
 
-        function onRemoveFromListButtonPushed(app, src, evt)
+        function onRemoveFromListButtonPushed(app, ~, ~)
 
             selectedRowIdx = app.UITable.SelectedRows;
             app.PipelineStruct.TaskList(selectedRowIdx) = [];
             app.onPipelineSet()
         end
 
-        function onAddToBatchButtonPushed(app, src, evt)
+        function onAddToBatchButtonPushed(app, ~, ~)
 
             selectedRowIdx = app.UITable.SelectedRows;
 

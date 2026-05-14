@@ -205,7 +205,7 @@ classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
 
     methods (Access = private) % Internal component callbacks
 
-        function onMousePressedInFigure(obj, src, evt)
+        function onMousePressedInFigure(obj, src, ~)
 
             % The purpose of this callback is to hide the control if the
             % mouse is pressed outside of it. not perfect, since the
@@ -233,7 +233,7 @@ classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
             end
         end
 
-        function onSliderValueChanging(obj, src, evt)
+        function onSliderValueChanging(obj, src, ~)
             obj.updateLowValueField(src.Low)
             obj.updateHighValueField(src.High)
 
@@ -271,7 +271,7 @@ classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
             end
         end
 
-        function onHighValueInputChanged(obj, src, evt)
+        function onHighValueInputChanged(obj, src, ~)
 
             val = str2double( src.String );
 
@@ -288,7 +288,7 @@ classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
             end
         end
 
-        function onLowValueInputChanged(obj, src, evt)
+        function onLowValueInputChanged(obj, src, ~)
 
             val = str2double( src.String );
 

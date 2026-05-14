@@ -65,14 +65,16 @@ function roiArray = finalizeRoiSegmentation(imArray, avgIm, roiArrayT, varargin)
     fprintf('Improving estimates for temporally active cells...\n')
     roiImageArray = roimanager.autosegment.extractRoiImages(imArray, roiArrayT, dffT', 'ImageType', 'correlation');
     roiArrayT = roiArrayT.addImage(roiImageArray);
-    [roiArrayT1, ~] = roimanager.binarize.improveMaskEstimate2(roiArrayT);
+
+    % Todo: Check if including this improves results
+    % [roiArrayT, ~] = roimanager.binarize.improveMaskEstimate2(roiArrayT);
 
     % Merge overlapping rois in the activity based roi Array.
     roiArrayT = roimanager.utilities.mergeOverlappingRois(roiArrayT);
 
     % Do a final check for overlapping rois...
     if opt.RingConvolutionSearch && ~isempty(roiArrayS)
-        [iA, iB] = roimanager.utilities.findOverlappingRois(roiArrayS, roiArrayT, 0.75);
+        [~, iB] = roimanager.utilities.findOverlappingRois(roiArrayS, roiArrayT, 0.75);
         roiArrayT(iB) = [];
     end
 

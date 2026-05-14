@@ -199,8 +199,6 @@ classdef CranialWindow < fovmanager.mapobject.BaseObject
                     [xBorder, yBorder] = pol2cart(theta', rho');
                     winCoordsPx = [xBorder, yBorder] + radius;
 
-                    [height, width] = deal(radius*2);
-
                 case {'Trapezoidal 3x5mm'}
 
                     rcc = [min(coords), nansen.util.range(coords)];

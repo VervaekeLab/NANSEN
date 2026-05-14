@@ -31,7 +31,7 @@ function helpDialog(functionName, options)
 
     [idx, functions] = regexp(functionContentStr, 'classdef.*?end', 'start', 'match');
     if isempty(idx)
-        [idx, functions] = regexp(functionContentStr, 'function.*?end', 'start', 'match');
+        [~, functions] = regexp(functionContentStr, 'function.*?end', 'start', 'match');
     end
 
     function_def = functions{1};

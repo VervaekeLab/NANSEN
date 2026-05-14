@@ -180,7 +180,7 @@ classdef PlaneSwitcher < uim.mixin.assignProperties
 
     methods (Access = private) % User interaction callbacks
 
-        function onPlaneSliderValueChanged(obj, src, evt)
+        function onPlaneSliderValueChanged(obj, src, ~)
 
             newPlaneIdx = src.Value;
             obj.Callback(newPlaneIdx)

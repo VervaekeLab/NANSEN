@@ -304,7 +304,7 @@ classdef AddonManagerUI < applify.apptable
             quest = {'Locate the folder where this addon is saved'};
             pbtns = {'Ok', 'Cancel'};
 
-            [pval, tf] = uigetpref(group,pref,title,quest,pbtns);
+            [pval, ~] = uigetpref(group,pref,title,quest,pbtns);
 
             switch pval
                 case 'ok'
@@ -355,7 +355,7 @@ classdef AddonManagerUI < applify.apptable
             obj.openAddonWebsite(S)
         end
 
-        function onToolbarButtonPushed(obj, src, evt)
+        function onToolbarButtonPushed(obj, src, ~)
 
             switch src.Text
 

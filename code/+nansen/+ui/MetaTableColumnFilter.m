@@ -248,7 +248,7 @@ classdef MetaTableColumnFilter < handle
             end
         end
 
-        function onColumnFilterValueChanged(obj, src, evt, columnIdx, skipNotify)
+        function onColumnFilterValueChanged(obj, ~, ~, columnIdx, skipNotify)
         %onColumnFilterValueChanged Update table data when column filter changes
 
         % Todo: make widgets specifications (which widget to use) part of

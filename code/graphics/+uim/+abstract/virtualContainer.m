@@ -450,7 +450,7 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
             end
 
             % Centered along horizontal dimension
-            if strcmp(obj.Location, 'south') || strcmp(obj.Location, 'south')
+            if strcmp(obj.Location, 'south') || strcmp(obj.Location, 'north')
                 newLocation(1) = (parentSize(1)-obj.Size(1)) / 2;
             end
 
@@ -538,7 +538,7 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
 
     methods % Callbacks for listeners on parent container
 
-        function onParentContainerSizeChanged(obj, src, evt)
+        function onParentContainerSizeChanged(obj, ~, ~)
             persistent i
             if isempty(i); i = 0; end
             obj.updateSize()
@@ -551,7 +551,7 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
             end
         end
 
-        function onParentContainerLocationChanged(obj, src, evt)
+        function onParentContainerLocationChanged(obj, ~, evt)
             shift = evt.NewLocation - evt.oldLocation;
             obj.Position_(1:2) = obj.Position_(1:2) + shift;
         end

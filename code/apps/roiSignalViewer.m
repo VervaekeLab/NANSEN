@@ -258,7 +258,7 @@ classdef roiSignalViewer < signalviewer.App
 
         function editDeconvolutionParameters(obj, s, e)
 
-            [P, V] = nansen.twophoton.roisignals.getDeconvolutionParameters();
+            [P, ~] = nansen.twophoton.roisignals.getDeconvolutionParameters();
             P = rmfield(P, 'modelParams');
 
             P = obj.DeconvolutionOptions;
@@ -420,7 +420,7 @@ classdef roiSignalViewer < signalviewer.App
             %updateSignalPlot(obj, obj.selectedRois, 'append');
         end
 
-        function onRoiSelectionChanged(obj, src, evtData)
+        function onRoiSelectionChanged(obj, ~, evtData)
 
             switch evtData.eventType
                 case 'unselect'
@@ -437,7 +437,7 @@ classdef roiSignalViewer < signalviewer.App
             end
         end
 
-        function onRoiSignalsChanged(obj, src, evtData)
+        function onRoiSignalsChanged(obj, ~, evtData)
 
             if obj.HistoryOn && any( strcmp(evtData.action, {'reset', 'updated'}) )
                 obj.addLineToHistory(evtData.roiIndices)
@@ -920,7 +920,7 @@ classdef roiSignalViewer < signalviewer.App
             %l2 = legend(obj.hlineTsArray, {obj.tsArray.Name}, 'AutoUpdate', 'off');
         end
 
-        function onLegendItemPressed(obj, src, evt)
+        function onLegendItemPressed(obj, ~, evt)
 
             signalName = evt.Peer.DisplayName;
             obj.onSignalVisibilityChanged(signalName)
@@ -974,7 +974,7 @@ classdef roiSignalViewer < signalviewer.App
             obj.updateSignalPlot(obj.DisplayedRoiIndices, 'replace');
         end
 
-        function toggleSignalSelectionDropdown(obj, src, evt)
+        function toggleSignalSelectionDropdown(obj, src, ~)
 
             if src.Value
 

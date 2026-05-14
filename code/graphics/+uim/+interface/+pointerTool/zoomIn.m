@@ -57,7 +57,7 @@ classdef zoomIn < uim.interface.abstractPointer & uim.interface.zoom & ...
             end
         end
 
-        function onButtonUp(obj, src, evt)
+        function onButtonUp(obj, ~, ~)
             if ~obj.isButtonDown; return; end % MouseDown happened before tool was activated
 
             obj.isButtonDown = false;

@@ -166,7 +166,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & applify.mixin.UserSettings & roi
 
     methods (Access = {?applify.mixin.AppPlugin, ?applify.AppWithPlugin} ) % Callbacks
 
-        function wasCaptured = keyPressHandler(obj, src, event)
+        function wasCaptured = keyPressHandler(obj, ~, event)
             wasCaptured = true; %Guilty until proven innocent c-^_^-?
 
             switch event.Key
@@ -640,8 +640,6 @@ classdef RoiManager < imviewer.ImviewerPlugin & applify.mixin.UserSettings & roi
 
             Y = cast(mask, 'like', Y) .* Y; % Adapt this to virtual stack
 
-            [im, stat] = deal([]);
-
             % NB: Function is missing.
             [foundRois, im, stat] = roimanager.autosegment.autosegmentSoma(Y, mean(Y, 3));
 
@@ -761,7 +759,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & applify.mixin.UserSettings & roi
                 end
                 obj.ImviewerObj.displayMessage('Deconvolving DFF...')
 
-                [deconvolved, denoised, opts] = deconvolveDff(dff, 'deconvolutionMethod', 'caiman', obj.deconvolutionOptions);
+                [deconvolved, denoised, ~] = deconvolveDff(dff, 'deconvolutionMethod', 'caiman', obj.deconvolutionOptions);
                 save(savePath, 'deconvolved', '-append')
                 save(savePath, 'denoised', '-append')
                 % Todo: save options
@@ -852,7 +850,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & applify.mixin.UserSettings & roi
             end
         end
 
-        function onImageStackChanged(obj, src, evt)
+        function onImageStackChanged(obj, ~, evt)
 
             imageStack = evt.AffectedObject.ImageStack;
 
@@ -888,7 +886,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & applify.mixin.UserSettings & roi
             obj.roiDisplay.resetStaticFovImage()
         end
 
-        function onImageDataChanged(obj, src, evt)
+        function onImageDataChanged(obj, ~, ~)
 
             imageStack = obj.ImviewerObj.ImageStack;
             imData = imageStack.Data.getStaticCache();
@@ -1071,7 +1069,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & applify.mixin.UserSettings & roi
 
 % % % % Imviewer callback methods
 
-        function onCurrentChannelChanged(obj, src, evt)
+        function onCurrentChannelChanged(obj, ~, ~)
             obj.updateActiveRoiGroup()
 
             if ~isempty(obj.roiSignalArray)
@@ -1081,7 +1079,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & applify.mixin.UserSettings & roi
             end
         end
 
-        function onCurrentPlaneChanged(obj, src, evt)
+        function onCurrentPlaneChanged(obj, ~, ~)
             obj.updateActiveRoiGroup()
 
             if ~isempty(obj.roiSignalArray)

@@ -1023,7 +1023,7 @@ classdef LegacyJavaMetaTableViewer < handle & uiw.mixin.AssignPVPairs
                 'FilterUpdated', @obj.onFilterUpdated);
         end
 
-        function onFilterUpdated(obj, src, evt)
+        function onFilterUpdated(obj, ~, ~)
         %onFilterUpdated Callback for table filter update events
 
             obj.updateTableView([], false)
@@ -1112,7 +1112,7 @@ classdef LegacyJavaMetaTableViewer < handle & uiw.mixin.AssignPVPairs
 
     methods (Access = private) % Mouse / user event callbacks
 
-        function onHeaderPressTimerRunOut(obj, src, evt)
+        function onHeaderPressTimerRunOut(obj, ~, evt)
 
             if isempty(obj.ColumnPressedTimer)
                 return
@@ -1127,7 +1127,7 @@ classdef LegacyJavaMetaTableViewer < handle & uiw.mixin.AssignPVPairs
             obj.openColumnFilter(clickPosX, clickPosY)
         end
 
-        function onMousePressedInHeader(obj, src, evt)
+        function onMousePressedInHeader(obj, ~, evt)
         %onMousePressedInHeader Handles mouse press in the table header.
 
             buttonNum = get(evt, 'Button');
@@ -1174,7 +1174,7 @@ classdef LegacyJavaMetaTableViewer < handle & uiw.mixin.AssignPVPairs
             end
         end
 
-        function onMouseDraggedInTableHeader(obj, src, evt)
+        function onMouseDraggedInTableHeader(obj, ~, evt)
 
             if ~isempty( obj.ColumnPressedTimer )
                 % Simulate mouse release to cancel the timer
@@ -1191,7 +1191,7 @@ classdef LegacyJavaMetaTableViewer < handle & uiw.mixin.AssignPVPairs
             end
         end
 
-        function onMouseReleasedFromHeader(obj, src, evt)
+        function onMouseReleasedFromHeader(obj, ~, ~)
 
             if ~isempty(obj.ColumnPressedTimer)
                 stop(obj.ColumnPressedTimer)
@@ -1309,7 +1309,7 @@ classdef LegacyJavaMetaTableViewer < handle & uiw.mixin.AssignPVPairs
             end
         end
 
-        function onMouseDoubleClickedInTable(obj, src, evt)
+        function onMouseDoubleClickedInTable(obj, ~, evt)
         % onMouseDoubleClickedInTable - Callback for double clicks
         %
         %   Check if the currently selected column has an associated table
@@ -1354,7 +1354,7 @@ classdef LegacyJavaMetaTableViewer < handle & uiw.mixin.AssignPVPairs
             end
         end
 
-        function onMouseMotionInTable(obj, src, evt)
+        function onMouseMotionInTable(obj, ~, ~)
             % This functionality is put in the nansen app for now.
         end
 
@@ -1397,19 +1397,19 @@ classdef LegacyJavaMetaTableViewer < handle & uiw.mixin.AssignPVPairs
             end
         end
 
-        function onCellSelectionChanged(obj, src, evt)
+        function onCellSelectionChanged(obj, ~, evt)
             %evtData = event.EventData;
             evtData = uiw.event.EventData('SelectedRows', evt.SelectedRows);
             obj.notify('SelectionChanged', evtData)
         end
 
-        function onColumnWidthChanged(obj, src, event)
+        function onColumnWidthChanged(obj, ~, ~)
         %onColumnWidthChanged Callback for events where column widths are
         %changed by resizing column widths in from gui.
             obj.ColumnModel.setColumnWidths(obj.HTable.ColumnWidth)
         end
 
-        function onColumnsRearranged(obj, src, evt)
+        function onColumnsRearranged(obj, ~, ~)
         %onColumnsRearranged Callback for event when columns are rearranged
         %
         % This event is triggered when user drags columns to rearrange

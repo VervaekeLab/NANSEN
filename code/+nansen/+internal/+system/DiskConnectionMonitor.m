@@ -99,14 +99,14 @@ classdef DiskConnectionMonitor < handle
             % Update volumelist
             obj.VolumeList = updatedVolumeList;
 
-            [addedNames, idx] = setdiff(newNames, oldNames);
+            addedNames = setdiff(newNames, oldNames);
             if ~isempty(addedNames)
                 fprintf('Added drives %s\n', addedNames{1});
                 obj.notify('DiskAdded', event.EventData)
             end
 
             % Check if any names were removed
-            [removedNames, idx] = setdiff(oldNames, newNames);
+            removedNames = setdiff(oldNames, newNames);
             if ~isempty(removedNames)
                 fprintf('Removed drives %s\n', removedNames{1});
                 obj.notify('DiskRemoved', event.EventData)

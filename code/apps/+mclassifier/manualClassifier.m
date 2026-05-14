@@ -498,7 +498,7 @@ methods (Access = private, Hidden) % Gui Creation/construction
         obj.hScrollbar.showTrack()
     end
 
-    function stopScrollbarMove(obj, src, deltaY)
+    function stopScrollbarMove(obj, ~, deltaY)
     %stopScrollbarMove Update the view when scroller stops moving
         obj.updateView(struct('deltaY', deltaY), [], 'scrollbar');
     end
@@ -653,7 +653,7 @@ methods (Access = private, Hidden) % Gui Creation/construction
         obj.updateView(src, event, 'scroll')
     end
 
-    function onMouseMotion(obj, src, event)
+    function onMouseMotion(obj, ~, ~)
 
         newMousePointAx = obj.hTiledImageAxes.Axes.CurrentPoint(1, 1:2);
         obj.cursorPosition = newMousePointAx;
@@ -662,7 +662,7 @@ methods (Access = private, Hidden) % Gui Creation/construction
        %obj.hScrollbar.hittest(hTmp)
     end
 
-    function mousePressed(obj, src, event, tileNum)
+    function mousePressed(obj, ~, ~, tileNum)
 
         % Assign nan to variable if it is not given in function call
         if nargin < 4; tileNum = nan; end
@@ -1557,7 +1557,7 @@ methods (Access = protected)
         delete(obj)
     end
 
-    function onFigureSizeChanged(obj, src, evt)
+    function onFigureSizeChanged(obj, ~, ~)
         obj.updatePanelLayout()
     end
 end

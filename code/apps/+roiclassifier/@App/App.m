@@ -215,7 +215,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
 
     methods % Touch callback handling
 
-        function onKeyPressed(obj, src, event)
+        function onKeyPressed(obj, ~, event)
 
             wasCaptured = obj.pointerManager.onKeyPress([], event);
 
@@ -240,7 +240,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             end
         end
 
-        function mousePressed(obj, src, event, tileNum)
+        function mousePressed(obj, ~, ~, tileNum)
         end
 
         function mouseClickInTile(obj, src, event, tileNum)
@@ -422,7 +422,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
             tf = ~isnan(tileNum);
         end
 
-        function roiInd = hittest(obj, src, event)
+        function roiInd = hittest(obj, ~, event)
 
             roiInd = [];
 

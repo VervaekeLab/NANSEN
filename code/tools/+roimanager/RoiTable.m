@@ -300,14 +300,14 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             end
         end
 
-        function onMousePressedInFigure(obj, src, evt)
+        function onMousePressedInFigure(obj, ~, ~)
             % Hide filter if mouse is pressed anywhere in figure.
             if ~isempty(obj.UITable.ColumnFilter)
                 obj.UITable.ColumnFilter.hideFilters();
             end
         end
 
-        function onTableSelectionChanged(obj, src, evt)
+        function onTableSelectionChanged(obj, ~, ~)
         %onTableSelectionChanged Callback for if table selection changed
         %
         %   Get selected table rows and call the changeRoiSelection of
@@ -326,14 +326,14 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             obj.RoiGroup.changeRoiSelection(oldSelection, newSelection);
         end
 
-        function onTableCellEdited(obj, src, evt)
+        function onTableCellEdited(obj, ~, ~)
             %obj.roiTable.Properties.VariableNames( evt.Indices(2) )
             % Todo: find right column name.
             % Todo, trigger roi update...
             %obj.RoiGroup.roiArray(evt.Indices(1)) = evt.NewValue;
         end
 
-        function onTableUpdated(obj, src, evt)
+        function onTableUpdated(obj, ~, evt)
             obj.RoiGroup.changeVisibleRois(evt.RowIndices, evt.Type);
         end
 
@@ -444,7 +444,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             if size(obj.roiTable, 2) == size(tableRowData, 2)
                 obj.roiTable(rowIdx, :) = tableRowData;
             else
-                [~, iA, iC] = intersect(obj.roiTable.Properties.VariableNames, ...
+                [~, iA] = intersect(obj.roiTable.Properties.VariableNames, ...
                     tableRowData.Properties.VariableNames, 'stable');
                 obj.roiTable(rowIdx, iA) = tableRowData;
             end
@@ -477,7 +477,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             pos = obj.getPreference('Position', initPos);
         end
 
-        function resizePanel(obj, src, evt)
+        function resizePanel(obj, ~, ~)
 
             parentPosition = getpixelposition(obj.Panel);
             if isempty(obj.UITable) || isempty(obj.UITable.HTable) || ...

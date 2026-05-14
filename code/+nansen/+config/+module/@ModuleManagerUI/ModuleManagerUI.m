@@ -286,7 +286,7 @@ classdef ModuleManagerUI < handle
 
     methods (Access = private) % Uicontrol callbacks
 
-        function onTableCellEdited(obj, src, evt)
+        function onTableCellEdited(obj, ~, evt)
 
             rowIdx = evt.Indices(1); colIdx = evt.Indices(2);
 

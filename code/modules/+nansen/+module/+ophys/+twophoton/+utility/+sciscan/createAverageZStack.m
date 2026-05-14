@@ -145,7 +145,7 @@ function IM = normalizeArray(IM)
         [h, w, numPlanes] = size(IM);
         IM = reshape(IM, h, w, 1, numPlanes);
     end
-    [h, w, numChannels, numPlanes] = size(IM);
+    [~, ~, numChannels, numPlanes] = size(IM);
 
     tmpPixelValues = reshape(IM, [], numChannels, numPlanes);
 

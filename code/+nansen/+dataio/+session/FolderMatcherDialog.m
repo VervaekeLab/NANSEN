@@ -348,7 +348,7 @@ classdef FolderMatcherDialog < uiw.abstract.AppWindow
             obj.updateListbox()
         end
 
-        function onUnmatchSessionMenuItemClicked(obj, src, evt)
+        function onUnmatchSessionMenuItemClicked(obj, ~, ~)
 
             % Get row number...
             rowIdx = obj.UITable.SelectedRows;
@@ -371,7 +371,7 @@ classdef FolderMatcherDialog < uiw.abstract.AppWindow
             obj.updateListbox()
         end
 
-        function onTableMousePress(obj, src, evt)
+        function onTableMousePress(obj, ~, evt)
 
             if evt.Button == 3 || strcmp(evt.SelectionType, 'alt')
 

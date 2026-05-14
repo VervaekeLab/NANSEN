@@ -37,7 +37,7 @@ classdef circleSelect < uim.interface.abstractPointer & ...
             obj.hFigure.Pointer = 'crosshair';
         end
 
-        function onButtonDown(obj, src, evt)
+        function onButtonDown(obj, ~, ~)
 
             if strcmp(obj.hFigure.SelectionType, 'alt')
                 return
@@ -53,7 +53,7 @@ classdef circleSelect < uim.interface.abstractPointer & ...
             obj.RoiDisplay.createCircularRoi(x, y, r);
         end
 
-        function onButtonMotion(obj, src, evt)
+        function onButtonMotion(obj, ~, ~)
 
             persistent prevValue
             if isempty(prevValue); prevValue = 0; end
@@ -75,7 +75,7 @@ classdef circleSelect < uim.interface.abstractPointer & ...
             obj.plotCircleTool(tmpCoords);
         end
 
-        function onButtonUp(obj, src, event)
+        function onButtonUp(obj, ~, ~)
             obj.isActive = false;
         end
 

@@ -14,5 +14,5 @@ function notifyUserAboutStrangeAltBehaviorOnWindows(mode)
         'time to unfreeze the pointer tool or to use the right ''alt'' button instead.'};
     pbtns = {'Ok'};
 
-    [pval, tf] = uigetpref(group, pref, title, msg, pbtns);
+    uigetpref(group, pref, title, msg, pbtns);
 end

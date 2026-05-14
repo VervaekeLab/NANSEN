@@ -37,7 +37,7 @@ classdef AxesDialogBox < applify.DialogBox
 
     methods (Access = private)
 
-        function onReferenceAxesSizeChanged(obj, src, evt)
+        function onReferenceAxesSizeChanged(obj, ~, ~)
 
             pos = obj.ReferenceAxes.Position;
             obj.MessageBox.centerInWindow(pos)

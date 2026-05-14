@@ -490,7 +490,7 @@ classdef BatchProcessorUI < handle
             end
         end
 
-        function onTableCellEdited(obj, src, evt)
+        function onTableCellEdited(obj, ~, evt)
 
             taskType = obj.TabGroup.SelectedTab.Title;
             taskIdx = evt.Indices(1);
@@ -642,7 +642,7 @@ classdef BatchProcessorUI < handle
                 @obj.onTableUpdated);
         end
 
-        function onMouseRightClickedInTable(obj, src, evt)
+        function onMouseRightClickedInTable(obj, ~, evt)
         %onMouseRightClickedInTable Method to run when right click happens in table
 
             tableType = obj.TabGroup.SelectedTab.Title;
@@ -676,7 +676,7 @@ classdef BatchProcessorUI < handle
             hTable.showContextMenu(evt)
         end
 
-        function onKeyPressedInTable(obj, src, evt)
+        function onKeyPressedInTable(obj, ~, evt)
 
             isControl = @(m) all(strcmp(m, 'command')) || all(strcmp(m, 'control'));
 

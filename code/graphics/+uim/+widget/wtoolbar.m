@@ -155,7 +155,7 @@ classdef wtoolbar < uim.abstract.WidgetContainer & uim.mixin.assignProperties
             obj.shiftChildren(shift)
         end
 
-        function onButtonSizeChanged(obj, src, evt)
+        function onButtonSizeChanged(obj, src, ~)
 
             isButton = ismember(obj.hButtons, src);
             obj.AllButtonPosition(isButton, :) = src.Position;

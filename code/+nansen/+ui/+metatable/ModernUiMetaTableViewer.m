@@ -133,7 +133,7 @@ classdef ModernUiMetaTableViewer < handle
         function set.MetaTableType(obj, newValue)
             oldType = obj.MetaTableType;
             obj.MetaTableType = lower(newValue);
-            obj.RequireReset = ~strcmp(oldType, lower(newValue));
+            obj.RequireReset = ~strcmpi(oldType, newValue);
         end
 
         function set.ColumnSettings(obj, newSettings)

@@ -97,7 +97,7 @@ elseif nDim == 4 || createRgb
     end
 
 else
-    [height, width, nFrames] = size(mat);
+    [height, width, ~] = size(mat);
 
     mat = reshape(mat, height, width, []);
     nansen.stack.utility.mat2tiffstack(mat, stackPath, false, tiffMode)

@@ -90,7 +90,7 @@ classdef axisZoom < uim.interface.abstractPointer
             end
         end
 
-        function onButtonUp(obj, src, evt)
+        function onButtonUp(obj, ~, ~)
             obj.isMouseDown = false;
             obj.PreviousMouseClickPoint = [];
             obj.isActive = false;

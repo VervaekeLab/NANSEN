@@ -1144,7 +1144,7 @@ classdef roiMap < roimanager.roiDisplay
 
                     IM = mean(imChunk(:, :, IND), 3);
 
-                    [roiMaskSmall, s] = flufinder.binarize.findSomaMaskByEdgeDetection(IM);
+                    [roiMaskSmall, ~] = flufinder.binarize.findSomaMaskByEdgeDetection(IM);
                     roiMask = false(imSize);
                     roiMask(S(2):L(2), S(1):L(1)) = roiMaskSmall;
 
@@ -1384,20 +1384,19 @@ classdef roiMap < roimanager.roiDisplay
             obj.roiMaskAll = {};
 
             roiInd = sort(roiInd, 'descend');
+            roiInd = reshape(roiInd, 1, []);
 
             switch lower(action)
-
                 case 'add'
                     for i = roiInd
                         thisRoi = obj.roiArray(i);
                         obj.roiIndexMap{i} = thisRoi.getPixelIdxList();
-
-%                         mask = obj.roiArray(roiInd(i)).mask;
-%                         obj.roiIndMap(mask) = roiInd(i);
                     end
 
                 case 'remove'
-                    obj.roiIndexMap{i} = [];
+                    for i = roiInd
+                        obj.roiIndexMap{i} = [];
+                    end
             end
 
             % Todo: How does this work for inserts?
@@ -1605,7 +1604,7 @@ classdef roiMap < roimanager.roiDisplay
             end
         end
 
-        function [wasInRoi, roiInd] = hittest(obj, src, event)
+        function [wasInRoi, roiInd] = hittest(obj, ~, event)
         %hittest Check if a mouseclick happened on a roi.
 
             %currentPoint = round( obj.hAxes.CurrentPoint(1, 1:2) );

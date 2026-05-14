@@ -88,7 +88,7 @@ classdef MultiPageApp < uiw.abstract.AppWindow
             drawnow
         end
 
-        function onTabChanged(app, src, evt)
+        function onTabChanged(app, ~, evt)
 
             pageTitle = evt.NewValue.Title;
 

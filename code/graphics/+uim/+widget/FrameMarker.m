@@ -166,7 +166,7 @@ classdef FrameMarker < uim.mixin.assignProperties
 
         % % % Callbacks for the scroller knob
 
-        function knobPressed(obj, src, event)
+        function knobPressed(obj, ~, ~)
 
             el = listener(obj.ParentFigure, 'WindowMouseMotion', @obj.knobMoving);
             obj.WindowMouseMotionListener = el;
@@ -177,7 +177,7 @@ classdef FrameMarker < uim.mixin.assignProperties
             obj.IsButtonDown = true;
         end
 
-        function knobMoving(obj, src, event)
+        function knobMoving(obj, ~, ~)
 
             if obj.IsButtonDown % Just in case???
                 mousePoint = obj.Axes.CurrentPoint(1);
@@ -203,7 +203,7 @@ classdef FrameMarker < uim.mixin.assignProperties
             end
         end
 
-        function knobReleased(obj, src, event)
+        function knobReleased(obj, ~, ~)
 
             obj.IsButtonDown = false;
 

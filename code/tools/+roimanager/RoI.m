@@ -365,7 +365,9 @@ methods
             boxSize = size(obj.enhancedImage);
         end
 
-        assert(all(mod(boxSize,2))~=0)
+        isOddBoxSize = mod(boxSize, 2) ~= 0;
+        assert(all(isOddBoxSize), 'NANSEN:RoI:GetThumbnailCoords:SizeMustBeOdd', ...
+            'BoxSize must be odd in all dimensions. Instead it is %s.', strjoin(string(boxSize), 'x'))
 
         indX = (1:boxSize(2)) - ceil(boxSize(2)/2);
         indY = (1:boxSize(1)) - ceil(boxSize(1)/2);

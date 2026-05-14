@@ -12,7 +12,6 @@ function [regionInd, regionName] = getRegionAtPoint(pointCoords)
     % Get some values from S
     m = S.magnificationFactor;
     regionLabels = S.regionLabels;
-    [mapHeight, mapWidth] = size(S.indexMap);
 
     x = round( (pointCoords(1) - S.referencePoint(1)) .* m );
     y = round( (pointCoords(2) - S.referencePoint(2)) .* m );

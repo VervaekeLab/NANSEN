@@ -116,7 +116,7 @@ if isvalid(f)
 end
 end
 
-function closeStringSelectorDialog(src, event)
+function closeStringSelectorDialog(src, ~)
 
     hFig = ancestor(src, 'figure');
 

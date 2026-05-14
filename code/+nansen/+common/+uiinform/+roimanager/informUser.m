@@ -29,7 +29,7 @@ function informUser(infoID, mode)
             preferenceName = 'HowToAdjustAutodetectionArea';
             dialogMessage = {...
                 'To adjust the active area used for autodetection of rois, use ''alt'' + mousescroll.', ...
-                'The Crosshairs should resize to indicate the size of the active area' };
+                'The Crosshairs should resize to indicate the size of the active area.' };
     end
 
     dialogTitle = 'Info';
@@ -39,7 +39,10 @@ function informUser(infoID, mode)
             setpref(preferenceGroup, preferenceName, 'ask');
 
         case "default"
-            [pval, tf] = uigetpref(preferenceGroup, preferenceName, ...
+            if nansen.util.useModernUiComponents()
+                dialogMessage = strjoin(dialogMessage);
+            end
+            uigetpref(preferenceGroup, preferenceName, ...
                 dialogTitle, dialogMessage, {'Ok'});
             shownThisUserSession(infoID) = true;
 

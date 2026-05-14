@@ -113,7 +113,7 @@ classdef MetaTableColumnLayout < nansen.mixin.UserSettings
             %obj.loadSettings()
 
             % Todo: This should be better integrated...
-            [nvPairs, varargin] = utility.getnvpairs(varargin{:});
+            [nvPairs, ~] = utility.getnvpairs(varargin{:});
             params = utility.nvpairs2struct(nvPairs);
             if isfield(params, 'ColumnSettings')
                 obj.settings_ = params.ColumnSettings;

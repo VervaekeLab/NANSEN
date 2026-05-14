@@ -475,7 +475,7 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
             pos = obj.getPreference('Position', initPos);
         end
 
-        function resizePanel(obj, src, evt)
+        function resizePanel(obj, ~, ~)
 
             posAxes = getpixelposition(obj.hAxes);
             posPanel = getpixelposition(obj.Panel);
@@ -588,7 +588,7 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
 
     methods (Access = private)
 
-        function onSetImageMenuItemClicked(obj, src, evt)
+        function onSetImageMenuItemClicked(obj, src, ~)
             obj.setCurrentImageToShow(src.Text);
         end
 
@@ -610,7 +610,7 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
 
     methods
 
-        function tf = hittest(obj, src, evt)
+        function tf = hittest(obj, ~, ~)
             tf = ~isempty(obj.VisibleRois);
         end
     end

@@ -37,7 +37,7 @@ classdef polyDraw < uim.interface.abstractPointer & ...
             obj.hFigure.Pointer = 'crosshair';
         end
 
-        function onButtonDown(obj, src, evt)
+        function onButtonDown(obj, ~, ~)
 
             obj.isActive = true;
 
@@ -52,7 +52,7 @@ classdef polyDraw < uim.interface.abstractPointer & ...
             end
         end
 
-        function onButtonMotion(obj, src, evt)
+        function onButtonMotion(obj, ~, ~)
 
             if obj.isActive; return; end
 
@@ -66,11 +66,11 @@ classdef polyDraw < uim.interface.abstractPointer & ...
             end
         end
 
-        function onButtonUp(obj, src, event)
+        function onButtonUp(obj, ~, ~)
             obj.isActive = false;
         end
 
-        function wasCaptured = onKeyPress(obj, src, event)
+        function wasCaptured = onKeyPress(obj, ~, event)
 
             wasCaptured = true;
 

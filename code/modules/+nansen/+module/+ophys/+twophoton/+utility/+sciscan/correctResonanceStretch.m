@@ -160,7 +160,6 @@ switch method
             end
 
             im = im(:, cropLeft+1:end-cropRight, :);
-            [height, width, nFrames] = size(im);
         end
 
         new_im = im;

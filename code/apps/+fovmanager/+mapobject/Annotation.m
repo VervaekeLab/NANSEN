@@ -137,7 +137,7 @@ classdef Annotation < fovmanager.mapobject.BaseObject
             obj.radius = [nansen.util.range(xCoords)/2, nansen.util.range(yCoords)/2] * 1000;
         end
 
-        function togglePersistentState(obj, src, event)
+        function togglePersistentState(obj, src, ~)
 
             switch src.Text
                 case 'Always Show'

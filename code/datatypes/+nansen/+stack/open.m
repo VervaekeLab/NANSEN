@@ -17,7 +17,7 @@ function virtualData = open(pathStr, varargin)
     if ~isa(pathStr, 'cell'); pathStr = {pathStr}; end
 
     numFiles = numel(pathStr);
-    [folder, filename, fileext] = fileparts(pathStr{1});
+    [folder, ~, fileext] = fileparts(pathStr{1});
 
     assert(all(contains(pathStr, fileext)), 'All files must be the same')
 
@@ -65,11 +65,12 @@ function virtualData = open(pathStr, varargin)
                 if numFiles > 1
                     virtualData = nansen.stack.virtual.TiffMultiPart(pathStr, varargin{:}, nvPairs{:});
                 else
-                    %try TODO
-                    %    virtualData = nansen.stack.virtual.Tiff(pathStr, varargin{:}, nvPairs{:});
-                    %catch
+                    try % TODO
+                        error('Not implemented yet')
+                        virtualData = nansen.stack.virtual.Tiff(pathStr, varargin{:}, nvPairs{:}); %#ok<UNRCH>
+                    catch
                         virtualData = nansen.stack.virtual.TiffMultiPart(pathStr, varargin{:}, nvPairs{:});
-                    %end
+                    end
                 end
             end
 

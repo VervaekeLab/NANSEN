@@ -612,7 +612,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             end
         end
 
-        function subFolderTypeChanged(obj, src, evt)
+        function subFolderTypeChanged(obj, src, ~)
             iRow = obj.getComponentRowNumber(src);
             obj.Data(iRow).Type = src.Value;
 
@@ -621,7 +621,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             obj.markDirty()
         end
 
-        function ignoreListChanged(obj, src, evt)
+        function ignoreListChanged(obj, src, ~)
             iRow = obj.getComponentRowNumber(src);
             if isempty(src.Value)
                 obj.Data(iRow).IgnoreList = {};
@@ -636,7 +636,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             obj.updateSubfolderItems(iRow)
         end
 
-        function expressionChanged(obj, src, evt)
+        function expressionChanged(obj, src, ~)
             iRow = obj.getComponentRowNumber(src);
             obj.Data(iRow).Expression = src.Value;
             obj.markDirty()
@@ -889,18 +889,18 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
         end
 
         % Image clicked function: InfoIcon_2
-        function onInfoButtonClicked(obj, event)
+        function onInfoButtonClicked(obj, ~)
             obj.FolderHierarchyExampleImage.Visible = 'on';
             obj.CloseDialogButton.Visible = 'on';
         end
 
         % Image clicked function: CloseDialogButton
-        function onCloseDialogButtonClicked(app, event)
+        function onCloseDialogButtonClicked(app, ~)
             app.FolderHierarchyExampleImage.Visible = 'off';
             app.CloseDialogButton.Visible = 'off';
         end
 
-        function onFolderPreviewButtonClicked(obj, src, evt)
+        function onFolderPreviewButtonClicked(obj, ~, ~)
         %onFolderPreviewButtonClicked Button callback
         %
         %   This callback toggles visibility a figure that displays all the
@@ -921,7 +921,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
         end
 
         % Value changed function: ShowFilterOptionsButton
-        function onShowFilterOptionsButtonPushed(obj, src, event)
+        function onShowFilterOptionsButtonPushed(obj, src, ~)
 
             switch src.Text
                 case 'Show Filter Options...'
@@ -1056,7 +1056,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             end
         end
 
-        function onDataLocationAdded(obj, ~, evt)
+        function onDataLocationAdded(obj, ~, ~)
         %onDataLocationAdded Callback for DataLocationModel event
         %
         %   This method is inherited from the HasDataLocationModel
@@ -1100,7 +1100,7 @@ classdef FolderOrganizationUI < applify.apptable & nansen.config.mixin.HasDataLo
             end
         end
 
-        function onDataLocationRemoved(obj, ~, evt)
+        function onDataLocationRemoved(obj, ~, ~)
         %onDataLocationRemoved Callback for DataLocationModel event
         %
         %   This method is inherited from the HasDataLocationModel

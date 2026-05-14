@@ -24,7 +24,7 @@ classdef zoomOut < uim.interface.abstractPointer & uim.interface.zoom
             setptr(obj.hFigure, 'glassminus');
         end
 
-        function onButtonDown(obj, src, event)
+        function onButtonDown(obj, ~, event)
 
             if event.Button==3; return; end
 

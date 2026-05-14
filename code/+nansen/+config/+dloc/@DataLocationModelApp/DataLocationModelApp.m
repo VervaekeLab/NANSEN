@@ -266,7 +266,7 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
 
     methods (Access = protected)
 
-        function onFigureClosed(obj, src, evt)
+        function onFigureClosed(obj, ~, ~)
         %onFigureClosed Callback for when figure is closed.
             wasCanceled = promptSaveChanges(obj);
 
@@ -398,7 +398,7 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
 
     methods (Access = private) % Callbacks
 
-        function onTabSelectionChanged(obj, src, evt)
+        function onTabSelectionChanged(obj, ~, evt)
         %onTabSelectionChanged Take care of tab change
 
             currentTitle = obj.TabGroup.SelectedTab.Title;

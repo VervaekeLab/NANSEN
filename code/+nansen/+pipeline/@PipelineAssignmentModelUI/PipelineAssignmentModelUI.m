@@ -296,7 +296,7 @@ classdef PipelineAssignmentModelUI < applify.apptable
 
     methods (Access = private) %Callbacks for userinteraction with components
 
-        function onPipelineSelectionChanged(obj,src, evt)
+        function onPipelineSelectionChanged(obj,~, evt)
 
             % Update model data for current pipeline.
             pipelineName = evt.PreviousValue;
@@ -313,7 +313,7 @@ classdef PipelineAssignmentModelUI < applify.apptable
             obj.createTable()
         end
 
-        function onAddNewSessionVariableButtonPushed(obj, src, evt)
+        function onAddNewSessionVariableButtonPushed(obj, ~, ~)
 
             rowData = nansen.pipeline.PipelineCatalog.getSessionMetaVariables();
 
@@ -326,7 +326,7 @@ classdef PipelineAssignmentModelUI < applify.apptable
             % If
         end
 
-        function onRemoveSessionVariableButtonPushed(obj, src, evt)
+        function onRemoveSessionVariableButtonPushed(obj, src, ~)
 
             i = obj.getComponentRowNumber(src);
             obj.removeRow(i)
@@ -350,7 +350,7 @@ classdef PipelineAssignmentModelUI < applify.apptable
             obj.updateVariableNameDropdownItems(1:obj.NumRows)
         end
 
-        function onSelectionModeButtonGroupValueChanged(obj, src, evt)
+        function onSelectionModeButtonGroupValueChanged(obj, src, ~)
 
             % Get row which user pushed button from
             rowNumber = obj.getComponentRowNumber(src);

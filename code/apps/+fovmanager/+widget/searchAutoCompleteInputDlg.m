@@ -63,7 +63,7 @@ classdef searchAutoCompleteInputDlg < handle
             % Set color (unfortunately, this only affects editable combos)
             obj.jComboBox.setBackground(java.awt.Color.white);
 
-            [jhComboBox, hContainer1] = javacomponent(obj.jComboBox, [], obj.uiPanel);
+            [~, hContainer1] = javacomponent(obj.jComboBox, [], obj.uiPanel);
 %             set(jhComboBox, 'ActionPerformedCallback', []);
 
             set(hContainer1, 'Units', 'normalized', 'Position',[0,0,1,1]);

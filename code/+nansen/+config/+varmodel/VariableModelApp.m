@@ -99,7 +99,7 @@ classdef VariableModelApp < nansen.config.abstract.ConfigurationApp
 
     methods (Access = protected)
 
-        function onFigureClosed(obj, src, evt)
+        function onFigureClosed(obj, ~, ~)
 
             if isempty(obj.UIModule)
                 delete(obj.Figure); return

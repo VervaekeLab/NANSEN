@@ -222,7 +222,7 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
             % Set color (unfortunately, this only affects editable combos)
             obj.jComboBox.setBackground(java.awt.Color.white);
 
-            [jhComboBox, hContainer1] = javacomponent(obj.jComboBox, [], obj.Parent);
+            [~, hContainer1] = javacomponent(obj.jComboBox, [], obj.Parent);
 
             set(hContainer1, 'Units', obj.Units_, 'Position', obj.Position_);
             obj.hContainerComboBox = hContainer1;

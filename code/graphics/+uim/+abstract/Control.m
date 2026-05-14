@@ -153,7 +153,7 @@ classdef Control < uim.abstract.Component
             end
         end
 
-        function onMousePressed(obj, ~, event)
+        function onMousePressed(obj, ~, ~)
         %onButtonPressed Event handler for mouse press on button
 
             obj.IsMousePressed = true;
@@ -167,7 +167,7 @@ classdef Control < uim.abstract.Component
             obj.changeAppearance()
         end
 
-        function onMouseReleased(obj, src, event)
+        function onMouseReleased(obj, ~, ~)
         % Event handler for mouse release from button
 
             obj.IsMousePressed = false;
