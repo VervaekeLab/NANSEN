@@ -1490,7 +1490,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                         y = y + obj.RowHeight;
 
                     otherwise
-                        val = eval(strcat('S', '.', currentProperty));
+                        val = S.(currentProperty);
                         [yCorrTmp, wasAborted] = obj.newInputField(contentPanel, y, currentProperty, val, config, tip);
                         if wasAborted; continue; end
 
