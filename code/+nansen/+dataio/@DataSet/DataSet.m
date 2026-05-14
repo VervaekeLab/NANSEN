@@ -117,7 +117,7 @@ classdef DataSet < uiw.mixin.AssignPVPairs
         function str = getDatePrefix(obj)
 
             if isempty(obj.DatePrefixStr_)
-                obj.DatePrefixStr_ = datestr(now, 'yyyymmdd_HH_MM_SS');
+                obj.DatePrefixStr_ = char(datetime('now'), 'yyyyMMdd_HH_mm_ss');
             end
 
             if obj.IsArchive

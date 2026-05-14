@@ -375,7 +375,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
                     obj.TaskHistory = S.taskListHistory;
                 catch ME
                     % Back up file
-                    dateStr = datestr(now, 'yyyymmdd_HH_MM_SS');
+                    dateStr = char(datetime('now'), 'yyyyMMdd_HH_mm_ss');
                     filePathBackup = strrep(filePath, '.mat', sprintf('corrupted_%s.mat', dateStr));
                     movefile(filePath, filePathBackup);
 
@@ -452,7 +452,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
         function taskItem = updateTaskWhenFinished(obj, taskItem)
         %updateTaskWhenFinished Update task item from the running task obj
 
-            date2str = @(dt) datestr(dt, 'yyyy.mm.dd HH:MM:SS');
+            date2str = @(dt) char(dt, 'yyyy.MM.dd HH:mm:ss');
             finishDateStr = date2str(obj.runningTask.FinishDateTime);
 
             elapsedDuration = obj.runningTask.FinishDateTime - obj.runningTask.StartDateTime;
@@ -460,7 +460,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             % Update table status
             taskItem.timeStarted = obj.runningTask.StartDateTime;
             taskItem.timeFinished = finishDateStr;
-            taskItem.elapsedTime = datestr(elapsedDuration, 'HH:MM:SS');
+            taskItem.elapsedTime = char(elapsedDuration, 'hh:mm:ss');
 
             % Add diary and error stack
             taskItem.Diary = obj.runningTask.Diary;
@@ -650,11 +650,11 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             % Todo: Streamline a bit more, and combine with similar parts
             % from updateTaskWhenFinished.
 
-            date2str = @(dt) datestr(dt, 'yyyy.mm.dd HH:MM:SS');
-            taskItem.timeFinished = date2str(now);
+            date2str = @(dt) char(dt, 'yyyy.MM.dd HH:mm:ss');
+            taskItem.timeFinished = date2str(datetime('now'));
 
-            elapsedDuration = datetime(now, 'ConvertFrom', 'datenum') - taskItem.timeStarted;
-            taskItem.elapsedTime = datestr(elapsedDuration, 'HH:MM:SS');
+            elapsedDuration = datetime('now') - taskItem.timeStarted;
+            taskItem.elapsedTime = char(elapsedDuration, 'hh:mm:ss');
 
             obj.addTaskToHistory(taskItem)
         end
@@ -730,7 +730,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             newTask.status = 'Uninitialized';
             newTask.numOut = numOut;
             newTask.args = args;
-            newTask.timeCreated = datestr(now, 'yyyy.mm.dd HH:MM:SS');
+            newTask.timeCreated = char(datetime('now'), 'yyyy.MM.dd HH:mm:ss');
             newTask.timeStarted = '';
             newTask.elapsedTime = '';
             newTask.timeFinished = '';

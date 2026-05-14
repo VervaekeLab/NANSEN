@@ -27,5 +27,5 @@ classdef OptionsSet < handle
         end
     end
 
-    % = datestr(t, 'yyyy.mm.dd - HH:MM:SS')
+    % = char(datetime(t, 'ConvertFrom', 'datenum'), 'yyyy.MM.dd - HH:mm:ss')
 end

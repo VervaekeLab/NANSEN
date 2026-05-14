@@ -104,7 +104,7 @@ classdef MotionCorrectionPreview < handle
             namePostfix = strcat(lower(obj.Name), '_preview');
             namePostfix = strrep(namePostfix, ' ', '_');
 
-            datePrefix = datestr(now, 'yyyymmdd_HH_MM_SS');
+            datePrefix = char(datetime('now'), 'yyyyMMdd_HH_mm_ss');
             folderName = strcat(datePrefix, '_', namePostfix);
 
             if ~isempty(obj.DataIoModel)

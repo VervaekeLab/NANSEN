@@ -4150,7 +4150,7 @@ methods % Misc, most can be outsourced
     end
 
     function saveImageToDesktop(obj)
-        filename = strcat('imviewer_', datestr(now, 'yyyy_mm_dd-HH.MM.SS'), '.tif');
+        filename = strcat('imviewer_', char(datetime('now'), 'yyyy_MM_dd-HH.mm.ss'), '.tif');
         savePath = fullfile(getDesktop, filename);
 
         obj.saveImage(savePath)

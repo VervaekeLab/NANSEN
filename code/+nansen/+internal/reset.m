@@ -33,7 +33,7 @@ function reset()
         fullfile(nansenRootPath, '_userdata', 'settings') };
 
     backupPath = fullfile(nansenRootPath, '_userdata', 'backup', ...
-        datestr(now, 'yyyy_mm_dd_HHMMSS'));
+        char(datetime('now'), 'yyyy_MM_dd_HHmmss'));
 
     for i = 1:numel(folderPath)
 
