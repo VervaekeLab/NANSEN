@@ -367,7 +367,7 @@ classdef PageIndicator < uim.abstract.virtualContainer & uim.mixin.assignPropert
             end
         end
 
-        function onPageButtonPressed(obj, src, evt)
+        function onPageButtonPressed(obj, src, ~)
 
             oldPageNumber = obj.CurrentPage;
             newPageNumber = find( ismember(obj.hPageButtons, src) );

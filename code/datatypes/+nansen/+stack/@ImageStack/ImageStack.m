@@ -1553,7 +1553,7 @@ classdef ImageStack < handle & uim.mixin.assignProperties
             end
         end
 
-        function onCachedDataChanged(obj, src, evt)
+        function onCachedDataChanged(obj, ~, ~)
         %onCachedDataChanged Callback for cache changed event
 
         % This method is used for resetting the projection "cache", i.e the

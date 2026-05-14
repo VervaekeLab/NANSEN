@@ -156,7 +156,7 @@ classdef ChannelIndicator < uim.mixin.assignProperties
     end
 
     methods
-        function changeChannelColor(obj, src, evt)
+        function changeChannelColor(obj, src, ~)
             chNum = obj.LastChannelPressed;
 
             colorEnum = enumeration('nansen.enum.FluorescenceSpectrumColors');

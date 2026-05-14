@@ -41,7 +41,7 @@ classdef freehandDraw < uim.interface.abstractPointer & ...
             set(obj.hFigure, 'Pointer', 'custom', 'PointerShapeCData', pdata, 'PointerShapeHotSpot', [8,8])
         end
 
-        function wasCaptured = onKeyPress(obj, src, event)
+        function wasCaptured = onKeyPress(obj, ~, event)
             wasCaptured = true;
 
             switch event.Key
@@ -52,7 +52,7 @@ classdef freehandDraw < uim.interface.abstractPointer & ...
             end
         end
 
-        function onButtonDown(obj, src, event)
+        function onButtonDown(obj, ~, ~)
         %onButtonDown Callback for handling button down events in a roiMap.
 
             obj.isButtonDown = true;
@@ -67,7 +67,7 @@ classdef freehandDraw < uim.interface.abstractPointer & ...
             end
         end
 
-        function onButtonUp(obj, src, evt)
+        function onButtonUp(obj, ~, ~)
 
             obj.isButtonDown = false;
             obj.drawLine('pause')

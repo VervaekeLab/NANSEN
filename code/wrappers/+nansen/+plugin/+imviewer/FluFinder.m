@@ -81,7 +81,7 @@ classdef FluFinder < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewC
 
     methods (Access = {?applify.mixin.AppPlugin, ?applify.AppWithPlugin} )
 
-        function tf = keyPressHandler(obj, src, evt)
+        function tf = keyPressHandler(obj, ~, ~)
             tf = false;
         end
 

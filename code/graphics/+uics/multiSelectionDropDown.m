@@ -262,7 +262,7 @@ classdef multiSelectionDropDown <  uim.handle & uiw.mixin.AssignPVPairs
 %             obj.hUiControl.Value = obj.Value;
 %         end
 
-        function onKeypressed(obj, src, evt)
+        function onKeypressed(obj, ~, evt)
 
             switch evt.Key
                 case {'return', 'escape'}
@@ -272,7 +272,7 @@ classdef multiSelectionDropDown <  uim.handle & uiw.mixin.AssignPVPairs
             % todo: Trigger value changed....
         end
 
-        function onMouseClicked(obj, src, evt)
+        function onMouseClicked(obj, ~, ~)
 
             switch obj.hFigure.SelectionType
                 case 'open'
@@ -280,7 +280,7 @@ classdef multiSelectionDropDown <  uim.handle & uiw.mixin.AssignPVPairs
             end
         end
 
-        function onValueChanged(obj, src, evt)
+        function onValueChanged(obj, ~, ~)
         end
 
         function onCallbackChanged(obj)

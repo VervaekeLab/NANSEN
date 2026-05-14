@@ -55,7 +55,7 @@ classdef UiCreateNote < matlab.apps.AppBase
     methods (Access = private)
 
         % Callback function
-        function EnterTextTextAreaValueChanged(app, event)
+        function EnterTextTextAreaValueChanged(app, ~)
             value = app.EnterTextTextArea.Value;
             app.TitleEditField.Value = value{1};
         end
@@ -159,7 +159,7 @@ classdef UiCreateNote < matlab.apps.AppBase
     end
 
     methods (Access = protected)
-        function onSaveButtonPushed(app, src, evt)
+        function onSaveButtonPushed(app, ~, ~)
             app.storeComponentValues()
             wasSuccess = app.verifyComponentValues();
 
@@ -168,7 +168,7 @@ classdef UiCreateNote < matlab.apps.AppBase
             end
         end
 
-        function onCancelButtonPushed(app, src, evt)
+        function onCancelButtonPushed(app, ~, ~)
             app.delete()
         end
     end

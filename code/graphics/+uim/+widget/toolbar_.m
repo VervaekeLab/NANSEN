@@ -179,7 +179,7 @@ classdef toolbar_ < uim.abstract.Container
             obj.shiftChildren(shift)
         end
 
-        function onButtonSizeChanged(obj, src, evt)
+        function onButtonSizeChanged(obj, src, ~)
         %onButtonSizeChanged Update buttonsize and reposition all other buttons
 
             isButton = ismember(obj.hButtons, src);

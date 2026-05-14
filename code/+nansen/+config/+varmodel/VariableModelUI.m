@@ -366,7 +366,7 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             obj.IsDirty = true;
         end
 
-        function onDataLocationAdded(obj, ~, evt)
+        function onDataLocationAdded(obj, ~, ~)
         %onDataLocationAdded Callback for DataLocationModel event
         %
         %   This method is inherited from the HasDataLocationModel
@@ -376,7 +376,7 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             obj.updateDataLocationDropdownItems()
         end
 
-        function onDataLocationRemoved(obj, ~, evt)
+        function onDataLocationRemoved(obj, ~, ~)
         %onDataLocationRemoved Callback for DataLocationModel event
         %
         %   This method is inherited from the HasDataLocationModel
@@ -386,7 +386,7 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             obj.updateDataLocationDropdownItems()
         end
 
-        function onDataLocationNameChanged(obj, src, evt)
+        function onDataLocationNameChanged(obj, ~, ~)
         %onDataLocationNameChanged Callback for VariableModel event
 
         % Todo: This should be on the model, not the UI Level
@@ -397,13 +397,13 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             end
         end
 
-        function onVariableAdded(obj, src, evtData)
+        function onVariableAdded(obj, ~, evtData)
         % onVariableAdded - Callback for VariableAdded event on Model
             variableItem = evtData.VariableInfo;
             obj.addVariableToTable(variableItem)
         end
 
-        function onVariableRemoved(obj, src, evtData)
+        function onVariableRemoved(obj, ~, evtData)
         % onVariableRemoved - Callback for VariableRemoved event on Model
 
             variableName = evtData.VariableName;
@@ -434,7 +434,7 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             obj.IsDirty = true;
         end
 
-        function onFileTypeChanged(obj, src, evt)
+        function onFileTypeChanged(obj, src, ~)
         %onFileTypeChanged Callback for filetype selection changed
 
             % Get row number where filetype was changed
@@ -506,7 +506,7 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             end
         end
 
-        function onSubfolderChanged(obj, src, evt)
+        function onSubfolderChanged(obj, src, ~)
 
             rowNumber = obj.getComponentRowNumber(src);
             hRow = obj.RowControls(rowNumber);
@@ -546,7 +546,7 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             end
         end
 
-        function openDataFolder(obj, src, evt)
+        function openDataFolder(obj, src, ~)
 
             rowNumber = obj.getComponentRowNumber(src);
             folderPath = obj.getSelectedDataLocationFolderPath(rowNumber);
@@ -554,7 +554,7 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             utility.system.openFolder(folderPath)
         end
 
-        function onAddNewVariableButtonPushed(obj, src, event)
+        function onAddNewVariableButtonPushed(obj, ~, ~)
         % onAddNewVariableButtonPushed - Callback for table button
 
             newVariableItem = obj.VariableModel.getDefaultItem('');
@@ -572,7 +572,7 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             obj.removeRow(rowNumber)
         end
 
-        function onShowVariablesToggleButtonValueChanged(obj, src, event)
+        function onShowVariablesToggleButtonValueChanged(obj, ~, ~)
 
             % Only enable "Add Variable" button when showing custom variables
             obj.UIButton_AddVariable.Enable = obj.ToolbarButtons(2).Value;

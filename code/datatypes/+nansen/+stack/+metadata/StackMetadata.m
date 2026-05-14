@@ -165,7 +165,7 @@ classdef StackMetadata < nansen.dataio.metadata.AbstractMetadata
             obj.fromStruct(S, fieldNames)
         end
 
-        function uiset(obj, src, evt)
+        function uiset(obj, ~, ~)
         %uiset Callback for value changed from gui
         end
     end

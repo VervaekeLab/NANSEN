@@ -506,7 +506,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             drawnow
         end
 
-        function resizePanel(obj, src, evt)
+        function resizePanel(obj, ~, ~)
         %resizePanel Callback for resizing panels.
         %
         %   Header/footer and sidebar panels should have fixed sizes in
@@ -1262,7 +1262,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
     methods (Access = {?applify.ModularApp, ?applify.DashBoard} ) % Mouse/keyboard callbacks
 
-        function onKeyPressed(obj, src, event)
+        function onKeyPressed(obj, ~, event)
 
             currentObject = gco;
 
@@ -1282,7 +1282,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             end
         end
 
-        function onMouseMotion(obj, src, event)
+        function onMouseMotion(obj, ~, ~)
         % Need for buttons in header... Highlight button & show tooltip
 
             h = hittest();
@@ -1336,7 +1336,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
     methods (Access = protected)
 
-        function onToggleSidePanelVisibilityButtonPressed(obj, src, evt)
+        function onToggleSidePanelVisibilityButtonPressed(obj, src, ~)
 
             if src.Value
                 obj.uiPanel.Tab.Visible = 'on';
@@ -1858,7 +1858,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             end
         end
 
-        function showFieldTooltip(obj, src, evt)
+        function showFieldTooltip(obj, src, ~)
             %disp(src.UserData)
 
             mh = msgbox(src.UserData, sprintf('Help for %s', src.Tag), "help");
@@ -2224,7 +2224,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             end
         end
 
-        function editCallback_propertyValueChange(obj, src, evt, isInternal)
+        function editCallback_propertyValueChange(obj, src, ~, isInternal)
         % Callback for value change in inputfields. Update session property
         %
         %   Updates the value of the property corresponding to inputfield.
@@ -2538,7 +2538,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
 % % % % Methods for options sets (Todo: make into separate class)
 
-        function onOptionsSetChanged(obj, src, evt)
+        function onOptionsSetChanged(obj, src, ~)
 
             % Todo: Skip if current name is chosen...
 
@@ -2837,11 +2837,11 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
 % % % % User interaction callbacks
 
-        function onDropdownSelected(obj, src, evt)
+        function onDropdownSelected(obj, src, ~)
             obj.changeTab(src.Value)
         end
 
-        function onTabButtonPressed(obj, src, evt, pageNum)
+        function onTabButtonPressed(obj, src, ~, pageNum)
 
             % Make sure all other buttons than current is off
             for iBtn = 1:numel(obj.TabButtonGroup.Buttons)

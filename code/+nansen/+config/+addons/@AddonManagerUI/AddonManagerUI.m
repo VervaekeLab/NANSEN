@@ -355,7 +355,7 @@ classdef AddonManagerUI < applify.apptable
             obj.openAddonWebsite(S)
         end
 
-        function onToolbarButtonPushed(obj, src, evt)
+        function onToolbarButtonPushed(obj, src, ~)
 
             switch src.Text
 

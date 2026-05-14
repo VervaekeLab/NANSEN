@@ -150,7 +150,7 @@ classdef Waitbar < uim.mixin.assignProperties
             obj.hBarCompleted.Visible = obj.Visible;
         end
 
-        function onParentSizeChanged(obj, src, evt)
+        function onParentSizeChanged(obj, ~, ~)
             obj.drawWaitbar()
         end
 

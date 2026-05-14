@@ -68,7 +68,7 @@ classdef uiSearchSelect < handle
             obj.OkButton.Callback = @obj.onOkButtonClicked;
         end
 
-        function onOkButtonClicked(obj, src, evt)
+        function onOkButtonClicked(obj, ~, ~)
              uiresume(obj.Figure)
         end
     end

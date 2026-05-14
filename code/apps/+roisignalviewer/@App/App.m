@@ -532,7 +532,7 @@ classdef App < signalviewer.App & roimanager.roiDisplay
             % pass
         end
 
-        function onRoiGroupChanged(obj, evt)
+        function onRoiGroupChanged(obj, ~)
             % pass
         end
 
@@ -546,7 +546,7 @@ classdef App < signalviewer.App & roimanager.roiDisplay
             %updateSignalPlot(obj, obj.selectedRois, 'append');
         end
 
-        function onRoiSignalsChanged(obj, src, evtData)
+        function onRoiSignalsChanged(obj, ~, evtData)
 
             if obj.HistoryOn && any( strcmp(evtData.action, {'reset', 'updated'}) )
                 obj.addLineToHistory(evtData.roiIndices)
@@ -1048,7 +1048,7 @@ classdef App < signalviewer.App & roimanager.roiDisplay
             %l2 = legend(obj.hlineTsArray, {obj.tsArray.Name}, 'AutoUpdate', 'off');
         end
 
-        function onLegendItemPressed(obj, src, evt)
+        function onLegendItemPressed(obj, ~, evt)
 
             signalName = evt.Peer.DisplayName;
             obj.onSignalVisibilityChanged(signalName)
@@ -1106,7 +1106,7 @@ classdef App < signalviewer.App & roimanager.roiDisplay
             obj.updateSignalPlot(obj.DisplayedRoiIndices, 'replace');
         end
 
-        function toggleSignalSelectionDropdown(obj, src, evt)
+        function toggleSignalSelectionDropdown(obj, src, ~)
 
             if src.Value
 

@@ -323,7 +323,7 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable & nansen.metadata
     end
 
     methods (Access = ?structeditor.App)
-        function onDataLocationChanged(obj, src, evt)
+        function onDataLocationChanged(obj, ~, evt)
 
             switch evt.Name
                 case 'Subfolder'

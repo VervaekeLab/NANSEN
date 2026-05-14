@@ -538,7 +538,7 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
 
     methods % Callbacks for listeners on parent container
 
-        function onParentContainerSizeChanged(obj, src, evt)
+        function onParentContainerSizeChanged(obj, ~, ~)
             persistent i
             if isempty(i); i = 0; end
             obj.updateSize()
@@ -551,7 +551,7 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
             end
         end
 
-        function onParentContainerLocationChanged(obj, src, evt)
+        function onParentContainerLocationChanged(obj, ~, evt)
             shift = evt.NewLocation - evt.oldLocation;
             obj.Position_(1:2) = obj.Position_(1:2) + shift;
         end

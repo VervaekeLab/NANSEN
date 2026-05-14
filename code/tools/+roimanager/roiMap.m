@@ -1605,7 +1605,7 @@ classdef roiMap < roimanager.roiDisplay
             end
         end
 
-        function [wasInRoi, roiInd] = hittest(obj, src, event)
+        function [wasInRoi, roiInd] = hittest(obj, ~, event)
         %hittest Check if a mouseclick happened on a roi.
 
             %currentPoint = round( obj.hAxes.CurrentPoint(1, 1:2) );

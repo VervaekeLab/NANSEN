@@ -260,7 +260,7 @@ classdef UIComponentCanvas < handle & uim.mixin.assignProperties % uix.Container
             obj.notify('SizeChanged', evt)
         end
 
-        function onLocationChanged(obj, ~, evt)
+        function onLocationChanged(obj, ~, ~)
 
             obj.PreviousPixelPosition = obj.PixelPosition;
             obj.PixelPosition = uim.utility.getContentPixelPosition(obj.Parent);

@@ -25,7 +25,7 @@ classdef ImviewerPlugin < imviewer.ImviewerPlugin
     end
 
     methods
-        function tf = onKeyPress(src, evt) % todo: rename to onKeyPressed
+        function tf = onKeyPress(~, ~) % todo: rename to onKeyPressed
         end
 
         %onMousePressed(src, evt)

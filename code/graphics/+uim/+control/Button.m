@@ -465,7 +465,7 @@ classdef Button < uim.abstract.virtualContainer & uim.mixin.assignProperties
             end
         end
 
-        function onButtonReleased(obj, src, event)
+        function onButtonReleased(obj, ~, ~)
         % Event handler for mouse release from button
 
             obj.isButtonDown = false;

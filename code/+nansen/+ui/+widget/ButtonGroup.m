@@ -217,7 +217,7 @@ classdef ButtonGroup < handle
             end
         end
 
-        function onParentSizeChanged(obj, src, evt)
+        function onParentSizeChanged(obj, ~, ~)
             obj.updateLineHeight()
             obj.updateLocation()
         end

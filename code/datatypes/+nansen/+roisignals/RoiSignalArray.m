@@ -472,7 +472,7 @@ classdef RoiSignalArray < handle
             end
         end
 
-        function onRoisChanged(obj, src, evtData)
+        function onRoisChanged(obj, ~, evtData)
         %onRoisChanged Callback for changes on roi group
 
             % Todo:

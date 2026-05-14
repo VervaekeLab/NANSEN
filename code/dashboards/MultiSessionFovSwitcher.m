@@ -152,7 +152,7 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
         function onSettingsChanged(obj)
         end
 
-        function onSizeChanged(obj, src, evt)
+        function onSizeChanged(obj, ~, ~)
         %onSizeChanged Callback for size changed event on panel
             % Update cached pixel position value;
             onSizeChanged@applify.ModularApp(obj)
@@ -352,7 +352,7 @@ classdef MultiSessionFovSwitcher < applify.ModularApp & applify.mixin.UserSettin
             end
         end
 
-        function onSessionSelected(obj, src, evt, i)
+        function onSessionSelected(obj, ~, ~, i)
 
             oldSelectionIdx = obj.SelectedSession;
             newSelectionIdx = obj.CurrentTiles(i);

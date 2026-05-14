@@ -895,7 +895,7 @@ classdef DataLocationModelUI < applify.apptable & nansen.config.mixin.HasDataLoc
             obj.updateDefaultDataLocationSelector()
         end
 
-        function onDataLocationModified(obj, src, evt, varargin)
+        function onDataLocationModified(obj, ~, evt, varargin)
         %onDataLocationModified Modify data location in UI
         %
         %   This method is inherited from the HasDataLocationModel

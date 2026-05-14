@@ -944,7 +944,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             obj.settings.ExperimentInfo.SampleRate = imageStack.getSampleRate();
         end
 
-        function onTabButtonPressed(obj, src, evt)
+        function onTabButtonPressed(obj, src, ~)
 
             if strcmp(src.Text, 'Roi Info')
                 if src.Value

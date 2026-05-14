@@ -754,12 +754,12 @@ classdef Component < uim.handle & matlab.mixin.Heterogeneous & uim.mixin.assignP
 
     methods (Access = private) % Callbacks for listeners on parent container
 
-        function onParentContainerSizeChanged(obj, src, evt)
+        function onParentContainerSizeChanged(obj, ~, ~)
             obj.updateSize()
             obj.updateLocation()
         end
 
-        function onParentContainerLocationChanged(obj, src, evt)
+        function onParentContainerLocationChanged(obj, ~, evt)
             shift = evt.NewLocation - evt.oldLocation;
             obj.Position_(1:2) = obj.Position_(1:2) + shift;
         end

@@ -179,7 +179,7 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
 
     methods (Access = private) % Component and user invoked callbacks
 
-        function onKeyPressedInTable(obj, src, evt)
+        function onKeyPressedInTable(obj, ~, evt)
 
             switch evt.Key
                 case {'backspace', '⌫'}
@@ -228,7 +228,7 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
             end
         end
 
-        function onTableCellSelected(obj, src, evt)
+        function onTableCellSelected(obj, ~, evt)
 
             colNum = obj.UITable.JTable.getSelectedColumns() + 1;
             rowNum = evt.SelectedRows;
@@ -248,7 +248,7 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
             %colNum = evt.Cell(2);
         end
 
-        function onMouseRightClickedInTable(obj, src, evt)
+        function onMouseRightClickedInTable(obj, ~, evt)
 
             % Get row where mouse press occurred.
             row = evt.Cell(1);
@@ -273,7 +273,7 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
             end
         end
 
-        function onMouseMotionOnTable(obj, src, evt)
+        function onMouseMotionOnTable(obj, ~, evt)
 
             persistent previousRow
             if isempty(previousRow); previousRow = 0; end
@@ -356,7 +356,7 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
             obj.UITable.ColumnFormatData{1} = arrayfun(@(x) uint8(x), 1:numRows, 'uni',0);
         end
 
-        function onAddTaskButtonPushed(obj, src, evt)
+        function onAddTaskButtonPushed(obj, ~, ~)
 
             % Retrieve current task name from autocomplete field.
 
@@ -368,7 +368,7 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
             obj.addTask()
         end
 
-        function onBrowseFunctionButtonPushed(obj, src, evt)
+        function onBrowseFunctionButtonPushed(obj, ~, ~)
         %onBrowseFunctionButtonPushed Callback for browse button
 
             % Open uigetfile in nansen (filter for .m files)
@@ -400,7 +400,7 @@ classdef PipelineBuilderUI < applify.AppWindow & applify.HasTheme
             % Set as current string
         end
 
-        function onRemoveTaskMenuItemClicked(obj, src, evt)
+        function onRemoveTaskMenuItemClicked(obj, ~, ~)
             rowNumber = obj.UITable.SelectedRows;
 
             if ~isempty(rowNumber)

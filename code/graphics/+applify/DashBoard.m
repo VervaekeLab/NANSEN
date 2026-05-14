@@ -289,7 +289,7 @@ classdef DashBoard < applify.HasTheme & applify.mixin.HasDialogBox % & applify.m
             end
         end
 
-        function onAxesCreated(obj, src, evt)
+        function onAxesCreated(obj, src, ~)
             % TODO: Does this actually make a difference...
             persistent removeAxToolbar
             if isempty(removeAxToolbar)

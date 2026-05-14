@@ -144,7 +144,7 @@ classdef autoDetect < uim.interface.abstractPointer & ...
             end
         end
 
-        function onButtonMotion(obj, src, evt)
+        function onButtonMotion(obj, ~, ~)
 
             if ~obj.isPointerInsideAxes; return; end
             if ~obj.isActive; return; end
@@ -162,11 +162,11 @@ classdef autoDetect < uim.interface.abstractPointer & ...
             obj.plotCrosshair(tmpCoords(1:2))
         end
 
-        function onButtonUp(obj, src, event)
+        function onButtonUp(obj, ~, ~)
             %obj.isActive = false;
         end
 
-        function onMouseScroll(obj, src, event)
+        function onMouseScroll(obj, ~, event)
             if obj.mode == 4 && obj.isAltDown && obj.isControlDown
                 n = event.VerticalScrollCount;
                 obj.changeExtendedCircleRadius(n*0.1)
@@ -261,7 +261,7 @@ classdef autoDetect < uim.interface.abstractPointer & ...
             end
         end
 
-        function wasCaptured = onKeyRelease(obj, src, event)
+        function wasCaptured = onKeyRelease(obj, ~, event)
             wasCaptured = true;
             switch event.Key
                 case {'alt', '⌥'}

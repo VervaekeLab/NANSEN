@@ -135,7 +135,7 @@ classdef CatalogViewerApp < applify.AppWindow
             end
         end
 
-        function onMouseRightClickedInTable(obj, src, evt)
+        function onMouseRightClickedInTable(obj, ~, evt)
 
             % Get row where mouse press occurred.
             row = evt.Cell(1);
@@ -154,7 +154,7 @@ classdef CatalogViewerApp < applify.AppWindow
             end
         end
 
-        function onRemoveTaskMenuItemClicked(obj, src, evt)
+        function onRemoveTaskMenuItemClicked(obj, ~, ~)
             rowNumber = obj.UITable.SelectedRows;
             if ~isempty(rowNumber)
                 item = obj.Catalog.getItem(rowNumber);

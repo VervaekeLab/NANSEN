@@ -83,12 +83,12 @@ classdef crop < uim.interface.abstractPointer
 
         function setPointerSymbol(obj)
         end
-        function onButtonDown(obj, src, event)
+        function onButtonDown(obj, ~, ~)
         end
-        function onButtonMotion(obj, src, event)
+        function onButtonMotion(obj, ~, ~)
             % Update rectangle size text
         end
-        function onButtonUp(obj, src, event)
+        function onButtonUp(obj, ~, ~)
         end
     end
 
@@ -197,7 +197,7 @@ classdef crop < uim.interface.abstractPointer
             obj.currentYLim = [rcc(2), rcc(2) + rcc(4) - 1];
         end
 
-        function onRectangleSizeChanged(obj, src, evt)
+        function onRectangleSizeChanged(obj, ~, evt)
 
             if isempty(obj.hRectangleSizeText)
                 obj.hRectangleSizeText = text(obj.hAxes);
@@ -213,7 +213,7 @@ classdef crop < uim.interface.abstractPointer
             obj.hRectangleSizeText.String = sprintf('(%d x %d)', size(1), size(2));
         end
 
-        function resetCrop(obj, src, evt)
+        function resetCrop(obj, ~, ~)
 
             rcc = zeros(1,4);
             rcc(1:2) = 1;

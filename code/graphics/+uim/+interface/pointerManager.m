@@ -404,7 +404,7 @@ classdef pointerManager < handle
             obj.MouseDownPointerTool = [];
         end
 
-        function mouseMotionDummyCallback(obj, src, evt)
+        function mouseMotionDummyCallback(obj, ~, ~)
             % Assign this if the WindowButtonMotionFcn of a figure is empty
 
             % The figure's CurrentPoint property is only updated if a

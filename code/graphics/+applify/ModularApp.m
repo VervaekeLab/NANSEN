@@ -116,7 +116,7 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
             pos = [figureLocation, figureSize];
         end
 
-        function resizePanel(app, src, evt)
+        function resizePanel(app, ~, ~)
             % Subclass may implement
         end
     end
@@ -273,7 +273,7 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
             app.Figure.CloseRequestFcn = @(s, e) app.delete;
         end
 
-        function onAxesCreated(app, src, evt)
+        function onAxesCreated(app, src, ~)
             % TODO: Does this actually make a difference...
             persistent removeAxToolbar
             if isempty(removeAxToolbar)
@@ -349,7 +349,7 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
             end
         end
 
-        function maximizeWindow(app, src, evt)
+        function maximizeWindow(app, ~, ~)
 
             MP = get(0, 'MonitorPosition');
             xPos = app.hFigure.Position(1);
@@ -474,7 +474,7 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
             obj.ApplicationState = "Running";
         end
 
-        function onSizeChanged(app, src, evt)
+        function onSizeChanged(app, ~, ~)
         %onSizeChanged Callback for size changed event on panel
             % Update cached pixel position value;
             app.PixelPosition_ = getpixelposition(app.Panel, true);
@@ -506,27 +506,27 @@ classdef ModularApp < uim.handle & applify.HasTheme & ...
 
     methods (Access = {?applify.ModularApp, ?applify.DashBoard} ) % Event / interactive Callbacks
 
-        function onKeyPressed(obj, src, evt)
+        function onKeyPressed(obj, ~, ~)
             % Subclass can implement this
         end
 
-        function onKeyReleased(obj, src, evt)
+        function onKeyReleased(obj, ~, ~)
             % Subclass can implement this
         end
 
-        function onMousePressed(obj, src, evt)
+        function onMousePressed(obj, ~, ~)
             % Subclass can implement this
         end
 
-        function onMouseReleased(obj, src, evt)
+        function onMouseReleased(obj, ~, ~)
             % Subclass can implement this
         end
 
-        function onMouseMotion(obj, src, evt)
+        function onMouseMotion(obj, ~, ~)
             % Subclass can implement this
         end
 
-        function onMouseScrolled(obj, src, evt)
+        function onMouseScrolled(obj, ~, ~)
             % Subclass can implement this
         end
     end

@@ -166,7 +166,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & applify.mixin.UserSettings & roi
 
     methods (Access = {?applify.mixin.AppPlugin, ?applify.AppWithPlugin} ) % Callbacks
 
-        function wasCaptured = keyPressHandler(obj, src, event)
+        function wasCaptured = keyPressHandler(obj, ~, event)
             wasCaptured = true; %Guilty until proven innocent c-^_^-?
 
             switch event.Key
@@ -852,7 +852,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & applify.mixin.UserSettings & roi
             end
         end
 
-        function onImageStackChanged(obj, src, evt)
+        function onImageStackChanged(obj, ~, evt)
 
             imageStack = evt.AffectedObject.ImageStack;
 
@@ -888,7 +888,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & applify.mixin.UserSettings & roi
             obj.roiDisplay.resetStaticFovImage()
         end
 
-        function onImageDataChanged(obj, src, evt)
+        function onImageDataChanged(obj, ~, ~)
 
             imageStack = obj.ImviewerObj.ImageStack;
             imData = imageStack.Data.getStaticCache();
@@ -1071,7 +1071,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & applify.mixin.UserSettings & roi
 
 % % % % Imviewer callback methods
 
-        function onCurrentChannelChanged(obj, src, evt)
+        function onCurrentChannelChanged(obj, ~, ~)
             obj.updateActiveRoiGroup()
 
             if ~isempty(obj.roiSignalArray)
@@ -1081,7 +1081,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & applify.mixin.UserSettings & roi
             end
         end
 
-        function onCurrentPlaneChanged(obj, src, evt)
+        function onCurrentPlaneChanged(obj, ~, ~)
             obj.updateActiveRoiGroup()
 
             if ~isempty(obj.roiSignalArray)

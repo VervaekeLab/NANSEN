@@ -167,7 +167,7 @@ classdef TaskTable < uiw.mixin.AssignPVPairs
         end
 
          % Cell selection callback: UITableSessionList
-        function onCellSelection(obj, src, event)
+        function onCellSelection(obj, ~, event)
 
             % Is all this necessary for getting row selection??
 

@@ -116,7 +116,7 @@ classdef TimeAxis < handle
             obj.ContextMenu.ShowSample = hMenuSubItem;
         end
 
-        function onMenuItemClicked(obj, src, evt)
+        function onMenuItemClicked(obj, src, ~)
 
             switch src.Text
                 case 'Show Time'
@@ -128,7 +128,7 @@ classdef TimeAxis < handle
             obj.setTimeAxisVisibility(newValue)
         end
 
-        function onAxisLimitsChanged(obj, src, evt)
+        function onAxisLimitsChanged(obj, ~, ~)
             sampleLimits = obj.ReferenceAxes.XLim;
             timeLimits = obj.TimeVector(1) + (sampleLimits - 1) .* obj.TimeStep;
             obj.TimeAxisAxes.XLim = timeLimits;
