@@ -25,8 +25,7 @@ classdef SessionMethodsCatalog < utility.data.StorableCatalog
 
         function S = getDefaultItem()
         %getDefaultItem Get default item for catalog
-            S = eval( sprintf('%s.getBlankItem()', mfilename('class')) );
-
+            S = feval([mfilename('class'), '.getBlankItem']);
             % Note: No default exists for this item type, so returning the
             % blank item
         end

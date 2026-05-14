@@ -305,7 +305,7 @@ classdef NansenUserSession < handle
             if ~nargin || isempty(userName)
                 warning('No username given, returning prefdir for default user')
                 className = mfilename('class');
-                userName = eval(sprintf('%s.DEFAULT_USER_NAME', className));
+                userName = nansen.internal.introspection.getConstantPropertyValue(className, 'DEFAULT_USER_NAME');
             end
             preferenceDirectory = fullfile(prefdir, 'Nansen', userName);
         end

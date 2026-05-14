@@ -79,8 +79,9 @@ classdef OptionsAdapter < handle
 
                     nvPairs = cell(1, numel(C)*2);
                     for i = 1:numel(C)
-                        name = eval(strjoin({'nameMap', C{i}}, '.'));
-                        value = eval(strjoin({'S', C{i}}, '.'));
+                        s = struct('type', {'.'}, 'subs', strsplit(C{i}, '.'));
+                        name = subsref(nameMap, s);
+                        value = subsref(S, s);
                         ind = (i-1)*2 + (1:2);
                         nvPairs(ind) = {name, value};
                     end

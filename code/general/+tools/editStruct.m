@@ -207,14 +207,14 @@ function createComponents(guiFig, S, fieldNames)
                     for i = 1:numel(propertyFields)
                         currentField = propertyFields{i};
                         name = strcat(currentProperty, '.', currentField);
-                        val = eval(strcat('S', '.', name));
+                        val = S.(currentProperty).(currentField);
                         addInputField(guiPanel, y, name, val)
                         y = y + rowHeight + rowSep;
                     end
                 end
 
             otherwise
-                val = eval(strcat('S', '.', currentProperty));
+                val = S.(currentProperty);
                 addInputField(guiPanel, y, currentProperty, val)
                 y = y + rowHeight + rowSep;
         end

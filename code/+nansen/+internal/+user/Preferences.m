@@ -42,7 +42,7 @@ classdef Preferences < nansen.config.abstract.Preferences
         function filename = createFilename()
         %Create filename for a preference file.
             classname = mfilename('class');
-            prefGroupName = eval(sprintf('%s.PreferenceGroupName', classname));
+            prefGroupName = nansen.internal.introspection.getConstantPropertyValue(classname, 'PreferenceGroupName');
             prefGroupName = matlab.lang.makeValidName(prefGroupName);
             filename = fullfile(sprintf('%s_Preferences.mat', prefGroupName));
         end

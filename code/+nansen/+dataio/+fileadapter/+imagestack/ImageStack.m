@@ -137,7 +137,7 @@ classdef ImageStack < nansen.dataio.FileAdapter
 
             for i = 1:numel(virtualDataClasses)
                 thisClassName = virtualDataClasses{i};
-                fileNameExpression = eval([thisClassName, '.FilenameExpression']);
+                fileNameExpression = nansen.internal.introspection.getConstantPropertyValue(thisClassName, 'FilenameExpression');
 
                 if ~isempty( regexp(filename, fileNameExpression, 'once') )
                     className = thisClassName;

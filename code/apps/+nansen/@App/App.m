@@ -3641,7 +3641,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 return
             elseif strcmp(evt.Mode, 'Help')
                 try
-                    titleStr = eval(sprintf('%s.MethodName', evt.TaskAttributes.FunctionName));
+                    titleStr = nansen.internal.introspection.getConstantPropertyValue(evt.TaskAttributes.FunctionName, 'MethodName');
                 catch
                     if ~isempty(evt.TaskAttributes.MethodName)
                         titleStr = evt.TaskAttributes.MethodName;
