@@ -444,7 +444,7 @@ classdef RoiTable < applify.ModularApp & roimanager.roiDisplay & uiw.mixin.HasPr
             if size(obj.roiTable, 2) == size(tableRowData, 2)
                 obj.roiTable(rowIdx, :) = tableRowData;
             else
-                [~, iA, iC] = intersect(obj.roiTable.Properties.VariableNames, ...
+                [~, iA] = intersect(obj.roiTable.Properties.VariableNames, ...
                     tableRowData.Properties.VariableNames, 'stable');
                 obj.roiTable(rowIdx, iA) = tableRowData;
             end

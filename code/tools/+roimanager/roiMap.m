@@ -1144,7 +1144,7 @@ classdef roiMap < roimanager.roiDisplay
 
                     IM = mean(imChunk(:, :, IND), 3);
 
-                    [roiMaskSmall, s] = flufinder.binarize.findSomaMaskByEdgeDetection(IM);
+                    [roiMaskSmall, ~] = flufinder.binarize.findSomaMaskByEdgeDetection(IM);
                     roiMask = false(imSize);
                     roiMask(S(2):L(2), S(1):L(1)) = roiMaskSmall;
 

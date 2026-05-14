@@ -126,7 +126,7 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
     fovImageArray = cat(3, fovImages{:});
 
     % Register images for each fov/session to reference fov/session
-    [fovShifts, imArrayNR] = flufinder.longitudinal.alignFovs(fovImageArray);
+    [fovShifts, ~] = flufinder.longitudinal.alignFovs(fovImageArray);
 
     % Load rois for reference session
     sessionData = sessionObject(1).Data;

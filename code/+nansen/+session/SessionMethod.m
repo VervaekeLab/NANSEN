@@ -233,7 +233,7 @@ classdef SessionMethod < nansen.processing.DataMethod
             [flags, varargin] = utility.splitvararginflags(varargin, flags);
 
             % Check for any name, value pairs in varargin
-            [nvPairs, varargin] = utility.getnvpairs(varargin);
+            [nvPairs, ~] = utility.getnvpairs(varargin);
 
             S = utility.parsenvpairs(S, 1, nvPairs);
 

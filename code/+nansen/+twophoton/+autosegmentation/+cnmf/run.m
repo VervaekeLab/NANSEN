@@ -14,7 +14,7 @@ function [roiArray, cnmfResults] = run(Y, roiDiameter)
     options = autosegment.cnmf.getOptions(size(Y), roiRadius);
 
     % % fast initialization of spatial components using greedyROI and HALS
-    [Ain,Cin,bin,fin,center] = initialize_components(Y, numRois, roiRadius, options, P);
+    [Ain,Cin,bin,fin,~] = initialize_components(Y, numRois, roiRadius, options, P);
 
     % % update spatial components
     Yr = reshape(Y, options.d, options.nFrames);
@@ -22,15 +22,15 @@ function [roiArray, cnmfResults] = run(Y, roiDiameter)
 
     % % update temporal components
     P.p = 0;    % set AR temporarily to zero for speed
-    [C,f,P,S,YrA] = update_temporal_components(Yr,A,b,Cin,fin,P,options);
+    [C,f,P,S,~] = update_temporal_components(Yr,A,b,Cin,fin,P,options);
 
     % % merge found components
-    [Am,Cm,K_m,merged_ROIs,Pm,Sm] = merge_components(Yr,A,b,C,f,P,S,options);
+    [Am,Cm,~,~,Pm,~] = merge_components(Yr,A,b,C,f,P,S,options);
 
     % % evaluate components
     options.space_thresh = 0.3;
     options.time_thresh = 0.3;
-    [rval_space,rval_time,ind_space,ind_time] = classify_comp_corr(Y,Am,Cm,b,f,options);
+    [~,~,ind_space,ind_time] = classify_comp_corr(Y,Am,Cm,b,f,options);
 
     keep = ind_time & ind_space;
     throw = ~keep;
@@ -38,7 +38,7 @@ function [roiArray, cnmfResults] = run(Y, roiDiameter)
     % % refine estimates excluding rejected components
     Pm.p = p;    % restore AR value
     [A2,b2,C2] = update_spatial_components(Yr,Cm(keep,:),f,[Am(:,keep),b],Pm,options);
-    [C2,f2,P2,S2,YrA2] = update_temporal_components(Yr,A2,b2,C2,f,Pm,options);
+    [C2,~,P2,S2,~] = update_temporal_components(Yr,A2,b2,C2,f,Pm,options);
 
     % % do some plotting
 

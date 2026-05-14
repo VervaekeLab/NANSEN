@@ -74,9 +74,9 @@ classdef Suite2pCorrected < nansen.stack.virtual.TiffMultiPart
 
             if ischar(filepath) || (iscell(filepath) && numel(filepath)==1)
                 if iscell(filepath)
-                    [folder, ~, ext] = fileparts(filepath{1});
+                    folder = fileparts(filepath{1});
                 else
-                    [folder, ~, ext] = fileparts(filepath);
+                    folder = fileparts(filepath);
                 end
 
                 rootDir = utility.path.getAncestorDir(folder, 2);

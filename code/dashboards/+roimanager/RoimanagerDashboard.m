@@ -436,7 +436,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
             P0.ActiveChannel_ = obj.getActiveChannelAlternatives();
 
             i = 0;
-            [structs, names, callbacks, valueChangedFcn] = deal( {} );
+            [structs, names, callbacks] = deal( {} );
 
             i = i+1;
             structs{i} = P0;
@@ -486,7 +486,7 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
 
             i = i+1;
 
-            [P2, V] = nansen.twophoton.roisignals.getDeconvolutionParameters();
+            [P2, ~] = nansen.twophoton.roisignals.getDeconvolutionParameters();
 
             P2.modelType_ = {'ar1', 'ar2', 'exp2', 'autoar'};
             P2.tauRise_ = struct('type', 'slider', 'args', {{'Min', 0, 'Max', 1000, 'nTicks', 100, 'TooltipPrecision', 0, 'TooltipUnits', 'ms'}});

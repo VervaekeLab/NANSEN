@@ -640,8 +640,6 @@ classdef RoiManager < imviewer.ImviewerPlugin & applify.mixin.UserSettings & roi
 
             Y = cast(mask, 'like', Y) .* Y; % Adapt this to virtual stack
 
-            [im, stat] = deal([]);
-
             % NB: Function is missing.
             [foundRois, im, stat] = roimanager.autosegment.autosegmentSoma(Y, mean(Y, 3));
 
@@ -761,7 +759,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & applify.mixin.UserSettings & roi
                 end
                 obj.ImviewerObj.displayMessage('Deconvolving DFF...')
 
-                [deconvolved, denoised, opts] = deconvolveDff(dff, 'deconvolutionMethod', 'caiman', obj.deconvolutionOptions);
+                [deconvolved, denoised, ~] = deconvolveDff(dff, 'deconvolutionMethod', 'caiman', obj.deconvolutionOptions);
                 save(savePath, 'deconvolved', '-append')
                 save(savePath, 'denoised', '-append')
                 % Todo: save options

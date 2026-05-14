@@ -126,7 +126,7 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodP
                 Y = single(Y);
             end
 
-            [Y, bidirBatchSize, colShifts] = nansen.wrapper.normcorre.utility.correctLineOffsets(Y, 100);
+            Y = nansen.wrapper.normcorre.utility.correctLineOffsets(Y, 100);
 
             obj.ImviewerObj.displayMessage('Running FlowRegistration...')
 

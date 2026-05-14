@@ -90,7 +90,7 @@ function varargout = classifyMultiSessionRois(sessionObject, varargin)
     % Concatenate roi from different channels and planes
     % longterm todo
 
-    [roiArray, roiImages, roiStats, roiClassification, roiLabels] = deal(cell(1, numSessions));
+    [roiArray, roiImages, ~, roiClassification, roiLabels] = deal(cell(1, numSessions));
 
     for i = 1:numSessions
         sessionID = sessionObject(i).sessionID;

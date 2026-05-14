@@ -126,7 +126,7 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
             obj.assignPVPairs(nvPairs{:})
 
             % Parse nv pairs
-            [nvPairs, varargin] = getnvpairs(varargin{:});
+            [nvPairs, ~] = getnvpairs(varargin{:});
             obj.assignPVPairs(nvPairs{:})
 
             % % Start creating scalebar
@@ -362,7 +362,7 @@ classdef scalebar < handle % & uiw.mixin.AssignPVPairs
             yData = calculateYData(obj) ;
             yLim = obj.hAxes.YLim;
 
-            [xSign, ySign] = configurePositionDirection(obj);
+            [~, ySign] = configurePositionDirection(obj);
 
             if strcmp(obj.hAxes.YDir, 'reverse')
                 ySign = -ySign;

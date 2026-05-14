@@ -17,7 +17,7 @@ function virtualData = open(pathStr, varargin)
     if ~isa(pathStr, 'cell'); pathStr = {pathStr}; end
 
     numFiles = numel(pathStr);
-    [folder, filename, fileext] = fileparts(pathStr{1});
+    [folder, ~, fileext] = fileparts(pathStr{1});
 
     assert(all(contains(pathStr, fileext)), 'All files must be the same')
 

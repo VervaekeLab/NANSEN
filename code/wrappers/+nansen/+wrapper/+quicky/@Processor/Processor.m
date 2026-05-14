@@ -209,7 +209,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 imArray = obj.getImageArray();
 
                 fMean = nansen.twophoton.roisignals.extractF(imArray, roiArrayT);
-                [fMean, roiArrayT] = flufinder.utility.removeIsNanDff(fMean, roiArrayT);
+                [~, roiArrayT] = flufinder.utility.removeIsNanDff(fMean, roiArrayT);
 
                 % % Detect rois from a shape-based kernel convolution
                 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

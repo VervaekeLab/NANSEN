@@ -31,7 +31,7 @@ classdef ThumbnailSelector < handle
         function obj = ThumbnailSelector(parent, imdata, labels, callbacks, varargin)
 
 % % %             if ndims(imdata) == 3
-                [imHeight, imWidth, nImages] = size(imdata);
+                [~, ~, nImages] = size(imdata);
 % % %             elseif ndims(imdata) == 4
 % % %                 [imHeight, imWidth, ~, nImages] = size(imdata);
 % % %             end

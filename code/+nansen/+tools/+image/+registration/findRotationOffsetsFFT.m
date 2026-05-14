@@ -25,7 +25,7 @@ import nansen.wrapper.normcorre.utility.rigid
 assert(ndims(IM) == 3, 'First input must be a 3D array.')
 
 % Get size of input image array
-[imHeight, imWidth, nFrames] = size(IM);
+[~, ~, nFrames] = size(IM);
 usFactor = 2;
 
 % Set rotating to true for all frames by default.

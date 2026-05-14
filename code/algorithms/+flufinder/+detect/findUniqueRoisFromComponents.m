@@ -172,7 +172,7 @@ function [roisOut, summary] = findUniqueRoisFromComponents(imageSize, S, varargi
         mask(yInd, xInd) = 0;
 
         if ~isempty(roisOut) && ~isempty(newRoi)
-            [iA, iB] = flufinder.utility.findOverlappingRois(roisOut, newRoi, 0.75);
+            [~, iB] = flufinder.utility.findOverlappingRois(roisOut, newRoi, 0.75);
             newRoi(iB) = [];
         end
 

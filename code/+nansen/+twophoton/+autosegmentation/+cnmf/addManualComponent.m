@@ -44,7 +44,7 @@ function [A, C, centerOut] = addManualComponent(Y, A, C, center, roiRad, options
     Y_res = Ypatch - A(coor,:)*C; % Subtract activity from other rois in the square???
     Y_res = bsxfun(@minus, Y_res, median(Y_res,2)); % same as Y_res-median(Y_res,2)
 
-    [atemp, ctemp, ~, ~, newcenter, ~] = greedyROI(reshape(Y_res,2*roiRad+1,2*roiRad+1,T), 1, options); % Call greedy roi to initialize a and c.
+    [atemp, ctemp] = greedyROI(reshape(Y_res,2*roiRad+1,2*roiRad+1,T), 1, options); % Call greedy roi to initialize a and c.
 
     % Add the new components to the list of components!
     A(coor,end+1) = atemp/norm(atemp);

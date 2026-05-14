@@ -258,7 +258,7 @@ classdef roiSignalViewer < signalviewer.App
 
         function editDeconvolutionParameters(obj, s, e)
 
-            [P, V] = nansen.twophoton.roisignals.getDeconvolutionParameters();
+            [P, ~] = nansen.twophoton.roisignals.getDeconvolutionParameters();
             P = rmfield(P, 'modelParams');
 
             P = obj.DeconvolutionOptions;

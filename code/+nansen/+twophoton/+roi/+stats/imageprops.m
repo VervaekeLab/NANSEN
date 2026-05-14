@@ -27,8 +27,6 @@ function stats = imageprops(roiImageArray, roiArray, varargin)
     getAll = ischar(params.Properties) && strcmp(params.Properties, 'all');
     get = @(name) any( strcmp(params.Properties, name) ); %getfcn
 
-    [imageHeight, imageWidth, numRois] = size(roiImageArray);
-
     % Initialize output
     stats = struct;
 
