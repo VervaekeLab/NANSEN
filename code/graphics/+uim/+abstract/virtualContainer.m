@@ -450,7 +450,7 @@ classdef virtualContainer < uim.handle & matlab.mixin.Heterogeneous
             end
 
             % Centered along horizontal dimension
-            if strcmp(obj.Location, 'south') || strcmp(obj.Location, 'south')
+            if strcmp(obj.Location, 'south') || strcmp(obj.Location, 'north')
                 newLocation(1) = (parentSize(1)-obj.Size(1)) / 2;
             end
 
