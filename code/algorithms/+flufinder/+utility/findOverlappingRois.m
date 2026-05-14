@@ -26,7 +26,8 @@ if ~isempty(roiArrayB)
     distance = sqrt( (xPosI-xPosJ).^2 + (yPosI-yPosJ).^2 );
 
     if isequal(roiArrayA, roiArrayB)
-        [j, i] = find(distance < 10 & distance ~= 0);
+        [iA, iB] = deal(1:numel(roiArrayA));
+        return
     else
         [j, i] = find(distance < 10 & distance ~= 0);
     end

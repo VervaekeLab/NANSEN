@@ -223,7 +223,8 @@ classdef ThumbnailSelector < handle
 
                     % Determine how many tiles to move across
                     if ismac % Mac touchpad is too sensitive...
-                        i = ceil(event.VerticalScrollCount);
+                        scrollCountFactor = 1; % Todo: Find a better value
+                        i = ceil(event.VerticalScrollCount * scrollCountFactor);
                     else
                         i = ceil(event.VerticalScrollCount);
                     end

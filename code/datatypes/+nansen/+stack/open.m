@@ -65,11 +65,12 @@ function virtualData = open(pathStr, varargin)
                 if numFiles > 1
                     virtualData = nansen.stack.virtual.TiffMultiPart(pathStr, varargin{:}, nvPairs{:});
                 else
-                    %try TODO
-                    %    virtualData = nansen.stack.virtual.Tiff(pathStr, varargin{:}, nvPairs{:});
-                    %catch
+                    try % TODO
+                        error('Not implemented yet')
+                        virtualData = nansen.stack.virtual.Tiff(pathStr, varargin{:}, nvPairs{:}); %#ok<UNRCH>
+                    catch
                         virtualData = nansen.stack.virtual.TiffMultiPart(pathStr, varargin{:}, nvPairs{:});
-                    %end
+                    end
                 end
             end
 

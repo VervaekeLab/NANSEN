@@ -135,11 +135,7 @@ end
 if size(Y, 3) == 1
     [M, ncShifts, ref] = normcorre(Y, ncOpts, ref);
 else
-    if exist('normcorre_batch', 'file') && ~strcmp(ncOpts.shifts_method, 'fft')
-        [M, ncShifts, ref] = normcorre_batch(Y, ncOpts, ref);
-    else
-        [M, ncShifts, ref] = normcorre_batch(Y, ncOpts, ref);
-    end
+    [M, ncShifts, ref] = normcorre_batch(Y, ncOpts, ref);
 end
 
 M = cast(M, 'like', Y);
