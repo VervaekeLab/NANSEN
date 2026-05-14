@@ -25,17 +25,17 @@ function blocks = splitImage(IM, numRows, numCols, overlap)
         overlap (1,1) double {mustBeNonnegative, mustBeInteger} = 1
     end
 
-    [h, w, ~] = size(IM);
-    rowEdges = floor(linspace(0, h, numRows + 1));
-    colEdges = floor(linspace(0, w, numCols + 1));
+    [imageHeight, imageWidth, ~] = size(IM);
+    rowEdges = floor(linspace(0, imageHeight, numRows + 1));
+    colEdges = floor(linspace(0, imageWidth, numCols + 1));
 
     blocks = cell(numRows, numCols);
     for i = 1:numRows
-        r0 = max(rowEdges(i)   + 1 - overlap, 1);
-        r1 = min(rowEdges(i+1)     + overlap, h);
+        r0 = max(rowEdges(i) + 1 - overlap, 1);
+        r1 = min(rowEdges(i+1) + overlap, imageHeight);
         for j = 1:numCols
-            c0 = max(colEdges(j)   + 1 - overlap, 1);
-            c1 = min(colEdges(j+1)     + overlap, w);
+            c0 = max(colEdges(j) + 1 - overlap, 1);
+            c1 = min(colEdges(j+1) + overlap, imageWidth);
             blocks{i,j} = IM(r0:r1, c0:c1, :);
         end
     end
