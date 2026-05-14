@@ -637,7 +637,7 @@ methods (Access = private, Hidden) % Gui Creation/construction
             case 'p'
                 if contains(event.Modifier, 'command')
                    im = frame2im(getframe(obj.hTiledImageAxes.Axes));
-                   filename = strcat( datestr(now, 'yyyy_mm_dd_HHMMSS'), '_printscreen.tif');
+                   filename = strcat( char(datetime('now'), 'yyyy_MM_dd_HHmmss'), '_printscreen.tif');
                    imwrite(im, fullfile(getDesktop, filename), 'TIFF')
                 end
 

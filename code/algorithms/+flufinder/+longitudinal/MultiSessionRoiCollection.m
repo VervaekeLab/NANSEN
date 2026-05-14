@@ -242,9 +242,9 @@ classdef MultiSessionRoiCollection < handle
 
             sessionIDs = {obj.SessionID};
             dateStrings = cellfun(@(sid) sid(7:14), sessionIDs, 'uni', 0);
-            dateNumbers = datenum(dateStrings, 'yyyymmdd');
+            dates = datetime(dateStrings, 'InputFormat', 'yyyyMMdd');
 
-            [~, sortInd] = sort(dateNumbers);
+            [~, sortInd] = sort(dates);
             obj = obj(sortInd);
         end
 

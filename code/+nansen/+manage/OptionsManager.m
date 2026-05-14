@@ -1492,7 +1492,7 @@ classdef OptionsManager < handle
             S.Description = descr;
             S.Options = opts;
             S.DateCreatedNum = t;
-            S.DateCreated = datestr(t, 'yyyy.mm.dd - HH:MM:SS');
+            S.DateCreated = char(datetime(t, 'ConvertFrom', 'datenum'), 'yyyy.MM.dd - HH:mm:ss');
         end
 
         function S = getEmptyOptionsSet()

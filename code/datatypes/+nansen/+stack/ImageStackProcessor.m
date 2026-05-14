@@ -1065,7 +1065,7 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
 
         function printSubTask(obj, varargin)
             msg = sprintf(varargin{:});
-            nowstr = datestr(now, 'HH:MM:ss');
+            nowstr = char(datetime('now'), 'HH:mm:ss');
             fprintf('%s: %s: %s\n', nowstr, obj.MethodName, msg)
         end
 
@@ -1207,7 +1207,7 @@ classdef ImageStackProcessor < nansen.processing.DataMethod %& matlab.mixin.Hete
     methods (Static)
         function printTask(varargin) % Todo: move to datamethod
             msg = sprintf(varargin{:});
-            nowstr = datestr(now, 'HH:MM:ss');
+            nowstr = char(datetime('now'), 'HH:mm:ss');
             fprintf('%s: %s\n', nowstr, msg)
         end
     end

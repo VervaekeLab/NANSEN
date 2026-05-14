@@ -174,8 +174,11 @@ classdef StackMetadata < nansen.dataio.metadata.AbstractMetadata
 
         function S = toStruct(obj)
             S = toStruct@nansen.dataio.metadata.AbstractMetadata(obj);
-            datestrFormat = 'YYYY_MM_DD_HH_MM_SS_sss';
-            S.StartTime = datestr(S.StartTime, datestrFormat);
+            % datetime format spec (case-sensitive: MM=month, mm=minute,
+            % SSS=millisecond). The previous datestr format
+            % 'YYYY_MM_DD_HH_MM_SS_sss' was rejected by datestr itself.
+            dateFormat = 'yyyy_MM_dd_HH_mm_ss_SSS';
+            S.StartTime = char(S.StartTime, dateFormat);
         end
 
         function fromStruct(obj, S, propertyNames)
@@ -187,8 +190,8 @@ classdef StackMetadata < nansen.dataio.metadata.AbstractMetadata
             if ~isfield(S, 'StartTime') || isempty(S.StartTime)
                 S.StartTime = datetime.empty;
             else
-                datestrFormat = 'YYYY_MM_DD_HH_MM_SS_sss';
-                S.StartTime = datetime(S.StartTime, 'InputFormat', datestrFormat);
+                dateFormat = 'yyyy_MM_dd_HH_mm_ss_SSS';
+                S.StartTime = datetime(S.StartTime, 'InputFormat', dateFormat);
             end
 
             if isfield(S, 'Size') && isa(S.Size, 'cell')
