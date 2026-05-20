@@ -1,7 +1,7 @@
 classdef numpy < nansen.dataio.FileAdapter
 %numpy File adapter for a numpy file
 
-    properties (Constant)
+    properties (SetAccess = protected)
         DataType = 'struct'
     end
 

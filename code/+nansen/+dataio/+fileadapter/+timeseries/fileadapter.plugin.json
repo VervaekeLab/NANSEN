@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "1.0",
+  "pluginType": "fileadapter",
+  "plugins": [
+    {
+      "schemaVersion": "1.0",
+      "id": "nansen.dataio.fileadapter.timeseries.RoiSignalArray",
+      "pluginType": "fileadapter",
+      "displayName": "RoiSignalArray",
+      "description": "This file contains extracted and processed roi signals",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "class",
+        "entrypoint": "nansen.dataio.fileadapter.timeseries.RoiSignalArray",
+        "class": "nansen.dataio.fileadapter.timeseries.RoiSignalArray"
+      },
+      "capabilities": [],
+      "match": {
+        "extensions": [
+          "mat"
+        ]
+      },
+      "outputs": {
+        "dataType": "RoiSignalArray"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "nansen.dataio.fileadapter.timeseries.TimeSeries",
+      "pluginType": "fileadapter",
+      "displayName": "TimeSeries",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "class",
+        "entrypoint": "nansen.dataio.fileadapter.timeseries.TimeSeries",
+        "class": "nansen.dataio.fileadapter.timeseries.TimeSeries"
+      },
+      "capabilities": [],
+      "match": {
+        "extensions": [
+          "mat"
+        ]
+      },
+      "outputs": {
+        "dataType": "timeseries"
+      }
+    }
+  ]
+}

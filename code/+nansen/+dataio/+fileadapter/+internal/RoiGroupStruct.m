@@ -1,6 +1,6 @@
 classdef RoiGroupStruct < nansen.dataio.FileAdapter
 
-    properties (Constant)
+    properties (SetAccess = protected)
         DataType = 'struct'
     end
 

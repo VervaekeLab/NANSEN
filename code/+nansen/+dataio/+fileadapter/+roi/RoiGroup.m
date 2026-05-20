@@ -6,8 +6,11 @@ classdef RoiGroup < nansen.dataio.FileAdapter
 
     % How to save multichannel/multiplane data?
 
-    properties (Constant)
+    properties (SetAccess = protected)
         DataType = 'RoiGroup'
+    end
+
+    properties (Constant)
         Description = 'This file contains information about a group of rois';
     end
 

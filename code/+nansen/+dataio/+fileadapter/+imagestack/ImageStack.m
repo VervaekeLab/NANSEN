@@ -16,8 +16,11 @@ classdef ImageStack < nansen.dataio.FileAdapter
     % Todo: Make this more dynamic, i.e list all file adapters and use
     % fileadapter file types to determine which to use.
 
-    properties (Constant)
+    properties (SetAccess = protected)
         DataType = 'ImageStack'
+    end
+
+    properties (Constant)
         Description = 'This file contains image stack / video data';
     end
 

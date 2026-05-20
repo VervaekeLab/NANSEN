@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0",
+  "id": "nansen.module.ophys.macroscope.fileadapter.TSMVoltageSeries",
+  "pluginType": "fileadapter",
+  "displayName": "TSMVoltageSeries",
+  "description": "",
+  "version": "",
+  "implementation": {
+    "language": "matlab",
+    "kind": "class",
+    "entrypoint": "nansen.module.ophys.macroscope.fileadapter.TSMVoltageSeries",
+    "class": "nansen.module.ophys.macroscope.fileadapter.TSMVoltageSeries"
+  },
+  "capabilities": [],
+  "match": {
+    "extensions": [
+      "tsm"
+    ]
+  },
+  "outputs": {
+    "dataType": "ImageStack"
+  }
+}

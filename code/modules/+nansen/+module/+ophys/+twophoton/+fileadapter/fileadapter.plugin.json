@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "1.0",
+  "pluginType": "fileadapter",
+  "plugins": [
+    {
+      "schemaVersion": "1.0",
+      "id": "nansen.module.ophys.twophoton.fileadapter.ChiatahDemoFile",
+      "pluginType": "fileadapter",
+      "displayName": "ChiatahDemoFile",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "class",
+        "entrypoint": "nansen.module.ophys.twophoton.fileadapter.ChiatahDemoFile",
+        "class": "nansen.module.ophys.twophoton.fileadapter.ChiatahDemoFile"
+      },
+      "capabilities": [],
+      "match": {
+        "extensions": [
+          "h5"
+        ]
+      },
+      "outputs": {
+        "dataType": "ImageStack"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "nansen.module.ophys.twophoton.fileadapter.ScanImageMultiRoi2PSeries",
+      "pluginType": "fileadapter",
+      "displayName": "ScanImageMultiRoi2PSeries",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "class",
+        "entrypoint": "nansen.module.ophys.twophoton.fileadapter.ScanImageMultiRoi2PSeries",
+        "class": "nansen.module.ophys.twophoton.fileadapter.ScanImageMultiRoi2PSeries"
+      },
+      "capabilities": [],
+      "match": {
+        "extensions": [
+          "tif",
+          "tiff"
+        ]
+      },
+      "outputs": {
+        "dataType": "ImageStack"
+      }
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "nansen.module.ophys.twophoton.fileadapter.SciScanXYTSeries",
+      "pluginType": "fileadapter",
+      "displayName": "SciScanXYTSeries",
+      "description": "",
+      "version": "",
+      "implementation": {
+        "language": "matlab",
+        "kind": "class",
+        "entrypoint": "nansen.module.ophys.twophoton.fileadapter.SciScanXYTSeries",
+        "class": "nansen.module.ophys.twophoton.fileadapter.SciScanXYTSeries"
+      },
+      "capabilities": [],
+      "match": {
+        "extensions": [
+          "raw"
+        ]
+      },
+      "outputs": {
+        "dataType": "ImageStack"
+      }
+    }
+  ]
+}

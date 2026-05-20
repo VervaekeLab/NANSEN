@@ -31,8 +31,11 @@ classdef RoiSignalArray < nansen.dataio.FileAdapter
 %       roiSignalFileAdapter.setMetadata('start_time_num', now)
 %       roiSignalFileAdapter.setMetadata('sampling_rate', 10)
 
-    properties (Constant)
+    properties (SetAccess = protected)
         DataType = 'RoiSignalArray'
+    end
+
+    properties (Constant)
         Description = 'This file contains extracted and processed roi signals';
     end
 

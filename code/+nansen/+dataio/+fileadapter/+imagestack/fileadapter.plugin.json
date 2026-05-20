@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "1.0",
+  "id": "nansen.dataio.fileadapter.imagestack.ImageStack",
+  "pluginType": "fileadapter",
+  "displayName": "ImageStack",
+  "description": "This file contains image stack / video data",
+  "version": "",
+  "implementation": {
+    "language": "matlab",
+    "kind": "class",
+    "entrypoint": "nansen.dataio.fileadapter.imagestack.ImageStack",
+    "class": "nansen.dataio.fileadapter.imagestack.ImageStack"
+  },
+  "capabilities": [],
+  "match": {
+    "extensions": [
+      "ini",
+      "raw",
+      "tif",
+      "tiff",
+      "avi",
+      "h5",
+      "tsm"
+    ]
+  },
+  "outputs": {
+    "dataType": "ImageStack"
+  }
+}

@@ -4,7 +4,7 @@ classdef RoiArray < nansen.dataio.FileAdapter
 %   This class is very specific for getting a roi array. In most (all?)
 %   cases it is better to use the roiGroup adapter.
 %
-    properties (Constant)
+    properties (SetAccess = protected)
         DataType = 'RoI'
     end
 

@@ -1,7 +1,7 @@
 classdef TimeSeries < nansen.dataio.FileAdapter
 %TimeSeries File adapter for a file that can be opened as an timeseries
 
-    properties (Constant)
+    properties (SetAccess = protected)
         DataType = 'timeseries'
     end
 

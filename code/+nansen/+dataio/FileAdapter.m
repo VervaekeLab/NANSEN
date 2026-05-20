@@ -60,7 +60,7 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
         Name char
     end
 
-    properties (Abstract, Constant)
+    properties (Abstract, SetAccess = protected)
         DataType
     end
 

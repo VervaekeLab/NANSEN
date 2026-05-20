@@ -157,7 +157,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 dlModel = nansen.DataLocationModel();
             end
 
-            fileAdapterList = nansen.dataio.listFileAdapters();
+            registry = nansen.plugin.fileadapter.Registry.getInstance();
 
             for i = 1:numel(obj.Data)
                 if isempty( obj.Data(i).FileAdapter ) || strcmp(obj.Data(i).FileAdapter, str)
@@ -175,12 +175,11 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 [obj.Data(:).DataType] = deal('');
                 for i = 1:numel(obj.Data)
                     if ~strcmp(obj.Data(i).FileAdapter, 'Default')
-                        isMatch = strcmp({fileAdapterList.FileAdapterName}, obj.Data(i).FileAdapter);
-                        if any(isMatch)
-                            fileAdapterFcn = str2func(fileAdapterList(isMatch).FunctionName);
-                            obj.Data(i).DataType = fileAdapterFcn().DataType;
-                        else
-                            % pass
+                        try
+                            spec = registry.findByName(obj.Data(i).FileAdapter);
+                            obj.Data(i).DataType = char(spec.DataType);
+                        catch
+                            % Adapter not found; leave DataType empty
                         end
                     end
                 end
@@ -293,22 +292,14 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
         function fileAdapterFcn = getFileAdapterFcn(obj, variableInfo)
         %getFileAdapterFcn Get function handle for creating file adapter
 
-            fileAdapterList = nansen.dataio.listFileAdapters();
-
             if ischar(variableInfo)
                 [~, variableInfo] = obj.getDataFilePath(variableInfo);
             end
 
-            % Find file adapter match for name
-            isMatch = strcmp({fileAdapterList.FileAdapterName}, variableInfo.FileAdapter);
-
-            if ~any(isMatch)
-                error('File adapter was not found')
-            elseif sum(isMatch) > 1
-                error('This is a bug. Please report')
-            end
-
-            fileAdapterFcn = str2func(fileAdapterList(isMatch).FunctionName);
+            registry = nansen.plugin.fileadapter.Registry.getInstance();
+            registry.findByName(variableInfo.FileAdapter);
+            fileAdapterFcn = @(filePath, varargin) ...
+                registry.createAdapter(variableInfo.FileAdapter, filePath, varargin{:});
         end
 
         function varNames = getVariableNamesOfType(obj, typeName)
@@ -640,15 +631,13 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
 
     methods (Static) % Todo: Should be moved to a data variable class
         function variableItem = updateVariableDataType(variableItem)
-            fileAdapterList = nansen.dataio.listFileAdapters();
             if ~strcmp(variableItem.FileAdapter, 'Default')
-                isMatch = strcmp({fileAdapterList.FileAdapterName}, variableItem.FileAdapter);
-                if any(isMatch)
-                    fileAdapterFcn = str2func(fileAdapterList(isMatch).FunctionName);
-
-                    variableItem.DataType = fileAdapterFcn().DataType;
-                else
-                    % pass
+                registry = nansen.plugin.fileadapter.Registry.getInstance();
+                try
+                    spec = registry.findByName(variableItem.FileAdapter);
+                    variableItem.DataType = char(spec.DataType);
+                catch
+                    % Adapter not found; leave DataType unchanged
                 end
             end
         end

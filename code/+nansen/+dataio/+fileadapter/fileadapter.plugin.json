@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0",
+  "id": "nansen.dataio.fileadapter.numpy",
+  "pluginType": "fileadapter",
+  "displayName": "numpy",
+  "description": "",
+  "version": "",
+  "implementation": {
+    "language": "matlab",
+    "kind": "class",
+    "entrypoint": "nansen.dataio.fileadapter.numpy",
+    "class": "nansen.dataio.fileadapter.numpy"
+  },
+  "capabilities": [],
+  "match": {
+    "extensions": [
+      "npy"
+    ]
+  },
+  "outputs": {
+    "dataType": "struct"
+  }
+}

@@ -7,8 +7,11 @@ classdef ScanImageMultiRoi2PSeries < nansen.dataio.FileAdapter
 
 % - - - - - - - - - - - - PROPERTIES - - - - - - - - - - - - - - - - - - -
 
-    properties (Constant)
+    properties (SetAccess = protected)
         DataType = 'ImageStack'
+    end
+
+    properties (Constant)
         Description = ''
     end
 
