@@ -237,119 +237,82 @@ classdef SessionTaskMenu < handle
             tf = obj.IsModeLocked;
         end
 
-        function buildMenuFromDirectory(obj, hParent, dirPath)
-        %buildMenuFromDirectory Build menu items from the action registry.
+        function buildMenuFromDirectory(obj, hParent)
+        %buildMenuFromDirectory Build the uimenu from an intermediate tree.
         %
-        %   Retrieves specs from the ActionRegistry and builds the uimenu
-        %   hierarchy using each spec's MenuLocation segments.
+        %   When an ActionRegistry is available and returns specs, builds the
+        %   tree from action specs (registry path). Otherwise falls back to
+        %   building the tree from the directory structure (legacy path).
         %
-        %   The dirPath argument is accepted for API compatibility but is
-        %   ignored when an ActionRegistry is available.
+        %   In both cases an intermediate tree (cell array of node structs)
+        %   is constructed first, then rendered to uimenu by buildMenuFromTree_.
         %
         %   See also nansen.plugin.action.Registry, nansen.session.SessionMethod
-
-            if nargin >= 3
-                % Recursive sub-directory call from addSubmenuForPackageFolder —
-                % this path is only reached from the legacy fallback and is
-                % kept for backward compatibility.
-                obj.buildMenuFromDirectoryLegacy_(hParent, dirPath);
-                return
-            end
 
             if ~isempty(obj.ActionRegistry_)
                 specs = obj.ActionRegistry_.list();
                 if ~isempty(specs)
-                    obj.buildMenuFromRegistry(hParent, specs);
+                    nodes = nansen.SessionTaskMenu.buildTreeFromActionSpecs_( ...
+                        specs, obj.MenuOrder);
+                    obj.buildMenuFromTree_(hParent, nodes);
                     return
                 end
             end
 
-            % Fallback: no registry or empty registry — use directory scan.
-            obj.buildMenuFromDirectoryLegacy_(hParent, obj.MethodsRootPath);
+            nodes = nansen.SessionTaskMenu.buildTreeFromDirectory_( ...
+                obj.MethodsRootPath, obj.MenuOrder);
+            obj.buildMenuFromTree_(hParent, nodes);
         end
 
-        function buildMenuFromRegistry(obj, hParent, specs)
-        %buildMenuFromRegistry Build the uimenu hierarchy from ActionSpec array.
+        function buildMenuFromTree_(obj, hParent, nodes)
+        %buildMenuFromTree_ Render a tree of folder/action nodes as uimenu items.
         %
-        %   Specs are grouped by the first segment of MenuLocation, sorted by
-        %   MenuOrder, then placed recursively according to the full location.
+        %   Recursively walks the node tree, creating uimenu folder containers
+        %   for 'folder' nodes and leaf menu items for 'action' nodes.
+        %
+        %   Node format:
+        %     Folder: struct(Type='folder', Label, Tag, Children={nodes})
+        %     Action: struct(Type='action', TaskAttributes)
 
-            if isempty(specs); return; end
+            for i = 1:numel(nodes)
+                node = nodes{i};
+                switch node.Type
 
-            % Sort specs: root-level segments first by MenuOrder, then alphabetically
-            specs = obj.sortSpecsByMenuOrder_(specs);
-
-            for i = 1:numel(specs)
-                spec = specs(i);
-                menuLoc = cellstr(spec.MenuLocation);
-
-                % Navigate / create the menu hierarchy
-                hCurrent = hParent;
-                for d = 1:numel(menuLoc)
-                    tag      = menuLoc{d};
-                    label    = utility.string.titleCase(utility.string.varname2label(tag));
-                    hExisting = findobj(hCurrent, 'Type', 'uimenu', ...
-                        'Tag', tag, '-depth', 1);
-                    if isempty(hExisting)
-                        hNew = uimenu(hCurrent, 'Text', label, 'Tag', tag);
-                        if isa(hCurrent, 'matlab.ui.Figure')
-                            obj.styleTopLevelMenuTitle(hNew, label);
+                    case 'folder'
+                        % Find or create the folder menu container
+                        hExisting = findobj(hParent, 'Type', 'uimenu', ...
+                            'Tag', node.Tag, '-depth', 1);
+                        if isempty(hExisting)
+                            hNew = uimenu(hParent, 'Text', node.Label, 'Tag', node.Tag);
+                            if isa(hParent, 'matlab.ui.Figure')
+                                obj.styleTopLevelMenuTitle(hNew, node.Label);
+                            end
+                            obj.hMenuDirs(end+1) = hNew;
+                            hFolder = hNew;
+                        else
+                            hFolder = hExisting(1);
                         end
-                        obj.hMenuDirs(end+1) = hNew;
-                        hCurrent = hNew;
-                    else
-                        hCurrent = hExisting(1);
-                    end
-                end
+                        obj.buildMenuFromTree_(hFolder, node.Children)
 
-                % Add the leaf menu item
-                try
-                    taskAttributes = spec.toTaskAttributes();
-                catch
-                    continue
-                end
-
-                switch lower(taskAttributes.TaskType)
-                    case 'class'
-                        obj.addMenuItemForClassTask(hCurrent, taskAttributes)
-                    otherwise
-                        obj.addMenuItemForFunctionTask(hCurrent, taskAttributes)
+                    case 'action'
+                        taskAttributes = node.TaskAttributes;
+                        switch lower(taskAttributes.TaskType)
+                            case 'class'
+                                obj.addMenuItemForClassTask(hParent, taskAttributes)
+                            case 'n/a'
+                                methodName = utility.string.varname2label(taskAttributes.FunctionName);
+                                str = getReport(taskAttributes.Error, 'basic', 'hyperlinks', 'off');
+                                str = strsplit(str, newline);
+                                str = strjoin(str(1:end), '\n');
+                                linkStr = regexp(str, '<a href="matlab: opentoline(.*)">', 'match', 'once');
+                                str = strrep(str, linkStr, '');
+                                str = strrep(str, '</a>', '');
+                                errordlg(sprintf('Could not add the session method "%s" to the menu. Caused by:\n\n%s\n', methodName, str))
+                            otherwise
+                                obj.addMenuItemForFunctionTask(hParent, taskAttributes)
+                        end
                 end
             end
-        end
-
-        function addSubmenuForPackageFolder(obj, hParent, folderListing)
-        %addSubmenuForPackageFolder Add submenu for a package folder
-        %
-        %   addSubmenuForPackageFolder(obj, hParent, folderListing) adds a
-        %   submenu under the given parent menu for a package folder.
-        %
-        %   Inputs:
-        %       hParent : handle to a menu item
-        %       folderListing : scalar struct of folder attributes as
-        %           returned from the dir function.
-
-            % Create a text label for the menu
-            menuName = strrep(folderListing.name, '+', '');
-            menuName = utility.string.varname2label(menuName);
-            menuName = utility.string.titleCase(menuName);
-
-            % Check if menu with this label already exists
-            hMenuItem = findobj( hParent, 'Type', 'uimenu', '-and', ...
-                                 'Tag', menuName, '-depth', 1 );
-
-            % Create new menu item if menu with this label does not exist
-            if isempty(hMenuItem)
-                hMenuItem = uimenu(hParent, 'Text', menuName, 'Tag', menuName);
-                if isa(hParent, 'matlab.ui.Figure')
-                    obj.styleTopLevelMenuTitle(hMenuItem, menuName);
-                end
-                obj.hMenuDirs(end+1) = hMenuItem;
-            end
-
-            % Recursively build a submenu for the package directory
-            subDirPath = fullfile(folderListing.folder, folderListing.name);
-            obj.buildMenuFromDirectory(hMenuItem, subDirPath)
         end
 
         function addMenuItemForClassTask(obj, hParent, taskAttributes)
@@ -621,111 +584,6 @@ classdef SessionTaskMenu < handle
             [~, sortInd] = sort(packageListLocal);
             packagePathList = packagePathList(sortInd);
         end
-
-        function [sortedNames, sortIdx] = sortMenuNames(obj, menuNames)
-        %sortMenuNames Sort names in the order of the MenuOrder property
-
-            sortIdx = zeros(1, numel(menuNames));
-            count = 0;
-
-            for i = 1:numel( obj.MenuOrder )
-
-                isMatch = strcmp(obj.MenuOrder{i}, menuNames);
-                numMatch = sum(isMatch);
-
-                insertIdx = count + (1:numMatch);
-                sortIdx(insertIdx) = find(isMatch);
-
-                count = count + numMatch;
-            end
-
-            % Put custom names at the end...
-            unsortedIdx = setdiff( 1:numel(menuNames), sortIdx(sortIdx~=0) );
-            sortIdx(sortIdx == 0) = unsortedIdx;
-
-            sortedNames = menuNames(sortIdx);
-        end
-
-        function specs = sortSpecsByMenuOrder_(obj, specs)
-        %sortSpecsByMenuOrder_ Sort specs so root-level menu groups follow MenuOrder.
-        %
-        %   Within each root-level group, specs are sorted by their full
-        %   MenuLocation joined as a dot-string.
-            if isempty(specs); return; end
-
-            menuOrderStrs = strrep(obj.MenuOrder, '+', '');
-            nSpecs = numel(specs);
-
-            % Build a combined string key: zero-padded root priority + location path
-            sortKeys = cell(1, nSpecs);
-            for i = 1:nSpecs
-                loc = cellstr(specs(i).MenuLocation);
-                if ~isempty(loc)
-                    root = loc{1};
-                    idx  = find(strcmp(menuOrderStrs, root), 1);
-                    if isempty(idx)
-                        idx = numel(menuOrderStrs) + 1;
-                    end
-                    sortKeys{i} = sprintf('%05d.%s', idx, strjoin(loc, '.'));
-                else
-                    sortKeys{i} = sprintf('%05d', numel(menuOrderStrs) + 2);
-                end
-            end
-
-            [~, sortIdx] = sort(sortKeys);
-            specs = specs(sortIdx);
-        end
-
-        function buildMenuFromDirectoryLegacy_(obj, hParent, dirPath)
-        %buildMenuFromDirectoryLegacy_ Legacy directory-scanning menu builder.
-        %
-        %   Kept as a fallback for when no ActionRegistry is available.
-        %   See the original buildMenuFromDirectory implementation.
-
-            if nargin < 3 || isempty(dirPath)
-                dirPath = [obj.MethodsRootPath];
-                isRootDirectory = true;
-            else
-                isRootDirectory = false;
-            end
-
-            L = utility.path.multidir(dirPath);
-
-            if isRootDirectory
-                [~, sortIdx] = obj.sortMenuNames( {L.name} );
-                L = L( sortIdx );
-            end
-
-            for i = 1:numel(L)
-                if L(i).isdir
-                    if strncmp( L(i).name, '+', 1)
-                        obj.addSubmenuForPackageFolder( hParent, L(i) );
-                    end
-                else
-                    [~, ~, ext] = fileparts(L(i).name);
-                    if ~strcmp(ext, '.m') && ~strcmp(ext, '.mlx')
-                        continue
-                    end
-                    mFilePath = fullfile(L(i).folder, L(i).name);
-                    taskAttributes = obj.getTaskAttributes(mFilePath);
-                    switch taskAttributes.TaskType
-                        case 'class'
-                            obj.addMenuItemForClassTask(hParent, taskAttributes)
-                        case 'function'
-                            obj.addMenuItemForFunctionTask(hParent, taskAttributes)
-                        case 'n/a'
-                            methodName = utility.string.varname2label(taskAttributes.FunctionName);
-                            str = getReport(taskAttributes.Error, 'basic', 'hyperlinks', 'off');
-                            str = strsplit(str, newline);
-                            str = strjoin(str(1:end), '\n');
-                            linkStr = regexp(str, '<a href="matlab: opentoline(.*)">', 'match', 'once');
-                            str = strrep(str, linkStr, '');
-                            str = strrep(str, '</a>', '');
-                            errordlg(sprintf('Could not add the session method "%s" to the menu. Caused by:\n\n%s\n', methodName, str))
-                    end
-                end
-            end
-        end
     end
 
     methods (Static)
@@ -791,4 +649,195 @@ classdef SessionTaskMenu < handle
             end
         end
     end
+
+    % ------------------------------------------------------------------ %
+    methods (Static, Access = private)
+
+        function nodes = buildTreeFromDirectory_(dirPaths, menuOrder, sortEntries)
+        %buildTreeFromDirectory_ Build a menu node tree by scanning directories.
+        %
+        %   Returns a cell array of node structs. Package folders (+name)
+        %   become 'folder' nodes with recursive Children; MATLAB source
+        %   files become 'action' nodes. +abstract and +template folders
+        %   are skipped.
+        %
+        %   At the root call (sortEntries true) the listing is sorted by
+        %   menuOrder before traversal. Recursive calls pass false.
+        %
+        %   Node format:
+        %     Folder: struct(Type='folder', Label, Tag, Children={nodes})
+        %     Action: struct(Type='action', TaskAttributes)
+
+            if nargin < 3; sortEntries = true; end
+
+            nodes = {};
+            if isempty(dirPaths); return; end
+
+            L = utility.path.multidir(dirPaths);
+            if isempty(L); return; end
+
+            if sortEntries && ~isempty(menuOrder)
+                L = nansen.SessionTaskMenu.sortListingByMenuOrder_(L, menuOrder);
+            end
+
+            skipFolders = {'+abstract', '+template'};
+
+            for i = 1:numel(L)
+                entryName = L(i).name;
+
+                if L(i).isdir
+                    if ~strncmp(entryName, '+', 1); continue; end
+                    if any(strcmp(entryName, skipFolders)); continue; end
+
+                    tag   = strrep(entryName, '+', '');
+                    label = utility.string.titleCase(utility.string.varname2label(tag));
+                    subDirPath = fullfile(L(i).folder, entryName);
+
+                    children = nansen.SessionTaskMenu.buildTreeFromDirectory_( ...
+                        subDirPath, menuOrder, false);
+                    if isempty(children); continue; end
+
+                    node = struct('Type', 'folder', 'Label', label, ...
+                        'Tag', tag, 'Children', {children});
+                    nodes{end+1} = node; %#ok<AGROW>
+
+                else
+                    [~, ~, ext] = fileparts(entryName);
+                    if ~strcmp(ext, '.m') && ~strcmp(ext, '.mlx'); continue; end
+
+                    mFilePath = fullfile(L(i).folder, entryName);
+                    taskAttributes = nansen.SessionTaskMenu.getTaskAttributes(mFilePath);
+                    node = struct('Type', 'action', 'TaskAttributes', taskAttributes);
+                    nodes{end+1} = node; %#ok<AGROW>
+                end
+            end
+        end
+
+        function nodes = buildTreeFromActionSpecs_(specs, menuOrder)
+        %buildTreeFromActionSpecs_ Build a menu node tree from an ActionSpec array.
+        %
+        %   Specs are first sorted by menuOrder priority, then inserted
+        %   into a nested tree using each spec's MenuLocation as the path.
+        %   Specs with no MenuLocation are added at the root level.
+        %
+        %   Node format:
+        %     Folder: struct(Type='folder', Label, Tag, Children={nodes})
+        %     Action: struct(Type='action', TaskAttributes)
+
+            nodes = {};
+            if isempty(specs); return; end
+
+            menuOrderStrs = strrep(menuOrder, '+', '');
+            specs = nansen.SessionTaskMenu.sortSpecsByMenuOrder_(specs, menuOrderStrs);
+
+            for i = 1:numel(specs)
+                spec = specs(i);
+                try
+                    taskAttrs = spec.toTaskAttributes();
+                catch
+                    continue
+                end
+
+                loc = cellstr(spec.MenuLocation);
+                leafNode = struct('Type', 'action', 'TaskAttributes', taskAttrs);
+                nodes = nansen.SessionTaskMenu.insertNodeAtPath_(nodes, loc, leafNode);
+            end
+        end
+
+        function nodes = insertNodeAtPath_(nodes, pathParts, leafNode)
+        %insertNodeAtPath_ Recursively insert a leaf node at a folder path.
+        %
+        %   Creates intermediate 'folder' nodes as needed. Existing folder
+        %   nodes with matching Tag are reused to allow multiple specs at
+        %   the same menu path to share a container.
+
+            if isempty(pathParts)
+                nodes{end+1} = leafNode;
+                return
+            end
+
+            tag      = pathParts{1};
+            label    = utility.string.titleCase(utility.string.varname2label(tag));
+            remaining = pathParts(2:end);
+
+            % Find existing folder node with this tag
+            folderIdx = [];
+            for i = 1:numel(nodes)
+                if isstruct(nodes{i}) && strcmp(nodes{i}.Type, 'folder') ...
+                        && strcmp(nodes{i}.Tag, tag)
+                    folderIdx = i;
+                    break
+                end
+            end
+
+            if isempty(folderIdx)
+                newNode = struct('Type', 'folder', 'Label', label, ...
+                    'Tag', tag, 'Children', {{}});
+                newNode.Children = nansen.SessionTaskMenu.insertNodeAtPath_( ...
+                    newNode.Children, remaining, leafNode);
+                nodes{end+1} = newNode;
+            else
+                nodes{folderIdx}.Children = nansen.SessionTaskMenu.insertNodeAtPath_( ...
+                    nodes{folderIdx}.Children, remaining, leafNode);
+            end
+        end
+
+        function L = sortListingByMenuOrder_(L, menuOrder)
+        %sortListingByMenuOrder_ Sort a dir listing by the given MenuOrder cell array.
+        %
+        %   Entries matching a MenuOrder element appear first (in MenuOrder
+        %   sequence); remaining entries follow in their original order.
+
+            if isempty(L) || isempty(menuOrder); return; end
+
+            names    = {L.name};
+            sortIdx  = zeros(1, numel(names));
+            count    = 0;
+
+            for i = 1:numel(menuOrder)
+                isMatch  = strcmp(menuOrder{i}, names);
+                numMatch = sum(isMatch);
+                insertIdx = count + (1:numMatch);
+                sortIdx(insertIdx) = find(isMatch);
+                count = count + numMatch;
+            end
+
+            unsortedIdx = setdiff(1:numel(names), sortIdx(sortIdx ~= 0));
+            sortIdx(sortIdx == 0) = unsortedIdx;
+            L = L(sortIdx);
+        end
+
+        function specs = sortSpecsByMenuOrder_(specs, menuOrderStrs)
+        %sortSpecsByMenuOrder_ Sort specs so root-level menu groups follow menuOrder.
+        %
+        %   menuOrderStrs is a cell array of strings with the '+' prefix
+        %   already stripped (e.g. {'data','process','analyze','plot'}).
+        %   Within each root-level group, specs are sorted by their full
+        %   MenuLocation joined as a dot-string.
+
+            if isempty(specs); return; end
+
+            nSpecs   = numel(specs);
+            sortKeys = cell(1, nSpecs);
+
+            for i = 1:nSpecs
+                loc = cellstr(specs(i).MenuLocation);
+                if ~isempty(loc)
+                    root = loc{1};
+                    idx  = find(strcmp(menuOrderStrs, root), 1);
+                    if isempty(idx)
+                        idx = numel(menuOrderStrs) + 1;
+                    end
+                    sortKeys{i} = sprintf('%05d.%s', idx, strjoin(loc, '.'));
+                else
+                    sortKeys{i} = sprintf('%05d', numel(menuOrderStrs) + 2);
+                end
+            end
+
+            [~, sortIdx] = sort(sortKeys);
+            specs = specs(sortIdx);
+        end
+
+    end
+
 end
