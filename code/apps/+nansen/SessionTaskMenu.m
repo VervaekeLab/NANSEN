@@ -79,6 +79,10 @@ classdef SessionTaskMenu < handle
     end
 
     properties (Access = private)
+        ActionRegistry_ % nansen.plugin.action.Registry for current project/item type
+    end
+
+    properties (Access = private)
         IsConstructed (1,1) logical = false
         SkipRefresh (1,1) logical = false % Flag to skip refresh of menu
         ProjectChangedListener event.listener % Not implemented yet
@@ -209,7 +213,7 @@ classdef SessionTaskMenu < handle
             obj.notify('MenuUpdated', event.EventData)
         end
 
-        function refreshMenuItem(obj, taskName)
+        function refreshMenuItem(~, ~)
         end
 
         function menuNames = getRootLevelMenuNames(obj)
@@ -234,77 +238,82 @@ classdef SessionTaskMenu < handle
         end
 
         function buildMenuFromDirectory(obj, hParent, dirPath)
-        %buildMenuFromDirectory Build menu items from a directory tree
+        %buildMenuFromDirectory Build menu items from the action registry.
         %
-        % Go recursively through a directory tree of matlab packages
-        % and create a menu item for each matlab function which is found
-        % inside. The menu item is configured to trigger an event when it
-        % is selected.
+        %   Retrieves specs from the ActionRegistry and builds the uimenu
+        %   hierarchy using each spec's MenuLocation segments.
         %
-        % See also nansen.session.SessionMethod
+        %   The dirPath argument is accepted for API compatibility but is
+        %   ignored when an ActionRegistry is available.
+        %
+        %   See also nansen.plugin.action.Registry, nansen.session.SessionMethod
 
-        % Requires: utility.string.varname2label
-
-            if nargin < 3
-                dirPath = [obj.MethodsRootPath];
-                isRootDirectory = true;
-            else
-                isRootDirectory = false;
+            if nargin >= 3
+                % Recursive sub-directory call from addSubmenuForPackageFolder —
+                % this path is only reached from the legacy fallback and is
+                % kept for backward compatibility.
+                obj.buildMenuFromDirectoryLegacy_(hParent, dirPath);
+                return
             end
 
-            % List contents of directory given as input
-            L = utility.path.multidir(dirPath);
-
-            if isRootDirectory % Sort listing by names
-                % Sort names to come in a specified order...
-                [~, sortIdx] = obj.sortMenuNames( {L.name} );
-                L = L( sortIdx );
+            if ~isempty(obj.ActionRegistry_)
+                specs = obj.ActionRegistry_.list();
+                if ~isempty(specs)
+                    obj.buildMenuFromRegistry(hParent, specs);
+                    return
+                end
             end
 
-            % Loop through contents of directory/directories
-            for i = 1:numel(L)
+            % Fallback: no registry or empty registry — use directory scan.
+            obj.buildMenuFromDirectoryLegacy_(hParent, obj.MethodsRootPath);
+        end
 
-                % For folders, add submenu
-                if L(i).isdir
-                    isPackageFolder = strncmp( L(i).name, '+', 1);
+        function buildMenuFromRegistry(obj, hParent, specs)
+        %buildMenuFromRegistry Build the uimenu hierarchy from ActionSpec array.
+        %
+        %   Specs are grouped by the first segment of MenuLocation, sorted by
+        %   MenuOrder, then placed recursively according to the full location.
 
-                    if isPackageFolder
-                        obj.addSubmenuForPackageFolder( hParent, L(i) );
+            if isempty(specs); return; end
+
+            % Sort specs: root-level segments first by MenuOrder, then alphabetically
+            specs = obj.sortSpecsByMenuOrder_(specs);
+
+            for i = 1:numel(specs)
+                spec = specs(i);
+                menuLoc = cellstr(spec.MenuLocation);
+
+                % Navigate / create the menu hierarchy
+                hCurrent = hParent;
+                for d = 1:numel(menuLoc)
+                    tag      = menuLoc{d};
+                    label    = utility.string.titleCase(utility.string.varname2label(tag));
+                    hExisting = findobj(hCurrent, 'Type', 'uimenu', ...
+                        'Tag', tag, '-depth', 1);
+                    if isempty(hExisting)
+                        hNew = uimenu(hCurrent, 'Text', label, 'Tag', tag);
+                        if isa(hCurrent, 'matlab.ui.Figure')
+                            obj.styleTopLevelMenuTitle(hNew, label);
+                        end
+                        obj.hMenuDirs(end+1) = hNew;
+                        hCurrent = hNew;
                     else
-                        continue
+                        hCurrent = hExisting(1);
                     end
+                end
 
-                % For m-files, add submenu item with callback
-                else
-                    [~, ~, ext] = fileparts(L(i).name);
+                % Add the leaf menu item
+                try
+                    taskAttributes = spec.toTaskAttributes();
+                catch
+                    continue
+                end
 
-                    if ~strcmp(ext, '.m') && ~strcmp(ext, '.mlx')
-                        continue % Skip files that are not .m
-                    end
-
-                    mFilePath = fullfile(L(i).folder, L(i).name);
-                    taskAttributes = obj.getTaskAttributes(mFilePath);
-
-                    switch taskAttributes.TaskType
-                        case 'class'
-                            obj.addMenuItemForClassTask(hParent, taskAttributes)
-                        case 'function'
-                            obj.addMenuItemForFunctionTask(hParent, taskAttributes)
-                        case 'n/a' % Something went wrong
-                            methodName = utility.string.varname2label(taskAttributes.FunctionName);
-                            str = getReport(taskAttributes.Error, 'basic', 'hyperlinks', 'off');
-
-                            str = strsplit(str, newline);
-                            str = strjoin(str(1:end), '\n');
-
-                            linkStr = regexp(str, '<a href="matlab: opentoline(.*)">', 'match', 'once');
-                            str = strrep(str, linkStr, '');
-                            str = strrep(str, '</a>', '');
-
-                            errordlg(sprintf('Could not add the session method "%s" to the menu. Caused by:\n\n%s\n', methodName,  str) )
-                        otherwise
-                            % pass
-                    end
+                switch lower(taskAttributes.TaskType)
+                    case 'class'
+                        obj.addMenuItemForClassTask(hCurrent, taskAttributes)
+                    otherwise
+                        obj.addMenuItemForFunctionTask(hCurrent, taskAttributes)
                 end
             end
         end
@@ -352,9 +361,13 @@ classdef SessionTaskMenu < handle
             menuName = taskAttributes.MethodName;
             iSubMenu = uimenu(hParent, 'Text', menuName);
 
-            options = taskAttributes.OptionsManager.AllOptionNames;
+            if isfield(taskAttributes, 'OptionsManager') && ~isempty(taskAttributes.OptionsManager)
+                options = taskAttributes.OptionsManager.AllOptionNames;
+            else
+                options = {};
+            end
 
-            if isempty(options) || numel(options)==1
+            if isempty(options) || isscalar(options)
                 obj.createMenuCallback(iSubMenu, taskAttributes)
                 obj.storeMenuObject(iSubMenu, taskAttributes)
 
@@ -526,6 +539,7 @@ classdef SessionTaskMenu < handle
         end
 
         function onMethodsRootPathSet(obj)
+            obj.ActionRegistry_ = nansen.plugin.action.Registry(obj.MethodsRootPath);
             if obj.IsConstructed && ~obj.SkipRefresh
                 obj.refresh()
             end
@@ -630,6 +644,87 @@ classdef SessionTaskMenu < handle
             sortIdx(sortIdx == 0) = unsortedIdx;
 
             sortedNames = menuNames(sortIdx);
+        end
+
+        function specs = sortSpecsByMenuOrder_(obj, specs)
+        %sortSpecsByMenuOrder_ Sort specs so root-level menu groups follow MenuOrder.
+        %
+        %   Within each root-level group, specs are sorted by their full
+        %   MenuLocation joined as a dot-string.
+            if isempty(specs); return; end
+
+            menuOrderStrs = strrep(obj.MenuOrder, '+', '');
+            nSpecs = numel(specs);
+
+            % Build a combined string key: zero-padded root priority + location path
+            sortKeys = cell(1, nSpecs);
+            for i = 1:nSpecs
+                loc = cellstr(specs(i).MenuLocation);
+                if ~isempty(loc)
+                    root = loc{1};
+                    idx  = find(strcmp(menuOrderStrs, root), 1);
+                    if isempty(idx)
+                        idx = numel(menuOrderStrs) + 1;
+                    end
+                    sortKeys{i} = sprintf('%05d.%s', idx, strjoin(loc, '.'));
+                else
+                    sortKeys{i} = sprintf('%05d', numel(menuOrderStrs) + 2);
+                end
+            end
+
+            [~, sortIdx] = sort(sortKeys);
+            specs = specs(sortIdx);
+        end
+
+        function buildMenuFromDirectoryLegacy_(obj, hParent, dirPath)
+        %buildMenuFromDirectoryLegacy_ Legacy directory-scanning menu builder.
+        %
+        %   Kept as a fallback for when no ActionRegistry is available.
+        %   See the original buildMenuFromDirectory implementation.
+
+            if nargin < 3 || isempty(dirPath)
+                dirPath = [obj.MethodsRootPath];
+                isRootDirectory = true;
+            else
+                isRootDirectory = false;
+            end
+
+            L = utility.path.multidir(dirPath);
+
+            if isRootDirectory
+                [~, sortIdx] = obj.sortMenuNames( {L.name} );
+                L = L( sortIdx );
+            end
+
+            for i = 1:numel(L)
+                if L(i).isdir
+                    if strncmp( L(i).name, '+', 1)
+                        obj.addSubmenuForPackageFolder( hParent, L(i) );
+                    end
+                else
+                    [~, ~, ext] = fileparts(L(i).name);
+                    if ~strcmp(ext, '.m') && ~strcmp(ext, '.mlx')
+                        continue
+                    end
+                    mFilePath = fullfile(L(i).folder, L(i).name);
+                    taskAttributes = obj.getTaskAttributes(mFilePath);
+                    switch taskAttributes.TaskType
+                        case 'class'
+                            obj.addMenuItemForClassTask(hParent, taskAttributes)
+                        case 'function'
+                            obj.addMenuItemForFunctionTask(hParent, taskAttributes)
+                        case 'n/a'
+                            methodName = utility.string.varname2label(taskAttributes.FunctionName);
+                            str = getReport(taskAttributes.Error, 'basic', 'hyperlinks', 'off');
+                            str = strsplit(str, newline);
+                            str = strjoin(str(1:end), '\n');
+                            linkStr = regexp(str, '<a href="matlab: opentoline(.*)">', 'match', 'once');
+                            str = strrep(str, linkStr, '');
+                            str = strrep(str, '</a>', '');
+                            errordlg(sprintf('Could not add the session method "%s" to the menu. Caused by:\n\n%s\n', methodName, str))
+                    end
+                end
+            end
         end
     end
 
