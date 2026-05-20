@@ -1,5 +1,12 @@
 function varNames = getCustomTableVariableNames(tableClassName)
 %getCustomTableVariableNames Get names of custom tablevars for current project
+%
+%   varNames = getCustomTableVariableNames() returns the simple variable
+%   names (column headers) for all 'session' table variables defined by
+%   the current project.
+%
+%   varNames = getCustomTableVariableNames(tableClassName) returns variables
+%   for the given table type ('session' or 'subject').
 
     arguments
         tableClassName (1,1) string = 'session';
@@ -7,24 +14,15 @@ function varNames = getCustomTableVariableNames(tableClassName)
 
     varNames = string.empty;
 
-    % Get folder containing custom table variables from current project:
     project = nansen.getCurrentProject();
-    if isempty(project)
-        return
-    else
-        rootPathTarget = project.getTableVariableFolder();
-    end
+    if isempty(project); return; end
 
-    fcnTargetPath = fullfile(rootPathTarget, sprintf('+%s', lower(tableClassName)));
+    rootPaths = nansen.plugin.tablevariable.Registry.collectRootPaths(project);
+    if isempty(rootPaths); return; end
 
-    % Add parent folder of package to path if it is not already there.
-    currentPath = path;
-    metaTableRootPath = fileparts(fileparts(rootPathTarget));
-    if ~contains(currentPath, metaTableRootPath)
-        addpath(metaTableRootPath)
-    end
+    registry = nansen.plugin.tablevariable.Registry(rootPaths);
+    specs    = registry.listByTableType(tableClassName);
 
-    % List contents of folder and get names of all .m files:
-    L = dir(fullfile(fcnTargetPath, '*.m'));
-    varNames = strrep({L.name}, '.m', '');
+    if isempty(specs); return; end
+    varNames = arrayfun(@(s) s.VariableName, specs);
 end
