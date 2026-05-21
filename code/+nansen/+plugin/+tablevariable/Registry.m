@@ -31,7 +31,6 @@ classdef Registry < nansen.plugin.base.Registry
         SidecarFilename = "tablevariable.plugin.json"
     end
 
-    % ------------------------------------------------------------------ %
     methods
 
         function obj = Registry(rootPaths, projectFolder)
@@ -48,10 +47,8 @@ classdef Registry < nansen.plugin.base.Registry
             end
             obj@nansen.plugin.base.Registry(rootPaths, projectFolder);
         end
-
     end
 
-    % ------------------------------------------------------------------ %
     methods (Static)
 
         function registry = getInstance(projectFolder)
@@ -71,12 +68,10 @@ classdef Registry < nansen.plugin.base.Registry
             end
             registry = cachedRegistry;
         end
-
     end
 
-    % ------------------------------------------------------------------ %
     % Public API extensions
-    % ------------------------------------------------------------------ %
+
     methods
 
         function specs = listByTableType(obj, tableType)
@@ -144,12 +139,10 @@ classdef Registry < nansen.plugin.base.Registry
                 attrTable.TableType = string(attrTable.TableType);
             end
         end
-
     end
 
-    % ------------------------------------------------------------------ %
     % Required abstract implementations
-    % ------------------------------------------------------------------ %
+
     methods (Access = protected)
 
         function specs = parseSidecarFile(~, filePath)
@@ -197,12 +190,10 @@ classdef Registry < nansen.plugin.base.Registry
         %emptySpecArray Return an empty typed array for concatenation.
             specs = nansen.plugin.tablevariable.TableVariableSpec.empty;
         end
-
     end
 
-    % ------------------------------------------------------------------ %
     % Private helpers
-    % ------------------------------------------------------------------ %
+
     methods (Access = private)
 
         function spec = createSpecFromMFile_(~, filePath, tableType)
@@ -241,11 +232,8 @@ classdef Registry < nansen.plugin.base.Registry
 
             spec = nansen.plugin.tablevariable.TableVariableSpec(opts);
         end
-
     end
 
-    % ------------------------------------------------------------------ %
-    % ------------------------------------------------------------------ %
     methods (Static)
 
         function rootPaths = collectRootPaths(project)
@@ -274,10 +262,8 @@ classdef Registry < nansen.plugin.base.Registry
                 end
             end
         end
-
     end
 
-    % ------------------------------------------------------------------ %
     methods (Static, Access = private)
 
         function tf = isTableVariableClass_(mc)
@@ -301,7 +287,5 @@ classdef Registry < nansen.plugin.base.Registry
                 end
             end
         end
-
     end
-
 end

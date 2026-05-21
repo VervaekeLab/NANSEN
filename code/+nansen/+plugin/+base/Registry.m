@@ -13,14 +13,12 @@ classdef (Abstract) Registry < handle
 %   Subclasses must implement the abstract methods listed below and must
 %   define the abstract constants PluginType and SidecarFilename.
 
-    % ------------------------------------------------------------------ %
     events
         PluginAdded
         PluginRemoved
         PluginRegistryRefreshed
     end
 
-    % ------------------------------------------------------------------ %
     properties (Abstract, Constant, Access = protected)
         % PluginType - Plugin type enum value for this registry.
         PluginType (1,1) nansen.plugin.enum.PluginType
@@ -29,7 +27,6 @@ classdef (Abstract) Registry < handle
         SidecarFilename (1,1) string
     end
 
-    % ------------------------------------------------------------------ %
     properties (SetAccess = private)
         % ProjectFolder - Root folder of the owning project (or "" for global).
         ProjectFolder (1,1) string = ""
@@ -59,7 +56,6 @@ classdef (Abstract) Registry < handle
         SpecCache containers.Map
     end
 
-    % ------------------------------------------------------------------ %
     methods
         function obj = Registry(rootPaths, projectFolder)
         %Registry Construct a registry with ordered discovery roots.
@@ -86,9 +82,8 @@ classdef (Abstract) Registry < handle
         end
     end
 
-    % ------------------------------------------------------------------ %
     % Public API
-    % ------------------------------------------------------------------ %
+
     methods
 
         function specs = list(obj, options)
@@ -272,9 +267,8 @@ classdef (Abstract) Registry < handle
         end
     end
 
-    % ------------------------------------------------------------------ %
     % Abstract methods — subclasses must implement
-    % ------------------------------------------------------------------ %
+
     methods (Abstract, Access = protected)
         % parseSidecarFile Decode a sidecar file into a typed spec array.
         %
@@ -287,9 +281,8 @@ classdef (Abstract) Registry < handle
         specs = discoverCompatibilitySpecs(obj)
     end
 
-    % ------------------------------------------------------------------ %
     % Protected discovery helpers
-    % ------------------------------------------------------------------ %
+
     methods (Access = protected)
 
         function rootPaths = getRootPaths(obj)
@@ -491,9 +484,8 @@ classdef (Abstract) Registry < handle
         end
     end
 
-    % ------------------------------------------------------------------ %
     % Disabled-state persistence (project-scoped JSON file)
-    % ------------------------------------------------------------------ %
+
     methods (Access = protected)
 
         function ids = readDisabledIds(obj)
@@ -547,9 +539,8 @@ classdef (Abstract) Registry < handle
         end
     end
 
-    % ------------------------------------------------------------------ %
     % Protected static helpers — available to all concrete registries
-    % ------------------------------------------------------------------ %
+
     methods (Static, Access = protected)
 
         function tf = hasSuperclass_(mc, superclassName)
@@ -573,12 +564,10 @@ classdef (Abstract) Registry < handle
                 value = defaultValue;
             end
         end
-
     end
 
-    % ------------------------------------------------------------------ %
     % Private static helpers
-    % ------------------------------------------------------------------ %
+
     methods (Static, Access = private)
 
         function issues = emptyIssues()

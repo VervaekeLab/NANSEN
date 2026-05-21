@@ -21,7 +21,6 @@ classdef Registry < nansen.plugin.base.Registry
         SidecarFilename = "fileadapter.plugin.json"
     end
 
-    % ------------------------------------------------------------------ %
     methods
 
         function obj = Registry(projectFolder)
@@ -35,10 +34,8 @@ classdef Registry < nansen.plugin.base.Registry
             rootPaths = nansen.plugin.fileadapter.Registry.resolveRootPaths_(projectFolder);
             obj@nansen.plugin.base.Registry(rootPaths, projectFolder);
         end
-
     end
 
-    % ------------------------------------------------------------------ %
     methods (Static)
 
         function registry = getInstance(projectFolder)
@@ -59,12 +56,10 @@ classdef Registry < nansen.plugin.base.Registry
 
             registry = cachedRegistry;
         end
-
     end
 
-    % ------------------------------------------------------------------ %
     % Public API extensions
-    % ------------------------------------------------------------------ %
+
     methods
 
         function spec = findByName(obj, adapterName)
@@ -168,12 +163,10 @@ classdef Registry < nansen.plugin.base.Registry
                     adapter = adapterFcn(filePath, varargin{:});
             end
         end
-
     end
 
-    % ------------------------------------------------------------------ %
     % Required abstract implementations
-    % ------------------------------------------------------------------ %
+
     methods (Access = protected)
 
         function specs = parseSidecarFile(~, filePath)
@@ -221,12 +214,10 @@ classdef Registry < nansen.plugin.base.Registry
         %emptySpecArray Return an empty typed array for concatenation.
             specs = nansen.plugin.fileadapter.FileAdapterSpec.empty;
         end
-
     end
 
-    % ------------------------------------------------------------------ %
     % Phase 2 postprocessing — add Default adapter
-    % ------------------------------------------------------------------ %
+
     methods (Access = protected)
 
         function [specs, issues] = postprocessSpecs(obj, specs)
@@ -245,12 +236,10 @@ classdef Registry < nansen.plugin.base.Registry
             defaultSpec = nansen.plugin.fileadapter.FileAdapterSpec(opts);
             specs = [defaultSpec, specs];
         end
-
     end
 
-    % ------------------------------------------------------------------ %
     % Private helpers
-    % ------------------------------------------------------------------ %
+
     methods (Access = private)
 
         function spec = specFromMetaClass(~, mc, filePath)
@@ -274,7 +263,6 @@ classdef Registry < nansen.plugin.base.Registry
 
             spec = nansen.plugin.fileadapter.FileAdapterSpec(opts);
         end
-
     end
 
     methods (Static, Access = private)
@@ -330,7 +318,5 @@ classdef Registry < nansen.plugin.base.Registry
                 value = defaultValue;
             end
         end
-
     end
-
 end

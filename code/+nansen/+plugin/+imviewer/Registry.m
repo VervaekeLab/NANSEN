@@ -27,7 +27,6 @@ classdef Registry < nansen.plugin.base.Registry
         SidecarFilename = "imviewerplugin.plugin.json"
     end
 
-    % ------------------------------------------------------------------ %
     methods
 
         function obj = Registry(projectFolder)
@@ -41,10 +40,8 @@ classdef Registry < nansen.plugin.base.Registry
             rootPaths = nansen.plugin.imviewer.Registry.resolveRootPaths_(projectFolder);
             obj@nansen.plugin.base.Registry(rootPaths, projectFolder);
         end
-
     end
 
-    % ------------------------------------------------------------------ %
     methods (Static)
 
         function registry = getInstance(projectFolder)
@@ -59,12 +56,10 @@ classdef Registry < nansen.plugin.base.Registry
             end
             registry = cachedRegistry;
         end
-
     end
 
-    % ------------------------------------------------------------------ %
     % Public API extensions
-    % ------------------------------------------------------------------ %
+
     methods
 
         function spec = findPlugin(obj, pluginName)
@@ -100,12 +95,10 @@ classdef Registry < nansen.plugin.base.Registry
             end
             spec = specs(1);
         end
-
     end
 
-    % ------------------------------------------------------------------ %
     % Required abstract implementations
-    % ------------------------------------------------------------------ %
+
     methods (Access = protected)
 
         function specs = parseSidecarFile(~, filePath)
@@ -149,12 +142,10 @@ classdef Registry < nansen.plugin.base.Registry
         %emptySpecArray Return an empty typed array for concatenation.
             specs = nansen.plugin.imviewer.ImviewerPluginSpec.empty;
         end
-
     end
 
-    % ------------------------------------------------------------------ %
     % Private helpers
-    % ------------------------------------------------------------------ %
+
     methods (Access = private)
 
         function spec = createSpecFromMFile_(~, filePath)
@@ -191,10 +182,8 @@ classdef Registry < nansen.plugin.base.Registry
 
             spec = nansen.plugin.imviewer.ImviewerPluginSpec(opts);
         end
-
     end
 
-    % ------------------------------------------------------------------ %
     methods (Static, Access = private)
 
         function rootPaths = resolveRootPaths_(projectFolder)
@@ -281,7 +270,5 @@ classdef Registry < nansen.plugin.base.Registry
             parts = strsplit(fallback, '.');
             name = parts{end};
         end
-
     end
-
 end

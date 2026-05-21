@@ -49,14 +49,14 @@ classdef SessionTaskMenu < handle
     properties (Constant, Hidden)
         ValidModes = {'Default', 'Preview', 'TaskQueue', 'Edit', 'Help', 'Restart'} % Available modes
         MenuOrder = {'+data', '+process', '+analyze', '+plot'}                   % Todo: preference?
-        %MenuOrder = {'+data', '+processing', '+analysis', '+plotting'}          % Todo: preference?
+        % MenuOrder = {'+data', '+processing', '+analysis', '+plotting'}          % Todo: preference?
     end
 
     properties
         Mode char = 'Default' % Mode for running session task. See doc
         CurrentProject
         CurrentItemType (1,1) string
-        %TitleColor = '#0072BD';
+        % TitleColor = '#0072BD';
         TitleColor = '#303E48';
     end
 
@@ -338,7 +338,7 @@ classdef SessionTaskMenu < handle
             else
                 % Create menu item for each task option
                 for j = 1:numel(options)
-                    %menuName = utility.string.varname2label(options{j});
+                    % menuName = utility.string.varname2label(options{j});
                     menuName = options{j};
                     iMitem = uimenu(iSubMenu, 'Text', menuName);
 
@@ -484,7 +484,7 @@ classdef SessionTaskMenu < handle
             evtData = uiw.event.EventData( nvPairs{:} );
             obj.notify('MethodSelected', evtData)
 
-            %obj.Mode = 'Default'; % Reset mode
+            % obj.Mode = 'Default'; % Reset mode
             pause(0.5)
             obj.IsModeLocked = false;
         end
@@ -599,7 +599,7 @@ classdef SessionTaskMenu < handle
 
         function packagePathList = sortPackageHierarchy(obj, packagePathList)
         %sortPackageHierarchy Sort package folders so that subpackages from
-        %different root directories are put in successive order.
+        % different root directories are put in successive order.
 
             packageListLocal = packagePathList;
             for i = 1:numel(obj.MethodsRootPath)
@@ -675,7 +675,6 @@ classdef SessionTaskMenu < handle
         end
     end
 
-    % ------------------------------------------------------------------ %
     methods (Static, Access = private)
 
         function nodes = buildTreeFromDirectory_(dirPaths, menuOrder, sortEntries)
@@ -862,7 +861,5 @@ classdef SessionTaskMenu < handle
             [~, sortIdx] = sort(sortKeys);
             specs = specs(sortIdx);
         end
-
     end
-
 end

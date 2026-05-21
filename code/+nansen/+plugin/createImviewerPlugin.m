@@ -63,7 +63,6 @@ function createImviewerPlugin(options)
     edit(classFile)
 end
 
-% ------------------------------------------------------------------ %
 function writeClassTemplate_(filePath, name, displayName)
     nameStr        = char(name);
     displayNameStr = char(displayName);

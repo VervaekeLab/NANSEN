@@ -40,7 +40,6 @@ classdef Registry < nansen.plugin.base.Registry
         LoadedEntityTypes_ (1,:) string = string.empty
     end
 
-    % ------------------------------------------------------------------ %
     methods
 
         function obj = Registry(pathResolverOrPaths, projectFolder)
@@ -71,10 +70,8 @@ classdef Registry < nansen.plugin.base.Registry
             obj@nansen.plugin.base.Registry(initPaths, projectFolder);
             obj.PathResolver_ = pathResolverArg;
         end
-
     end
 
-    % ------------------------------------------------------------------ %
     methods (Static)
 
         function registry = getInstance(projectFolder)
@@ -94,12 +91,10 @@ classdef Registry < nansen.plugin.base.Registry
             end
             registry = cachedRegistry;
         end
-
     end
 
-    % ------------------------------------------------------------------ %
     % Public API extensions
-    % ------------------------------------------------------------------ %
+
     methods
 
         function specs = listByEntityType(obj, entityType, options)
@@ -187,12 +182,10 @@ classdef Registry < nansen.plugin.base.Registry
             spec = obj.resolve(actionId);
             S = spec.toTaskAttributes();
         end
-
     end
 
-    % ------------------------------------------------------------------ %
     % Required abstract implementations
-    % ------------------------------------------------------------------ %
+
     methods (Access = protected)
 
         function specs = parseSidecarFile(~, filePath)
@@ -232,12 +225,10 @@ classdef Registry < nansen.plugin.base.Registry
         %emptySpecArray Return an empty typed array for concatenation.
             specs = nansen.plugin.action.ActionSpec.empty;
         end
-
     end
 
-    % ------------------------------------------------------------------ %
     % Private helpers
-    % ------------------------------------------------------------------ %
+
     methods (Access = private)
 
         function loadEntityType_(obj, entityType)
@@ -321,10 +312,8 @@ classdef Registry < nansen.plugin.base.Registry
 
             spec = nansen.plugin.action.ActionSpec(opts);
         end
-
     end
 
-    % ------------------------------------------------------------------ %
     methods (Static, Access = private)
 
         function files = listMatlabFiles(rootPaths)
@@ -438,12 +427,10 @@ classdef Registry < nansen.plugin.base.Registry
 
             entityType = 'session';  % safe default
         end
-
     end
 
-    % ------------------------------------------------------------------ %
     % Per-project action visibility (hidden-action list)
-    % ------------------------------------------------------------------ %
+
     methods (Access = private)
 
         function specs = removeHiddenSpecs_(obj, specs)
@@ -502,7 +489,5 @@ classdef Registry < nansen.plugin.base.Registry
             end
             filePath = fullfile(prefsRoot, 'action_hidden.json');
         end
-
     end
-
 end
