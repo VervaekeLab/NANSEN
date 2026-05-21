@@ -102,15 +102,20 @@ classdef Registry < nansen.plugin.base.Registry
     % ------------------------------------------------------------------ %
     methods
 
-        function specs = listByEntityType(obj, entityType)
+        function specs = listByEntityType(obj, entityType, options)
         %listByEntityType Return specs for the given entity type.
+        %
+        %   specs = listByEntityType(entityType) returns enabled, visible specs.
+        %   specs = listByEntityType(entityType, 'IncludeHidden', true) includes
+        %   hidden specs (those suppressed by hideAction for this project).
         %
         %   When the registry was constructed with a path resolver, paths for
         %   this entity type are fetched and scanned on the first call.
         %   Subsequent calls for the same type use the cached spec list.
             arguments
                 obj
-                entityType (1,1) string = "session"
+                entityType          (1,1) string  = "session"
+                options.IncludeHidden (1,1) logical = false
             end
             if ~isempty(obj.PathResolver_) ...
                     && ~any(strcmp(obj.LoadedEntityTypes_, entityType))
@@ -123,6 +128,54 @@ classdef Registry < nansen.plugin.base.Registry
             end
             keep = arrayfun(@(s) strcmpi(char(s.EntityType), char(entityType)), all);
             specs = all(keep);
+            if ~options.IncludeHidden
+                specs = obj.removeHiddenSpecs_(specs);
+            end
+        end
+
+        function hideAction(obj, id)
+        %hideAction Suppress an action from the entity menu for this project.
+        %
+        %   The action remains discoverable via listByEntityType('IncludeHidden', true)
+        %   and is not globally disabled — it simply will not appear in the
+        %   session task menu for the current project.
+            arguments
+                obj
+                id (1,1) string
+            end
+            ids = obj.readHiddenIds_();
+            if ~any(strcmp(ids, id))
+                ids{end+1} = char(id);
+                obj.writeHiddenIds_(ids);
+            end
+        end
+
+        function showAction(obj, id)
+        %showAction Remove a per-project action visibility override.
+        %
+        %   After calling showAction, the action will appear in the session
+        %   task menu again (unless it is also globally disabled).
+            arguments
+                obj
+                id (1,1) string
+            end
+            ids = obj.readHiddenIds_();
+            ids = ids(~strcmp(ids, char(id)));
+            obj.writeHiddenIds_(ids);
+        end
+
+        function tf = isActionVisible(obj, id)
+        %isActionVisible True when the action is not hidden for this project.
+        %
+        %   Returns false only when the action has been suppressed via
+        %   hideAction. Disabled actions are considered visible here — use
+        %   isEnabled from the base class to test the disabled state.
+            arguments
+                obj
+                id (1,1) string
+            end
+            ids = obj.readHiddenIds_();
+            tf  = ~any(strcmp(ids, char(id)));
         end
 
         function S = getTaskAttributes(obj, actionId)
@@ -384,6 +437,70 @@ classdef Registry < nansen.plugin.base.Registry
             end
 
             entityType = 'session';  % safe default
+        end
+
+    end
+
+    % ------------------------------------------------------------------ %
+    % Per-project action visibility (hidden-action list)
+    % ------------------------------------------------------------------ %
+    methods (Access = private)
+
+        function specs = removeHiddenSpecs_(obj, specs)
+        %removeHiddenSpecs_ Filter out specs whose Id is in the hidden list.
+            hiddenIds = obj.readHiddenIds_();
+            if isempty(hiddenIds) || isempty(specs)
+                return
+            end
+            keep  = ~ismember(string({specs.Id}), string(hiddenIds));
+            specs = specs(keep);
+        end
+
+        function ids = readHiddenIds_(obj)
+        %readHiddenIds_ Load the hidden-id list from the project preference file.
+            prefsFile = obj.hiddenPrefsFile_();
+
+            if ~isfile(prefsFile)
+                ids = {};
+                return
+            end
+
+            try
+                raw = jsondecode(fileread(prefsFile));
+                if ischar(raw) || isstring(raw)
+                    ids = cellstr(raw);
+                elseif iscell(raw)
+                    ids = raw;
+                else
+                    ids = {};
+                end
+            catch
+                ids = {};
+            end
+        end
+
+        function writeHiddenIds_(obj, ids)
+        %writeHiddenIds_ Persist the hidden-id list to the project preference file.
+            prefsFile = obj.hiddenPrefsFile_();
+            prefsDir  = fileparts(prefsFile);
+
+            if ~isfolder(prefsDir)
+                mkdir(prefsDir)
+            end
+
+            fid     = fopen(prefsFile, 'w', 'n', 'UTF-8');
+            cleanup = onCleanup(@() fclose(fid));
+            fprintf(fid, '%s', jsonencode(ids, 'PrettyPrint', true));
+        end
+
+        function filePath = hiddenPrefsFile_(obj)
+        %hiddenPrefsFile_ Path to the JSON file storing hidden action ids.
+            if obj.ProjectFolder == ""
+                prefsRoot = fullfile(tempdir(), 'nansen_plugin_prefs');
+            else
+                prefsRoot = fullfile(obj.ProjectFolder, 'configurations', 'plugin_registry');
+            end
+            filePath = fullfile(prefsRoot, 'action_hidden.json');
         end
 
     end

@@ -347,4 +347,103 @@ classdef ActionRegistryTest < matlab.unittest.TestCase
 
     end
 
+    % ------------------------------------------------------------------ %
+    % Per-project action visibility
+    % ------------------------------------------------------------------ %
+    methods (Test)
+
+        function testHideAndShowAction(testCase)
+        %testHideAndShowAction hideAction suppresses from listByEntityType; showAction restores it.
+            testCase.assumeTrue(isfolder(testCase.TwoPhotonRoot), ...
+                'Twophoton sessionmethod folder not found')
+
+            tmpDir = tempname();
+            mkdir(tmpDir)
+            cleanupDir = onCleanup(@() rmdir(tmpDir, 's'));
+
+            registry = nansen.plugin.action.Registry({testCase.TwoPhotonRoot}, tmpDir);
+            specs = registry.listByEntityType('session');
+            testCase.assumeGreaterThan(numel(specs), 0)
+
+            targetId = specs(1).Id;
+
+            % Initially visible.
+            testCase.verifyTrue(registry.isActionVisible(targetId))
+
+            % After hiding, isActionVisible is false and listByEntityType excludes it.
+            registry.hideAction(targetId);
+            testCase.verifyFalse(registry.isActionVisible(targetId))
+
+            visibleIds = string({registry.listByEntityType('session').Id});
+            testCase.verifyFalse(ismember(targetId, visibleIds), ...
+                'Hidden action must not appear in listByEntityType')
+
+            % IncludeHidden=true brings it back.
+            allIds = string({registry.listByEntityType('session', 'IncludeHidden', true).Id});
+            testCase.verifyTrue(ismember(targetId, allIds), ...
+                'Hidden action must appear when IncludeHidden=true')
+
+            % Restore.
+            registry.showAction(targetId);
+            testCase.verifyTrue(registry.isActionVisible(targetId))
+
+            restoredIds = string({registry.listByEntityType('session').Id});
+            testCase.verifyTrue(ismember(targetId, restoredIds), ...
+                'showAction must restore the action to listByEntityType')
+        end
+
+        function testHiddenStateDoesNotAffectDisabledState(testCase)
+        %testHiddenStateDoesNotAffectDisabledState hide/show and enable/disable are independent.
+            testCase.assumeTrue(isfolder(testCase.TwoPhotonRoot), ...
+                'Twophoton sessionmethod folder not found')
+
+            tmpDir = tempname();
+            mkdir(tmpDir)
+            cleanupDir = onCleanup(@() rmdir(tmpDir, 's'));
+
+            registry = nansen.plugin.action.Registry({testCase.TwoPhotonRoot}, tmpDir);
+            specs = registry.list();
+            testCase.assumeGreaterThan(numel(specs), 0)
+
+            targetId = specs(1).Id;
+
+            % Hiding does not disable.
+            registry.hideAction(targetId);
+            testCase.verifyTrue(registry.isEnabled(targetId), ...
+                'hideAction must not change the enabled state')
+
+            % Enabling does not un-hide.
+            registry.enable(targetId);
+            testCase.verifyFalse(registry.isActionVisible(targetId), ...
+                'enable must not change the hidden state')
+
+            registry.showAction(targetId);
+        end
+
+        function testHiddenStateIsolatedByProjectFolder(testCase)
+        %testHiddenStateIsolatedByProjectFolder Hiding in project A does not hide in project B.
+            testCase.assumeTrue(isfolder(testCase.TwoPhotonRoot), ...
+                'Twophoton sessionmethod folder not found')
+
+            import matlab.unittest.fixtures.TemporaryFolderFixture
+            FA = testCase.applyFixture(TemporaryFolderFixture);
+            FB = testCase.applyFixture(TemporaryFolderFixture);
+
+            regA = nansen.plugin.action.Registry({testCase.TwoPhotonRoot}, FA.Folder);
+            regB = nansen.plugin.action.Registry({testCase.TwoPhotonRoot}, FB.Folder);
+
+            specs = regA.listByEntityType('session');
+            testCase.assumeGreaterThan(numel(specs), 0)
+
+            targetId = specs(1).Id;
+            regA.hideAction(targetId);
+
+            testCase.verifyFalse(regA.isActionVisible(targetId), ...
+                'Action must be hidden in project A')
+            testCase.verifyTrue(regB.isActionVisible(targetId), ...
+                'Hiding in project A must not affect project B')
+        end
+
+    end
+
 end

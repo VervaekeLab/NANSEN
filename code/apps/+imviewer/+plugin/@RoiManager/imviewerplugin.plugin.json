@@ -1,0 +1,12 @@
+{
+    "schemaVersion": "1.0",
+    "id": "imviewer.plugin.RoiManager",
+    "pluginType": "imviewerplugin",
+    "displayName": "Roimanager",
+    "implementation": {
+        "language": "matlab",
+        "kind": "class",
+        "entrypoint": "imviewer.plugin.RoiManager"
+    },
+    "menuLocation": []
+}

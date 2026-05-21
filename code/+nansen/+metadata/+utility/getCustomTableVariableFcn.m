@@ -1,31 +1,69 @@
 function funcHandles = getCustomTableVariableFcn(varNames, projectName, tableType)
+%getCustomTableVariableFcn Return function handles for custom table variable constructors.
+%
+%   funcHandles = getCustomTableVariableFcn(varNames) returns a function
+%   handle (or cell array of handles) for each variable name. Each handle
+%   constructs the corresponding TableVariable instance when called with
+%   no arguments.
+%
+%   funcHandles = getCustomTableVariableFcn(varNames, ~, tableType) filters
+%   by table type ('session' or 'subject'). The second argument (projectName)
+%   is accepted for backward compatibility but is not used; the active project
+%   is resolved via nansen.getCurrentProject.
+%
+%   funcHandles = getCustomTableVariableFcn() returns handles for all
+%   variables of the default ('session') table type.
 
-    %rename: varname2tablevarfunc
-
-    if nargin < 1
-        varNames = nansen.metadata.utility.getCustomTableVariableNames();
+    arguments
+        varNames    = []
+        projectName = []    % ignored; kept for backward compatibility
+        tableType   (1,1) string = "session"
     end
 
-    if nargin < 2 || isempty(projectName)
-        projectManager = nansen.ProjectManager();
-        projectName = projectManager.CurrentProject;
+    funcHandles = {};
+
+    project = nansen.getCurrentProject();
+    if isempty(project); return; end
+
+    rootPaths = nansen.plugin.tablevariable.Registry.collectRootPaths(project);
+    if isempty(rootPaths); return; end
+
+    registry = nansen.plugin.tablevariable.Registry(rootPaths);
+    allSpecs = registry.listByTableType(tableType);
+
+    if isempty(allSpecs); return; end
+
+    % When no variable names are given, return handles for all discovered vars.
+    if isempty(varNames)
+        varNames = arrayfun(@(s) char(s.VariableName), allSpecs, 'uni', false);
+    elseif ischar(varNames) || isstring(varNames)
+        varNames = {char(varNames)};
     end
 
-    if nargin < 3 || isempty(tableType)
-        tableType = 'session';
+    % Build a lower-case name → spec index map for fast lookup.
+    allNames = arrayfun(@(s) lower(char(s.VariableName)), allSpecs, 'uni', false);
+
+    funcHandles = cell(1, numel(varNames));
+    for i = 1:numel(varNames)
+        idx = find(strcmp(lower(varNames{i}), allNames), 1);
+        if ~isempty(idx)
+            entrypoint = char(allSpecs(idx).Implementation.entrypoint);
+            funcHandles{i} = str2func(entrypoint);
+        else
+            % Fallback for variables not yet in the registry: construct the
+            % function name the old way. This keeps existing project-package
+            % table variables working before their sidecars are generated.
+            if ~isempty(projectName)
+                pkgName = char(projectName);
+            else
+                pkgName = char(project.Name);
+            end
+            funcHandles{i} = str2func(strjoin( ...
+                {pkgName, 'tablevariable', char(tableType), varNames{i}}, '.'));
+        end
     end
 
-    packageList = {projectName, 'tablevariable', tableType};
-
-    varname2fcn = @(name) str2func(strjoin([ packageList, name], '.'));
-
-    if iscell(varNames)
-        funcHandles = cellfun(@(name) varname2fcn(name), varNames, 'uni', false);
-    else
-        funcHandles = varname2fcn(varNames);
-    end
-
-    if iscell(funcHandles) && numel(funcHandles) == 1
+    if numel(funcHandles) == 1
         funcHandles = funcHandles{1};
     end
 end

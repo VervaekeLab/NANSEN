@@ -1,0 +1,54 @@
+{
+    "schemaVersion": "1.0",
+    "pluginType": "imviewerplugin",
+    "plugins": [
+        {
+            "schemaVersion": "1.0",
+            "id": "nansen.plugin.imviewer.EXTRACT",
+            "pluginType": "imviewerplugin",
+            "displayName": "EXTRACT",
+            "implementation": {
+                "language": "matlab",
+                "kind": "class",
+                "entrypoint": "nansen.plugin.imviewer.EXTRACT"
+            },
+            "menuLocation": []
+        },
+        {
+            "schemaVersion": "1.0",
+            "id": "nansen.plugin.imviewer.FlowRegistration",
+            "pluginType": "imviewerplugin",
+            "displayName": "Flow Registration",
+            "implementation": {
+                "language": "matlab",
+                "kind": "class",
+                "entrypoint": "nansen.plugin.imviewer.FlowRegistration"
+            },
+            "menuLocation": []
+        },
+        {
+            "schemaVersion": "1.0",
+            "id": "nansen.plugin.imviewer.FluFinder",
+            "pluginType": "imviewerplugin",
+            "displayName": "FluFinder",
+            "implementation": {
+                "language": "matlab",
+                "kind": "class",
+                "entrypoint": "nansen.plugin.imviewer.FluFinder"
+            },
+            "menuLocation": []
+        },
+        {
+            "schemaVersion": "1.0",
+            "id": "nansen.plugin.imviewer.NoRMCorre",
+            "pluginType": "imviewerplugin",
+            "displayName": "NoRMCorre",
+            "implementation": {
+                "language": "matlab",
+                "kind": "class",
+                "entrypoint": "nansen.plugin.imviewer.NoRMCorre"
+            },
+            "menuLocation": ["Align Images"]
+        }
+    ]
+}
