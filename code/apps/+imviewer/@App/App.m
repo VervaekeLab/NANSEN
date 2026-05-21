@@ -1049,16 +1049,7 @@ methods % App initialization & creation
         % % % Menu section with items for plugins.
         %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         if strcmp(obj.mode, 'standalone')
-            % Todo: Create as separate contextmenu on plugin button...
-            mitem = uimenu(m, 'Label', 'Align Images', 'Separator', 'on');
-            tmpItem = uimenu(mitem, 'Label', 'NoRMCorre', 'Enable', 'on');
-            tmpItem.Callback = @(s,e) imviewer.plugin.NoRMCorre(obj, 'Modal', false);
-
-            tmpItem = uimenu(mitem, 'Label', 'FlowReg', 'Enable', 'on');
-            tmpItem.Callback = @(s,e) imviewer.plugin.FlowRegistration(obj, 'Modal', false);
-
-            mitem = uimenu(m, 'Label', 'Open Roimanager');
-            mitem.Callback = @(s, e, h) imviewer.plugin.RoiManager(obj);
+            obj.buildPluginMenuItems_(m);
         end
 
         % % % Menu section with items for linking/unlinking with viewers.
@@ -2226,9 +2217,15 @@ methods % App update
     %   the plugin property here?
 
         % Require function handle for plugin.
-        if ischar(pluginName)
-            pluginFcnName = strjoin({'imviewer', 'plugin', pluginName}, '.');
-            pluginFcn = str2func(pluginFcnName);
+        if ischar(pluginName) || isstring(pluginName)
+            try
+                registry = nansen.plugin.imviewer.Registry.getInstance();
+                spec = registry.findPlugin(string(pluginName));
+                pluginFcn = spec.toFunctionHandle();
+            catch
+                pluginFcnName = strjoin({'imviewer', 'plugin', char(pluginName)}, '.');
+                pluginFcn = str2func(pluginFcnName);
+            end
         elseif isa(pluginName, 'function_handle')
             pluginFcn = pluginName;
         end
@@ -5725,6 +5722,54 @@ methods (Access = protected)
     end
 end
 
+methods (Access = private) % Plugin menu helpers
+
+    function buildPluginMenuItems_(obj, parentMenu)
+    %buildPluginMenuItems_ Populate parentMenu with registry-discovered plugins.
+    %
+    %   Plugins with a non-empty MenuLocation are nested under a submenu
+    %   whose label is the first segment. Root-level plugins are added
+    %   directly. A top separator precedes the first plugin item.
+        try
+            registry = nansen.plugin.imviewer.Registry.getInstance();
+            specs = registry.list();
+        catch
+            return
+        end
+        if isempty(specs); return; end
+
+        submenus = containers.Map('KeyType', 'char', 'ValueType', 'any');
+        isFirst = true;
+
+        for i = 1:numel(specs)
+            spec = specs(i);
+            try
+                fcn = spec.toFunctionHandle();
+            catch
+                continue
+            end
+            loc   = spec.MenuLocation;
+            label = char(spec.DisplayName);
+            sep   = 'off';
+            if isFirst; sep = 'on'; isFirst = false; end %#ok<SEPEX>
+
+            if isempty(loc)
+                mitem = uimenu(parentMenu, 'Label', label, 'Separator', sep);
+                mitem.Callback = @(s, e) fcn(obj);
+            else
+                submenuLabel = char(loc(1));
+                if ~isKey(submenus, submenuLabel)
+                    hSub = uimenu(parentMenu, 'Label', submenuLabel, 'Separator', sep);
+                    submenus(submenuLabel) = hSub;
+                end
+                mitem = uimenu(submenus(submenuLabel), 'Label', label);
+                mitem.Callback = @(s, e) fcn(obj);
+            end
+        end
+    end
+
+end
+
 methods (Access = private) % Methods that runs when properties are set
 
     function onImageStackSet(obj)
@@ -5964,11 +6009,19 @@ methods (Static)
     end
 
     function pluginFcn = getPluginFcnFromName(pluginName)
-        pluginPackage = {'imviewer.plugin', 'nansen.plugin.imviewer'};
+        try
+            registry = nansen.plugin.imviewer.Registry.getInstance();
+            spec = registry.findPlugin(string(pluginName));
+            pluginFcn = spec.toFunctionHandle();
+            return
+        catch
+        end
 
+        % Legacy fallback: search known imviewer plugin packages.
+        pluginPackage = {'imviewer.plugin', 'nansen.plugin.imviewer'};
         pluginFcn = [];
         for i = 1:2
-            pluginFcnName = strjoin([pluginPackage(i), pluginName], '.');
+            pluginFcnName = strjoin([pluginPackage(i), {pluginName}], '.');
             str = which(pluginFcnName);
             if ~isempty(str)
                 pluginFcn = str2func(pluginFcnName);
