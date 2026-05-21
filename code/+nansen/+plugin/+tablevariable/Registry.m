@@ -52,6 +52,29 @@ classdef Registry < nansen.plugin.base.Registry
     end
 
     % ------------------------------------------------------------------ %
+    methods (Static)
+
+        function registry = getInstance(projectFolder)
+        %getInstance Return a registry scoped to the given project folder.
+        %
+        %   This form has no root paths — it returns an empty registry
+        %   suitable for API access (validate, diagnose) without project context.
+        %   For a populated registry, construct directly:
+        %     registry = nansen.plugin.tablevariable.Registry(rootPaths, projectFolder)
+            arguments
+                projectFolder (1,1) string = ""
+            end
+            persistent cachedRegistry
+            if isempty(cachedRegistry) || ~isvalid(cachedRegistry) ...
+                    || cachedRegistry.ProjectFolder ~= projectFolder
+                cachedRegistry = nansen.plugin.tablevariable.Registry({}, projectFolder);
+            end
+            registry = cachedRegistry;
+        end
+
+    end
+
+    % ------------------------------------------------------------------ %
     % Public API extensions
     % ------------------------------------------------------------------ %
     methods
