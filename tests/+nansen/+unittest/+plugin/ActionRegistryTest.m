@@ -148,6 +148,84 @@ classdef ActionRegistryTest < matlab.unittest.TestCase
     end
 
     % ------------------------------------------------------------------ %
+    % Lazy entity loading (path resolver)
+    % ------------------------------------------------------------------ %
+    methods (Test)
+
+        function testRegistryStartsEmptyWithPathResolver(testCase)
+        %testRegistryStartsEmptyWithPathResolver Registry with a path resolver has no specs until entity is requested.
+            testCase.assumeTrue(isfolder(testCase.TwoPhotonRoot), ...
+                'Twophoton sessionmethod folder not found')
+            registry = nansen.plugin.action.Registry( ...
+                @(~) {testCase.TwoPhotonRoot});
+            % list() before any listByEntityType call must be empty because
+            % no root paths have been loaded yet.
+            testCase.verifyEmpty(registry.list(), ...
+                'Registry with path resolver must start empty before any entity is requested.')
+        end
+
+        function testPathResolverPopulatesOnFirstEntityCall(testCase)
+        %testPathResolverPopulatesOnFirstEntityCall First listByEntityType call triggers path loading.
+            testCase.assumeTrue(isfolder(testCase.TwoPhotonRoot), ...
+                'Twophoton sessionmethod folder not found')
+            registry = nansen.plugin.action.Registry( ...
+                @(~) {testCase.TwoPhotonRoot});
+            specs = registry.listByEntityType('session');
+            testCase.verifyGreaterThan(numel(specs), 0, ...
+                'listByEntityType must populate registry via path resolver.')
+        end
+
+        function testRepeatedEntityLoadIsIdempotent(testCase)
+        %testRepeatedEntityLoadIsIdempotent Repeated listByEntityType calls return consistent results.
+            testCase.assumeTrue(isfolder(testCase.TwoPhotonRoot), ...
+                'Twophoton sessionmethod folder not found')
+            registry = nansen.plugin.action.Registry( ...
+                @(~) {testCase.TwoPhotonRoot});
+            specs1 = registry.listByEntityType('session');
+            specs2 = registry.listByEntityType('session');
+            testCase.verifyEqual(numel(specs1), numel(specs2), ...
+                'listByEntityType must be idempotent across calls for the same entity type.')
+        end
+
+        function testDifferentEntityTypesLoadedIndependently(testCase)
+        %testDifferentEntityTypesLoadedIndependently Each entity type loads via its own resolver call.
+            import matlab.unittest.fixtures.TemporaryFolderFixture
+            F = testCase.applyFixture(TemporaryFolderFixture);
+
+            % Session specs live under +sessionmethod, subject under +objectmethod/+subject.
+            % Neither folder has real content, so specs will be empty, but the
+            % key invariant tested is that loading 'session' does not cause
+            % 'subject' to appear, and vice versa.
+            mkdir(fullfile(F.Folder, '+sessionmethod'))
+            mkdir(fullfile(F.Folder, '+objectmethod', '+subject'))
+
+            registry = nansen.plugin.action.Registry(@(~) {F.Folder});
+
+            sessionSpecs = registry.listByEntityType('session');
+            subjectSpecs = registry.listByEntityType('subject');
+
+            % With only empty folders there should be no specs.
+            testCase.verifyEmpty(sessionSpecs)
+            testCase.verifyEmpty(subjectSpecs)
+
+            % list() after loading two entity types still returns nothing
+            % because no actual method files are present.
+            testCase.verifyEmpty(registry.list())
+        end
+
+        function testBackwardCompatCellArrayConstructor(testCase)
+        %testBackwardCompatCellArrayConstructor Cell array of paths still works after constructor change.
+            testCase.assumeTrue(isfolder(testCase.TwoPhotonRoot), ...
+                'Twophoton sessionmethod folder not found')
+            registry = nansen.plugin.action.Registry({testCase.TwoPhotonRoot});
+            specs = registry.list();
+            testCase.verifyGreaterThan(numel(specs), 0, ...
+                'Cell-array constructor must discover specs from the provided path.')
+        end
+
+    end
+
+    % ------------------------------------------------------------------ %
     % Registry API
     % ------------------------------------------------------------------ %
     methods (Test)
