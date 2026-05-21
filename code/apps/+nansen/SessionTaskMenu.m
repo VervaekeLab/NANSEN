@@ -86,6 +86,7 @@ classdef SessionTaskMenu < handle
         IsConstructed (1,1) logical = false
         SkipRefresh (1,1) logical = false % Flag to skip refresh of menu
         ProjectChangedListener event.listener % Not implemented yet
+        ModuleListChangedListener_ event.listener
     end
 
     events
@@ -492,6 +493,12 @@ classdef SessionTaskMenu < handle
     methods (Access = private) % Utility methods
 
         function onCurrentProjectSet(obj)
+            % Re-wire the module change listener for the new project.
+            delete(obj.ModuleListChangedListener_)
+            obj.ModuleListChangedListener_ = addlistener( ...
+                obj.CurrentProject, 'ModuleListChanged', ...
+                @(~,~) obj.onCurrentItemTypeSet());
+
             rootDirectories = obj.CurrentProject.getSessionMethodFolder();
             obj.MethodsRootPath = rootDirectories;
         end

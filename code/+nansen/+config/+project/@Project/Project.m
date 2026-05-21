@@ -70,6 +70,11 @@ classdef Project < nansen.module.Module
         RequiredModuleName = nansen.common.constant.BaseModuleName;
     end
 
+    events
+        % ModuleListChanged - Fired when IncludedModules is added to or removed from.
+        ModuleListChanged
+    end
+
     % Constructor.
     methods (Access = {?nansen.config.project.ProjectManager, ?nansen.config.project.Project})
         function obj = Project(projectName, projectFolder)
@@ -682,6 +687,10 @@ classdef Project < nansen.module.Module
                     % Update variable model based on module's template variables
                     variableList = table2struct( module.getTable('DataVariables') );
                     obj.VariableModel.addDataVariableSet(variableList)
+                end
+
+                if ~isempty(addedModuleID) || ~isempty(removeIdx)
+                    notify(obj, 'ModuleListChanged')
                 end
             end
         end
