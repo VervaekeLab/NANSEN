@@ -31,10 +31,6 @@ classdef Registry < nansen.plugin.base.Registry
         SidecarFilename = "tablevariable.plugin.json"
     end
 
-    properties (Access = private)
-        RootPaths_ cell = {}
-    end
-
     % ------------------------------------------------------------------ %
     methods
 
@@ -50,11 +46,7 @@ classdef Registry < nansen.plugin.base.Registry
                 rootPaths     = {}
                 projectFolder (1,1) string = ""
             end
-            obj@nansen.plugin.base.Registry(projectFolder)
-            if ischar(rootPaths) || isstring(rootPaths)
-                rootPaths = cellstr(rootPaths);
-            end
-            obj.RootPaths_ = rootPaths;
+            obj@nansen.plugin.base.Registry(rootPaths, projectFolder);
         end
 
     end
@@ -137,11 +129,6 @@ classdef Registry < nansen.plugin.base.Registry
     % ------------------------------------------------------------------ %
     methods (Access = protected)
 
-        function rootPaths = getRootPaths(obj)
-        %getRootPaths Return discovery root paths (as provided at construction).
-            rootPaths = obj.RootPaths_;
-        end
-
         function specs = parseSidecarFile(~, filePath)
         %parseSidecarFile Parse a table variable sidecar file into a spec array.
             specs = nansen.plugin.tablevariable.TableVariableSpec.fromJsonFile(filePath);
@@ -195,12 +182,6 @@ classdef Registry < nansen.plugin.base.Registry
     % ------------------------------------------------------------------ %
     methods (Access = private)
 
-        function tf = hasSidecarForSourcePath(obj, mFilePath)
-        %hasSidecarForSourcePath True when a sidecar exists alongside the .m file.
-            sidecarPath = fullfile(fileparts(mFilePath), obj.SidecarFilename);
-            tf = isfile(sidecarPath);
-        end
-
         function spec = createSpecFromMFile_(~, filePath, tableType)
         %createSpecFromMFile_ Build a TableVariableSpec from a discovered .m file.
             functionName = utility.path.abspath2funcname(filePath);
@@ -228,8 +209,8 @@ classdef Registry < nansen.plugin.base.Registry
                 'Implementation', struct('language', 'matlab', 'kind', 'class', 'entrypoint', functionName), ...
                 'VariableName',   string(fileName), ...
                 'TableType',      string(tableType), ...
-                'IsEditable',     logical(nansen.plugin.tablevariable.Registry.getAttr_(attrs, 'IS_EDITABLE', false)), ...
-                'DefaultValue',   nansen.plugin.tablevariable.Registry.getAttr_(attrs, 'DEFAULT_VALUE', []));
+                'IsEditable',     logical(nansen.plugin.base.Registry.getAttr_(attrs, 'IS_EDITABLE', false)), ...
+                'DefaultValue',   nansen.plugin.base.Registry.getAttr_(attrs, 'DEFAULT_VALUE', []));
 
             if isfield(attrs, 'LIST_ALTERNATIVES') && ~isempty(attrs.LIST_ALTERNATIVES)
                 opts.Alternatives = string(attrs.LIST_ALTERNATIVES(:)');
@@ -278,21 +259,8 @@ classdef Registry < nansen.plugin.base.Registry
 
         function tf = isTableVariableClass_(mc)
         %isTableVariableClass_ True when the metaclass inherits from TableVariable.
-            tf = nansen.plugin.tablevariable.Registry.hasSuperclass_(mc, ...
+            tf = nansen.plugin.base.Registry.hasSuperclass_(mc, ...
                 'nansen.metadata.abstract.TableVariable');
-        end
-
-        function tf = hasSuperclass_(mc, superclassName)
-        %hasSuperclass_ Recursive superclass check (handles deep hierarchies).
-            tf = false;
-            for i = 1:numel(mc.SuperclassList)
-                if strcmp(mc.SuperclassList(i).Name, superclassName) || ...
-                        nansen.plugin.tablevariable.Registry.hasSuperclass_( ...
-                        mc.SuperclassList(i), superclassName)
-                    tf = true;
-                    return
-                end
-            end
         end
 
         function attributes = readClassAttributes_(mc)
@@ -308,15 +276,6 @@ classdef Registry < nansen.plugin.base.Registry
                         attributes.(constantProps{i}) = prop.DefaultValue;
                     end
                 end
-            end
-        end
-
-        function value = getAttr_(S, fieldName, defaultValue)
-        %getAttr_ Safe struct field read with a default.
-            if isfield(S, fieldName) && ~isempty(S.(fieldName))
-                value = S.(fieldName);
-            else
-                value = defaultValue;
             end
         end
 

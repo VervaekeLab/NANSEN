@@ -22,6 +22,23 @@ classdef Registry < nansen.plugin.base.Registry
     end
 
     % ------------------------------------------------------------------ %
+    methods
+
+        function obj = Registry(projectFolder)
+        %Registry Construct a file adapter registry for the given project.
+        %
+        %   Resolves root paths from fixed code locations and the global
+        %   module root, with project-first precedence.
+            arguments
+                projectFolder (1,1) string = ""
+            end
+            rootPaths = nansen.plugin.fileadapter.Registry.resolveRootPaths_(projectFolder);
+            obj@nansen.plugin.base.Registry(rootPaths, projectFolder);
+        end
+
+    end
+
+    % ------------------------------------------------------------------ %
     methods (Static)
 
         function registry = getInstance(projectFolder)
@@ -159,31 +176,6 @@ classdef Registry < nansen.plugin.base.Registry
     % ------------------------------------------------------------------ %
     methods (Access = protected)
 
-        function rootPaths = getRootPaths(obj)
-        %getRootPaths Return ordered discovery roots (project first, builtin last).
-            % Navigate from this file to the code root to avoid nansen.localpath
-            thisDir  = fileparts(mfilename('fullpath'));
-            % thisDir = .../code/+nansen/+plugin/+fileadapter
-            codeRoot = fileparts(fileparts(fileparts(thisDir)));
-
-            builtinRoot = fullfile(codeRoot, '+nansen', '+dataio', '+fileadapter');
-            modulesRoot = nansen.common.constant.ModuleRootDirectory();
-
-            rootPaths = {};
-
-            if obj.ProjectFolder ~= ""
-                rootPaths{end+1} = char(obj.ProjectFolder);
-            end
-
-            if isfolder(modulesRoot)
-                rootPaths{end+1} = modulesRoot;
-            end
-
-            if isfolder(builtinRoot)
-                rootPaths{end+1} = builtinRoot;
-            end
-        end
-
         function specs = parseSidecarFile(~, filePath)
         %parseSidecarFile Parse a sidecar file into a FileAdapterSpec array.
             specs = nansen.plugin.fileadapter.FileAdapterSpec.fromJsonFile(filePath);
@@ -261,12 +253,6 @@ classdef Registry < nansen.plugin.base.Registry
     % ------------------------------------------------------------------ %
     methods (Access = private)
 
-        function tf = hasSidecarForSourcePath(obj, mFilePath)
-        %hasSidecarForSourcePath True when a sidecar exists alongside the .m file.
-            sidecarPath = fullfile(fileparts(mFilePath), obj.SidecarFilename);
-            tf = isfile(sidecarPath);
-        end
-
         function spec = specFromMetaClass(~, mc, filePath)
         %specFromMetaClass Build a FileAdapterSpec from a FileAdapter metaclass.
             [~, displayName] = fileparts(filePath);
@@ -292,6 +278,25 @@ classdef Registry < nansen.plugin.base.Registry
     end
 
     methods (Static, Access = private)
+
+        function rootPaths = resolveRootPaths_(projectFolder)
+        %resolveRootPaths_ Compute ordered discovery roots from code locations.
+            thisDir     = fileparts(mfilename('fullpath'));
+            codeRoot    = fileparts(fileparts(fileparts(thisDir)));
+            builtinRoot = fullfile(codeRoot, '+nansen', '+dataio', '+fileadapter');
+            modulesRoot = nansen.common.constant.ModuleRootDirectory();
+
+            rootPaths = {};
+            if projectFolder ~= ""
+                rootPaths{end+1} = char(projectFolder);
+            end
+            if isfolder(modulesRoot)
+                rootPaths{end+1} = modulesRoot;
+            end
+            if isfolder(builtinRoot)
+                rootPaths{end+1} = builtinRoot;
+            end
+        end
 
         function tf = isFileAdapterClass(mc)
         %isFileAdapterClass True when the metaclass inherits from nansen.dataio.FileAdapter.

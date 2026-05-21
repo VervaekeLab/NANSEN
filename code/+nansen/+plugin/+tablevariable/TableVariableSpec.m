@@ -125,18 +125,7 @@ classdef TableVariableSpec < nansen.plugin.base.PluginSpec
                 sourcePath (1,1) string = ""
             end
 
-            opts = struct();
-            if isfield(S, 'id');             opts.Id             = string(S.id);          end
-            if isfield(S, 'displayName');    opts.DisplayName    = string(S.displayName); end
-            if isfield(S, 'description');    opts.Description    = string(S.description); end
-            if isfield(S, 'version');        opts.PluginVersion  = string(S.version);     end
-            if isfield(S, 'source');         opts.Source         = string(S.source);      end
-            if isfield(S, 'provider');       opts.Provider       = S.provider;            end
-            if isfield(S, 'implementation'); opts.Implementation = S.implementation;      end
-            if isfield(S, 'capabilities') && ~isempty(S.capabilities)
-                opts.Capabilities = string(S.capabilities);
-            end
-            opts.SourcePath = sourcePath;
+            opts = nansen.plugin.base.PluginSpec.parseBaseFields(S, sourcePath);
 
             if isfield(S, 'variableName') && ~isempty(S.variableName)
                 opts.VariableName = string(S.variableName);
@@ -157,20 +146,6 @@ classdef TableVariableSpec < nansen.plugin.base.PluginSpec
     end
 
     methods (Access = private)
-
-        function name = resolveEntrypoint_(obj)
-        %resolveEntrypoint_ Return the MATLAB callable name from Implementation.
-            name = '';
-            if ~isstruct(obj.Implementation); return; end
-            if isfield(obj.Implementation, 'entrypoint')
-                name = char(string(obj.Implementation.entrypoint));
-            elseif isfield(obj.Implementation, 'class')
-                name = char(string(obj.Implementation.class));
-            else
-                name = char(obj.Id);
-            end
-        end
-
     end
 
     methods (Static, Access = private)
@@ -194,7 +169,7 @@ classdef TableVariableSpec < nansen.plugin.base.PluginSpec
             end
 
             % Check for TableColumnFormatter mixin (renderer support)
-            if nansen.plugin.tablevariable.TableVariableSpec.hasSuperclass_( ...
+            if nansen.plugin.base.Registry.hasSuperclass_( ...
                     mc, 'nansen.metadata.abstract.TableColumnFormatter')
                 S.HasRendererFunction  = true;
                 S.RendererFunctionName = className;
@@ -211,19 +186,6 @@ classdef TableVariableSpec < nansen.plugin.base.PluginSpec
             if ~strcmp(defClass, baseClass)
                 tf      = true;
                 fcnName = strjoin({className, methodName}, '.');
-            end
-        end
-
-        function tf = hasSuperclass_(mc, superclassName)
-        %hasSuperclass_ Recursive superclass check.
-            tf = false;
-            for i = 1:numel(mc.SuperclassList)
-                if strcmp(mc.SuperclassList(i).Name, superclassName) || ...
-                        nansen.plugin.tablevariable.TableVariableSpec.hasSuperclass_( ...
-                        mc.SuperclassList(i), superclassName)
-                    tf = true;
-                    return
-                end
             end
         end
 

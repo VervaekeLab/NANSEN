@@ -26,10 +26,6 @@ classdef Registry < nansen.plugin.base.Registry
         SidecarFilename = "action.plugin.json"
     end
 
-    properties (Access = private)
-        RootPaths_ cell = {}
-    end
-
     % ------------------------------------------------------------------ %
     methods
 
@@ -45,11 +41,7 @@ classdef Registry < nansen.plugin.base.Registry
                 rootPaths     = {}
                 projectFolder (1,1) string = ""
             end
-            obj@nansen.plugin.base.Registry(projectFolder)
-            if ischar(rootPaths) || isstring(rootPaths)
-                rootPaths = cellstr(rootPaths);
-            end
-            obj.RootPaths_ = rootPaths;
+            obj@nansen.plugin.base.Registry(rootPaths, projectFolder);
         end
 
     end
@@ -90,11 +82,6 @@ classdef Registry < nansen.plugin.base.Registry
     % Required abstract implementations
     % ------------------------------------------------------------------ %
     methods (Access = protected)
-
-        function rootPaths = getRootPaths(obj)
-        %getRootPaths Return discovery root paths (as provided at construction).
-            rootPaths = obj.RootPaths_;
-        end
 
         function specs = parseSidecarFile(~, filePath)
         %parseSidecarFile Parse an action sidecar file into an ActionSpec array.
@@ -140,12 +127,6 @@ classdef Registry < nansen.plugin.base.Registry
     % Private helpers
     % ------------------------------------------------------------------ %
     methods (Access = private)
-
-        function tf = hasSidecarForSourcePath(obj, mFilePath)
-        %hasSidecarForSourcePath True when a sidecar exists alongside the .m file.
-            sidecarPath = fullfile(fileparts(mFilePath), obj.SidecarFilename);
-            tf = isfile(sidecarPath);
-        end
 
         function spec = createSpecFromMFile_(~, filePath, rootPaths)
         %createSpecFromMFile_ Infer an ActionSpec from a session method file.
@@ -196,8 +177,8 @@ classdef Registry < nansen.plugin.base.Registry
                 'Implementation', struct('language', 'matlab', 'kind', kind, 'entrypoint', functionName), ...
                 'EntityType',   "session", ...
                 'MethodName',   string(displayName), ...
-                'BatchMode',    string(nansen.plugin.action.Registry.getAttr_(attributes, 'BatchMode', 'serial')), ...
-                'IsQueueable',  logical(nansen.plugin.action.Registry.getAttr_(attributes, 'IsQueueable', true)), ...
+                'BatchMode',    string(nansen.plugin.base.Registry.getAttr_(attributes, 'BatchMode', 'serial')), ...
+                'IsQueueable',  logical(nansen.plugin.base.Registry.getAttr_(attributes, 'IsQueueable', true)), ...
                 'MenuLocation', menuLoc);
 
             if isfield(attributes, 'Alternatives') && ~isempty(attributes.Alternatives)
@@ -294,30 +275,8 @@ classdef Registry < nansen.plugin.base.Registry
 
         function tf = isSessionMethodClass_(mc)
         %isSessionMethodClass_ True when the metaclass inherits from SessionMethod.
-            tf = nansen.plugin.action.Registry.hasSuperclass_(mc, ...
+            tf = nansen.plugin.base.Registry.hasSuperclass_(mc, ...
                 'nansen.session.SessionMethod');
-        end
-
-        function tf = hasSuperclass_(mc, superclassName)
-        %hasSuperclass_ Recursive superclass check (handles deep hierarchies).
-            tf = false;
-            for i = 1:numel(mc.SuperclassList)
-                if strcmp(mc.SuperclassList(i).Name, superclassName) || ...
-                        nansen.plugin.action.Registry.hasSuperclass_( ...
-                        mc.SuperclassList(i), superclassName)
-                    tf = true;
-                    return
-                end
-            end
-        end
-
-        function value = getAttr_(S, fieldName, defaultValue)
-        %getAttr_ Safe struct field read with a default.
-            if isfield(S, fieldName) && ~isempty(S.(fieldName))
-                value = S.(fieldName);
-            else
-                value = defaultValue;
-            end
         end
 
     end

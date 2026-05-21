@@ -90,18 +90,7 @@ classdef ImviewerPluginSpec < nansen.plugin.base.PluginSpec
                 sourcePath (1,1) string = ""
             end
 
-            opts = struct();
-            if isfield(S, 'id');             opts.Id             = string(S.id);          end
-            if isfield(S, 'displayName');    opts.DisplayName    = string(S.displayName); end
-            if isfield(S, 'description');    opts.Description    = string(S.description); end
-            if isfield(S, 'version');        opts.PluginVersion  = string(S.version);     end
-            if isfield(S, 'source');         opts.Source         = string(S.source);      end
-            if isfield(S, 'provider');       opts.Provider       = S.provider;            end
-            if isfield(S, 'implementation'); opts.Implementation = S.implementation;      end
-            if isfield(S, 'capabilities') && ~isempty(S.capabilities)
-                opts.Capabilities = string(S.capabilities);
-            end
-            opts.SourcePath = sourcePath;
+            opts = nansen.plugin.base.PluginSpec.parseBaseFields(S, sourcePath);
 
             if isfield(S, 'menuLocation') && ~isempty(S.menuLocation)
                 opts.MenuLocation = string(S.menuLocation(:)');
@@ -114,23 +103,6 @@ classdef ImviewerPluginSpec < nansen.plugin.base.PluginSpec
             end
 
             spec = nansen.plugin.imviewer.ImviewerPluginSpec(opts);
-        end
-
-    end
-
-    methods (Access = private)
-
-        function name = resolveEntrypoint_(obj)
-        %resolveEntrypoint_ Return the MATLAB callable name from Implementation.
-            name = '';
-            if ~isstruct(obj.Implementation); return; end
-            if isfield(obj.Implementation, 'entrypoint')
-                name = char(string(obj.Implementation.entrypoint));
-            elseif isfield(obj.Implementation, 'class')
-                name = char(string(obj.Implementation.class));
-            else
-                name = char(obj.Id);
-            end
         end
 
     end

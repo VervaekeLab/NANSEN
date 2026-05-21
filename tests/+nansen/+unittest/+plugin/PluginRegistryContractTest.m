@@ -209,12 +209,20 @@ classdef PluginRegistryContractTest < matlab.unittest.TestCase
 
         function testIncludeDisabledReturnsAllSpecs(testCase)
         %testIncludeDisabledReturnsAllSpecs list(IncludeDisabled=true) includes disabled specs.
+        %
+        %   Two plugins must live in separate subfolders because writeSidecar_
+        %   always writes to <folder>/test.plugin.json — a second write to the
+        %   same folder would overwrite the first.
             import matlab.unittest.fixtures.TemporaryFolderFixture
             F = testCase.applyFixture(TemporaryFolderFixture);
 
-            testCase.writeSidecar_(F.Folder, 'test.Visible', 'Visible Plugin')
-            testCase.writeSidecar_(F.Folder, 'test.Hidden',  'Hidden Plugin')
-            reg = nansen.unittest.plugin.fixture.TestRegistry(F.Folder, F.Folder);
+            dirA = fullfile(F.Folder, 'A'); mkdir(dirA)
+            dirB = fullfile(F.Folder, 'B'); mkdir(dirB)
+
+            testCase.writeSidecar_(dirA, 'test.Visible', 'Visible Plugin')
+            testCase.writeSidecar_(dirB, 'test.Hidden',  'Hidden Plugin')
+            reg = nansen.unittest.plugin.fixture.MultiRootTestRegistry( ...
+                {dirA, dirB}, F.Folder);
             reg.disable('test.Hidden');
 
             allSpecs = reg.list('IncludeDisabled', true);

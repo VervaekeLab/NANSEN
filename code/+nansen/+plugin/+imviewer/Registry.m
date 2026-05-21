@@ -28,6 +28,23 @@ classdef Registry < nansen.plugin.base.Registry
     end
 
     % ------------------------------------------------------------------ %
+    methods
+
+        function obj = Registry(projectFolder)
+        %Registry Construct an imviewer plugin registry for the given project.
+        %
+        %   Resolves root paths from fixed code locations, with project-first
+        %   precedence.
+            arguments
+                projectFolder (1,1) string = ""
+            end
+            rootPaths = nansen.plugin.imviewer.Registry.resolveRootPaths_(projectFolder);
+            obj@nansen.plugin.base.Registry(rootPaths, projectFolder);
+        end
+
+    end
+
+    % ------------------------------------------------------------------ %
     methods (Static)
 
         function registry = getInstance(projectFolder)
@@ -91,30 +108,6 @@ classdef Registry < nansen.plugin.base.Registry
     % ------------------------------------------------------------------ %
     methods (Access = protected)
 
-        function rootPaths = getRootPaths(obj)
-        %getRootPaths Return ordered discovery roots.
-            thisDir  = fileparts(mfilename('fullpath'));
-            % thisDir = .../code/+nansen/+plugin/+imviewer
-            codeRoot = fileparts(fileparts(fileparts(thisDir)));
-
-            appPluginRoot     = fullfile(codeRoot, 'apps', '+imviewer', '+plugin');
-            wrapperPluginRoot = fullfile(codeRoot, 'wrappers', '+nansen', '+plugin', '+imviewer');
-
-            rootPaths = {};
-
-            if obj.ProjectFolder ~= ""
-                rootPaths{end+1} = char(obj.ProjectFolder);
-            end
-
-            if isfolder(appPluginRoot)
-                rootPaths{end+1} = appPluginRoot;
-            end
-
-            if isfolder(wrapperPluginRoot)
-                rootPaths{end+1} = wrapperPluginRoot;
-            end
-        end
-
         function specs = parseSidecarFile(~, filePath)
         %parseSidecarFile Parse an imviewer plugin sidecar into a spec array.
             specs = nansen.plugin.imviewer.ImviewerPluginSpec.fromJsonFile(filePath);
@@ -164,12 +157,6 @@ classdef Registry < nansen.plugin.base.Registry
     % ------------------------------------------------------------------ %
     methods (Access = private)
 
-        function tf = hasSidecarForSourcePath(obj, mFilePath)
-        %hasSidecarForSourcePath True when a sidecar exists alongside the .m file.
-            sidecarPath = fullfile(fileparts(mFilePath), obj.SidecarFilename);
-            tf = isfile(sidecarPath);
-        end
-
         function spec = createSpecFromMFile_(~, filePath)
         %createSpecFromMFile_ Build an ImviewerPluginSpec from a discovered .m file.
             functionName = utility.path.abspath2funcname(filePath);
@@ -210,6 +197,25 @@ classdef Registry < nansen.plugin.base.Registry
     % ------------------------------------------------------------------ %
     methods (Static, Access = private)
 
+        function rootPaths = resolveRootPaths_(projectFolder)
+        %resolveRootPaths_ Compute ordered discovery roots from code locations.
+            thisDir           = fileparts(mfilename('fullpath'));
+            codeRoot          = fileparts(fileparts(fileparts(thisDir)));
+            appPluginRoot     = fullfile(codeRoot, 'apps', '+imviewer', '+plugin');
+            wrapperPluginRoot = fullfile(codeRoot, 'wrappers', '+nansen', '+plugin', '+imviewer');
+
+            rootPaths = {};
+            if projectFolder ~= ""
+                rootPaths{end+1} = char(projectFolder);
+            end
+            if isfolder(appPluginRoot)
+                rootPaths{end+1} = appPluginRoot;
+            end
+            if isfolder(wrapperPluginRoot)
+                rootPaths{end+1} = wrapperPluginRoot;
+            end
+        end
+
         function files = listMatlabFiles_(rootPath)
         %listMatlabFiles_ Return .m files from @ClassName/ folders and flat files.
             files = {};
@@ -239,9 +245,9 @@ classdef Registry < nansen.plugin.base.Registry
 
         function tf = isImviewerPluginClass_(mc)
         %isImviewerPluginClass_ True when the metaclass inherits from ImviewerPlugin.
-            tf = nansen.plugin.imviewer.Registry.hasSuperclass_( ...
+            tf = nansen.plugin.base.Registry.hasSuperclass_( ...
                 mc, 'imviewer.ImviewerPlugin') || ...
-                 nansen.plugin.imviewer.Registry.hasSuperclass_( ...
+                 nansen.plugin.base.Registry.hasSuperclass_( ...
                 mc, 'applify.mixin.AppPlugin');
         end
 
@@ -260,19 +266,6 @@ classdef Registry < nansen.plugin.base.Registry
                 end
             end
             tf = false;
-        end
-
-        function tf = hasSuperclass_(mc, superclassName)
-        %hasSuperclass_ Recursive superclass check.
-            tf = false;
-            for i = 1:numel(mc.SuperclassList)
-                if strcmp(mc.SuperclassList(i).Name, superclassName) || ...
-                        nansen.plugin.imviewer.Registry.hasSuperclass_( ...
-                        mc.SuperclassList(i), superclassName)
-                    tf = true;
-                    return
-                end
-            end
         end
 
         function name = readName_(mc, fallback)

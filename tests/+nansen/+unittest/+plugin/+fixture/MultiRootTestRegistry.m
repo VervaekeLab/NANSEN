@@ -9,10 +9,6 @@ classdef MultiRootTestRegistry < nansen.plugin.base.Registry
         SidecarFilename = "test.plugin.json"
     end
 
-    properties
-        RootPaths (1,:) cell = {}
-    end
-
     methods
 
         function obj = MultiRootTestRegistry(rootPaths, projectFolder)
@@ -21,20 +17,12 @@ classdef MultiRootTestRegistry < nansen.plugin.base.Registry
                 rootPaths = {}
                 projectFolder (1,1) string = ""
             end
-            obj@nansen.plugin.base.Registry(projectFolder)
-            if ischar(rootPaths) || isstring(rootPaths)
-                rootPaths = cellstr(rootPaths);
-            end
-            obj.RootPaths = rootPaths;
+            obj@nansen.plugin.base.Registry(rootPaths, projectFolder);
         end
 
     end
 
     methods (Access = protected)
-
-        function roots = getRootPaths(obj)
-            roots = obj.RootPaths;
-        end
 
         function specs = discoverCompatibilitySpecs(~)
             specs = [];

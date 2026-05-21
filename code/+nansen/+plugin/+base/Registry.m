@@ -35,6 +35,11 @@ classdef (Abstract) Registry < handle
         ProjectFolder (1,1) string = ""
     end
 
+    properties (Access = protected)
+        % RootPaths_ - Ordered discovery roots (project first, builtin last).
+        RootPaths_ (1,:) cell = {}
+    end
+
     properties (SetAccess = protected)
         % Specs - Discovered plugin specs (typed array set by concrete subclass).
         Specs
@@ -56,12 +61,24 @@ classdef (Abstract) Registry < handle
 
     % ------------------------------------------------------------------ %
     methods
-        function obj = Registry(projectFolder)
-        %Registry Construct a registry for the given project folder.
+        function obj = Registry(rootPaths, projectFolder)
+        %Registry Construct a registry with ordered discovery roots.
+        %
+        %   obj = Registry(rootPaths, projectFolder)
+        %
+        %   rootPaths     - Cell array of absolute folder paths, ordered
+        %                   highest-priority first (project, modules, builtin).
+        %   projectFolder - Root folder of the owning project (or "" for
+        %                   global). Scopes the disabled-plugin state file.
             arguments
+                rootPaths     = {}
                 projectFolder (1,1) string = ""
             end
+            if ischar(rootPaths) || isstring(rootPaths)
+                rootPaths = cellstr(rootPaths);
+            end
             obj.ProjectFolder = projectFolder;
+            obj.RootPaths_    = rootPaths;
             obj.Specs  = [];
             obj.Issues = obj.emptyIssues();
             obj.MtimeCache = containers.Map('KeyType', 'char', 'ValueType', 'double');
@@ -259,9 +276,6 @@ classdef (Abstract) Registry < handle
     % Abstract methods — subclasses must implement
     % ------------------------------------------------------------------ %
     methods (Abstract, Access = protected)
-        % getRootPaths Return ordered search roots (project first, builtin last).
-        rootPaths = getRootPaths(obj)
-
         % parseSidecarFile Decode a sidecar file into a typed spec array.
         %
         %   This method is called by loadSidecarFile when a file needs to be
@@ -277,6 +291,20 @@ classdef (Abstract) Registry < handle
     % Protected discovery helpers
     % ------------------------------------------------------------------ %
     methods (Access = protected)
+
+        function rootPaths = getRootPaths(obj)
+        %getRootPaths Return ordered discovery roots (highest-priority first).
+        %
+        %   Default implementation returns the RootPaths_ stored at
+        %   construction. Subclasses may override for dynamic path resolution.
+            rootPaths = obj.RootPaths_;
+        end
+
+        function tf = hasSidecarForSourcePath(obj, mFilePath)
+        %hasSidecarForSourcePath True when a sidecar exists alongside the .m file.
+            sidecarPath = fullfile(fileparts(mFilePath), obj.SidecarFilename);
+            tf = isfile(sidecarPath);
+        end
 
         function specs = discoverSidecarSpecs(obj)
         %discoverSidecarSpecs Scan root paths for sidecar files and load specs.
@@ -517,6 +545,35 @@ classdef (Abstract) Registry < handle
 
             filePath = fullfile(prefsRoot, [typeName '_disabled.json']);
         end
+    end
+
+    % ------------------------------------------------------------------ %
+    % Protected static helpers — available to all concrete registries
+    % ------------------------------------------------------------------ %
+    methods (Static, Access = protected)
+
+        function tf = hasSuperclass_(mc, superclassName)
+        %hasSuperclass_ Recursive superclass check (handles deep hierarchies).
+            tf = false;
+            for i = 1:numel(mc.SuperclassList)
+                if strcmp(mc.SuperclassList(i).Name, superclassName) || ...
+                        nansen.plugin.base.Registry.hasSuperclass_( ...
+                        mc.SuperclassList(i), superclassName)
+                    tf = true;
+                    return
+                end
+            end
+        end
+
+        function value = getAttr_(S, fieldName, defaultValue)
+        %getAttr_ Safe struct field read with a default.
+            if isfield(S, fieldName) && ~isempty(S.(fieldName))
+                value = S.(fieldName);
+            else
+                value = defaultValue;
+            end
+        end
+
     end
 
     % ------------------------------------------------------------------ %

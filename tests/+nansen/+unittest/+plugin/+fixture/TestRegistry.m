@@ -26,7 +26,7 @@ classdef TestRegistry < nansen.plugin.base.Registry
                 rootPath      (1,1) string = ""
                 projectFolder (1,1) string = ""
             end
-            obj@nansen.plugin.base.Registry(projectFolder)
+            obj@nansen.plugin.base.Registry({char(rootPath)}, projectFolder);
             obj.RootPath = rootPath;
         end
 
@@ -38,10 +38,6 @@ classdef TestRegistry < nansen.plugin.base.Registry
     end
 
     methods (Access = protected)
-
-        function roots = getRootPaths(obj)
-            roots = {char(obj.RootPath)};
-        end
 
         function specs = discoverCompatibilitySpecs(~)
         %discoverCompatibilitySpecs No compat discovery for the test fixture.

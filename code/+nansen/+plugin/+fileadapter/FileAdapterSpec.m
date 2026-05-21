@@ -129,18 +129,7 @@ classdef FileAdapterSpec < nansen.plugin.base.PluginSpec
                 sourcePath (1,1) string = ""
             end
 
-            opts = struct();
-            if isfield(S, 'id');             opts.Id             = string(S.id);          end
-            if isfield(S, 'displayName');    opts.DisplayName    = string(S.displayName); end
-            if isfield(S, 'description');    opts.Description    = string(S.description); end
-            if isfield(S, 'version');        opts.PluginVersion  = string(S.version);     end
-            if isfield(S, 'source');         opts.Source         = string(S.source);      end
-            if isfield(S, 'provider');       opts.Provider       = S.provider;            end
-            if isfield(S, 'implementation'); opts.Implementation = S.implementation;      end
-            if isfield(S, 'capabilities') && ~isempty(S.capabilities)
-                opts.Capabilities = string(S.capabilities);
-            end
-            opts.SourcePath = sourcePath;
+            opts = nansen.plugin.base.PluginSpec.parseBaseFields(S, sourcePath);
 
             % SupportedFileTypes from match.extensions or direct field
             if isfield(S, 'match') && isstruct(S.match) && isfield(S.match, 'extensions')
