@@ -45,7 +45,7 @@ function funcHandles = getCustomTableVariableFcn(varNames, projectName, tableTyp
 
     funcHandles = cell(1, numel(varNames));
     for i = 1:numel(varNames)
-        idx = find(strcmp(lower(varNames{i}), allNames), 1);
+        idx = find(strcmpi(varNames{i}, allNames), 1);
         if ~isempty(idx)
             entrypoint = char(allSpecs(idx).Implementation.entrypoint);
             funcHandles{i} = str2func(entrypoint);
@@ -63,7 +63,7 @@ function funcHandles = getCustomTableVariableFcn(varNames, projectName, tableTyp
         end
     end
 
-    if numel(funcHandles) == 1
+    if isscalar(funcHandles)
         funcHandles = funcHandles{1};
     end
 end

@@ -507,6 +507,8 @@ classdef (Abstract) Registry < handle
                     ids = {};
                 end
             catch
+                % Treat a missing or malformed prefs file as an empty list
+                % rather than propagating an error on every registry access.
                 ids = {};
             end
         end

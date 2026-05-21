@@ -116,13 +116,13 @@ classdef Registry < nansen.plugin.base.Registry
                     && ~any(strcmp(obj.LoadedEntityTypes_, entityType))
                 obj.loadEntityType_(entityType);
             end
-            all = obj.list();
-            if isempty(all)
+            allSpecs = obj.list();
+            if isempty(allSpecs)
                 specs = nansen.plugin.action.ActionSpec.empty;
                 return
             end
-            keep = arrayfun(@(s) strcmpi(char(s.EntityType), char(entityType)), all);
-            specs = all(keep);
+            keep = arrayfun(@(s) strcmpi(char(s.EntityType), char(entityType)), allSpecs);
+            specs = allSpecs(keep);
             if ~options.IncludeHidden
                 specs = obj.removeHiddenSpecs_(specs);
             end
@@ -462,6 +462,8 @@ classdef Registry < nansen.plugin.base.Registry
                     ids = {};
                 end
             catch
+                % Treat a missing or malformed prefs file as an empty list
+                % rather than propagating an error on every registry access.
                 ids = {};
             end
         end
