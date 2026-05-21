@@ -21,6 +21,10 @@ classdef AppPluginSmokeTest < matlab.unittest.TestCase
     methods (Test)
 
         function testPluginClassLoads(testCase, PluginClassName)
+            if testCase.requiresWidgetsToolbox(PluginClassName)
+                testCase.assumeWidgetsToolboxOnPath()
+            end
+
             classMeta = meta.class.fromName(PluginClassName);
             testCase.verifyNotEmpty(classMeta, ...
                 sprintf('Expected "%s" to load.', PluginClassName))
@@ -66,6 +70,7 @@ classdef AppPluginSmokeTest < matlab.unittest.TestCase
     methods (Test, TestTags="Graphical")
 
         function testModalPluginConstructorRoutesOptionsAndPropertyPairs(testCase)
+            testCase.assumeWidgetsToolboxOnPath()
             hImviewer = testCase.createHiddenImviewer();
 
             plugin = nansen.plugin.imviewer.NoRMCorre(...
@@ -89,6 +94,7 @@ classdef AppPluginSmokeTest < matlab.unittest.TestCase
         end
 
         function testOpenPluginDoesNotPassEmptyOptionsPlaceholder(testCase)
+            testCase.assumeWidgetsToolboxOnPath()
             hImviewer = testCase.createHiddenImviewer();
 
             hPlugin = hImviewer.openPlugin('RoiClassifier');
@@ -128,9 +134,22 @@ classdef AppPluginSmokeTest < matlab.unittest.TestCase
                 hFigure.Visible = 'off';
             end
         end
+
+        function assumeWidgetsToolboxOnPath(testCase)
+        %assumeWidgetsToolboxOnPath Require Widgets Toolbox for app plugins.
+            testCase.assumeNotEmpty(which('uiw.mixin.AssignPVPairs'), ...
+                'Widgets Toolbox is not on the MATLAB path.')
+        end
     end
 
     methods (Static, Access = private)
+
+        function tf = requiresWidgetsToolbox(pluginClassName)
+        %requiresWidgetsToolbox True for AppPlugin implementations.
+            tf = strcmp(pluginClassName, 'applify.mixin.AppPlugin') ...
+                || startsWith(pluginClassName, 'nansen.plugin.') ...
+                || startsWith(pluginClassName, 'imviewer.plugin.');
+        end
 
         function deleteIfValid(h)
             if ~isempty(h) && isvalid(h)

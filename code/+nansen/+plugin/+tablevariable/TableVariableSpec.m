@@ -169,7 +169,7 @@ classdef TableVariableSpec < nansen.plugin.base.PluginSpec
             end
 
             % Check for TableColumnFormatter mixin (renderer support)
-            if nansen.plugin.base.Registry.hasSuperclass_( ...
+            if nansen.plugin.tablevariable.TableVariableSpec.hasSuperclass_( ...
                     mc, 'nansen.metadata.abstract.TableColumnFormatter')
                 S.HasRendererFunction  = true;
                 S.RendererFunctionName = className;
@@ -186,6 +186,19 @@ classdef TableVariableSpec < nansen.plugin.base.PluginSpec
             if ~strcmp(defClass, baseClass)
                 tf      = true;
                 fcnName = strjoin({className, methodName}, '.');
+            end
+        end
+
+        function tf = hasSuperclass_(mc, superclassName)
+        %hasSuperclass_ Recursive superclass check for metaclass objects.
+            tf = false;
+            for i = 1:numel(mc.SuperclassList)
+                if strcmp(mc.SuperclassList(i).Name, superclassName) || ...
+                        nansen.plugin.tablevariable.TableVariableSpec.hasSuperclass_( ...
+                        mc.SuperclassList(i), superclassName)
+                    tf = true;
+                    return
+                end
             end
         end
 

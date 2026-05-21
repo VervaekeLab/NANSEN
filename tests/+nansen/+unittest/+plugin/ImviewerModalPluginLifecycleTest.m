@@ -5,6 +5,14 @@ classdef ImviewerModalPluginLifecycleTest < matlab.unittest.TestCase
         PluginSpec = nansen.unittest.plugin.ImviewerModalPluginLifecycleTest.getPluginSpecs()
     end
 
+    methods (TestMethodSetup)
+        function assumeWidgetsToolboxOnPath(testCase)
+        %assumeWidgetsToolboxOnPath Imviewer plugins require Widgets Toolbox.
+            testCase.assumeNotEmpty(which('uiw.mixin.AssignPVPairs'), ...
+                'Widgets Toolbox is not on the MATLAB path.')
+        end
+    end
+
     methods (Test, TestTags="Graphical")
 
         function testOpenPlugin(testCase, PluginSpec)

@@ -92,6 +92,7 @@ classdef ImviewerPluginRegistryTest < matlab.unittest.TestCase
     methods (Test)
 
         function testRegistryFindsRoiManager(testCase)
+            testCase.assumeWidgetsToolboxOnPath()
             testCase.assumeTrue(isfolder(testCase.AppPluginRoot), ...
                 'App plugin root not found')
             registry = nansen.plugin.imviewer.Registry();
@@ -103,6 +104,7 @@ classdef ImviewerPluginRegistryTest < matlab.unittest.TestCase
         end
 
         function testThinWrappersAreExcluded(testCase)
+            testCase.assumeWidgetsToolboxOnPath()
             testCase.assumeTrue(isfolder(testCase.AppPluginRoot), ...
                 'App plugin root not found')
             registry = nansen.plugin.imviewer.Registry();
@@ -117,6 +119,7 @@ classdef ImviewerPluginRegistryTest < matlab.unittest.TestCase
         end
 
         function testAuthorisedImplementationsAreIncluded(testCase)
+            testCase.assumeWidgetsToolboxOnPath()
             testCase.assumeTrue(isfolder(testCase.WrapperRoot), ...
                 'Wrapper root not found')
             registry = nansen.plugin.imviewer.Registry();
@@ -129,6 +132,7 @@ classdef ImviewerPluginRegistryTest < matlab.unittest.TestCase
         end
 
         function testAllDiscoveredSpecsHaveDisplayName(testCase)
+            testCase.assumeWidgetsToolboxOnPath()
             testCase.assumeTrue(isfolder(testCase.AppPluginRoot), ...
                 'App plugin root not found')
             registry = nansen.plugin.imviewer.Registry();
@@ -147,6 +151,7 @@ classdef ImviewerPluginRegistryTest < matlab.unittest.TestCase
     methods (Test)
 
         function testResolveByStableId(testCase)
+            testCase.assumeWidgetsToolboxOnPath()
             testCase.assumeTrue(isfolder(testCase.AppPluginRoot), ...
                 'App plugin root not found')
             registry = nansen.plugin.imviewer.Registry();
@@ -158,6 +163,7 @@ classdef ImviewerPluginRegistryTest < matlab.unittest.TestCase
         end
 
         function testFindPluginByDisplayName(testCase)
+            testCase.assumeWidgetsToolboxOnPath()
             testCase.assumeTrue(isfolder(testCase.AppPluginRoot), ...
                 'App plugin root not found')
             registry = nansen.plugin.imviewer.Registry();
@@ -228,6 +234,14 @@ classdef ImviewerPluginRegistryTest < matlab.unittest.TestCase
             testCase.verifyEqual(r1, r2)
         end
 
+    end
+
+    methods (Access = private)
+        function assumeWidgetsToolboxOnPath(testCase)
+        %assumeWidgetsToolboxOnPath Require Widgets Toolbox for class discovery.
+            testCase.assumeNotEmpty(which('uiw.mixin.AssignPVPairs'), ...
+                'Widgets Toolbox is not on the MATLAB path.')
+        end
     end
 
 end

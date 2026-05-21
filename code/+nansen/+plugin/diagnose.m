@@ -50,9 +50,13 @@ function issueTable = diagnose(options)
             fprintf('  [%s]  %d specs — no issues\n', typeName, numel(specs))
         else
             for j = 1:numel(issues)
+                sourcePath = "";
+                if isfield(issues, 'SourcePath')
+                    sourcePath = string(issues(j).SourcePath);
+                end
                 row = table( ...
                     string(typeName), string(issues(j).Severity), ...
-                    string(issues(j).Message), string(issues(j).Source), ...
+                    string(issues(j).Message), sourcePath, ...
                     'VariableNames', {'PluginType', 'Severity', 'Message', 'Source'});
                 allIssues = [allIssues; row]; %#ok<AGROW>
             end

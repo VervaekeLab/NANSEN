@@ -57,7 +57,14 @@ classdef ImviewerPluginSpec < nansen.plugin.base.PluginSpec
 
         function fcn = toFunctionHandle(obj)
         %toFunctionHandle Return a constructor function handle for this plugin.
-            entrypoint = obj.resolveEntrypoint_();
+            entrypoint = '';
+            if isstruct(obj.Implementation)
+                if isfield(obj.Implementation, 'entrypoint')
+                    entrypoint = char(string(obj.Implementation.entrypoint));
+                elseif isfield(obj.Implementation, 'class')
+                    entrypoint = char(string(obj.Implementation.class));
+                end
+            end
             if isempty(entrypoint)
                 error('nansen:plugin:imviewer:ImviewerPluginSpec:MissingEntrypoint', ...
                     'Plugin "%s" has no entrypoint in Implementation.', char(obj.Id))
