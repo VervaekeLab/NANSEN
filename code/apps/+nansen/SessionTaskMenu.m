@@ -251,7 +251,7 @@ classdef SessionTaskMenu < handle
         %   See also nansen.plugin.action.Registry, nansen.session.SessionMethod
 
             if ~isempty(obj.ActionRegistry_)
-                specs = obj.ActionRegistry_.list();
+                specs = obj.ActionRegistry_.listByEntityType(obj.CurrentItemType);
                 if ~isempty(specs)
                     nodes = nansen.SessionTaskMenu.buildTreeFromActionSpecs_( ...
                         specs, obj.MenuOrder);
@@ -497,19 +497,37 @@ classdef SessionTaskMenu < handle
             delete(obj.ModuleListChangedListener_)
             obj.ModuleListChangedListener_ = addlistener( ...
                 obj.CurrentProject, 'ModuleListChanged', ...
-                @(~,~) obj.onCurrentItemTypeSet());
+                @(~,~) obj.onModuleListChanged_());
 
+            % Build registry once with a path resolver: entity-type paths are
+            % fetched lazily on the first listByEntityType call for each type.
+            projectFolder    = char(obj.CurrentProject.ProjectFolder);
+            pathResolver     = @(et) obj.CurrentProject.getObjectMethodFolder(et);
+            obj.ActionRegistry_ = nansen.plugin.action.Registry(pathResolver, projectFolder);
+
+            % Keep MethodsRootPath in sync for the legacy directory fallback.
             rootDirectories = obj.CurrentProject.getSessionMethodFolder();
             obj.MethodsRootPath = rootDirectories;
         end
 
         function onCurrentItemTypeSet(obj)
+            % Update MethodsRootPath for the legacy directory fallback.
+            % The ActionRegistry_ does not need to be rebuilt; listByEntityType
+            % fetches paths for the new entity type on demand.
             rootDirectories = obj.CurrentProject.getObjectMethodFolder(obj.CurrentItemType);
             obj.MethodsRootPath = rootDirectories;
         end
 
+        function onModuleListChanged_(obj)
+            % Reconstruct the registry so updated module paths are picked up
+            % on the next listByEntityType call for each entity type.
+            projectFolder    = char(obj.CurrentProject.ProjectFolder);
+            pathResolver     = @(et) obj.CurrentProject.getObjectMethodFolder(et);
+            obj.ActionRegistry_ = nansen.plugin.action.Registry(pathResolver, projectFolder);
+            obj.onCurrentItemTypeSet();
+        end
+
         function onMethodsRootPathSet(obj)
-            obj.ActionRegistry_ = nansen.plugin.action.Registry(obj.MethodsRootPath);
             if obj.IsConstructed && ~obj.SkipRefresh
                 obj.refresh()
             end
