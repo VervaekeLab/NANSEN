@@ -56,6 +56,17 @@ classdef PluginFoundationTest < matlab.unittest.TestCase
             tc.verifyTrue(mc.Abstract, ...
                 'nansen.plugin.base.Registry must be declared abstract.')
         end
+
+        function testPluginTypesAreCapabilityTypes(tc)
+        %testPluginTypesAreCapabilityTypes Modules are providers, not plugins.
+            enumValues = enumeration('nansen.plugin.enum.PluginType');
+            enumNames = string(arrayfun(@char, enumValues, 'UniformOutput', false));
+            enumNames = enumNames(:);
+
+            tc.verifyEqual(enumNames, ...
+                ["FileAdapter"; "Action"; "TableVariable"; "ImviewerPlugin"], ...
+                'PluginType must only enumerate concrete plugin capability types.')
+        end
     end
 
     % ------------------------------------------------------------------ %

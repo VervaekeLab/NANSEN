@@ -6,6 +6,5 @@ classdef PluginType
         Action
         TableVariable
         ImviewerPlugin
-        Module
     end
 end

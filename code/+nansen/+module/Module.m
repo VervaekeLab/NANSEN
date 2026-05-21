@@ -259,11 +259,10 @@ classdef Module < handle
 
         function readConfigurationFile(obj, filePath)
         % readConfigFile - Read a module config file and assign properties
-            fileStr = fileread(filePath);
-            moduleSpecification = jsondecode(fileStr);
+            moduleSpecification = nansen.module.ModuleSpec.fromJsonFile(filePath);
 
-            obj.Name = moduleSpecification.Properties.Name;
-            obj.Description = moduleSpecification.Properties.Description;
+            obj.Name = moduleSpecification.Name;
+            obj.Description = moduleSpecification.Description;
         end
     end
 
