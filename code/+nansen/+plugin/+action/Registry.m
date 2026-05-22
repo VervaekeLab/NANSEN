@@ -40,10 +40,56 @@ classdef Registry < nansen.plugin.base.Registry
         LoadedEntityTypes (1,:) string = string.empty
     end
 
-    methods
+    methods (Static)
+
+        function registry = getInstance(projectFolder, options)
+        %getInstance Return a registry scoped to the active project.
+        %
+        %   When projectFolder is omitted the active NANSEN project folder is
+        %   used automatically. Falls back to "" when no project is active
+        %   (unit tests, out-of-session use).
+        %
+        %   Optional name-value arguments for test isolation:
+        %     RootPaths     — cell array of paths; invalidates cache when changed.
+        %     PathResolver  — @(entityType)->paths function handle for lazy loading.
+        %
+        %   Production callers should omit RootPaths and PathResolver; the
+        %   singleton is populated separately via a path resolver injected by
+        %   the session or project.
+            arguments
+                projectFolder (1,1) string = ""
+                options.RootPaths    = {}
+                options.PathResolver = []
+            end
+            projectFolder = nansen.plugin.action.Registry.resolveActiveProjectFolder( ...
+                projectFolder);
+            persistent cachedRegistry
+
+            rootPathsChanged = ~isempty(options.RootPaths) && ...
+                ~isempty(cachedRegistry) && isvalid(cachedRegistry) && ...
+                ~isequal(options.RootPaths, cachedRegistry.RootPaths);
+
+            if isempty(cachedRegistry) || ~isvalid(cachedRegistry) ...
+                    || cachedRegistry.ProjectFolder ~= projectFolder ...
+                    || rootPathsChanged
+                if ~isempty(options.PathResolver)
+                    cachedRegistry = nansen.plugin.action.Registry( ...
+                        options.PathResolver, projectFolder);
+                else
+                    cachedRegistry = nansen.plugin.action.Registry( ...
+                        options.RootPaths, projectFolder);
+                end
+            end
+            registry = cachedRegistry;
+        end
+    end
+
+    methods (Access = private)
 
         function obj = Registry(pathResolverOrPaths, projectFolder)
         %Registry Construct an action registry.
+        %
+        %   Use getInstance() to obtain the project-scoped singleton.
         %
         %   Registry(pathResolver, projectFolder)
         %     pathResolver — function handle @(entityType) -> cell of paths.
@@ -52,7 +98,7 @@ classdef Registry < nansen.plugin.base.Registry
         %
         %   Registry(rootPaths, projectFolder)
         %     rootPaths — cell array of absolute folder paths. All paths are
-        %     scanned immediately. Use for tests or when all paths are known.
+        %     scanned immediately.
             arguments
                 pathResolverOrPaths = []
                 projectFolder (1,1) string = ""
@@ -69,27 +115,6 @@ classdef Registry < nansen.plugin.base.Registry
             end
             obj@nansen.plugin.base.Registry(initPaths, projectFolder);
             obj.PathResolver = pathResolverArg;
-        end
-    end
-
-    methods (Static)
-
-        function registry = getInstance(projectFolder)
-        %getInstance Return a registry scoped to the given project folder.
-        %
-        %   This form has no path resolver — it returns an empty registry
-        %   suitable for API access (validate, diagnose) without project context.
-        %   For a populated registry, construct directly:
-        %     registry = nansen.plugin.action.Registry(pathResolver, projectFolder)
-            arguments
-                projectFolder (1,1) string = ""
-            end
-            persistent cachedRegistry
-            if isempty(cachedRegistry) || ~isvalid(cachedRegistry) ...
-                    || cachedRegistry.ProjectFolder ~= projectFolder
-                cachedRegistry = nansen.plugin.action.Registry({}, projectFolder);
-            end
-            registry = cachedRegistry;
         end
     end
 

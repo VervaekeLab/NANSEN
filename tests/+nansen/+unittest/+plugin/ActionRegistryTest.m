@@ -109,7 +109,7 @@ classdef ActionRegistryTest < matlab.unittest.TestCase
         function testRegistryFindsSessionMethodsFromModuleRoot(testCase)
             testCase.assumeTrue(isfolder(testCase.TwoPhotonRoot), ...
                 'Twophoton sessionmethod folder not found')
-            registry = nansen.plugin.action.Registry({testCase.TwoPhotonRoot});
+            registry = nansen.plugin.action.Registry.getInstance("", RootPaths={testCase.TwoPhotonRoot});
             specs = registry.list();
             testCase.verifyGreaterThan(numel(specs), 0)
         end
@@ -117,7 +117,7 @@ classdef ActionRegistryTest < matlab.unittest.TestCase
         function testNormcorreDiscoveredAsClass(testCase)
             testCase.assumeTrue(isfolder(testCase.TwoPhotonRoot), ...
                 'Twophoton sessionmethod folder not found')
-            registry = nansen.plugin.action.Registry({testCase.TwoPhotonRoot});
+            registry = nansen.plugin.action.Registry.getInstance("", RootPaths={testCase.TwoPhotonRoot});
             specs = registry.list();
             ids = string({specs.Id});
             hasNormcorre = any(contains(ids, 'normcorre', 'IgnoreCase', true));
@@ -127,7 +127,7 @@ classdef ActionRegistryTest < matlab.unittest.TestCase
         function testDiscoveredSpecHasMenuLocation(testCase)
             testCase.assumeTrue(isfolder(testCase.TwoPhotonRoot), ...
                 'Twophoton sessionmethod folder not found')
-            registry = nansen.plugin.action.Registry({testCase.TwoPhotonRoot});
+            registry = nansen.plugin.action.Registry.getInstance("", RootPaths={testCase.TwoPhotonRoot});
             specs = registry.list();
             for i = 1:numel(specs)
                 testCase.verifyNotEmpty(specs(i).MenuLocation, ...
@@ -138,7 +138,7 @@ classdef ActionRegistryTest < matlab.unittest.TestCase
         function testBackupDiscoveredAsFunction(testCase)
             testCase.assumeTrue(isfolder(testCase.GeneralRoot), ...
                 'General core sessionmethod folder not found')
-            registry = nansen.plugin.action.Registry({testCase.GeneralRoot});
+            registry = nansen.plugin.action.Registry.getInstance("", RootPaths={testCase.GeneralRoot});
             specs = registry.list();
             ids = string({specs.Id});
             hasBackup = any(contains(ids, 'backup', 'IgnoreCase', true));
@@ -156,8 +156,10 @@ classdef ActionRegistryTest < matlab.unittest.TestCase
         %testRegistryStartsEmptyWithPathResolver Registry with a path resolver has no specs until entity is requested.
             testCase.assumeTrue(isfolder(testCase.TwoPhotonRoot), ...
                 'Twophoton sessionmethod folder not found')
-            registry = nansen.plugin.action.Registry( ...
-                @(~) {testCase.TwoPhotonRoot});
+            import matlab.unittest.fixtures.TemporaryFolderFixture
+            F = testCase.applyFixture(TemporaryFolderFixture);
+            registry = nansen.plugin.action.Registry.getInstance( ...
+                F.Folder, PathResolver=@(~) {testCase.TwoPhotonRoot});
             % list() before any listByEntityType call must be empty because
             % no root paths have been loaded yet.
             testCase.verifyEmpty(registry.list(), ...
@@ -168,8 +170,10 @@ classdef ActionRegistryTest < matlab.unittest.TestCase
         %testPathResolverPopulatesOnFirstEntityCall First listByEntityType call triggers path loading.
             testCase.assumeTrue(isfolder(testCase.TwoPhotonRoot), ...
                 'Twophoton sessionmethod folder not found')
-            registry = nansen.plugin.action.Registry( ...
-                @(~) {testCase.TwoPhotonRoot});
+            import matlab.unittest.fixtures.TemporaryFolderFixture
+            F = testCase.applyFixture(TemporaryFolderFixture);
+            registry = nansen.plugin.action.Registry.getInstance( ...
+                F.Folder, PathResolver=@(~) {testCase.TwoPhotonRoot});
             specs = registry.listByEntityType('session');
             testCase.verifyGreaterThan(numel(specs), 0, ...
                 'listByEntityType must populate registry via path resolver.')
@@ -179,8 +183,10 @@ classdef ActionRegistryTest < matlab.unittest.TestCase
         %testRepeatedEntityLoadIsIdempotent Repeated listByEntityType calls return consistent results.
             testCase.assumeTrue(isfolder(testCase.TwoPhotonRoot), ...
                 'Twophoton sessionmethod folder not found')
-            registry = nansen.plugin.action.Registry( ...
-                @(~) {testCase.TwoPhotonRoot});
+            import matlab.unittest.fixtures.TemporaryFolderFixture
+            F = testCase.applyFixture(TemporaryFolderFixture);
+            registry = nansen.plugin.action.Registry.getInstance( ...
+                F.Folder, PathResolver=@(~) {testCase.TwoPhotonRoot});
             specs1 = registry.listByEntityType('session');
             specs2 = registry.listByEntityType('session');
             testCase.verifyEqual(numel(specs1), numel(specs2), ...
@@ -199,7 +205,8 @@ classdef ActionRegistryTest < matlab.unittest.TestCase
             mkdir(fullfile(F.Folder, '+sessionmethod'))
             mkdir(fullfile(F.Folder, '+objectmethod', '+subject'))
 
-            registry = nansen.plugin.action.Registry(@(~) {F.Folder});
+            registry = nansen.plugin.action.Registry.getInstance( ...
+                F.Folder, PathResolver=@(~) {F.Folder});
 
             sessionSpecs = registry.listByEntityType('session');
             subjectSpecs = registry.listByEntityType('subject');
@@ -217,7 +224,7 @@ classdef ActionRegistryTest < matlab.unittest.TestCase
         %testBackwardCompatCellArrayConstructor Cell array of paths still works after constructor change.
             testCase.assumeTrue(isfolder(testCase.TwoPhotonRoot), ...
                 'Twophoton sessionmethod folder not found')
-            registry = nansen.plugin.action.Registry({testCase.TwoPhotonRoot});
+            registry = nansen.plugin.action.Registry.getInstance("", RootPaths={testCase.TwoPhotonRoot});
             specs = registry.list();
             testCase.verifyGreaterThan(numel(specs), 0, ...
                 'Cell-array constructor must discover specs from the provided path.')
@@ -233,7 +240,7 @@ classdef ActionRegistryTest < matlab.unittest.TestCase
         function testResolveByStableId(testCase)
             testCase.assumeTrue(isfolder(testCase.TwoPhotonRoot), ...
                 'Twophoton sessionmethod folder not found')
-            registry = nansen.plugin.action.Registry({testCase.TwoPhotonRoot});
+            registry = nansen.plugin.action.Registry.getInstance("", RootPaths={testCase.TwoPhotonRoot});
             specs = registry.list();
             testCase.assumeGreaterThan(numel(specs), 0)
             firstId = specs(1).Id;
@@ -244,7 +251,7 @@ classdef ActionRegistryTest < matlab.unittest.TestCase
         function testListByEntityType(testCase)
             testCase.assumeTrue(isfolder(testCase.TwoPhotonRoot), ...
                 'Twophoton sessionmethod folder not found')
-            registry = nansen.plugin.action.Registry({testCase.TwoPhotonRoot});
+            registry = nansen.plugin.action.Registry.getInstance("", RootPaths={testCase.TwoPhotonRoot});
             specs = registry.listByEntityType('session');
             for i = 1:numel(specs)
                 testCase.verifyEqual(lower(char(specs(i).EntityType)), 'session')
@@ -254,7 +261,7 @@ classdef ActionRegistryTest < matlab.unittest.TestCase
         function testNoValidationErrors(testCase)
             testCase.assumeTrue(isfolder(testCase.TwoPhotonRoot), ...
                 'Twophoton sessionmethod folder not found')
-            registry = nansen.plugin.action.Registry({testCase.TwoPhotonRoot});
+            registry = nansen.plugin.action.Registry.getInstance("", RootPaths={testCase.TwoPhotonRoot});
             issues = registry.validate();
             errorIssues = issues(strcmp({issues.Severity}, 'error'));
             testCase.verifyEmpty(errorIssues, ...
@@ -271,7 +278,7 @@ classdef ActionRegistryTest < matlab.unittest.TestCase
         function testToTaskAttributesHasRequiredFields(testCase)
             testCase.assumeTrue(isfolder(testCase.TwoPhotonRoot), ...
                 'Twophoton sessionmethod folder not found')
-            registry = nansen.plugin.action.Registry({testCase.TwoPhotonRoot});
+            registry = nansen.plugin.action.Registry.getInstance("", RootPaths={testCase.TwoPhotonRoot});
             specs = registry.list();
             testCase.assumeGreaterThan(numel(specs), 0)
 
@@ -300,7 +307,7 @@ classdef ActionRegistryTest < matlab.unittest.TestCase
         function testClassSpecHasOptionsManagerInTaskAttributes(testCase)
             testCase.assumeTrue(isfolder(testCase.TwoPhotonRoot), ...
                 'Twophoton sessionmethod folder not found')
-            registry = nansen.plugin.action.Registry({testCase.TwoPhotonRoot});
+            registry = nansen.plugin.action.Registry.getInstance("", RootPaths={testCase.TwoPhotonRoot});
             specs = registry.list();
             % Find a class-based spec
             isClass = arrayfun(@(s) ...
@@ -330,7 +337,7 @@ classdef ActionRegistryTest < matlab.unittest.TestCase
             mkdir(tmpDir)
             cleanupDir = onCleanup(@() rmdir(tmpDir, 's'));
 
-            registry = nansen.plugin.action.Registry({testCase.TwoPhotonRoot}, tmpDir);
+            registry = nansen.plugin.action.Registry.getInstance(tmpDir, RootPaths={testCase.TwoPhotonRoot});
             specs = registry.list();
             testCase.assumeGreaterThan(numel(specs), 0)
 
@@ -361,7 +368,7 @@ classdef ActionRegistryTest < matlab.unittest.TestCase
             mkdir(tmpDir)
             cleanupDir = onCleanup(@() rmdir(tmpDir, 's'));
 
-            registry = nansen.plugin.action.Registry({testCase.TwoPhotonRoot}, tmpDir);
+            registry = nansen.plugin.action.Registry.getInstance(tmpDir, RootPaths={testCase.TwoPhotonRoot});
             specs = registry.listByEntityType('session');
             testCase.assumeGreaterThan(numel(specs), 0)
 
@@ -401,7 +408,7 @@ classdef ActionRegistryTest < matlab.unittest.TestCase
             mkdir(tmpDir)
             cleanupDir = onCleanup(@() rmdir(tmpDir, 's'));
 
-            registry = nansen.plugin.action.Registry({testCase.TwoPhotonRoot}, tmpDir);
+            registry = nansen.plugin.action.Registry.getInstance(tmpDir, RootPaths={testCase.TwoPhotonRoot});
             specs = registry.list();
             testCase.assumeGreaterThan(numel(specs), 0)
 
@@ -429,9 +436,8 @@ classdef ActionRegistryTest < matlab.unittest.TestCase
             FA = testCase.applyFixture(TemporaryFolderFixture);
             FB = testCase.applyFixture(TemporaryFolderFixture);
 
-            regA = nansen.plugin.action.Registry({testCase.TwoPhotonRoot}, FA.Folder);
-            regB = nansen.plugin.action.Registry({testCase.TwoPhotonRoot}, FB.Folder);
-
+            regA = nansen.plugin.action.Registry.getInstance( ...
+                FA.Folder, RootPaths={testCase.TwoPhotonRoot});
             specs = regA.listByEntityType('session');
             testCase.assumeGreaterThan(numel(specs), 0)
 
@@ -440,6 +446,9 @@ classdef ActionRegistryTest < matlab.unittest.TestCase
 
             testCase.verifyFalse(regA.isActionVisible(targetId), ...
                 'Action must be hidden in project A')
+
+            regB = nansen.plugin.action.Registry.getInstance( ...
+                FB.Folder, RootPaths={testCase.TwoPhotonRoot});
             testCase.verifyTrue(regB.isActionVisible(targetId), ...
                 'Hiding in project A must not affect project B')
         end

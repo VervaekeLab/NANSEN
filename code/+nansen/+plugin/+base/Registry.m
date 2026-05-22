@@ -96,7 +96,7 @@ classdef (Abstract) Registry < handle
                 options.IncludeDisabled (1,1) logical = false
             end
 
-            if ~obj.IsLoaded
+            if true % ~obj.IsLoaded
                 obj.refresh()
             end
 
@@ -553,6 +553,24 @@ classdef (Abstract) Registry < handle
     % Protected static helpers — available to all concrete registries
 
     methods (Static, Access = protected)
+
+        function projectFolder = resolveActiveProjectFolder(projectFolder)
+        %resolveActiveProjectFolder Return the active project folder when none is given.
+        %
+        %   If projectFolder is non-empty it is returned unchanged. Otherwise the
+        %   function reads the current project's FolderPath from the running NANSEN
+        %   session. Falls back silently to "" when no project is active — this
+        %   covers unit tests and any context where NANSEN has not been started.
+            if strlength(projectFolder) > 0
+                return
+            end
+            try
+                project = nansen.getCurrentProject();
+                projectFolder = string(project.FolderPath);
+            catch
+                % No active project — leave projectFolder as "".
+            end
+        end
 
         function tf = hasSuperclass(mc, superclassName)
         %hasSuperclass Recursive superclass check (handles deep hierarchies).

@@ -17,35 +17,25 @@ classdef Registry < nansen.plugin.base.Registry
 %   See also: nansen.plugin.base.Registry, nansen.plugin.fileadapter.FileAdapterSpec
 
     properties (Constant, Access = protected)
-        PluginType      = nansen.plugin.enum.PluginType.FileAdapter
+        PluginType = nansen.plugin.enum.PluginType.FileAdapter
         SidecarFilename = "fileadapter.plugin.json"
-    end
-
-    methods
-
-        function obj = Registry(projectFolder)
-        %Registry Construct a file adapter registry for the given project.
-        %
-        %   Resolves root paths from fixed code locations and the global
-        %   module root, with project-first precedence.
-            arguments
-                projectFolder (1,1) string = ""
-            end
-            rootPaths = nansen.plugin.fileadapter.Registry.resolveRootPaths(projectFolder);
-            obj@nansen.plugin.base.Registry(rootPaths, projectFolder);
-        end
     end
 
     methods (Static)
 
         function registry = getInstance(projectFolder)
-        %getInstance Return a registry for the given project folder.
+        %getInstance Return a registry scoped to the active project.
         %
-        %   Uses a persistent instance per project folder as a placeholder
-        %   until the project manager lifecycle is wired in (Phase 2+).
+        %   When projectFolder is omitted the active NANSEN project folder is
+        %   used automatically. Falls back to "" (global scope) when no project
+        %   is active, which is the correct behaviour for unit tests and
+        %   out-of-session use.
             arguments
                 projectFolder (1,1) string = ""
             end
+
+            projectFolder = nansen.plugin.fileadapter.Registry.resolveActiveProjectFolder( ...
+                projectFolder);
 
             persistent cachedRegistry
 
@@ -55,6 +45,23 @@ classdef Registry < nansen.plugin.base.Registry
             end
 
             registry = cachedRegistry;
+        end
+    end
+
+    methods (Access = private)
+
+        function obj = Registry(projectFolder)
+        %Registry Construct a file adapter registry for the given project.
+        %
+        %   Use getInstance() to obtain the project-scoped singleton.
+        %
+        %   Resolves root paths from fixed code locations and the global
+        %   module root, with project-first precedence.
+            arguments
+                projectFolder (1,1) string = ""
+            end
+            rootPaths = nansen.plugin.fileadapter.Registry.resolveRootPaths(projectFolder);
+            obj@nansen.plugin.base.Registry(rootPaths, projectFolder);
         end
     end
 

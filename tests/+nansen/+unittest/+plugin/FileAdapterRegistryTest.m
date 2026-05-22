@@ -77,46 +77,46 @@ classdef FileAdapterRegistryTest < matlab.unittest.TestCase
     methods (Test)
 
         function testRegistryListReturnsNonEmpty(testCase)
-            registry = nansen.plugin.fileadapter.Registry();
+            registry = nansen.plugin.fileadapter.Registry.getInstance();
             specs = registry.list();
             testCase.verifyGreaterThan(numel(specs), 0)
         end
 
         function testDefaultAdapterPresent(testCase)
-            registry = nansen.plugin.fileadapter.Registry();
+            registry = nansen.plugin.fileadapter.Registry.getInstance();
             spec = registry.resolve('Default');
             testCase.verifyEqual(char(spec.Id), 'Default')
             testCase.verifyEqual(char(spec.Source), 'builtin')
         end
 
         function testResolveByStableId(testCase)
-            registry = nansen.plugin.fileadapter.Registry();
+            registry = nansen.plugin.fileadapter.Registry.getInstance();
             spec = registry.resolve('nansen.dataio.fileadapter.imagestack.ImageStack');
             testCase.verifyEqual(char(spec.DataType), 'ImageStack')
         end
 
         function testFindByDisplayName(testCase)
-            registry = nansen.plugin.fileadapter.Registry();
+            registry = nansen.plugin.fileadapter.Registry.getInstance();
             specs = registry.findByDisplayName('ImageStack');
             testCase.verifyGreaterThan(numel(specs), 0)
         end
 
         function testFindByNameFallsBackToDisplayName(testCase)
             % 'ImageStack' is the DisplayName, not the stable Id
-            registry = nansen.plugin.fileadapter.Registry();
+            registry = nansen.plugin.fileadapter.Registry.getInstance();
             spec = registry.findByName('ImageStack');
             testCase.verifyEqual(char(spec.DataType), 'ImageStack')
         end
 
         function testFindByNameUnknownThrows(testCase)
-            registry = nansen.plugin.fileadapter.Registry();
+            registry = nansen.plugin.fileadapter.Registry.getInstance();
             testCase.verifyError( ...
                 @() registry.findByName('NoSuchAdapter_xyz'), ...
                 'nansen:plugin:fileadapter:Registry:NotFound')
         end
 
         function testNoValidationIssues(testCase)
-            registry = nansen.plugin.fileadapter.Registry();
+            registry = nansen.plugin.fileadapter.Registry.getInstance();
             issues = registry.validate();
             errorIssues = issues(strcmp({issues.Severity}, 'error'));
             testCase.verifyEmpty(errorIssues, ...
@@ -131,7 +131,7 @@ classdef FileAdapterRegistryTest < matlab.unittest.TestCase
     methods (Test)
 
         function testLegacyStructHasExpectedFields(testCase)
-            registry = nansen.plugin.fileadapter.Registry();
+            registry = nansen.plugin.fileadapter.Registry.getInstance();
             entries = registry.listLegacy();
             testCase.verifyTrue(isfield(entries, 'FileAdapterName'))
             testCase.verifyTrue(isfield(entries, 'FunctionName'))
@@ -192,7 +192,7 @@ classdef FileAdapterRegistryTest < matlab.unittest.TestCase
             mkdir(tmpDir)
             cleanupDir = onCleanup(@() rmdir(tmpDir, 's'));
 
-            registry = nansen.plugin.fileadapter.Registry(tmpDir);
+            registry = nansen.plugin.fileadapter.Registry.getInstance(tmpDir);
             specs = registry.list();
             testCase.assumeGreaterThan(numel(specs), 1)
 
@@ -213,15 +213,15 @@ classdef FileAdapterRegistryTest < matlab.unittest.TestCase
             cleanupA = onCleanup(@() rmdir(tmpA, 's'));
             cleanupB = onCleanup(@() rmdir(tmpB, 's'));
 
-            regA = nansen.plugin.fileadapter.Registry(tmpA);
-            regB = nansen.plugin.fileadapter.Registry(tmpB);
-
+            regA = nansen.plugin.fileadapter.Registry.getInstance(tmpA);
             specsA = regA.list();
             testCase.assumeGreaterThan(numel(specsA), 1)
             targetId = specsA(2).Id;
 
             regA.disable(targetId);
             testCase.verifyFalse(regA.isEnabled(targetId))
+
+            regB = nansen.plugin.fileadapter.Registry.getInstance(tmpB);
             testCase.verifyTrue(regB.isEnabled(targetId), ...
                 'Disabling in project A must not affect project B')
         end

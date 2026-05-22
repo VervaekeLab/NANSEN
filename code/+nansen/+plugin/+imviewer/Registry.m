@@ -27,10 +27,34 @@ classdef Registry < nansen.plugin.base.Registry
         SidecarFilename = "imviewerplugin.plugin.json"
     end
 
-    methods
+    methods (Static)
+
+        function registry = getInstance(projectFolder)
+        %getInstance Return a registry scoped to the active project.
+        %
+        %   When projectFolder is omitted the active NANSEN project folder is
+        %   used automatically. Falls back to "" when no project is active
+        %   (unit tests, out-of-session use).
+            arguments
+                projectFolder (1,1) string = ""
+            end
+            projectFolder = nansen.plugin.imviewer.Registry.resolveActiveProjectFolder( ...
+                projectFolder);
+            persistent cachedRegistry
+            if isempty(cachedRegistry) || ~isvalid(cachedRegistry) ...
+                    || cachedRegistry.ProjectFolder ~= projectFolder
+                cachedRegistry = nansen.plugin.imviewer.Registry(projectFolder);
+            end
+            registry = cachedRegistry;
+        end
+    end
+
+    methods (Access = private)
 
         function obj = Registry(projectFolder)
         %Registry Construct an imviewer plugin registry for the given project.
+        %
+        %   Use getInstance() to obtain the project-scoped singleton.
         %
         %   Resolves root paths from fixed code locations, with project-first
         %   precedence.
@@ -39,22 +63,6 @@ classdef Registry < nansen.plugin.base.Registry
             end
             rootPaths = nansen.plugin.imviewer.Registry.resolveRootPaths(projectFolder);
             obj@nansen.plugin.base.Registry(rootPaths, projectFolder);
-        end
-    end
-
-    methods (Static)
-
-        function registry = getInstance(projectFolder)
-        %getInstance Return a registry for the given project folder.
-            arguments
-                projectFolder (1,1) string = ""
-            end
-            persistent cachedRegistry
-            if isempty(cachedRegistry) || ~isvalid(cachedRegistry) ...
-                    || cachedRegistry.ProjectFolder ~= projectFolder
-                cachedRegistry = nansen.plugin.imviewer.Registry(projectFolder);
-            end
-            registry = cachedRegistry;
         end
     end
 

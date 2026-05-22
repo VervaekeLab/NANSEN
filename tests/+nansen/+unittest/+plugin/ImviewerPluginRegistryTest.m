@@ -95,7 +95,7 @@ classdef ImviewerPluginRegistryTest < matlab.unittest.TestCase
             testCase.assumeWidgetsToolboxOnPath()
             testCase.assumeTrue(isfolder(testCase.AppPluginRoot), ...
                 'App plugin root not found')
-            registry = nansen.plugin.imviewer.Registry();
+            registry = nansen.plugin.imviewer.Registry.getInstance();
             specs = registry.list();
             testCase.verifyGreaterThan(numel(specs), 0)
             ids = arrayfun(@(s) char(s.Id), specs, 'uni', false);
@@ -107,7 +107,7 @@ classdef ImviewerPluginRegistryTest < matlab.unittest.TestCase
             testCase.assumeWidgetsToolboxOnPath()
             testCase.assumeTrue(isfolder(testCase.AppPluginRoot), ...
                 'App plugin root not found')
-            registry = nansen.plugin.imviewer.Registry();
+            registry = nansen.plugin.imviewer.Registry.getInstance();
             specs = registry.list();
             ids = arrayfun(@(s) char(s.Id), specs, 'uni', false);
             % imviewer.plugin.NoRMCorre and imviewer.plugin.FlowRegistration
@@ -122,7 +122,7 @@ classdef ImviewerPluginRegistryTest < matlab.unittest.TestCase
             testCase.assumeWidgetsToolboxOnPath()
             testCase.assumeTrue(isfolder(testCase.WrapperRoot), ...
                 'Wrapper root not found')
-            registry = nansen.plugin.imviewer.Registry();
+            registry = nansen.plugin.imviewer.Registry.getInstance();
             specs = registry.list();
             ids = arrayfun(@(s) char(s.Id), specs, 'uni', false);
             % The canonical implementations in nansen.plugin.imviewer.* should appear
@@ -135,7 +135,7 @@ classdef ImviewerPluginRegistryTest < matlab.unittest.TestCase
             testCase.assumeWidgetsToolboxOnPath()
             testCase.assumeTrue(isfolder(testCase.AppPluginRoot), ...
                 'App plugin root not found')
-            registry = nansen.plugin.imviewer.Registry();
+            registry = nansen.plugin.imviewer.Registry.getInstance();
             specs = registry.list();
             for i = 1:numel(specs)
                 testCase.verifyNotEmpty(char(specs(i).DisplayName), ...
@@ -154,7 +154,7 @@ classdef ImviewerPluginRegistryTest < matlab.unittest.TestCase
             testCase.assumeWidgetsToolboxOnPath()
             testCase.assumeTrue(isfolder(testCase.AppPluginRoot), ...
                 'App plugin root not found')
-            registry = nansen.plugin.imviewer.Registry();
+            registry = nansen.plugin.imviewer.Registry.getInstance();
             specs = registry.list();
             testCase.assumeGreaterThan(numel(specs), 0)
             firstId = specs(1).Id;
@@ -166,7 +166,7 @@ classdef ImviewerPluginRegistryTest < matlab.unittest.TestCase
             testCase.assumeWidgetsToolboxOnPath()
             testCase.assumeTrue(isfolder(testCase.AppPluginRoot), ...
                 'App plugin root not found')
-            registry = nansen.plugin.imviewer.Registry();
+            registry = nansen.plugin.imviewer.Registry.getInstance();
             specs = registry.list();
             testCase.assumeGreaterThan(numel(specs), 0)
             displayName = specs(1).DisplayName;
@@ -175,7 +175,7 @@ classdef ImviewerPluginRegistryTest < matlab.unittest.TestCase
         end
 
         function testFindPluginThrowsForUnknownName(testCase)
-            registry = nansen.plugin.imviewer.Registry();
+            registry = nansen.plugin.imviewer.Registry.getInstance();
             testCase.verifyError( ...
                 @() registry.findPlugin('__NonExistentPlugin__9999'), ...
                 'nansen:plugin:imviewer:Registry:NotFound')
@@ -184,7 +184,7 @@ classdef ImviewerPluginRegistryTest < matlab.unittest.TestCase
         function testNoValidationErrors(testCase)
             testCase.assumeTrue(isfolder(testCase.AppPluginRoot), ...
                 'App plugin root not found')
-            registry = nansen.plugin.imviewer.Registry();
+            registry = nansen.plugin.imviewer.Registry.getInstance();
             issues = registry.validate();
             errorIssues = issues(strcmp({issues.Severity}, 'error'));
             testCase.verifyEmpty(errorIssues, ...

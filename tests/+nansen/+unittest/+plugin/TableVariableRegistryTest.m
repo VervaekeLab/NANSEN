@@ -99,7 +99,7 @@ classdef TableVariableRegistryTest < matlab.unittest.TestCase
         function testRegistryFindsSessionVariables(testCase)
             testCase.assumeTrue(isfolder(testCase.GeneralCoreRoot), ...
                 'General core tablevariable folder not found')
-            registry = nansen.plugin.tablevariable.Registry({testCase.GeneralCoreRoot});
+            registry = nansen.plugin.tablevariable.Registry.getInstance("", RootPaths={testCase.GeneralCoreRoot});
             specs = registry.list();
             testCase.verifyGreaterThan(numel(specs), 0)
         end
@@ -107,7 +107,7 @@ classdef TableVariableRegistryTest < matlab.unittest.TestCase
         function testRegistryFindsSubjectVariables(testCase)
             testCase.assumeTrue(isfolder(testCase.GeneralCoreRoot), ...
                 'General core tablevariable folder not found')
-            registry = nansen.plugin.tablevariable.Registry({testCase.GeneralCoreRoot});
+            registry = nansen.plugin.tablevariable.Registry.getInstance("", RootPaths={testCase.GeneralCoreRoot});
             subjectSpecs = registry.listByTableType('subject');
             testCase.verifyGreaterThan(numel(subjectSpecs), 0)
         end
@@ -115,7 +115,7 @@ classdef TableVariableRegistryTest < matlab.unittest.TestCase
         function testProgressDiscoveredAsSession(testCase)
             testCase.assumeTrue(isfolder(testCase.GeneralCoreRoot), ...
                 'General core tablevariable folder not found')
-            registry = nansen.plugin.tablevariable.Registry({testCase.GeneralCoreRoot});
+            registry = nansen.plugin.tablevariable.Registry.getInstance("", RootPaths={testCase.GeneralCoreRoot});
             specs = registry.list();
             ids = string({specs.Id});
             hasProgress = any(contains(ids, 'Progress', 'IgnoreCase', false));
@@ -125,7 +125,7 @@ classdef TableVariableRegistryTest < matlab.unittest.TestCase
         function testSpeciesDiscoveredAsEditable(testCase)
             testCase.assumeTrue(isfolder(testCase.GeneralCoreRoot), ...
                 'General core tablevariable folder not found')
-            registry = nansen.plugin.tablevariable.Registry({testCase.GeneralCoreRoot});
+            registry = nansen.plugin.tablevariable.Registry.getInstance("", RootPaths={testCase.GeneralCoreRoot});
             specs = registry.list();
             ids = string({specs.Id});
             speciesIdx = find(contains(ids, 'Species', 'IgnoreCase', false), 1);
@@ -137,7 +137,7 @@ classdef TableVariableRegistryTest < matlab.unittest.TestCase
         function testAllDiscoveredSpecsHaveTableType(testCase)
             testCase.assumeTrue(isfolder(testCase.GeneralCoreRoot), ...
                 'General core tablevariable folder not found')
-            registry = nansen.plugin.tablevariable.Registry({testCase.GeneralCoreRoot});
+            registry = nansen.plugin.tablevariable.Registry.getInstance("", RootPaths={testCase.GeneralCoreRoot});
             specs = registry.list();
             for i = 1:numel(specs)
                 testCase.verifyNotEmpty(char(specs(i).TableType), ...
@@ -155,7 +155,7 @@ classdef TableVariableRegistryTest < matlab.unittest.TestCase
         function testListByTableTypeReturnsOnlyMatchingType(testCase)
             testCase.assumeTrue(isfolder(testCase.GeneralCoreRoot), ...
                 'General core tablevariable folder not found')
-            registry = nansen.plugin.tablevariable.Registry({testCase.GeneralCoreRoot});
+            registry = nansen.plugin.tablevariable.Registry.getInstance("", RootPaths={testCase.GeneralCoreRoot});
             specs = registry.listByTableType('session');
             for i = 1:numel(specs)
                 testCase.verifyEqual(lower(char(specs(i).TableType)), 'session', ...
@@ -166,7 +166,7 @@ classdef TableVariableRegistryTest < matlab.unittest.TestCase
         function testResolveByStableId(testCase)
             testCase.assumeTrue(isfolder(testCase.GeneralCoreRoot), ...
                 'General core tablevariable folder not found')
-            registry = nansen.plugin.tablevariable.Registry({testCase.GeneralCoreRoot});
+            registry = nansen.plugin.tablevariable.Registry.getInstance("", RootPaths={testCase.GeneralCoreRoot});
             specs = registry.list();
             testCase.assumeGreaterThan(numel(specs), 0)
             firstId = specs(1).Id;
@@ -177,7 +177,7 @@ classdef TableVariableRegistryTest < matlab.unittest.TestCase
         function testNoValidationErrors(testCase)
             testCase.assumeTrue(isfolder(testCase.GeneralCoreRoot), ...
                 'General core tablevariable folder not found')
-            registry = nansen.plugin.tablevariable.Registry({testCase.GeneralCoreRoot});
+            registry = nansen.plugin.tablevariable.Registry.getInstance("", RootPaths={testCase.GeneralCoreRoot});
             issues = registry.validate();
             errorIssues = issues(strcmp({issues.Severity}, 'error'));
             testCase.verifyEmpty(errorIssues, ...
@@ -194,7 +194,7 @@ classdef TableVariableRegistryTest < matlab.unittest.TestCase
         function testToVariableAttributesHasRequiredFields(testCase)
             testCase.assumeTrue(isfolder(testCase.GeneralCoreRoot), ...
                 'General core tablevariable folder not found')
-            registry = nansen.plugin.tablevariable.Registry({testCase.GeneralCoreRoot});
+            registry = nansen.plugin.tablevariable.Registry.getInstance("", RootPaths={testCase.GeneralCoreRoot});
             specs = registry.list();
             testCase.assumeGreaterThan(numel(specs), 0)
 
@@ -218,7 +218,7 @@ classdef TableVariableRegistryTest < matlab.unittest.TestCase
         function testGetVariableAttributesReturnsTable(testCase)
             testCase.assumeTrue(isfolder(testCase.GeneralCoreRoot), ...
                 'General core tablevariable folder not found')
-            registry = nansen.plugin.tablevariable.Registry({testCase.GeneralCoreRoot});
+            registry = nansen.plugin.tablevariable.Registry.getInstance("", RootPaths={testCase.GeneralCoreRoot});
             T = registry.getVariableAttributes('session');
             testCase.verifyClass(T, 'table')
             testCase.verifyGreaterThan(height(T), 0)
@@ -259,8 +259,8 @@ classdef TableVariableRegistryTest < matlab.unittest.TestCase
             cleanupPath = onCleanup(@() rmpath(tmpDir));
 
             % Project root first, module root second
-            registry = nansen.plugin.tablevariable.Registry( ...
-                {tmpDir, testCase.GeneralCoreRoot});
+            registry = nansen.plugin.tablevariable.Registry.getInstance( ...
+                tmpDir, RootPaths={tmpDir, testCase.GeneralCoreRoot});
             specs = registry.listByTableType('session');
 
             progressIdx = find(arrayfun(@(s) strcmp(char(s.VariableName), 'Progress'), specs), 1);
@@ -286,8 +286,8 @@ classdef TableVariableRegistryTest < matlab.unittest.TestCase
             mkdir(tmpDir)
             cleanupDir = onCleanup(@() rmdir(tmpDir, 's'));
 
-            registry = nansen.plugin.tablevariable.Registry( ...
-                {testCase.GeneralCoreRoot}, tmpDir);
+            registry = nansen.plugin.tablevariable.Registry.getInstance( ...
+                tmpDir, RootPaths={testCase.GeneralCoreRoot});
             specs = registry.list();
             testCase.assumeGreaterThan(numel(specs), 0)
 

@@ -31,42 +31,52 @@ classdef Registry < nansen.plugin.base.Registry
         SidecarFilename = "tablevariable.plugin.json"
     end
 
-    methods
+    methods (Static)
+
+        function registry = getInstance(projectFolder, options)
+        %getInstance Return a registry scoped to the active project.
+        %
+        %   When projectFolder is omitted the active NANSEN project folder is
+        %   used automatically. Falls back to "" when no project is active
+        %   (unit tests, out-of-session use).
+        %
+        %   Optional name-value argument for test isolation:
+        %     RootPaths — cell array of +tablevariable folder paths; invalidates
+        %                 the cache when changed. Production callers should omit
+        %                 this and populate root paths via collectRootPaths().
+            arguments
+                projectFolder (1,1) string = ""
+                options.RootPaths = {}
+            end
+            projectFolder = nansen.plugin.tablevariable.Registry.resolveActiveProjectFolder( ...
+                projectFolder);
+            persistent cachedRegistry
+
+            rootPathsChanged = ~isempty(options.RootPaths) && ...
+                ~isempty(cachedRegistry) && isvalid(cachedRegistry) && ...
+                ~isequal(options.RootPaths, cachedRegistry.RootPaths);
+
+            if isempty(cachedRegistry) || ~isvalid(cachedRegistry) ...
+                    || cachedRegistry.ProjectFolder ~= projectFolder ...
+                    || rootPathsChanged
+                cachedRegistry = nansen.plugin.tablevariable.Registry( ...
+                    options.RootPaths, projectFolder);
+            end
+            registry = cachedRegistry;
+        end
+    end
+
+    methods (Access = private)
 
         function obj = Registry(rootPaths, projectFolder)
         %Registry Construct a table variable registry from a set of root paths.
         %
-        %   obj = Registry(rootPaths) where rootPaths is a cell array of
-        %   absolute +tablevariable folder paths.
-        %
-        %   obj = Registry(rootPaths, projectFolder) additionally scopes the
-        %   disabled-plugin state to the given project folder.
+        %   Use getInstance() to obtain the project-scoped singleton.
             arguments
                 rootPaths     = {}
                 projectFolder (1,1) string = ""
             end
             obj@nansen.plugin.base.Registry(rootPaths, projectFolder);
-        end
-    end
-
-    methods (Static)
-
-        function registry = getInstance(projectFolder)
-        %getInstance Return a registry scoped to the given project folder.
-        %
-        %   This form has no root paths — it returns an empty registry
-        %   suitable for API access (validate, diagnose) without project context.
-        %   For a populated registry, construct directly:
-        %     registry = nansen.plugin.tablevariable.Registry(rootPaths, projectFolder)
-            arguments
-                projectFolder (1,1) string = ""
-            end
-            persistent cachedRegistry
-            if isempty(cachedRegistry) || ~isvalid(cachedRegistry) ...
-                    || cachedRegistry.ProjectFolder ~= projectFolder
-                cachedRegistry = nansen.plugin.tablevariable.Registry({}, projectFolder);
-            end
-            registry = cachedRegistry;
         end
     end
 
