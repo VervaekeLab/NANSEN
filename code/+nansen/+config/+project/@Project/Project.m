@@ -710,7 +710,7 @@ classdef Project < nansen.module.Module
             coreModuleName = string(obj.RequiredModuleName);
             coreRoot = fullfile(nansen.common.constant.ModuleRootDirectory, ...
                 utility.path.packagename2pathstr(coreModuleName));
-            obj.FileAdapterRegistry.pinBottom("nansen.core", coreRoot);
+            obj.FileAdapterRegistry.pinBottom(coreModuleName, coreRoot);
 
             % Middle: included modules (excluding the required/core module which
             % is already pinned at the bottom).

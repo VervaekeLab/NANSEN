@@ -39,6 +39,11 @@ classdef Registry < nansen.plugin.base.Registry
     end
 
     methods (Access = protected)
+        function id = primaryId(~, entry)
+        %primaryId Return the FileAdapterName as the unique entry id.
+            id = string(entry.FileAdapterName);
+        end
+
         function entries = scanSource(~, sourceId, sourcePath) %#ok<INUSL>
         %scanSource Scan a +fileadapter/ subfolder for adapters.
         %

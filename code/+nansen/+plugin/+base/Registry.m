@@ -6,8 +6,8 @@ classdef (Abstract) Registry < handle
 %     - Middle (ordered list of sources, appended with addSource)
 %     - Bottom (single pinned slot, lowest priority)
 %
-%   Subclasses implement scanSource to define how entries are parsed from
-%   a given source directory.
+%   Subclasses implement scanSource (what to parse) and primaryId (which
+%   field of the returned entry struct is the unique identifier).
 %
 %   Usage:
 %       reg = MyConcreteRegistry();
@@ -32,13 +32,6 @@ classdef (Abstract) Registry < handle
 
         % Resolved entry list after last reconcile (struct array, subclass-defined fields)
         Entries         struct
-
-        % mtime cache: keys are absolute file paths, values are datenum mtimes.
-        MtimeCache      containers.Map
-
-        % Parsed entry cache: keys are "<sourceId>|<relpath>", values are
-        % parsed entry structs. Avoids re-parsing unchanged files.
-        ParsedEntryCache containers.Map
     end
 
     methods % Constructor
@@ -47,8 +40,6 @@ classdef (Abstract) Registry < handle
             obj.MiddleSources = struct('id', {}, 'path', {});
             obj.BottomSource = struct('id', {}, 'path', {});
             obj.Entries      = struct.empty;
-            obj.MtimeCache   = containers.Map('KeyType', 'char', 'ValueType', 'double');
-            obj.ParsedEntryCache = containers.Map('KeyType', 'char', 'ValueType', 'any');
         end
     end
 
@@ -104,12 +95,10 @@ classdef (Abstract) Registry < handle
                 id (1,1) string
             end
             if ~isempty(obj.TopSource) && obj.TopSource.id == id
-                obj.TopSource = struct('id', {}, 'path', {});
-                return
+                obj.TopSource = struct('id', {}, 'path', {}); return
             end
             if ~isempty(obj.BottomSource) && obj.BottomSource.id == id
-                obj.BottomSource = struct('id', {}, 'path', {});
-                return
+                obj.BottomSource = struct('id', {}, 'path', {}); return
             end
             keep = ~strcmp({obj.MiddleSources.id}, id);
             obj.MiddleSources = obj.MiddleSources(keep);
@@ -126,7 +115,6 @@ classdef (Abstract) Registry < handle
             oldIds = obj.entryIds(obj.Entries);
             newIds = obj.entryIds(newEntries);
 
-            % Removed
             removedIds = setdiff(oldIds, newIds);
             for i = 1:numel(removedIds)
                 evtData = nansen.plugin.base.PluginEventData( ...
@@ -134,7 +122,6 @@ classdef (Abstract) Registry < handle
                 notify(obj, 'PluginRemoved', evtData);
             end
 
-            % Added
             addedIds = setdiff(newIds, oldIds);
             for i = 1:numel(addedIds)
                 entry = obj.findEntry(newEntries, addedIds(i));
@@ -142,7 +129,6 @@ classdef (Abstract) Registry < handle
                 notify(obj, 'PluginAdded', evtData);
             end
 
-            % Changed (same id, different content)
             sharedIds = intersect(oldIds, newIds);
             for i = 1:numel(sharedIds)
                 oldEntry = obj.findEntry(obj.Entries, sharedIds(i));
@@ -183,31 +169,18 @@ classdef (Abstract) Registry < handle
         %scanSource Scan one source directory and return its entries.
         %
         %   Subclass defines the entry struct fields and parsing logic.
-    end
 
-    methods (Access = protected)
-        function id = primaryId(~, entry) %#ok<INUSD>
+        id = primaryId(obj, entry)
         %primaryId Return the unique id string for an entry.
         %
-        %   Default implementation returns the 'FileAdapterName' field.
-        %   Subclasses may override if their entries use a different id field.
-            id = string(entry.FileAdapterName);
-        end
+        %   Subclass returns the field of the entry struct that uniquely
+        %   identifies the plugin (e.g. string(entry.FileAdapterName)).
     end
 
     methods (Access = private)
         function sources = orderedSources(obj)
         %orderedSources Return all sources in precedence order (top > middle > bottom).
-            sources = struct('id', {}, 'path', {});
-            if ~isempty(obj.TopSource)
-                sources(end+1) = obj.TopSource;
-            end
-            for i = 1:numel(obj.MiddleSources)
-                sources(end+1) = obj.MiddleSources(i);
-            end
-            if ~isempty(obj.BottomSource)
-                sources(end+1) = obj.BottomSource;
-            end
+            sources = [obj.TopSource, obj.MiddleSources, obj.BottomSource];
         end
 
         function allEntries = buildEntries(obj, sources)

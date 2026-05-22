@@ -6,6 +6,10 @@ classdef ConcreteRegistry < nansen.plugin.base.Registry
 %   'PluginId' field. The PluginId is used as the primary identifier.
 
     methods (Access = protected)
+        function id = primaryId(~, entry)
+            id = string(entry.PluginId);
+        end
+
         function entries = scanSource(~, ~, sourcePath)
             matFile = fullfile(sourcePath, 'plugins.mat');
             if ~isfile(matFile)
@@ -14,12 +18,6 @@ classdef ConcreteRegistry < nansen.plugin.base.Registry
             end
             loaded = load(matFile, 'plugins');
             entries = loaded.plugins;
-        end
-    end
-
-    methods (Access = protected)
-        function id = primaryId(~, entry)
-            id = string(entry.PluginId);
         end
     end
 end
