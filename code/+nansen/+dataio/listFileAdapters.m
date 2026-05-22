@@ -1,43 +1,39 @@
-function fileAdapterList = listFileAdapters(fileExtension, refresh)
-%listFileAdapters Create a list of file adapters
+function fileAdapterList = listFileAdapters(fileExtension, options)
+%listFileAdapters Return a struct array of available file adapters.
 %
-%   fileAdapterList = nansen.dataio.listFileAdapters() returns a struct
-%   array containing information about file adapters.
+%   fileAdapterList = nansen.dataio.listFileAdapters() returns all adapters
+%     visible to the current project.
 %
-%   The fileAdapterList struct array contains the following fields:
-%       FileAdapterName     (char) : Name of fileadapter
-%       FunctionName        (char) : Name of function for file adapter
-%       SupportedFileTypes  (cell) : File types that are supported with this fileadapter
-%       DataType            (char) : Name of datatype returned by this file adapter
+%   fileAdapterList = nansen.dataio.listFileAdapters(fileExtension) filters
+%     to adapters that support the given extension (with or without a dot).
+%
+%   Each element of fileAdapterList has fields:
+%       FileAdapterName     (string) : Class name of the adapter
+%       FunctionName        (string) : Full MATLAB function/package name
+%       SupportedFileTypes  (string) : Supported file extensions
+%       DataType            (string) : Data type returned on load
+%       IsDynamic           (logical) : true for sidecar-based adapters
+%
+%   Optional name-value arguments:
+%       Project - Project instance to query (defaults to current project)
 
-    % Todo: Ignore file adapters with a name that are already in the list
-    % Todo: Start adding from project dir, then watchfolder, then internal?
-
-    if nargin < 2 || isempty(refresh); refresh = false; end
-
-    project = nansen.getCurrentProject();
-    if isempty(project); fileAdapterList = struct.empty; return; end
-
-    fileAdapterList = table2struct(project.getTable('FileAdapter', refresh));
-
-    if nargin < 1; fileExtension = ''; end
-    if ~isempty(fileExtension); fileExtension = strrep(fileExtension, '.', ''); end
-
-    if ~isempty(fileExtension)
-        validationFcn = @(extList) any(contains(extList, fileExtension, "IgnoreCase", true));
-        keep = arrayfun(@(s) validationFcn(s.SupportedFileTypes), ...
-            fileAdapterList);
-    else
-        keep = true(1, numel(fileAdapterList));
+    arguments
+        fileExtension (1,1) string = ""
+        options.Project = nansen.getCurrentProject()
     end
 
-    fileAdapterList = fileAdapterList(keep);
+    if isempty(options.Project)
+        fileAdapterList = struct.empty;
+        return
+    end
+
+    fileAdapterList = options.Project.FileAdapterRegistry.list(fileExtension);
 
     if isempty(fileAdapterList)
-        fileAdapterList(1).FileAdapterName = 'N/A';
-        fileAdapterList(1).FunctionName = '';
-        fileAdapterList(1).SupportedFileTypes = {};
-        fileAdapterList(1).DataType = '';
+        fileAdapterList(1).FileAdapterName = "N/A";
+        fileAdapterList(1).FunctionName = "";
+        fileAdapterList(1).SupportedFileTypes = strings(1, 0);
+        fileAdapterList(1).DataType = "";
     end
 
     if ~nargout
@@ -46,7 +42,7 @@ function fileAdapterList = listFileAdapters(fileExtension, refresh)
         fileAdapterList.FunctionName = string(fileAdapterList.FunctionName);
         fileAdapterList.DataType = string(fileAdapterList.DataType);
         fileFormats = fileAdapterList.SupportedFileTypes;
-        fileFormats = cellfun(@(c) string(strjoin(c, ', ')), fileFormats);
+        fileFormats = cellfun(@(c) strjoin(string(c), ', '), fileFormats);
         fileAdapterList.SupportedFileTypes = fileFormats;
     end
 end

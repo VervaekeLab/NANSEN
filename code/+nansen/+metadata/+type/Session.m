@@ -692,7 +692,7 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
             end
 
             % Get file adapter % Todo: make this more persistent...
-            isMatch = strcmp({fileAdapterList.FileAdapterName}, variableInfo.FileAdapter);
+            isMatch = [fileAdapterList.FileAdapterName] == string(variableInfo.FileAdapter);
 
             if ~any(isMatch)
                 error('NANSEN:Session:FileAdapterNotFound', 'File adapter was not found')

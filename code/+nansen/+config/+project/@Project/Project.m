@@ -28,7 +28,8 @@ classdef Project < nansen.module.Module
     end
 
     properties (SetAccess = private)
-        FolderPath char             % Path to the project folder
+        FolderPath char                                     % Path to the project folder
+        FileAdapterRegistry nansen.plugin.fileadapter.Registry  % Registry for FileAdapter plugins
     end
 
     properties (SetAccess = private, Hidden)
@@ -89,6 +90,7 @@ classdef Project < nansen.module.Module
 
             obj.FolderPath = projectFolder;
             obj.initializeModules()
+            obj.initializeFileAdapterRegistry()
         end
     end
 
@@ -666,8 +668,9 @@ classdef Project < nansen.module.Module
 
                 % Remove any modules that were included but not any more
                 for i = numel(removeIdx):-1:1
-                    % removedModule = obj.IncludedModules(removeIdx(i));
+                    removedId = string(currentModules(removeIdx(i)).ID);
                     obj.IncludedModules(removeIdx(i)) = [];
+                    obj.FileAdapterRegistry.removeSource(removedId);
 
                     % Remove variables (Not needed?):
                     %variableList = removedModule.DataVariables;
@@ -682,8 +685,47 @@ classdef Project < nansen.module.Module
                     % Update variable model based on module's template variables
                     variableList = table2struct( module.getTable('DataVariables') );
                     obj.VariableModel.addDataVariableSet(variableList)
+
+                    moduleRoot = fileparts(module.getFileAdapterFolder());
+                    obj.FileAdapterRegistry.addSource(string(module.ID), moduleRoot);
+                end
+
+                if ~isempty(addedModuleID) || ~isempty(removeIdx)
+                    obj.FileAdapterRegistry.reconcile();
+                    notify(obj, 'ModuleListChanged')
                 end
             end
+        end
+
+        function initializeFileAdapterRegistry(obj)
+        %initializeFileAdapterRegistry Build and populate the FileAdapter registry.
+        %
+        %   Pinned source ordering (highest to lowest priority):
+        %     top    - project's own +fileadapter/ folder
+        %     middle - included optional modules (in IncludedModules order)
+        %     bottom - core module
+
+            obj.FileAdapterRegistry = nansen.plugin.fileadapter.Registry();
+
+            coreModuleName = string(obj.RequiredModuleName);
+            coreRoot = fullfile(nansen.common.constant.ModuleRootDirectory, ...
+                utility.path.packagename2pathstr(coreModuleName));
+            obj.FileAdapterRegistry.pinBottom(coreModuleName, coreRoot);
+
+            % Middle: included modules (excluding the required/core module which
+            % is already pinned at the bottom).
+            for i = 1:numel(obj.IncludedModules)
+                module = obj.IncludedModules(i);
+                moduleId = string(module.ID);
+                if moduleId == coreModuleName; continue; end
+                moduleRoot = fileparts(module.getFileAdapterFolder());
+                obj.FileAdapterRegistry.addSource(moduleId, moduleRoot);
+            end
+
+            projectModuleRoot = obj.getModuleFolder();
+            obj.FileAdapterRegistry.pinTop(string(obj.ID), projectModuleRoot);
+
+            obj.FileAdapterRegistry.reconcile();
         end
 
         function initializeVariableModel(obj)
