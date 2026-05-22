@@ -143,6 +143,11 @@ classdef Module < handle
             itemType = validatestring(itemType, {'SessionMethod', ...
                 'TableVariable', 'FileAdapter', 'DataVariables', ...
                 'DataLocations'}, 1);
+            if strcmp(itemType, 'FileAdapter')
+                warning('NANSEN:DeprecatedPath:ModuleFileAdapters', ...
+                    ['Module.getTable(''FileAdapter'') is deprecated. ', ...
+                    'Use project.FileAdapterRegistry.list() instead.'])
+            end
             itemTable = obj.rehash(itemType, forceRefresh);
         end
 
@@ -163,6 +168,9 @@ classdef Module < handle
         end
 
         function fileAdapterList = get.FileAdapters(obj)
+            warning('NANSEN:DeprecatedPath:ModuleFileAdapters', ...
+                ['Module.FileAdapters is deprecated. ', ...
+                'Use project.FileAdapterRegistry.list() instead.'])
             itemTable = obj.rehash('FileAdapter');
             fileAdapterList = itemTable.FileAdapterName;
             fileAdapterList = string(fileAdapterList)';
