@@ -8,10 +8,10 @@ function fileAdapterList = listFileAdapters(fileExtension, options)
 %     to adapters that support the given extension (with or without a dot).
 %
 %   Each element of fileAdapterList has fields:
-%       FileAdapterName     (char) : Class name of the adapter
-%       FunctionName        (char) : Full MATLAB function/package name
-%       SupportedFileTypes  (cell) : Supported file extensions
-%       DataType            (char) : Data type returned on load
+%       FileAdapterName     (string) : Class name of the adapter
+%       FunctionName        (string) : Full MATLAB function/package name
+%       SupportedFileTypes  (string) : Supported file extensions
+%       DataType            (string) : Data type returned on load
 %       IsDynamic           (logical) : true for sidecar-based adapters
 %
 %   Optional name-value arguments:
@@ -30,10 +30,10 @@ function fileAdapterList = listFileAdapters(fileExtension, options)
     fileAdapterList = options.Project.FileAdapterRegistry.list(fileExtension);
 
     if isempty(fileAdapterList)
-        fileAdapterList(1).FileAdapterName = 'N/A';
-        fileAdapterList(1).FunctionName = '';
-        fileAdapterList(1).SupportedFileTypes = {};
-        fileAdapterList(1).DataType = '';
+        fileAdapterList(1).FileAdapterName = "N/A";
+        fileAdapterList(1).FunctionName = "";
+        fileAdapterList(1).SupportedFileTypes = strings(1, 0);
+        fileAdapterList(1).DataType = "";
     end
 
     if ~nargout
@@ -42,7 +42,7 @@ function fileAdapterList = listFileAdapters(fileExtension, options)
         fileAdapterList.FunctionName = string(fileAdapterList.FunctionName);
         fileAdapterList.DataType = string(fileAdapterList.DataType);
         fileFormats = fileAdapterList.SupportedFileTypes;
-        fileFormats = cellfun(@(c) string(strjoin(c, ', ')), fileFormats);
+        fileFormats = cellfun(@(c) strjoin(string(c), ', '), fileFormats);
         fileAdapterList.SupportedFileTypes = fileFormats;
     end
 end

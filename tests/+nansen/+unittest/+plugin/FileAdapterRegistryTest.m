@@ -39,7 +39,7 @@ classdef FileAdapterRegistryTest < matlab.unittest.TestCase
 
             entries = reg.list();
             testCase.verifyNotEmpty(entries)
-            testCase.verifyTrue(any(strcmp({entries.FileAdapterName}, 'TestSidecar')))
+            testCase.verifyTrue(any([entries.FileAdapterName] == "TestSidecar"))
         end
 
         function testSidecarAdapterDiscovery(testCase)
@@ -50,7 +50,7 @@ classdef FileAdapterRegistryTest < matlab.unittest.TestCase
 
             entries = reg.list();
             testCase.verifyNumElements(entries, 1)
-            testCase.verifyEqual(entries.FileAdapterName, 'MyAdapter')
+            testCase.verifyEqual(entries.FileAdapterName, "MyAdapter")
             testCase.verifyTrue(entries.IsDynamic)
         end
 
@@ -64,7 +64,7 @@ classdef FileAdapterRegistryTest < matlab.unittest.TestCase
 
             csvEntries = reg.list("csv");
             testCase.verifyNumElements(csvEntries, 1)
-            testCase.verifyEqual(csvEntries.FileAdapterName, 'CsvAdapter')
+            testCase.verifyEqual(csvEntries.FileAdapterName, "CsvAdapter")
         end
 
         function testFilterByExtensionWithDot(testCase)
@@ -75,7 +75,7 @@ classdef FileAdapterRegistryTest < matlab.unittest.TestCase
 
             withDot    = reg.list(".mat");
             withoutDot = reg.list("mat");
-            testCase.verifyEqual({withDot.FileAdapterName}, {withoutDot.FileAdapterName})
+            testCase.verifyEqual([withDot.FileAdapterName], [withoutDot.FileAdapterName])
         end
 
         function testSourceAddAndRemoveDynamic(testCase)
@@ -95,7 +95,7 @@ classdef FileAdapterRegistryTest < matlab.unittest.TestCase
             reg.reconcile();
             entries = reg.list();
             testCase.verifyNumElements(entries, 1)
-            testCase.verifyEqual(entries.FileAdapterName, 'AdapterB')
+            testCase.verifyEqual(entries.FileAdapterName, "AdapterB")
         end
 
         function testTopSourceWinsOnConflict(testCase)
@@ -110,7 +110,7 @@ classdef FileAdapterRegistryTest < matlab.unittest.TestCase
             entries = reg.list();
             testCase.verifyNumElements(entries, 1)
             % Top source should win; its supported file type is '.tiff'
-            testCase.verifyEqual(entries.SupportedFileTypes, {'.tiff'})
+            testCase.verifyEqual(entries.SupportedFileTypes, ".tiff")
         end
 
         function testModuleDeprecationWarning(testCase)

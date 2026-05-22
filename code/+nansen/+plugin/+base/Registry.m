@@ -100,8 +100,10 @@ classdef (Abstract) Registry < handle
             if ~isempty(obj.BottomSource) && obj.BottomSource.id == id
                 obj.BottomSource = struct('id', {}, 'path', {}); return
             end
-            keep = ~strcmp({obj.MiddleSources.id}, id);
-            obj.MiddleSources = obj.MiddleSources(keep);
+            if ~isempty(obj.MiddleSources)
+                keep = [obj.MiddleSources.id] ~= id;
+                obj.MiddleSources = obj.MiddleSources(keep);
+            end
         end
 
         function reconcile(obj)
@@ -221,7 +223,7 @@ classdef (Abstract) Registry < handle
             if ~isempty(obj.BottomSource) && obj.BottomSource.id == id
                 tf = true; return
             end
-            if ~isempty(obj.MiddleSources) && any(strcmp({obj.MiddleSources.id}, id))
+            if ~isempty(obj.MiddleSources) && any([obj.MiddleSources.id] == id)
                 tf = true;
             end
         end

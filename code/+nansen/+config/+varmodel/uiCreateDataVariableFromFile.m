@@ -40,8 +40,8 @@ function varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sess
     S = struct();
     S.VariableName = '';
     S.FileNameExpression = fileName;
-    S.FileAdapter = fileAdapterList(1).FileAdapterName;
-    S.FileAdapter_ = {fileAdapterList.FileAdapterName};
+    S.FileAdapter = char(fileAdapterList(1).FileAdapterName);
+    S.FileAdapter_ = cellstr([fileAdapterList.FileAdapterName]);
     S.Favorite = false;
 
     if ~isempty(options.SkipFields)
@@ -92,7 +92,7 @@ function varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sess
     end
 
     % Get data type from file adapter
-    fileAdapterIdx = strcmp({fileAdapterList.FileAdapterName}, S.FileAdapter);
+    fileAdapterIdx = [fileAdapterList.FileAdapterName] == string(S.FileAdapter);
 
     % Normalize to char. Todo: Should support string type
     varItem.DataType = char( fileAdapterList(fileAdapterIdx).DataType );

@@ -15,9 +15,9 @@ function save(filePath, data, options)
     else
         fileAdapterName = options.FileAdapter;
         if contains(fileAdapterName, 'fileadapter.')
-            isMatch = strcmp(fileAdapterName, {fileAdapterList.FunctionName});
+            isMatch = [fileAdapterList.FunctionName] == fileAdapterName;
         elseif ~contains(fileAdapterName, '.')
-            isMatch = strcmp(fileAdapterName, {fileAdapterList.FileAdapterName});
+            isMatch = [fileAdapterList.FileAdapterName] == fileAdapterName;
             fileAdapterName = fileAdapterList(isMatch).FunctionName;
         else
             error('"%s" is not the name of a file adapter', fileAdapterName)

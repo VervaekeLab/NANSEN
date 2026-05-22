@@ -6,10 +6,10 @@ classdef Registry < nansen.plugin.base.Registry
 %   returned via Module.getTable.
 %
 %   Fields per entry:
-%       FileAdapterName     - Class name (char)
-%       FunctionName        - Full MATLAB function/package name (char)
-%       SupportedFileTypes  - Supported extensions (cell of char)
-%       DataType            - Data type returned on load (char)
+%       FileAdapterName     - Class name (string)
+%       FunctionName        - Full MATLAB function/package name (string)
+%       SupportedFileTypes  - Supported extensions (string array)
+%       DataType            - Data type returned on load (string)
 %       IsDynamic           - true for sidecar-based, false for class-based
 %
 %   See also: nansen.plugin.base.Registry, nansen.dataio.listFileAdapters
@@ -44,7 +44,7 @@ classdef Registry < nansen.plugin.base.Registry
             id = string(entry.FileAdapterName);
         end
 
-        function entries = scanSource(~, sourceId, sourcePath) %#ok<INUSL>
+        function entries = scanSource(obj, sourceId, sourcePath) %#ok<INUSL>
         %scanSource Scan a +fileadapter/ subfolder for adapters.
         %
         %   Returns a struct array with the five standard adapter fields.
@@ -79,6 +79,19 @@ classdef Registry < nansen.plugin.base.Registry
                 entries = emptyEntry;
             else
                 entries = table2struct(tbl);
+                entries = obj.normalizeEntries(entries);
+            end
+        end
+    end
+
+    methods (Access = private)
+        function entries = normalizeEntries(~, entries)
+        %normalizeEntries Keep file adapter metadata text fields as strings.
+            for i = 1:numel(entries)
+                entries(i).FileAdapterName = string(entries(i).FileAdapterName);
+                entries(i).FunctionName = string(entries(i).FunctionName);
+                entries(i).SupportedFileTypes = string(entries(i).SupportedFileTypes);
+                entries(i).DataType = string(entries(i).DataType);
             end
         end
     end

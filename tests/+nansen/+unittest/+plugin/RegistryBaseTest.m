@@ -31,12 +31,12 @@ classdef RegistryBaseTest < matlab.unittest.TestCase
 
             reg.pinTop("src-a", dirA);
             reg.reconcile();
-            testCase.verifyEqual({reg.list().PluginId}, {'Alpha'})
+            testCase.verifyEqual([reg.list().PluginId], "Alpha")
 
             % Replacing the top slot should switch to the new source
             reg.pinTop("src-b", dirB);
             reg.reconcile();
-            testCase.verifyEqual({reg.list().PluginId}, {'Beta'})
+            testCase.verifyEqual([reg.list().PluginId], "Beta")
         end
 
         function testPinBottomSingleSlot(testCase)
@@ -46,11 +46,11 @@ classdef RegistryBaseTest < matlab.unittest.TestCase
 
             reg.pinBottom("src-a", dirA);
             reg.reconcile();
-            testCase.verifyEqual({reg.list().PluginId}, {'Alpha'})
+            testCase.verifyEqual([reg.list().PluginId], "Alpha")
 
             reg.pinBottom("src-b", dirB);
             reg.reconcile();
-            testCase.verifyEqual({reg.list().PluginId}, {'Beta'})
+            testCase.verifyEqual([reg.list().PluginId], "Beta")
         end
 
         function testMiddleTierOrderedAppend(testCase)
@@ -64,8 +64,8 @@ classdef RegistryBaseTest < matlab.unittest.TestCase
             reg.addSource("src-c", dirC);
             reg.reconcile();
 
-            ids = {reg.list().PluginId};
-            testCase.verifyEqual(ids, {'Alpha', 'Beta', 'Gamma'})
+            ids = [reg.list().PluginId];
+            testCase.verifyEqual(ids, ["Alpha", "Beta", "Gamma"])
         end
 
         function testAddSourceErrorsOnDuplicateId(testCase)
@@ -87,8 +87,8 @@ classdef RegistryBaseTest < matlab.unittest.TestCase
 
             reg.removeSource("src-a");
             reg.reconcile();
-            ids = {reg.list().PluginId};
-            testCase.verifyEqual(ids, {'Beta'})
+            ids = [reg.list().PluginId];
+            testCase.verifyEqual(ids, "Beta")
         end
 
         function testRemoveSourceFromTop(testCase)
@@ -142,7 +142,7 @@ classdef RegistryBaseTest < matlab.unittest.TestCase
 
             entries = reg.list();
             testCase.verifyNumElements(entries, 1)
-            testCase.verifyEqual(entries.Source, 'top')
+            testCase.verifyEqual(entries.Source, "top")
         end
 
         function testReconcileEmitsPluginAddedOnNew(testCase)
@@ -195,7 +195,7 @@ classdef RegistryBaseTest < matlab.unittest.TestCase
             reg.reconcile();
 
             alpha = reg.get("Alpha");
-            testCase.verifyEqual(alpha.PluginId, 'Alpha')
+            testCase.verifyEqual(alpha.PluginId, "Alpha")
         end
 
         function testGetReturnsEmptyForUnknownId(testCase)
@@ -219,10 +219,14 @@ classdef RegistryBaseTest < matlab.unittest.TestCase
 
             plugins = struct('PluginId', {}, 'Source', {});
             for i = 1:numel(pluginIds)
-                s = struct('PluginId', pluginIds{i}, 'Source', name);
+                s = struct('PluginId', string(pluginIds{i}), 'Source', string(name));
                 fields = fieldnames(extraFields);
                 for f = 1:numel(fields)
-                    s.(fields{f}) = extraFields.(fields{f});
+                    fieldValue = extraFields.(fields{f});
+                    if ischar(fieldValue) || isstring(fieldValue)
+                        fieldValue = string(fieldValue);
+                    end
+                    s.(fields{f}) = fieldValue;
                 end
                 plugins(end+1) = s; %#ok<AGROW>
             end

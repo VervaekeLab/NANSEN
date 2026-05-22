@@ -115,7 +115,7 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
                 S(j).Subfolder = hRow.SubfolderName.Value;
 
                 % Update data type based on fileadapter selection
-                isMatch = strcmp({fileAdapterList.FileAdapterName}, S(j).FileAdapter);
+                isMatch = [fileAdapterList.FileAdapterName] == string(S(j).FileAdapter);
                 if any(isMatch) && ~strcmp( S(j).FileAdapter, 'Default' )
                     S(j).DataType = fileAdapterList(isMatch).DataType;
                 end
@@ -297,9 +297,9 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
 
             if ~isempty(rowData.FileType)
                 fileAdapterOptions = nansen.dataio.listFileAdapters(rowData.FileType);
-                fileAdapterOptions = {fileAdapterOptions.FileAdapterName};
+                fileAdapterOptions = [fileAdapterOptions.FileAdapterName];
             else
-                fileAdapterOptions = {obj.FileAdapterList.FileAdapterName};
+                fileAdapterOptions = [obj.FileAdapterList.FileAdapterName];
             end
 
             hRow.FileAdapterSelect.Items = fileAdapterOptions;
@@ -446,18 +446,18 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             fileType = lower( strrep(fileType, '.', '') );
 
             fileAdapterOptions = nansen.dataio.listFileAdapters(fileType);
-            fileAdapterOptions = {fileAdapterOptions.FileAdapterName};
+            fileAdapterOptions = [fileAdapterOptions.FileAdapterName];
 
             % Update the list of file adapters available for this filetype
-            if ~isequal(fileAdapterOptions, {'N/A'})
+            if ~isequal(fileAdapterOptions, "N/A")
                 hRow.FileAdapterSelect.Items = fileAdapterOptions;
 
                 if ~contains(hRow.FileAdapterSelect.Value, fileAdapterOptions)
-                    hRow.FileAdapterSelect.Value = fileAdapterOptions{1};
+                    hRow.FileAdapterSelect.Value = fileAdapterOptions(1);
                 end
             else
                 hRow.FileAdapterSelect.Items = fileAdapterOptions;
-                hRow.FileAdapterSelect.Value = fileAdapterOptions{1};
+                hRow.FileAdapterSelect.Value = fileAdapterOptions(1);
             end
         end
 
@@ -477,13 +477,14 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             newValue = evt.Value;
 
             fileAdapterList = obj.FileAdapterList;
-            isMatch = strcmp({fileAdapterList.FileAdapterName}, newValue);
+            isMatch = [fileAdapterList.FileAdapterName] == string(newValue);
 
             isSupported = false;
 
             if any(isMatch)
                 supportedFileTypes = fileAdapterList(isMatch).SupportedFileTypes;
-                if any(ismember(supportedFileTypes, {fileType, ['.' fileType]}))
+                supportedFileTypesWithDot = "." + strrep(supportedFileTypes, ".", "");
+                if any(ismember(supportedFileTypesWithDot, "." + string(fileType)))
                     isSupported = true;
                 end
             end
@@ -492,7 +493,8 @@ classdef VariableModelUI < applify.apptable & nansen.config.mixin.HasDataLocatio
             if ~isSupported
                 hFig = ancestor(obj.Parent, 'figure');
                 if any(isMatch)
-                    allowedFileTypes = strcat('.', fileAdapterList(isMatch).SupportedFileTypes);
+                    allowedFileTypes = fileAdapterList(isMatch).SupportedFileTypes;
+                    allowedFileTypes = "." + strrep(allowedFileTypes, ".", "");
                     supportedFileTypes = strjoin(allowedFileTypes, ', ');
                 else
                     if strcmp(newValue, 'Default') % Todo: Should not "Default" be part of FileAdapterList?
