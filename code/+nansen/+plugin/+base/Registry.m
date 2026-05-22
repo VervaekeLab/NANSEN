@@ -33,8 +33,8 @@ classdef (Abstract) Registry < handle
     end
 
     properties (Access = protected)
-        % RootPaths_ - Ordered discovery roots (project first, builtin last).
-        RootPaths_ (1,:) cell = {}
+        % RootPaths - Ordered discovery roots (project first, builtin last).
+        RootPaths (1,:) cell = {}
     end
 
     properties (SetAccess = protected)
@@ -74,7 +74,7 @@ classdef (Abstract) Registry < handle
                 rootPaths = cellstr(rootPaths);
             end
             obj.ProjectFolder = projectFolder;
-            obj.RootPaths_    = rootPaths;
+            obj.RootPaths    = rootPaths;
             obj.Specs  = [];
             obj.Issues = obj.emptyIssues();
             obj.MtimeCache = containers.Map('KeyType', 'char', 'ValueType', 'double');
@@ -239,12 +239,12 @@ classdef (Abstract) Registry < handle
             removedIds = setdiff(prevIds, newIds);
 
             for i = 1:numel(addedIds)
-                notify(obj, 'PluginAdded')
+                notify(obj, "PluginAdded")
             end
             for i = 1:numel(removedIds)
-                notify(obj, 'PluginRemoved')
+                notify(obj, "PluginRemoved")
             end
-            notify(obj, 'PluginRegistryRefreshed')
+            notify(obj, "PluginRegistryRefreshed")
         end
 
         function clear(obj)
@@ -288,9 +288,9 @@ classdef (Abstract) Registry < handle
         function rootPaths = getRootPaths(obj)
         %getRootPaths Return ordered discovery roots (highest-priority first).
         %
-        %   Default implementation returns the RootPaths_ stored at
+        %   Default implementation returns the RootPaths stored at
         %   construction. Subclasses may override for dynamic path resolution.
-            rootPaths = obj.RootPaths_;
+            rootPaths = obj.RootPaths;
         end
 
         function tf = hasSidecarForSourcePath(obj, mFilePath)
@@ -325,7 +325,7 @@ classdef (Abstract) Registry < handle
                         newSpecs = obj.loadSidecarFile(filePath);
                         specs    = [specs, newSpecs]; %#ok<AGROW>
                     catch ME
-                        obj.addIssue('error', ME.message, filePath)
+                        obj.addIssue("error", ME.message, filePath)
                     end
                 end
             end
@@ -381,11 +381,16 @@ classdef (Abstract) Registry < handle
         %getSpecPriority Compute sort key. Lower value = higher precedence.
             rootPriority = obj.getSpecRootPriority(spec);
             switch lower(char(spec.Source))
-                case 'project';             srcPriority = 10;
-                case 'sidecar';             srcPriority = 20;
-                case {'class','function'};  srcPriority = 30;
-                case 'builtin';             srcPriority = 40;
-                otherwise;                  srcPriority = 50;
+                case "project"
+                    srcPriority = 10;
+                case "sidecar"
+                    srcPriority = 20;
+                case {"class", "function"}
+                    srcPriority = 30;
+                case "builtin"
+                    srcPriority = 40;
+                otherwise
+                    srcPriority = 50;
             end
             priority = rootPriority * 100 + srcPriority;
         end
@@ -418,7 +423,7 @@ classdef (Abstract) Registry < handle
             end
 
             ids = string({specs.Id});
-            [~, firstIdx] = unique(ids, 'stable');
+            [~, firstIdx] = unique(ids, "stable");
             dupMask = true(1, numel(specs));
             dupMask(firstIdx) = false;
 
@@ -462,10 +467,14 @@ classdef (Abstract) Registry < handle
 
         function addIssue(obj, severity, message, sourcePath)
         %addIssue Append a structured validation or discovery issue.
+        %
+        %   Severity is always stored as a char so that strcmp-based filtering
+        %   (e.g. strcmp({issues.Severity}, 'error')) works correctly regardless
+        %   of whether the caller passes a char or a string literal.
             obj.Issues(end+1) = struct( ...
-                'Severity',   severity, ...
-                'Message',    message, ...
-                'SourcePath', sourcePath);
+                'Severity',   char(severity), ...
+                'Message',    char(message), ...
+                'SourcePath', char(sourcePath));
         end
 
         function specs = emptySpecArray(~)
@@ -522,9 +531,9 @@ classdef (Abstract) Registry < handle
                 mkdir(prefsDir)
             end
 
-            fid     = fopen(prefsFile, 'w', 'n', 'UTF-8');
+            fid     = fopen(prefsFile, "w", "n", "UTF-8");
             cleanup = onCleanup(@() fclose(fid));
-            fprintf(fid, '%s', jsonencode(ids, 'PrettyPrint', true));
+            fprintf(fid, '%s', jsonencode(ids, "PrettyPrint", true));
         end
 
         function filePath = disabledPrefsFile(obj)
@@ -534,7 +543,7 @@ classdef (Abstract) Registry < handle
             if obj.ProjectFolder == ""
                 prefsRoot = fullfile(tempdir(), 'nansen_plugin_prefs');
             else
-                prefsRoot = fullfile(obj.ProjectFolder, 'configurations', 'plugin_registry');
+                prefsRoot = fullfile(obj.ProjectFolder, "configurations", "plugin_registry");
             end
 
             filePath = fullfile(prefsRoot, [typeName '_disabled.json']);
@@ -545,12 +554,12 @@ classdef (Abstract) Registry < handle
 
     methods (Static, Access = protected)
 
-        function tf = hasSuperclass_(mc, superclassName)
-        %hasSuperclass_ Recursive superclass check (handles deep hierarchies).
+        function tf = hasSuperclass(mc, superclassName)
+        %hasSuperclass Recursive superclass check (handles deep hierarchies).
             tf = false;
             for i = 1:numel(mc.SuperclassList)
                 if strcmp(mc.SuperclassList(i).Name, superclassName) || ...
-                        nansen.plugin.base.Registry.hasSuperclass_( ...
+                        nansen.plugin.base.Registry.hasSuperclass( ...
                         mc.SuperclassList(i), superclassName)
                     tf = true;
                     return
@@ -558,8 +567,8 @@ classdef (Abstract) Registry < handle
             end
         end
 
-        function value = getAttr_(S, fieldName, defaultValue)
-        %getAttr_ Safe struct field read with a default.
+        function value = getAttr(S, fieldName, defaultValue)
+        %getAttr Safe struct field read with a default.
             if isfield(S, fieldName) && ~isempty(S.(fieldName))
                 value = S.(fieldName);
             else

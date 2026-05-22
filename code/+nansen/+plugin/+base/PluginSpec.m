@@ -63,8 +63,8 @@ classdef (Abstract) PluginSpec < nansen.common.abstract.Specification
     end
 
     methods (Access = protected)
-        function name = resolveEntrypoint_(obj)
-        %resolveEntrypoint_ Return the MATLAB callable name from Implementation.
+        function name = resolveEntrypoint(obj)
+        %resolveEntrypoint Return the MATLAB callable name from Implementation.
         %
         %   Checks Implementation.entrypoint, then .class, then falls back to Id.
             name = '';

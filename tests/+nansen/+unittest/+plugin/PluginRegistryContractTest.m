@@ -20,8 +20,8 @@ classdef PluginRegistryContractTest < matlab.unittest.TestCase
     % ------------------------------------------------------------------ %
     methods (Access = private)
 
-        function filePath = writeSidecar_(~, folder, id, displayName)
-        %writeSidecar_ Write a minimal test.plugin.json to folder.
+        function filePath = writeSidecar(~, folder, id, displayName)
+        %writeSidecar Write a minimal test.plugin.json to folder.
             filePath = fullfile(folder, 'test.plugin.json');
             S = struct( ...
                 'schemaVersion', '1.0', ...
@@ -54,8 +54,8 @@ classdef PluginRegistryContractTest < matlab.unittest.TestCase
             rootA = fullfile(F.Folder, 'A'); mkdir(rootA)
             rootB = fullfile(F.Folder, 'B'); mkdir(rootB)
 
-            testCase.writeSidecar_(rootA, 'test.Conflict', 'Version A')
-            testCase.writeSidecar_(rootB, 'test.Conflict', 'Version B')
+            testCase.writeSidecar(rootA, 'test.Conflict', 'Version A')
+            testCase.writeSidecar(rootB, 'test.Conflict', 'Version B')
 
             reg = nansen.unittest.plugin.fixture.MultiRootTestRegistry({rootA, rootB});
             specs = reg.list();
@@ -80,8 +80,8 @@ classdef PluginRegistryContractTest < matlab.unittest.TestCase
             rootA = fullfile(F.Folder, 'A'); mkdir(rootA)
             rootB = fullfile(F.Folder, 'B'); mkdir(rootB)
 
-            testCase.writeSidecar_(rootA, 'test.OnlyInA', 'Only In A')
-            testCase.writeSidecar_(rootB, 'test.OnlyInB', 'Only In B')
+            testCase.writeSidecar(rootA, 'test.OnlyInA', 'Only In A')
+            testCase.writeSidecar(rootB, 'test.OnlyInB', 'Only In B')
 
             reg = nansen.unittest.plugin.fixture.MultiRootTestRegistry({rootA, rootB});
             specs = reg.list();
@@ -100,8 +100,8 @@ classdef PluginRegistryContractTest < matlab.unittest.TestCase
             projectRoot = fullfile(F.Folder, 'project'); mkdir(projectRoot)
             moduleRoot  = fullfile(F.Folder, 'module');  mkdir(moduleRoot)
 
-            testCase.writeSidecar_(projectRoot, 'my.Plugin', 'Project Version')
-            testCase.writeSidecar_(moduleRoot,  'my.Plugin', 'Module Version')
+            testCase.writeSidecar(projectRoot, 'my.Plugin', 'Project Version')
+            testCase.writeSidecar(moduleRoot,  'my.Plugin', 'Module Version')
 
             reg = nansen.unittest.plugin.fixture.MultiRootTestRegistry( ...
                 {projectRoot, moduleRoot});
@@ -166,7 +166,7 @@ classdef PluginRegistryContractTest < matlab.unittest.TestCase
             goodDir = fullfile(F.Folder, 'good'); mkdir(goodDir)
             badDir  = fullfile(F.Folder, 'bad');  mkdir(badDir)
 
-            testCase.writeSidecar_(goodDir, 'test.GoodPlugin', 'Good Plugin')
+            testCase.writeSidecar(goodDir, 'test.GoodPlugin', 'Good Plugin')
             brokenPath = fullfile(badDir, 'test.plugin.json');
             fid = fopen(brokenPath, 'w');
             fprintf(fid, '{broken json!');
@@ -199,7 +199,7 @@ classdef PluginRegistryContractTest < matlab.unittest.TestCase
             import matlab.unittest.fixtures.TemporaryFolderFixture
             F = testCase.applyFixture(TemporaryFolderFixture);
 
-            testCase.writeSidecar_(F.Folder, 'test.Disable', 'Disable Me')
+            testCase.writeSidecar(F.Folder, 'test.Disable', 'Disable Me')
             reg = nansen.unittest.plugin.fixture.TestRegistry(F.Folder, F.Folder);
             reg.disable('test.Disable');
 
@@ -210,7 +210,7 @@ classdef PluginRegistryContractTest < matlab.unittest.TestCase
         function testIncludeDisabledReturnsAllSpecs(testCase)
         %testIncludeDisabledReturnsAllSpecs list(IncludeDisabled=true) includes disabled specs.
         %
-        %   Two plugins must live in separate subfolders because writeSidecar_
+        %   Two plugins must live in separate subfolders because writeSidecar
         %   always writes to <folder>/test.plugin.json — a second write to the
         %   same folder would overwrite the first.
             import matlab.unittest.fixtures.TemporaryFolderFixture
@@ -219,8 +219,8 @@ classdef PluginRegistryContractTest < matlab.unittest.TestCase
             dirA = fullfile(F.Folder, 'A'); mkdir(dirA)
             dirB = fullfile(F.Folder, 'B'); mkdir(dirB)
 
-            testCase.writeSidecar_(dirA, 'test.Visible', 'Visible Plugin')
-            testCase.writeSidecar_(dirB, 'test.Hidden',  'Hidden Plugin')
+            testCase.writeSidecar(dirA, 'test.Visible', 'Visible Plugin')
+            testCase.writeSidecar(dirB, 'test.Hidden',  'Hidden Plugin')
             reg = nansen.unittest.plugin.fixture.MultiRootTestRegistry( ...
                 {dirA, dirB}, F.Folder);
             reg.disable('test.Hidden');
@@ -239,7 +239,7 @@ classdef PluginRegistryContractTest < matlab.unittest.TestCase
             F = testCase.applyFixture(TemporaryFolderFixture);
 
             sidecarDir = fullfile(F.Folder, 'plugins'); mkdir(sidecarDir)
-            testCase.writeSidecar_(sidecarDir, 'test.Scoped', 'Scoped Plugin')
+            testCase.writeSidecar(sidecarDir, 'test.Scoped', 'Scoped Plugin')
 
             projA = fullfile(F.Folder, 'projA'); mkdir(projA)
             projB = fullfile(F.Folder, 'projB'); mkdir(projB)
@@ -273,7 +273,7 @@ classdef PluginRegistryContractTest < matlab.unittest.TestCase
         %testResolveFindsByExactId resolve() returns spec with the matching Id.
             import matlab.unittest.fixtures.TemporaryFolderFixture
             F = testCase.applyFixture(TemporaryFolderFixture);
-            testCase.writeSidecar_(F.Folder, 'test.Exact', 'Exact Match')
+            testCase.writeSidecar(F.Folder, 'test.Exact', 'Exact Match')
             reg = nansen.unittest.plugin.fixture.TestRegistry(F.Folder, F.Folder);
             spec = reg.resolve('test.Exact');
             testCase.verifyEqual(char(spec.Id), 'test.Exact')
@@ -287,8 +287,8 @@ classdef PluginRegistryContractTest < matlab.unittest.TestCase
             rootA = fullfile(F.Folder, 'A'); mkdir(rootA)
             rootB = fullfile(F.Folder, 'B'); mkdir(rootB)
 
-            testCase.writeSidecar_(rootA, 'test.A', 'Shared Name')
-            testCase.writeSidecar_(rootB, 'test.B', 'Shared Name')
+            testCase.writeSidecar(rootA, 'test.A', 'Shared Name')
+            testCase.writeSidecar(rootB, 'test.B', 'Shared Name')
 
             reg = nansen.unittest.plugin.fixture.MultiRootTestRegistry({rootA, rootB});
             specs = reg.findByDisplayName('Shared Name');
@@ -309,7 +309,7 @@ classdef PluginRegistryContractTest < matlab.unittest.TestCase
             import matlab.unittest.fixtures.TemporaryFolderFixture
             F = testCase.applyFixture(TemporaryFolderFixture);
 
-            testCase.writeSidecar_(F.Folder, 'test.Cycle', 'Cycle Plugin')
+            testCase.writeSidecar(F.Folder, 'test.Cycle', 'Cycle Plugin')
             reg = nansen.unittest.plugin.fixture.TestRegistry(F.Folder, F.Folder);
 
             reg.disable('test.Cycle');
@@ -327,7 +327,7 @@ classdef PluginRegistryContractTest < matlab.unittest.TestCase
             import matlab.unittest.fixtures.TemporaryFolderFixture
             F = testCase.applyFixture(TemporaryFolderFixture);
 
-            testCase.writeSidecar_(F.Folder, 'test.Restore', 'Restore Plugin')
+            testCase.writeSidecar(F.Folder, 'test.Restore', 'Restore Plugin')
             reg = nansen.unittest.plugin.fixture.TestRegistry(F.Folder, F.Folder);
             reg.list();
 

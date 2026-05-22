@@ -174,7 +174,7 @@ classdef Registry < nansen.plugin.base.Registry
                         if obj.hasSidecarForSourcePath(filePath); continue; end
 
                         try
-                            spec = obj.createSpecFromMFile_(filePath, tableTypes{t});
+                            spec = obj.createSpecFromMFile(filePath, tableTypes{t});
                             if ~isempty(spec)
                                 specs(end+1) = spec; %#ok<AGROW>
                             end
@@ -196,8 +196,8 @@ classdef Registry < nansen.plugin.base.Registry
 
     methods (Access = private)
 
-        function spec = createSpecFromMFile_(~, filePath, tableType)
-        %createSpecFromMFile_ Build a TableVariableSpec from a discovered .m file.
+        function spec = createSpecFromMFile(~, filePath, tableType)
+        %createSpecFromMFile Build a TableVariableSpec from a discovered .m file.
             functionName = utility.path.abspath2funcname(filePath);
             mc = meta.class.fromName(functionName);
 
@@ -206,12 +206,12 @@ classdef Registry < nansen.plugin.base.Registry
                 return
             end
 
-            if ~nansen.plugin.tablevariable.Registry.isTableVariableClass_(mc)
+            if ~nansen.plugin.tablevariable.Registry.isTableVariableClass(mc)
                 spec = nansen.plugin.tablevariable.TableVariableSpec.empty;
                 return
             end
 
-            attrs = nansen.plugin.tablevariable.Registry.readClassAttributes_(mc);
+            attrs = nansen.plugin.tablevariable.Registry.readClassAttributes(mc);
 
             [~, fileName] = fileparts(filePath);
 
@@ -223,8 +223,8 @@ classdef Registry < nansen.plugin.base.Registry
                 'Implementation', struct('language', 'matlab', 'kind', 'class', 'entrypoint', functionName), ...
                 'VariableName',   string(fileName), ...
                 'TableType',      string(tableType), ...
-                'IsEditable',     logical(nansen.plugin.base.Registry.getAttr_(attrs, 'IS_EDITABLE', false)), ...
-                'DefaultValue',   nansen.plugin.base.Registry.getAttr_(attrs, 'DEFAULT_VALUE', []));
+                'IsEditable',     logical(nansen.plugin.base.Registry.getAttr(attrs, 'IS_EDITABLE', false)), ...
+                'DefaultValue',   nansen.plugin.base.Registry.getAttr(attrs, 'DEFAULT_VALUE', []));
 
             if isfield(attrs, 'LIST_ALTERNATIVES') && ~isempty(attrs.LIST_ALTERNATIVES)
                 opts.Alternatives = string(attrs.LIST_ALTERNATIVES(:)');
@@ -266,14 +266,14 @@ classdef Registry < nansen.plugin.base.Registry
 
     methods (Static, Access = private)
 
-        function tf = isTableVariableClass_(mc)
-        %isTableVariableClass_ True when the metaclass inherits from TableVariable.
-            tf = nansen.plugin.base.Registry.hasSuperclass_(mc, ...
+        function tf = isTableVariableClass(mc)
+        %isTableVariableClass True when the metaclass inherits from TableVariable.
+            tf = nansen.plugin.base.Registry.hasSuperclass(mc, ...
                 'nansen.metadata.abstract.TableVariable');
         end
 
-        function attributes = readClassAttributes_(mc)
-        %readClassAttributes_ Read constant property values from a TableVariable metaclass.
+        function attributes = readClassAttributes(mc)
+        %readClassAttributes Read constant property values from a TableVariable metaclass.
             attributes = struct();
             constantProps = {'IS_EDITABLE', 'DEFAULT_VALUE', 'LIST_ALTERNATIVES'};
             classPropertyNames = {mc.PropertyList.Name};

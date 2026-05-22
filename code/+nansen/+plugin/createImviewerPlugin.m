@@ -54,8 +54,8 @@ function createImviewerPlugin(options)
     % Full qualified class name
     qualifiedName = sprintf('nansen.plugin.imviewer.%s', char(options.Name));
 
-    writeClassTemplate_(classFile, options.Name, options.DisplayName);
-    appendToSidecar_(sidecarFile, qualifiedName, options.DisplayName);
+    writeClassTemplate(classFile, options.Name, options.DisplayName);
+    appendToSidecar(sidecarFile, qualifiedName, options.DisplayName);
 
     % Invalidate the registry singleton so it picks up the new file.
     clear('nansen.plugin.imviewer.Registry')
@@ -63,7 +63,7 @@ function createImviewerPlugin(options)
     edit(classFile)
 end
 
-function writeClassTemplate_(filePath, name, displayName)
+function writeClassTemplate(filePath, name, displayName)
     nameStr        = char(name);
     displayNameStr = char(displayName);
     content = sprintf([ ...
@@ -94,7 +94,7 @@ function writeClassTemplate_(filePath, name, displayName)
     fclose(fid);
 end
 
-function appendToSidecar_(sidecarFile, qualifiedName, displayName)
+function appendToSidecar(sidecarFile, qualifiedName, displayName)
     newEntry = struct( ...
         'id',             char(qualifiedName), ...
         'displayName',    char(displayName), ...

@@ -77,7 +77,7 @@ classdef ActionSpec < nansen.plugin.base.PluginSpec
         %     FunctionName, FunctionHandle, TaskType, IsQueueable,
         %     BatchMode, MethodName, Alternatives, OptionsManager (class only)
 
-            entrypoint = obj.resolveEntrypoint_();
+            entrypoint = obj.resolveEntrypoint();
 
             kind = '';
             if isstruct(obj.Implementation) && isfield(obj.Implementation, 'kind')
@@ -89,7 +89,7 @@ classdef ActionSpec < nansen.plugin.base.PluginSpec
             S.TaskType       = kind;
             S.IsQueueable    = obj.IsQueueable;
             S.BatchMode      = char(obj.BatchMode);
-            S.MethodName     = obj.resolveMethodName_();
+            S.MethodName     = obj.resolveMethodName();
             S.Alternatives   = cellstr(obj.Alternatives);
 
             if strcmp(kind, 'class') && ~isempty(entrypoint)
@@ -159,8 +159,8 @@ classdef ActionSpec < nansen.plugin.base.PluginSpec
 
     methods (Access = private)
 
-        function name = resolveMethodName_(obj)
-        %resolveMethodName_ Return a non-empty MethodName, falling back to Id.
+        function name = resolveMethodName(obj)
+        %resolveMethodName Return a non-empty MethodName, falling back to Id.
             name = char(obj.MethodName);
             if isempty(name)
                 idParts = strsplit(char(obj.Id), '.');

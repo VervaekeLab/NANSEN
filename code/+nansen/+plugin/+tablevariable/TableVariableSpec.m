@@ -79,7 +79,7 @@ classdef TableVariableSpec < nansen.plugin.base.PluginSpec
             S.TableType = char(obj.TableType);
             S.IsEditable = obj.IsEditable;
 
-            entrypoint = obj.resolveEntrypoint_();
+            entrypoint = obj.resolveEntrypoint();
             if ~isempty(entrypoint)
                 S.HasClassDefinition = true;
                 S.ClassName = entrypoint;
@@ -93,7 +93,7 @@ classdef TableVariableSpec < nansen.plugin.base.PluginSpec
                 % Introspect override methods from metaclass
                 mc = meta.class.fromName(entrypoint);
                 if ~isempty(mc)
-                    S = nansen.plugin.tablevariable.TableVariableSpec.fillMethodFlags_(S, mc, entrypoint);
+                    S = nansen.plugin.tablevariable.TableVariableSpec.fillMethodFlags(S, mc, entrypoint);
                 end
             end
         end
@@ -150,18 +150,18 @@ classdef TableVariableSpec < nansen.plugin.base.PluginSpec
 
     methods (Static, Access = private)
 
-        function S = fillMethodFlags_(S, mc, className)
-        %fillMethodFlags_ Fill HasUpdateFunction etc. by inspecting metaclass overrides.
+        function S = fillMethodFlags(S, mc, className)
+        %fillMethodFlags Fill HasUpdateFunction etc. by inspecting metaclass overrides.
             BASE_CLASS = 'nansen.metadata.abstract.TableVariable';
 
-            [hasUpdate, updateName] = nansen.plugin.tablevariable.TableVariableSpec.isOverridden_( ...
+            [hasUpdate, updateName] = nansen.plugin.tablevariable.TableVariableSpec.isOverridden( ...
                 mc, className, 'update', BASE_CLASS);
             if hasUpdate
                 S.HasUpdateFunction  = true;
                 S.UpdateFunctionName = updateName;
             end
 
-            [hasClick, clickName] = nansen.plugin.tablevariable.TableVariableSpec.isOverridden_( ...
+            [hasClick, clickName] = nansen.plugin.tablevariable.TableVariableSpec.isOverridden( ...
                 mc, className, 'onCellDoubleClick', BASE_CLASS);
             if hasClick
                 S.HasDoubleClickFunction  = true;
@@ -169,15 +169,15 @@ classdef TableVariableSpec < nansen.plugin.base.PluginSpec
             end
 
             % Check for TableColumnFormatter mixin (renderer support)
-            if nansen.plugin.tablevariable.TableVariableSpec.hasSuperclass_( ...
+            if nansen.plugin.tablevariable.TableVariableSpec.hasSuperclass( ...
                     mc, 'nansen.metadata.abstract.TableColumnFormatter')
                 S.HasRendererFunction  = true;
                 S.RendererFunctionName = className;
             end
         end
 
-        function [tf, fcnName] = isOverridden_(mc, className, methodName, baseClass)
-        %isOverridden_ True when methodName is defined by a class other than baseClass.
+        function [tf, fcnName] = isOverridden(mc, className, methodName, baseClass)
+        %isOverridden True when methodName is defined by a class other than baseClass.
             tf      = false;
             fcnName = '';
             matches = strcmp({mc.MethodList.Name}, methodName);
@@ -189,12 +189,12 @@ classdef TableVariableSpec < nansen.plugin.base.PluginSpec
             end
         end
 
-        function tf = hasSuperclass_(mc, superclassName)
-        %hasSuperclass_ Recursive superclass check for metaclass objects.
+        function tf = hasSuperclass(mc, superclassName)
+        %hasSuperclass Recursive superclass check for metaclass objects.
             tf = false;
             for i = 1:numel(mc.SuperclassList)
                 if strcmp(mc.SuperclassList(i).Name, superclassName) || ...
-                        nansen.plugin.tablevariable.TableVariableSpec.hasSuperclass_( ...
+                        nansen.plugin.tablevariable.TableVariableSpec.hasSuperclass( ...
                         mc.SuperclassList(i), superclassName)
                     tf = true;
                     return

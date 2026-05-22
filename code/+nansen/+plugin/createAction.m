@@ -39,11 +39,11 @@ function createAction(options)
             'File already exists:\n  %s', targetFile)
     end
 
-    writeTemplate_(targetFile, options.Name);
+    writeTemplate(targetFile, options.Name);
     edit(targetFile)
 end
 
-function writeTemplate_(filePath, name)
+function writeTemplate(filePath, name)
     nameStr = char(name);
     content = sprintf([ ...
         'function varargout = %s(sessionObject, varargin)\n', ...

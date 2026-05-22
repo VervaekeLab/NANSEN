@@ -18,7 +18,7 @@ classdef FunctionAction < handle
     end
 
     properties (Access = private)
-        FunctionHandle_ function_handle
+        FunctionHandle function_handle
     end
 
     methods
@@ -29,7 +29,7 @@ classdef FunctionAction < handle
                 spec (1,1) nansen.plugin.action.ActionSpec
             end
             obj.Spec = spec;
-            obj.FunctionHandle_ = obj.resolveFunction_(spec);
+            obj.FunctionHandle = obj.resolveFunction(spec);
         end
 
         function run(obj, entityObject, varargin)
@@ -37,7 +37,7 @@ classdef FunctionAction < handle
         %
         %   run(obj, entityObject)
         %   run(obj, entityObject, Name, Value, ...)
-            obj.FunctionHandle_(entityObject, varargin{:});
+            obj.FunctionHandle(entityObject, varargin{:});
         end
 
         function attrs = getTaskAttributes(obj)
@@ -49,8 +49,8 @@ classdef FunctionAction < handle
 
     methods (Static, Access = private)
 
-        function fcn = resolveFunction_(spec)
-        %resolveFunction_ Resolve the implementation function from the spec.
+        function fcn = resolveFunction(spec)
+        %resolveFunction Resolve the implementation function from the spec.
             if ~isstruct(spec.Implementation)
                 error('nansen:plugin:action:FunctionAction:MissingImplementation', ...
                     'ActionSpec "%s" has no implementation struct.', char(spec.Id))

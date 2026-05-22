@@ -32,12 +32,12 @@ classdef Registry < nansen.plugin.base.Registry
     end
 
     properties (Access = private)
-        % PathResolver_ - Optional @(entityType)->paths function handle for
+        % PathResolver - Optional @(entityType)->paths function handle for
         %   lazy per-entity discovery. Empty when paths were injected directly.
-        PathResolver_ = []
+        PathResolver = []
 
-        % LoadedEntityTypes_ - Entity types whose paths are already in RootPaths_.
-        LoadedEntityTypes_ (1,:) string = string.empty
+        % LoadedEntityTypes - Entity types whose paths are already in RootPaths.
+        LoadedEntityTypes (1,:) string = string.empty
     end
 
     methods
@@ -68,7 +68,7 @@ classdef Registry < nansen.plugin.base.Registry
                 pathResolverArg = pathResolverOrPaths;
             end
             obj@nansen.plugin.base.Registry(initPaths, projectFolder);
-            obj.PathResolver_ = pathResolverArg;
+            obj.PathResolver = pathResolverArg;
         end
     end
 
@@ -112,9 +112,9 @@ classdef Registry < nansen.plugin.base.Registry
                 entityType          (1,1) string  = "session"
                 options.IncludeHidden (1,1) logical = false
             end
-            if ~isempty(obj.PathResolver_) ...
-                    && ~any(strcmp(obj.LoadedEntityTypes_, entityType))
-                obj.loadEntityType_(entityType);
+            if ~isempty(obj.PathResolver) ...
+                    && ~any(strcmp(obj.LoadedEntityTypes, entityType))
+                obj.loadEntityType(entityType);
             end
             allSpecs = obj.list();
             if isempty(allSpecs)
@@ -124,7 +124,7 @@ classdef Registry < nansen.plugin.base.Registry
             keep = arrayfun(@(s) strcmpi(char(s.EntityType), char(entityType)), allSpecs);
             specs = allSpecs(keep);
             if ~options.IncludeHidden
-                specs = obj.removeHiddenSpecs_(specs);
+                specs = obj.removeHiddenSpecs(specs);
             end
         end
 
@@ -138,10 +138,10 @@ classdef Registry < nansen.plugin.base.Registry
                 obj
                 id (1,1) string
             end
-            ids = obj.readHiddenIds_();
+            ids = obj.readHiddenIds();
             if ~any(strcmp(ids, id))
                 ids{end+1} = char(id);
-                obj.writeHiddenIds_(ids);
+                obj.writeHiddenIds(ids);
             end
         end
 
@@ -154,9 +154,9 @@ classdef Registry < nansen.plugin.base.Registry
                 obj
                 id (1,1) string
             end
-            ids = obj.readHiddenIds_();
+            ids = obj.readHiddenIds();
             ids = ids(~strcmp(ids, char(id)));
-            obj.writeHiddenIds_(ids);
+            obj.writeHiddenIds(ids);
         end
 
         function tf = isActionVisible(obj, id)
@@ -169,7 +169,7 @@ classdef Registry < nansen.plugin.base.Registry
                 obj
                 id (1,1) string
             end
-            ids = obj.readHiddenIds_();
+            ids = obj.readHiddenIds();
             tf  = ~any(strcmp(ids, char(id)));
         end
 
@@ -211,12 +211,12 @@ classdef Registry < nansen.plugin.base.Registry
                 end
 
                 try
-                    spec = obj.createSpecFromMFile_(filePath, rootPaths);
+                    spec = obj.createSpecFromMFile(filePath, rootPaths);
                     if ~isempty(spec)
                         specs(end+1) = spec; %#ok<AGROW>
                     end
                 catch ME
-                    obj.addIssue('warning', ME.message, filePath);
+                    obj.addIssue("warning", ME.message, filePath);
                 end
             end
         end
@@ -231,35 +231,35 @@ classdef Registry < nansen.plugin.base.Registry
 
     methods (Access = private)
 
-        function loadEntityType_(obj, entityType)
-        %loadEntityType_ Fetch paths for entityType and append to RootPaths_.
+        function loadEntityType(obj, entityType)
+        %loadEntityType Fetch paths for entityType and append to RootPaths.
         %
-        %   Calls PathResolver_ to get the discovery roots, appends them to
-        %   RootPaths_, marks the entity type as loaded, and invalidates the
+        %   Calls PathResolver to get the discovery roots, appends them to
+        %   RootPaths, marks the entity type as loaded, and invalidates the
         %   spec cache so the next list() call triggers a full re-scan.
-            newPaths = obj.PathResolver_(char(entityType));
+            newPaths = obj.PathResolver(char(entityType));
             if ischar(newPaths) || isstring(newPaths)
                 newPaths = cellstr(newPaths);
             end
             if ~iscell(newPaths)
                 newPaths = {};
             end
-            obj.RootPaths_         = [obj.RootPaths_, newPaths(:)'];
-            obj.LoadedEntityTypes_(end+1) = entityType;
+            obj.RootPaths         = [obj.RootPaths, newPaths(:)'];
+            obj.LoadedEntityTypes(end+1) = entityType;
             obj.IsLoaded           = false;   % force re-scan on next list()
         end
 
-        function spec = createSpecFromMFile_(~, filePath, rootPaths)
-        %createSpecFromMFile_ Infer an ActionSpec from a session method file.
+        function spec = createSpecFromMFile(~, filePath, rootPaths)
+        %createSpecFromMFile Infer an ActionSpec from a session method file.
             functionName = utility.path.abspath2funcname(filePath);
             mc = meta.class.fromName(functionName);
 
             if ~isempty(mc)
-                if ~nansen.plugin.action.Registry.isSessionMethodClass_(mc)
+                if ~nansen.plugin.action.Registry.isSessionMethodClass(mc)
                     spec = nansen.plugin.action.ActionSpec.empty;
                     return
                 end
-                attributes = nansen.plugin.action.Registry.readClassAttributes_(mc);
+                attributes = nansen.plugin.action.Registry.readClassAttributes(mc);
                 kind = 'class';
                 source = 'class';
             else
@@ -288,7 +288,7 @@ classdef Registry < nansen.plugin.base.Registry
                 displayName = utility.string.varname2label(fileName);
             end
 
-            menuLoc = nansen.plugin.action.Registry.getMenuLocation_(filePath, rootPaths);
+            menuLoc = nansen.plugin.action.Registry.getMenuLocation(filePath, rootPaths);
 
             opts = struct( ...
                 'Id',           string(functionName), ...
@@ -296,10 +296,10 @@ classdef Registry < nansen.plugin.base.Registry
                 'Source',       string(source), ...
                 'SourcePath',   string(filePath), ...
                 'Implementation', struct('language', 'matlab', 'kind', kind, 'entrypoint', functionName), ...
-                'EntityType',   string(nansen.plugin.action.Registry.inferEntityType_(filePath)), ...
+                'EntityType',   string(nansen.plugin.action.Registry.inferEntityType(filePath)), ...
                 'MethodName',   string(displayName), ...
-                'BatchMode',    string(nansen.plugin.base.Registry.getAttr_(attributes, 'BatchMode', 'serial')), ...
-                'IsQueueable',  logical(nansen.plugin.base.Registry.getAttr_(attributes, 'IsQueueable', true)), ...
+                'BatchMode',    string(nansen.plugin.base.Registry.getAttr(attributes, 'BatchMode', 'serial')), ...
+                'IsQueueable',  logical(nansen.plugin.base.Registry.getAttr(attributes, 'IsQueueable', true)), ...
                 'MenuLocation', menuLoc);
 
             if isfield(attributes, 'Alternatives') && ~isempty(attributes.Alternatives)
@@ -333,8 +333,8 @@ classdef Registry < nansen.plugin.base.Registry
             end
         end
 
-        function menuLocation = getMenuLocation_(filePath, rootPaths)
-        %getMenuLocation_ Derive menu location from folder hierarchy.
+        function menuLocation = getMenuLocation(filePath, rootPaths)
+        %getMenuLocation Derive menu location from folder hierarchy.
         %
         %   Returns a string array of path segments relative to the nearest
         %   root path, with package '+' prefixes stripped.
@@ -368,8 +368,8 @@ classdef Registry < nansen.plugin.base.Registry
             menuLocation = string(parts);
         end
 
-        function attributes = readClassAttributes_(mc)
-        %readClassAttributes_ Read known SessionMethod property default values.
+        function attributes = readClassAttributes(mc)
+        %readClassAttributes Read known SessionMethod property default values.
             attributes = struct();
             propertyNames = {'MethodName', 'BatchMode', 'IsManual', ...
                 'IsQueueable', 'OptionsManager', 'Alternatives', 'Description'};
@@ -392,14 +392,14 @@ classdef Registry < nansen.plugin.base.Registry
             end
         end
 
-        function tf = isSessionMethodClass_(mc)
-        %isSessionMethodClass_ True when the metaclass inherits from SessionMethod.
-            tf = nansen.plugin.base.Registry.hasSuperclass_(mc, ...
+        function tf = isSessionMethodClass(mc)
+        %isSessionMethodClass True when the metaclass inherits from SessionMethod.
+            tf = nansen.plugin.base.Registry.hasSuperclass(mc, ...
                 'nansen.session.SessionMethod');
         end
 
-        function entityType = inferEntityType_(filePath)
-        %inferEntityType_ Infer the entity type from a method file's path.
+        function entityType = inferEntityType(filePath)
+        %inferEntityType Infer the entity type from a method file's path.
         %
         %   Handles both naming conventions:
         %     +sessionmethod/          → 'session'  (legacy)
@@ -433,9 +433,9 @@ classdef Registry < nansen.plugin.base.Registry
 
     methods (Access = private)
 
-        function specs = removeHiddenSpecs_(obj, specs)
-        %removeHiddenSpecs_ Filter out specs whose Id is in the hidden list.
-            hiddenIds = obj.readHiddenIds_();
+        function specs = removeHiddenSpecs(obj, specs)
+        %removeHiddenSpecs Filter out specs whose Id is in the hidden list.
+            hiddenIds = obj.readHiddenIds();
             if isempty(hiddenIds) || isempty(specs)
                 return
             end
@@ -443,9 +443,9 @@ classdef Registry < nansen.plugin.base.Registry
             specs = specs(keep);
         end
 
-        function ids = readHiddenIds_(obj)
-        %readHiddenIds_ Load the hidden-id list from the project preference file.
-            prefsFile = obj.hiddenPrefsFile_();
+        function ids = readHiddenIds(obj)
+        %readHiddenIds Load the hidden-id list from the project preference file.
+            prefsFile = obj.hiddenPrefsFile();
 
             if ~isfile(prefsFile)
                 ids = {};
@@ -468,28 +468,28 @@ classdef Registry < nansen.plugin.base.Registry
             end
         end
 
-        function writeHiddenIds_(obj, ids)
-        %writeHiddenIds_ Persist the hidden-id list to the project preference file.
-            prefsFile = obj.hiddenPrefsFile_();
+        function writeHiddenIds(obj, ids)
+        %writeHiddenIds Persist the hidden-id list to the project preference file.
+            prefsFile = obj.hiddenPrefsFile();
             prefsDir  = fileparts(prefsFile);
 
             if ~isfolder(prefsDir)
                 mkdir(prefsDir)
             end
 
-            fid     = fopen(prefsFile, 'w', 'n', 'UTF-8');
+            fid     = fopen(prefsFile, "w", "n", "UTF-8");
             cleanup = onCleanup(@() fclose(fid));
-            fprintf(fid, '%s', jsonencode(ids, 'PrettyPrint', true));
+            fprintf(fid, '%s', jsonencode(ids, "PrettyPrint", true));
         end
 
-        function filePath = hiddenPrefsFile_(obj)
-        %hiddenPrefsFile_ Path to the JSON file storing hidden action ids.
+        function filePath = hiddenPrefsFile(obj)
+        %hiddenPrefsFile Path to the JSON file storing hidden action ids.
             if obj.ProjectFolder == ""
-                prefsRoot = fullfile(tempdir(), 'nansen_plugin_prefs');
+                prefsRoot = fullfile(tempdir(), "nansen_plugin_prefs");
             else
-                prefsRoot = fullfile(obj.ProjectFolder, 'configurations', 'plugin_registry');
+                prefsRoot = fullfile(obj.ProjectFolder, "configurations", "plugin_registry");
             end
-            filePath = fullfile(prefsRoot, 'action_hidden.json');
+            filePath = fullfile(prefsRoot, "action_hidden.json");
         end
     end
 end

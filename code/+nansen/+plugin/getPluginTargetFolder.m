@@ -51,10 +51,10 @@ function targetFolder = getPluginTargetFolder(pluginType, location)
         end
 
     else % user
-        targetFolder = getUserPluginPath_(pluginType);
+        targetFolder = getUserPluginPath(pluginType);
     end
 end
 
-function targetFolder = getUserPluginPath_(pluginType)
+function targetFolder = getUserPluginPath(pluginType)
     targetFolder = fullfile(userpath, 'NANSEN', 'plugins', char(pluginType));
 end

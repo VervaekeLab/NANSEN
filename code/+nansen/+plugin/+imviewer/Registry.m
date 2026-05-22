@@ -37,7 +37,7 @@ classdef Registry < nansen.plugin.base.Registry
             arguments
                 projectFolder (1,1) string = ""
             end
-            rootPaths = nansen.plugin.imviewer.Registry.resolveRootPaths_(projectFolder);
+            rootPaths = nansen.plugin.imviewer.Registry.resolveRootPaths(projectFolder);
             obj@nansen.plugin.base.Registry(rootPaths, projectFolder);
         end
     end
@@ -120,14 +120,14 @@ classdef Registry < nansen.plugin.base.Registry
                 if ~isfolder(rootPath); continue; end
 
                 % Collect: @ClassName/ClassName.m class folders + flat .m files
-                mFiles = nansen.plugin.imviewer.Registry.listMatlabFiles_(rootPath);
+                mFiles = nansen.plugin.imviewer.Registry.listMatlabFiles(rootPath);
 
                 for i = 1:numel(mFiles)
                     filePath = mFiles{i};
                     if obj.hasSidecarForSourcePath(filePath); continue; end
 
                     try
-                        spec = obj.createSpecFromMFile_(filePath);
+                        spec = obj.createSpecFromMFile(filePath);
                         if ~isempty(spec)
                             specs(end+1) = spec; %#ok<AGROW>
                         end
@@ -148,8 +148,8 @@ classdef Registry < nansen.plugin.base.Registry
 
     methods (Access = private)
 
-        function spec = createSpecFromMFile_(~, filePath)
-        %createSpecFromMFile_ Build an ImviewerPluginSpec from a discovered .m file.
+        function spec = createSpecFromMFile(~, filePath)
+        %createSpecFromMFile Build an ImviewerPluginSpec from a discovered .m file.
             functionName = utility.path.abspath2funcname(filePath);
             mc = meta.class.fromName(functionName);
 
@@ -159,18 +159,18 @@ classdef Registry < nansen.plugin.base.Registry
             end
 
             % Skip classes that are not ImviewerPlugin subclasses
-            if ~nansen.plugin.imviewer.Registry.isImviewerPluginClass_(mc)
+            if ~nansen.plugin.imviewer.Registry.isImviewerPluginClass(mc)
                 spec = nansen.plugin.imviewer.ImviewerPluginSpec.empty;
                 return
             end
 
             % Skip thin wrappers that delegate to nansen.plugin.imviewer.*
-            if nansen.plugin.imviewer.Registry.isThinWrapper_(mc)
+            if nansen.plugin.imviewer.Registry.isThinWrapper(mc)
                 spec = nansen.plugin.imviewer.ImviewerPluginSpec.empty;
                 return
             end
 
-            displayName = nansen.plugin.imviewer.Registry.readName_(mc, functionName);
+            displayName = nansen.plugin.imviewer.Registry.readName(mc, functionName);
 
             opts = struct( ...
                 'Id',             string(functionName), ...
@@ -186,8 +186,8 @@ classdef Registry < nansen.plugin.base.Registry
 
     methods (Static, Access = private)
 
-        function rootPaths = resolveRootPaths_(projectFolder)
-        %resolveRootPaths_ Compute ordered discovery roots from code locations.
+        function rootPaths = resolveRootPaths(projectFolder)
+        %resolveRootPaths Compute ordered discovery roots from code locations.
             thisDir           = fileparts(mfilename('fullpath'));
             codeRoot          = fileparts(fileparts(fileparts(thisDir)));
             appPluginRoot     = fullfile(codeRoot, 'apps', '+imviewer', '+plugin');
@@ -205,8 +205,8 @@ classdef Registry < nansen.plugin.base.Registry
             end
         end
 
-        function files = listMatlabFiles_(rootPath)
-        %listMatlabFiles_ Return .m files from @ClassName/ folders and flat files.
+        function files = listMatlabFiles(rootPath)
+        %listMatlabFiles Return .m files from @ClassName/ folders and flat files.
             files = {};
             if ~isfolder(rootPath); return; end
 
@@ -232,16 +232,16 @@ classdef Registry < nansen.plugin.base.Registry
             end
         end
 
-        function tf = isImviewerPluginClass_(mc)
-        %isImviewerPluginClass_ True when the metaclass inherits from ImviewerPlugin.
-            tf = nansen.plugin.base.Registry.hasSuperclass_( ...
+        function tf = isImviewerPluginClass(mc)
+        %isImviewerPluginClass True when the metaclass inherits from ImviewerPlugin.
+            tf = nansen.plugin.base.Registry.hasSuperclass( ...
                 mc, 'imviewer.ImviewerPlugin') || ...
-                 nansen.plugin.base.Registry.hasSuperclass_( ...
+                 nansen.plugin.base.Registry.hasSuperclass( ...
                 mc, 'applify.mixin.AppPlugin');
         end
 
-        function tf = isThinWrapper_(mc)
-        %isThinWrapper_ True when the class directly inherits from nansen.plugin.imviewer.*.
+        function tf = isThinWrapper(mc)
+        %isThinWrapper True when the class directly inherits from nansen.plugin.imviewer.*.
         %
         %   Thin wrappers in imviewer.plugin.* exist only for backward
         %   compatibility and delegate completely to the authoritative
@@ -257,8 +257,8 @@ classdef Registry < nansen.plugin.base.Registry
             tf = false;
         end
 
-        function name = readName_(mc, fallback)
-        %readName_ Read the Name constant from a metaclass, falling back to class name.
+        function name = readName(mc, fallback)
+        %readName Read the Name constant from a metaclass, falling back to class name.
             nameProp = strcmp({mc.PropertyList.Name}, 'Name');
             if any(nameProp)
                 prop = mc.PropertyList(find(nameProp, 1));
