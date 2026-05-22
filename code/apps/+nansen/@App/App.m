@@ -1746,7 +1746,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.updateDataLocationFromModel()
 
             % - [ ] Refresh table on these events
-            app.refreshTable()
+            app.refreshTable(false)
         end
 
         function onMetaTableFileChangedOnDisk(app, evt)
@@ -2871,7 +2871,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 reset = false;
             end
 
-            if ischar(src) % For manual calls: If the value of src is the name of the variable, evt should be the update mode.
+            if ischar(src) || isstring(src) % For manual calls: If the value of src is the name of the variable, evt should be the update mode.
                 varName = src;
                 updateMode = evt;
             else % If invoked as callback, update selected rows
