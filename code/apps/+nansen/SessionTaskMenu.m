@@ -79,14 +79,14 @@ classdef SessionTaskMenu < handle
     end
 
     properties (Access = private)
-        ActionRegistry_ % nansen.plugin.action.Registry for current project/item type
+        ActionRegistry % nansen.plugin.action.Registry for current project/item type
     end
 
     properties (Access = private)
         IsConstructed (1,1) logical = false
         SkipRefresh (1,1) logical = false % Flag to skip refresh of menu
         ProjectChangedListener event.listener % Not implemented yet
-        ModuleListChangedListener_ event.listener
+        ModuleListChangedListener event.listener
     end
 
     events
@@ -246,27 +246,27 @@ classdef SessionTaskMenu < handle
         %   building the tree from the directory structure (legacy path).
         %
         %   In both cases an intermediate tree (cell array of node structs)
-        %   is constructed first, then rendered to uimenu by buildMenuFromTree_.
+        %   is constructed first, then rendered to uimenu by buildMenuFromTree.
         %
         %   See also nansen.plugin.action.Registry, nansen.session.SessionMethod
 
-            if ~isempty(obj.ActionRegistry_)
-                specs = obj.ActionRegistry_.listByEntityType(obj.CurrentItemType);
+            if ~isempty(obj.ActionRegistry)
+                specs = obj.ActionRegistry.listByEntityType(obj.CurrentItemType);
                 if ~isempty(specs)
-                    nodes = nansen.SessionTaskMenu.buildTreeFromActionSpecs_( ...
+                    nodes = nansen.SessionTaskMenu.buildTreeFromActionSpecs( ...
                         specs, obj.MenuOrder);
-                    obj.buildMenuFromTree_(hParent, nodes);
+                    obj.buildMenuFromTree(hParent, nodes);
                     return
                 end
             end
 
-            nodes = nansen.SessionTaskMenu.buildTreeFromDirectory_( ...
+            nodes = nansen.SessionTaskMenu.buildTreeFromDirectory( ...
                 obj.MethodsRootPath, obj.MenuOrder);
-            obj.buildMenuFromTree_(hParent, nodes);
+            obj.buildMenuFromTree(hParent, nodes);
         end
 
-        function buildMenuFromTree_(obj, hParent, nodes)
-        %buildMenuFromTree_ Render a tree of folder/action nodes as uimenu items.
+        function buildMenuFromTree(obj, hParent, nodes)
+        %buildMenuFromTree Render a tree of folder/action nodes as uimenu items.
         %
         %   Recursively walks the node tree, creating uimenu folder containers
         %   for 'folder' nodes and leaf menu items for 'action' nodes.
@@ -293,7 +293,7 @@ classdef SessionTaskMenu < handle
                         else
                             hFolder = hExisting(1);
                         end
-                        obj.buildMenuFromTree_(hFolder, node.Children)
+                        obj.buildMenuFromTree(hFolder, node.Children)
 
                     case 'action'
                         taskAttributes = node.TaskAttributes;
@@ -494,16 +494,16 @@ classdef SessionTaskMenu < handle
 
         function onCurrentProjectSet(obj)
             % Re-wire the module change listener for the new project.
-            delete(obj.ModuleListChangedListener_)
-            obj.ModuleListChangedListener_ = addlistener( ...
+            delete(obj.ModuleListChangedListener)
+            obj.ModuleListChangedListener = addlistener( ...
                 obj.CurrentProject, 'ModuleListChanged', ...
-                @(~,~) obj.onModuleListChanged_());
+                @(~,~) obj.onModuleListChanged());
 
             % Build registry once with a path resolver: entity-type paths are
             % fetched lazily on the first listByEntityType call for each type.
-            projectFolder    = char(obj.CurrentProject.ProjectFolder);
+            projectFolder    = char(obj.CurrentProject.FolderPath);
             pathResolver     = @(et) obj.CurrentProject.getObjectMethodFolder(et);
-            obj.ActionRegistry_ = nansen.plugin.action.Registry(pathResolver, projectFolder);
+            obj.ActionRegistry = nansen.plugin.action.Registry(pathResolver, projectFolder);
 
             % Keep MethodsRootPath in sync for the legacy directory fallback.
             rootDirectories = obj.CurrentProject.getSessionMethodFolder();
@@ -512,18 +512,18 @@ classdef SessionTaskMenu < handle
 
         function onCurrentItemTypeSet(obj)
             % Update MethodsRootPath for the legacy directory fallback.
-            % The ActionRegistry_ does not need to be rebuilt; listByEntityType
+            % The ActionRegistry does not need to be rebuilt; listByEntityType
             % fetches paths for the new entity type on demand.
             rootDirectories = obj.CurrentProject.getObjectMethodFolder(obj.CurrentItemType);
             obj.MethodsRootPath = rootDirectories;
         end
 
-        function onModuleListChanged_(obj)
+        function onModuleListChanged(obj)
             % Reconstruct the registry so updated module paths are picked up
             % on the next listByEntityType call for each entity type.
-            projectFolder    = char(obj.CurrentProject.ProjectFolder);
+            projectFolder    = char(obj.CurrentProject.FolderPath);
             pathResolver     = @(et) obj.CurrentProject.getObjectMethodFolder(et);
-            obj.ActionRegistry_ = nansen.plugin.action.Registry(pathResolver, projectFolder);
+            obj.ActionRegistry = nansen.plugin.action.Registry(pathResolver, projectFolder);
             obj.onCurrentItemTypeSet();
         end
 
@@ -677,8 +677,8 @@ classdef SessionTaskMenu < handle
 
     methods (Static, Access = private)
 
-        function nodes = buildTreeFromDirectory_(dirPaths, menuOrder, sortEntries)
-        %buildTreeFromDirectory_ Build a menu node tree by scanning directories.
+        function nodes = buildTreeFromDirectory(dirPaths, menuOrder, sortEntries)
+        %buildTreeFromDirectory Build a menu node tree by scanning directories.
         %
         %   Returns a cell array of node structs. Package folders (+name)
         %   become 'folder' nodes with recursive Children; MATLAB source
@@ -701,7 +701,7 @@ classdef SessionTaskMenu < handle
             if isempty(L); return; end
 
             if sortEntries && ~isempty(menuOrder)
-                L = nansen.SessionTaskMenu.sortListingByMenuOrder_(L, menuOrder);
+                L = nansen.SessionTaskMenu.sortListingByMenuOrder(L, menuOrder);
             end
 
             skipFolders = {'+abstract', '+template'};
@@ -717,7 +717,7 @@ classdef SessionTaskMenu < handle
                     label = utility.string.titleCase(utility.string.varname2label(tag));
                     subDirPath = fullfile(L(i).folder, entryName);
 
-                    children = nansen.SessionTaskMenu.buildTreeFromDirectory_( ...
+                    children = nansen.SessionTaskMenu.buildTreeFromDirectory( ...
                         subDirPath, menuOrder, false);
                     if isempty(children); continue; end
 
@@ -737,8 +737,8 @@ classdef SessionTaskMenu < handle
             end
         end
 
-        function nodes = buildTreeFromActionSpecs_(specs, menuOrder)
-        %buildTreeFromActionSpecs_ Build a menu node tree from an ActionSpec array.
+        function nodes = buildTreeFromActionSpecs(specs, menuOrder)
+        %buildTreeFromActionSpecs Build a menu node tree from an ActionSpec array.
         %
         %   Specs are first sorted by menuOrder priority, then inserted
         %   into a nested tree using each spec's MenuLocation as the path.
@@ -752,7 +752,7 @@ classdef SessionTaskMenu < handle
             if isempty(specs); return; end
 
             menuOrderStrs = strrep(menuOrder, '+', '');
-            specs = nansen.SessionTaskMenu.sortSpecsByMenuOrder_(specs, menuOrderStrs);
+            specs = nansen.SessionTaskMenu.sortSpecsByMenuOrder(specs, menuOrderStrs);
 
             for i = 1:numel(specs)
                 spec = specs(i);
@@ -764,12 +764,12 @@ classdef SessionTaskMenu < handle
 
                 loc = cellstr(spec.MenuLocation);
                 leafNode = struct('Type', 'action', 'TaskAttributes', taskAttrs);
-                nodes = nansen.SessionTaskMenu.insertNodeAtPath_(nodes, loc, leafNode);
+                nodes = nansen.SessionTaskMenu.insertNodeAtPath(nodes, loc, leafNode);
             end
         end
 
-        function nodes = insertNodeAtPath_(nodes, pathParts, leafNode)
-        %insertNodeAtPath_ Recursively insert a leaf node at a folder path.
+        function nodes = insertNodeAtPath(nodes, pathParts, leafNode)
+        %insertNodeAtPath Recursively insert a leaf node at a folder path.
         %
         %   Creates intermediate 'folder' nodes as needed. Existing folder
         %   nodes with matching Tag are reused to allow multiple specs at
@@ -797,17 +797,17 @@ classdef SessionTaskMenu < handle
             if isempty(folderIdx)
                 newNode = struct('Type', 'folder', 'Label', label, ...
                     'Tag', tag, 'Children', {{}});
-                newNode.Children = nansen.SessionTaskMenu.insertNodeAtPath_( ...
+                newNode.Children = nansen.SessionTaskMenu.insertNodeAtPath( ...
                     newNode.Children, remaining, leafNode);
                 nodes{end+1} = newNode;
             else
-                nodes{folderIdx}.Children = nansen.SessionTaskMenu.insertNodeAtPath_( ...
+                nodes{folderIdx}.Children = nansen.SessionTaskMenu.insertNodeAtPath( ...
                     nodes{folderIdx}.Children, remaining, leafNode);
             end
         end
 
-        function L = sortListingByMenuOrder_(L, menuOrder)
-        %sortListingByMenuOrder_ Sort a dir listing by the given MenuOrder cell array.
+        function L = sortListingByMenuOrder(L, menuOrder)
+        %sortListingByMenuOrder Sort a dir listing by the given MenuOrder cell array.
         %
         %   Entries matching a MenuOrder element appear first (in MenuOrder
         %   sequence); remaining entries follow in their original order.
@@ -831,8 +831,8 @@ classdef SessionTaskMenu < handle
             L = L(sortIdx);
         end
 
-        function specs = sortSpecsByMenuOrder_(specs, menuOrderStrs)
-        %sortSpecsByMenuOrder_ Sort specs so root-level menu groups follow menuOrder.
+        function specs = sortSpecsByMenuOrder(specs, menuOrderStrs)
+        %sortSpecsByMenuOrder Sort specs so root-level menu groups follow menuOrder.
         %
         %   menuOrderStrs is a cell array of strings with the '+' prefix
         %   already stripped (e.g. {'data','process','analyze','plot'}).
