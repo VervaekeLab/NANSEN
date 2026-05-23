@@ -301,6 +301,9 @@ classdef EntityTableMetaTableViewer < handle
                 obj.DataFilterMap = [];
                 obj.ColumnFilterActive = [];
                 obj.ActiveColumnFilterNames = strings(1, 0);
+                if ~isempty(obj.EntityTableView) && isvalid(obj.EntityTableView)
+                    obj.EntityTableView.resetFilters()
+                end
                 if ~isempty(obj.MetaTable) && ~isempty(obj.ColumnFilter)
                     obj.ColumnFilter.onMetaTableChanged()
                 end
@@ -697,6 +700,7 @@ classdef EntityTableMetaTableViewer < handle
             end
 
             selectedEntries = obj.getSelectedEntries();
+            userFilterSpecs = obj.captureUserFilterSpecs();
             if needsCreate
                 obj.createEntityTable(dataTable, columnSpecs)
             elseif obj.UseHtmlTable && ...
@@ -722,6 +726,60 @@ classdef EntityTableMetaTableViewer < handle
             if ~isempty(selectedEntries)
                 obj.setSelectedEntries(selectedEntries)
             end
+            obj.restoreUserFilterSpecs(userFilterSpecs)
+        end
+
+        function filterSpecs = captureUserFilterSpecs(obj)
+            arguments
+                obj
+            end
+
+            filterSpecs = struct("VariableName", cell(1, 0), "FilterSpec", cell(1, 0));
+            if isempty(obj.EntityTableView) || ~isvalid(obj.EntityTableView)
+                return
+            end
+
+            variableNames = obj.ActiveColumnFilterNames;
+            for i = 1:numel(variableNames)
+                variableName = variableNames(i);
+                if obj.isSystemFilterVariable(variableName)
+                    continue
+                end
+
+                filterSpec = obj.EntityTableView.getFilterSpec(variableName);
+                if isempty(filterSpec)
+                    continue
+                end
+
+                filterSpecs(end+1).VariableName = variableName; %#ok<AGROW>
+                filterSpecs(end).FilterSpec = filterSpec;
+            end
+        end
+
+        function restoreUserFilterSpecs(obj, filterSpecs)
+            arguments
+                obj
+                filterSpecs (1,:) struct
+            end
+
+            if isempty(filterSpecs) || isempty(obj.EntityTableView) || ~isvalid(obj.EntityTableView)
+                return
+            end
+
+            tableVariableNames = string(obj.MetaTableVariableNames);
+            restoredVariableNames = strings(1, 0);
+            for i = 1:numel(filterSpecs)
+                variableName = string(filterSpecs(i).VariableName);
+                if ~any(tableVariableNames == variableName)
+                    continue
+                end
+
+                obj.EntityTableView.setFilter(variableName, filterSpecs(i).FilterSpec)
+                restoredVariableNames(end+1) = variableName; %#ok<AGROW>
+            end
+
+            obj.ActiveColumnFilterNames = unique(restoredVariableNames, 'stable');
+            obj.updateColumnFilterState()
         end
 
         function applyTableProperties(obj)
