@@ -228,14 +228,15 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 mode (1,1) string {mustBeMember(mode, ["first", "all"])} = "first"
             end
 
-            [~, filename, ext] = fileparts(filePath);
+            [~, ~, ext] = fileparts(filePath);
 
             filenameExpressions = {obj.Data.FileNameExpression};
             fileTypes = {obj.Data.FileType};
 
             isEmpty = cellfun(@isempty, filenameExpressions);
             matchesFiletype = strcmp(fileTypes, ext);
-            matchesFilename = cellfun(@(expr) contains(filename, expr), filenameExpressions);
+            matchesFilename = cellfun(@(expr) ~isempty(regexp(filePath, expr, 'once')), ...
+                filenameExpressions);
 
             % Find the longest match
             matchedFilenameExpressions = filenameExpressions(matchesFilename);
