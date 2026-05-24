@@ -2269,9 +2269,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 end
             end
 
-            if app.setSessionTaskModeFromKey(evt.Key)
-                return
-            end
+            % if app.setSessionTaskModeFromKey(evt.Key)
+            %     return
+            % end
 
             switch evt.Key
                 case 'w'
@@ -3157,8 +3157,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             returnToIdle = app.setBusy('Updating table'); %#ok<NASGU>
             hDlg = app.MessageDisplay.wait('Please wait, updating table...', ...
                 'Title', 'Updating Table');
-            resetView = false;
-            app.UiMetaTableViewer.resetTable(resetView)
             app.onNewMetaTableSet(requestFocus)
             if isvalid(hDlg); delete(hDlg); end
         end
@@ -3276,6 +3274,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
 
             try
+                app.deleteMetaTableListeners()
+
                 % Load existing or create new experiment inventory
                 if isfile(loadPath)
                     metaTable = nansen.metadata.MetaTable.open(loadPath);
@@ -3300,7 +3300,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 % operating system.
                 metaTable = app.updateDataLocationFromModel(metaTable);
 
-                app.deleteMetaTableListeners()
                 previousRequestFocus = app.RequestFocusOnNextMetaTableRefresh;
                 app.RequestFocusOnNextMetaTableRefresh = requestFocus;
                 refreshFocusCleanup = onCleanup(...
@@ -3308,20 +3307,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 app.MetaTable = metaTable;
                 delete(refreshFocusCleanup)
 
-                app.MetaTableIsModifiedListener = addlistener(app.MetaTable, 'IsModified', 'PostSet', ...
-                    @app.onMetaTableModifiedChanged);
-
-                app.MetaTableTableEntryChangedListener = addlistener(app.MetaTable, 'TableEntryChanged', ...
-                    @app.onMetaTableEntryChanged);
-
-                app.MetaTableEntryAddedListener = addlistener(app.MetaTable, 'EntryAdded', ...
-                    @(~,~) app.refreshTable());
-
-                app.MetaTableEntryRemovedListener = addlistener(app.MetaTable, 'EntryRemoved', ...
-                    @(~,~) app.refreshTable());
-
-                app.MetaTableReloadedFromDiskListener = addlistener(app.MetaTable, 'TableReloadedFromDisk', ...
-                    @app.onMetaTableReloadedFromDisk);
+                app.createMetaTableListeners()
 
 % %                 if app.isInitialized() % Todo: implement this
 % %                     app.updateRelatedInventoryLists()
@@ -3447,6 +3433,23 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 otherwise
                     choice = "cancel";
             end
+        end
+
+        function createMetaTableListeners(app)
+            app.MetaTableIsModifiedListener = addlistener(app.MetaTable, 'IsModified', 'PostSet', ...
+                    @app.onMetaTableModifiedChanged);
+
+                app.MetaTableTableEntryChangedListener = addlistener(app.MetaTable, 'TableEntryChanged', ...
+                    @app.onMetaTableEntryChanged);
+
+                app.MetaTableEntryAddedListener = addlistener(app.MetaTable, 'EntryAdded', ...
+                    @(~,~) app.refreshTable());
+
+                app.MetaTableEntryRemovedListener = addlistener(app.MetaTable, 'EntryRemoved', ...
+                    @(~,~) app.refreshTable());
+
+                app.MetaTableReloadedFromDiskListener = addlistener(app.MetaTable, 'TableReloadedFromDisk', ...
+                    @app.onMetaTableReloadedFromDisk);
         end
 
         function deleteMetaTableListeners(app)
@@ -3848,7 +3851,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
         end
 
-        function runTaskWithReset(~, sessionMethod, taskType, methodArgs)
+        function runTaskWithReset(app, sessionMethod, taskType, methodArgs)
 
             switch taskType
                 case 'class'
