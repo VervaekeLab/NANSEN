@@ -25,13 +25,14 @@ if ~isempty(roiArrayB)
 
     distance = sqrt( (xPosI-xPosJ).^2 + (yPosI-yPosJ).^2 );
 
-    if isequal(roiArrayA, roiArrayB)
-        [iA, iB] = deal(1:numel(roiArrayA));
-        return
-    else
-        [j, i] = find(distance < 10 & distance ~= 0);
-    end
-
+    % TODO: Should there be a different strategy when roi arrays are equal?
+    % % if isequal(roiArrayA, roiArrayB)
+    % %     [j, i] = find(distance < 10 & distance ~= 0);
+    % % else
+    % %     [j, i] = find(distance < 10 & distance ~= 0);
+    % % end
+    [j, i] = find(distance < 10 & distance ~= 0);
+    
     % Second, go through rois that rois that are close together and
     % calculate fraction of overlap.
     overlap = zeros(numel(j), 1);
