@@ -367,9 +367,8 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
 
             obj.entries = obj.addTableVariableStatic(obj.entries, variableName, initValue);
 
-            % The column set changed. Cached meta objects built from the
-            % previous column set have a stale shape (e.g. struct fields no
-            % longer match), so the cache must be invalidated.
+            % Cached meta objects mirror the table's column set, so a change
+            % to the columns invalidates them.
             obj.resetMetaObjectCache()
         end
 
@@ -382,7 +381,8 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
 
             obj.entries(:, variableName) = [];
 
-            % The column set changed, so cached meta objects are now stale.
+            % Cached meta objects mirror the table's column set, so a change
+            % to the columns invalidates them.
             obj.resetMetaObjectCache()
         end
 
@@ -934,6 +934,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                     obj.MetaObjectCache = [obj.MetaObjectCache, metaObjectsNew];
                 end
                 obj.updateMetaObjectCacheMembers();
+                obj.attachCacheEvictionListener(metaObjectsNew);
             end
 
             if nargout == 1
@@ -1149,12 +1150,15 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                     continue
                 end
                 try
+                    % Value-sync listeners apply to any live meta object,
+                    % whether or not it is cached. 
                     addlistener(metaObjects{i}, 'PropertyChanged', @obj.onMetaObjectPropertyChanged);
                     obj.addObservablePropertyListeners(metaObjects{i});
-                    addlistener(metaObjects{i}, 'ObjectBeingDestroyed', @obj.onMetaObjectDestroyed);
                 catch MEForListener
                     if isa(metaObjects{i}, 'nansen.metadata.abstract.MetadataEntity')
-                        warning(MEForListener.identifier, 'Failed to add listener to meta object. Reason:\n%s\n', MEForListener.message)
+                        warning(MEForListener.identifier, ...
+                            'Failed to add listener to meta object. Reason:\n%s\n', ...
+                            MEForListener.message)
                     end
                     % Todo: Either throw warning or implement interface for
                     % easily implementing PropertyChanged on any table
@@ -1290,6 +1294,31 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 InvalidateCache=false)
         end
 
+        function attachCacheEvictionListener(obj, metaObjects)
+        %attachCacheEvictionListener Wire cache eviction for cached objects
+        %
+        %   Attaches an ObjectBeingDestroyed listener so a cached object is
+        %   removed from the cache when it is destroyed. Only cached objects
+        %   should carry this listener.
+
+            for i = 1:numel(metaObjects)
+                if isa(metaObjects(i), 'nansen.metadata.abstract.MetadataEntity')
+                    addlistener(metaObjects(i), 'ObjectBeingDestroyed', ...
+                        @obj.onMetaObjectDestroyed);
+                elseif isstruct(metaObjects(i))
+                    % structs cannot have listeners
+                else
+                    try
+                        addlistener(metaObjects(i), 'ObjectBeingDestroyed', ...
+                            @obj.onMetaObjectDestroyed);
+                    catch
+                        % Non-handle meta objects (e.g. the struct fallback)
+                        % cannot have listeners and are not tracked by identity.
+                    end
+                end
+            end
+        end
+
         function onMetaObjectDestroyed(obj, src, ~)
             if ~isvalid(obj); return; end
 
@@ -1297,10 +1326,16 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
 
             [~, ~, iC] = intersect(objectID, obj.MetaObjectCacheMembers);
             if isempty(iC)
-                warning('Object was not found in cache member registry. Object will not be removed.')
+                % This listener is attached only to cached objects, so a
+                % destroyed object whose ID is absent from the registry means
+                % the cache array and its members registry are out of sync.
+                warning('NANSEN:MetaTable:CacheMemberMissing', ...
+                    ['A cached meta object was destroyed but its ID is not ', ...
+                     'in the cache registry. The cache and its members ', ...
+                     'registry are out of sync.'])
+                return
             end
             obj.MetaObjectCache(iC) = [];
-
             obj.updateMetaObjectCacheMembers();
         end
     end

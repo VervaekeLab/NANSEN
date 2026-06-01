@@ -6,10 +6,9 @@ classdef MetaTableCacheInvalidationTest < matlab.unittest.TestCase
     %   reverse-sync path (a live metaObject updating its own backing row)
     %   must not delete the object the caller is holding.
     %
-    %   Regression coverage for issue #104: adding or removing a table
-    %   variable changes the column set, so cached meta objects built from
-    %   the previous column set (struct objects from the @table2struct
-    %   fallback) have a stale shape and must be invalidated.
+    %   Regression coverage for issue #104: cached meta objects mirror the
+    %   table's column set (struct objects from the @table2struct fallback),
+    %   so adding or removing a table variable must invalidate the cache.
     %
     %   These tests are intentionally self-contained: they build a MetaTable
     %   backed by a lightweight ObservableTestItem metaObject and do not
@@ -101,10 +100,11 @@ classdef MetaTableCacheInvalidationTest < matlab.unittest.TestCase
         end
 
         function testAddTableVariableAfterPartialCacheDoesNotError(testCase)
-            % Faithful reproduction of issue #104: a partially populated
-            % cache (old column set) merged with freshly built structs (new
-            % column set) used to throw a struct-field mismatch inside
-            % utility.insertIntoArray.
+            % Regression for issue #104: when only some rows are cached,
+            % getMetaObjects merges cached structs with freshly built ones.
+            % If a column is added between the two builds, the field sets
+            % must still align (no struct-field mismatch in
+            % utility.insertIntoArray).
             mt = testCase.createStructBackedMetaTable();
             mt.getMetaObjects(1:2); % Cache a subset against the old column set
 
@@ -113,6 +113,63 @@ classdef MetaTableCacheInvalidationTest < matlab.unittest.TestCase
             rebuilt = mt.getMetaObjects(1:3); % Previously threw in insertIntoArray
             testCase.verifyEqual(numel(rebuilt), 3);
             testCase.verifyTrue(isfield(rebuilt, 'NewVar'));
+        end
+
+        function testDestroyingCachedObjectEvictsItFromCache(testCase)
+            % A cached object carries a cache-eviction listener, so
+            % destroying it removes it from the cache and the next
+            % getMetaObjects rebuilds a valid object rather than returning a
+            % deleted handle.
+            mt = testCase.createObservableItemMetaTable();
+
+            cachedItem = mt.getMetaObjects(1);
+            delete(cachedItem);
+
+            rebuilt = mt.getMetaObjects(1);
+            testCase.verifyTrue(isvalid(rebuilt), ...
+                'Cache returned a stale invalid handle after the cached object was destroyed');
+        end
+
+        function testDestroyingUncachedObjectDoesNotEvictCachedObject(testCase)
+            % An object fetched with UseCache=false shares its ID with the
+            % cached object for the same row but is not itself cached, so it
+            % carries no cache-eviction listener. Destroying it must not
+            % disturb the live cached object with the same ID.
+            mt = testCase.createObservableItemMetaTable();
+
+            cachedItem = mt.getMetaObjects(1);                    % cached
+            duplicate  = mt.getMetaObjects(1, 'UseCache', false); % same ID, uncached
+            testCase.assertFalse(cachedItem == duplicate, ...
+                'Expected UseCache=false to build a distinct object');
+
+            delete(duplicate);
+
+            rebuilt = mt.getMetaObjects(1);
+            testCase.verifyTrue(rebuilt == cachedItem, ...
+                'Destroying an uncached duplicate evicted the cached object');
+        end
+
+        function testRoutineCacheFlowsAreWarningFree(testCase)
+            % The cache-member-missing warning must fire only on a genuine
+            % cache/members desync, never during routine invalidation, reset,
+            % column changes, or direct destruction of a cached object.
+            mt = testCase.createObservableItemMetaTable();
+
+            % editEntries invalidates (deletes) the cached object.
+            mt.getMetaObjects(1);
+            testCase.verifyWarningFree(@() mt.editEntries(1, 'Value', 111));
+
+            % resetMetaObjectCache deletes every cached object.
+            mt.getMetaObjects(1:3);
+            testCase.verifyWarningFree(@() mt.resetMetaObjectCache());
+
+            % addTableVariable resets the cache as part of a column change.
+            mt.getMetaObjects(1:3);
+            testCase.verifyWarningFree(@() mt.addTableVariable('Extra', 0));
+
+            % Directly destroying a cached object evicts it via its listener.
+            item = mt.getMetaObjects(1);
+            testCase.verifyWarningFree(@() delete(item));
         end
     end
 
