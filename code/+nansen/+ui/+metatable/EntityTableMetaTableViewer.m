@@ -302,7 +302,7 @@ classdef EntityTableMetaTableViewer < handle
                 obj.ColumnFilterActive = [];
                 obj.ActiveColumnFilterNames = strings(1, 0);
                 if ~isempty(obj.EntityTableView) && isvalid(obj.EntityTableView)
-                    obj.EntityTableView.resetFilters()
+                    obj.EntityTableView.resetFilters('SkipNotification', true)
                 end
                 if ~isempty(obj.MetaTable) && ~isempty(obj.ColumnFilter)
                     obj.ColumnFilter.onMetaTableChanged()
