@@ -1146,7 +1146,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
         % Requires: varname2label
             import utility.string.varname2label
-            import utility.dir.recursiveDir
 
             L = recursiveDir(dirPath, "RecursionDepth", 1);
 

@@ -904,7 +904,7 @@ classdef Project < nansen.module.Module
             % Todo: module method?
 
             configFileName = nansen.module.Module.MODULE_CONFIG_FILENAME;
-            L = utility.dir.recursiveDir(projectDirectory, 'Expression', configFileName);
+            L = recursiveDir(projectDirectory, 'Expression', configFileName);
             assert(numel(L)==1, 'Expected to found exactly one module configuration file, but found %s', numel(L))
 
             configFilePath = utility.dir.abspath(L);
