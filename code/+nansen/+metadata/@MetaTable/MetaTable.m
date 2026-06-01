@@ -471,10 +471,35 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             entryIndex = find( strcmp(allIds, objectId) );
         end
 
-        function editEntries(obj, rowInd, varName, newValue)
+        function editEntries(obj, rowInd, varName, newValue, options)
         %editEntries Edit entries given some parameters.
+        %
+        %   editEntries(obj, rowInd, varName, newValue) writes newValue into
+        %   the given rows/column of the entries table and invalidates any
+        %   cached metaObjects for the edited rows, so the next
+        %   getMetaObjects call rebuilds them from the updated data.
+        %
+        %   editEntries(..., InvalidateCache=false) skips cache invalidation.
+        %   Use this only when the edit originates from a live metaObject
+        %   (e.g. a property-set sync), where the cached object is already up
+        %   to date and invalidating it would delete the object the caller is
+        %   currently holding.
 
+            arguments
+                obj
+                rowInd
+                varName
+                newValue
+                options.InvalidateCache (1,1) logical = true
+            end
+
+            if options.InvalidateCache
+                editedIds = obj.getObjectId(obj.entries(rowInd, :));
+            end
             obj.assignEntries(rowInd, varName, newValue)
+            if options.InvalidateCache
+                obj.invalidateMetaObjectCache(editedIds)
+            end
             obj.notifyEntryChanged(rowInd, varName)
         end
 
@@ -1250,7 +1275,11 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 newValue = {newValue};
             end
 
-            obj.editEntries(metaTableEntryIdx, propertyName, newValue)
+            % The edit originates from the live metaObject (src), so its
+            % cached entry is already current. Invalidating here would
+            % delete the very object whose property was just set.
+            obj.editEntries(metaTableEntryIdx, propertyName, newValue, ...
+                InvalidateCache=false)
         end
 
         function onMetaObjectDestroyed(obj, src, ~)
