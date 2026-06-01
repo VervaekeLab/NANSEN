@@ -111,7 +111,7 @@ classdef Module < handle
                 mixinType
             end
             rootPath = fullfile(obj.FolderPath, '+mixin', ['+', mixinType]);
-            filePaths = utility.dir.recursiveDir(rootPath, 'OutputType', 'FilePath', 'FileType', 'm');
+            filePaths = recursiveDir(rootPath, 'OutputType', 'FilePath', 'FileType', 'm');
             names = cellfun(@(c) utility.path.abspath2funcname(c), filePaths, 'uni', 0);
         end
 
@@ -394,13 +394,13 @@ classdef Module < handle
             fileListA = listClassdefFilesInClassFolder(rootFolder);
 
             % List all m-files that are not located in a class folder
-            % fileListB = utility.dir.recursiveDir(rootFolder, ...
+            % fileListB = recursiveDir(rootFolder, ...
             %     'IgnoreList', "@", 'Type', 'file', 'FileType', 'm', ...
             %     'RecursionDepth', 2, 'IsCumulative', false, ...
             %     'OutputType', 'FilePath');
 
-            fileListB = utility.dir.recursiveDir(rootFolder, ...
-                'IgnoreList', ["@", "deprecated", ignoreList], 'Type', 'file', 'FileType', 'm');
+            fileListB = recursiveDir(rootFolder, ...
+                'IgnoreList', ["@", "deprecated", "private", ignoreList], 'Type', 'file', 'FileType', 'm');
 
             fileList = cat(1, fileListA, fileListB);
         end
@@ -412,8 +412,6 @@ classdef Module < handle
                 rootFolder (1,1) string
                 expression (1,1) string = ""
             end
-
-            import utility.dir.recursiveDir
 
             fileList = recursiveDir(rootFolder, ...
                 'Type', 'file', ...
