@@ -366,6 +366,11 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             end
 
             obj.entries = obj.addTableVariableStatic(obj.entries, variableName, initValue);
+
+            % The column set changed. Cached meta objects built from the
+            % previous column set have a stale shape (e.g. struct fields no
+            % longer match), so the cache must be invalidated.
+            obj.resetMetaObjectCache()
         end
 
         function removeTableVariable(obj, variableName)
@@ -376,6 +381,9 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         %   them after removing variables.
 
             obj.entries(:, variableName) = [];
+
+            % The column set changed, so cached meta objects are now stale.
+            obj.resetMetaObjectCache()
         end
 
         function addTable(obj, T, options)
