@@ -6,8 +6,13 @@ function L = listClassdefFilesInClassFolder(rootPath)
 
     folderList = recursiveDir(rootPath, ...
         'IgnoreList', "private", 'Expression', '@', 'Type', 'folder');
-
-    L = cell(size(folderList));
+    
+    if isempty(folderList)
+        L = folderList;
+        return
+    end
+    
+    L = cell(size(folderList));    
 
     for i = 1:numel(folderList)
         folderPath = fullfile(folderList(i).folder, folderList(i).name);
@@ -17,7 +22,4 @@ function L = listClassdefFilesInClassFolder(rootPath)
     end
 
     L = cat(1, L{:});
-    if isempty(L)
-        L = utility.dir.empty();
-    end
 end
