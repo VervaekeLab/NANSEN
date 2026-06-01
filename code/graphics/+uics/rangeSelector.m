@@ -264,7 +264,7 @@ classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
 
         function onMinValuePropertySet(obj)
             %obj.updateLowValueField(obj.Minimum)
-            obj.hRangeSlidebar.Max = obj.Minimum;
+            obj.hRangeSlidebar.Min = obj.Minimum;
 
             if isempty(obj.hEditFieldLow)
                 obj.updateComponentPositions
@@ -317,10 +317,14 @@ classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
             containerpos = getpixelposition(obj.hPanel);
             w = containerpos(3) - 10;
 
-            numCharsMin = ceil(log10(abs(obj.Minimum)));
-            numCharsMax = ceil(log10(abs(obj.Maximum)));
-            wMin = numCharsMin*8;
-            wMax = numCharsMax*8;
+            % Size the numeric edit fields to fit the displayed string.
+            % The fields show num2str(round(value)), so budget width from
+            % that exact string length plus padding for the edit-control
+            % chrome (internal margins + caret).
+            charPx = 8;
+            padding = 12;
+            wMin = numel(num2str(round(obj.Minimum))) * charPx + padding;
+            wMax = numel(num2str(round(obj.Maximum))) * charPx + padding;
 
             [x, w] = subdividePosition(5, w, [wMin, 1, wMax], 15);
 
