@@ -6,6 +6,11 @@ classdef MetaTableCacheInvalidationTest < matlab.unittest.TestCase
     %   reverse-sync path (a live metaObject updating its own backing row)
     %   must not delete the object the caller is holding.
     %
+    %   Regression coverage for issue #104: adding or removing a table
+    %   variable changes the column set, so cached meta objects built from
+    %   the previous column set (struct objects from the @table2struct
+    %   fallback) have a stale shape and must be invalidated.
+    %
     %   These tests are intentionally self-contained: they build a MetaTable
     %   backed by a lightweight ObservableTestItem metaObject and do not
     %   require a configured project.
@@ -62,6 +67,53 @@ classdef MetaTableCacheInvalidationTest < matlab.unittest.TestCase
             testCase.verifyEqual(mt.entries.Value(1), 4242, ...
                 'Property change did not sync back into the entries table');
         end
+
+        function testAddTableVariableRebuildsCachedObjects(testCase)
+            % Adding a column must invalidate the cache so the next
+            % getMetaObjects call reflects the new column set (issue #104).
+            mt = testCase.createStructBackedMetaTable();
+
+            cached = mt.getMetaObjects(1:3); % Prime cache with old column set
+            testCase.assertTrue(isstruct(cached));
+            testCase.assertFalse(isfield(cached, 'NewVar'));
+
+            mt.addTableVariable('NewVar', 0);
+
+            rebuilt = mt.getMetaObjects(1:3);
+            testCase.verifyTrue(isfield(rebuilt, 'NewVar'), ...
+                'getMetaObjects served stale cached structs after a column was added');
+        end
+
+        function testRemoveTableVariableRebuildsCachedObjects(testCase)
+            % Removing a column must invalidate the cache so the next
+            % getMetaObjects call reflects the new column set (issue #104).
+            mt = testCase.createStructBackedMetaTable();
+            mt.addTableVariable('NewVar', 0);
+
+            cached = mt.getMetaObjects(1:3); % Prime cache including NewVar
+            testCase.assertTrue(isfield(cached, 'NewVar'));
+
+            mt.removeTableVariable('NewVar');
+
+            rebuilt = mt.getMetaObjects(1:3);
+            testCase.verifyFalse(isfield(rebuilt, 'NewVar'), ...
+                'getMetaObjects served stale cached structs after a column was removed');
+        end
+
+        function testAddTableVariableAfterPartialCacheDoesNotError(testCase)
+            % Faithful reproduction of issue #104: a partially populated
+            % cache (old column set) merged with freshly built structs (new
+            % column set) used to throw a struct-field mismatch inside
+            % utility.insertIntoArray.
+            mt = testCase.createStructBackedMetaTable();
+            mt.getMetaObjects(1:2); % Cache a subset against the old column set
+
+            mt.addTableVariable('NewVar', 0);
+
+            rebuilt = mt.getMetaObjects(1:3); % Previously threw in insertIntoArray
+            testCase.verifyEqual(numel(rebuilt), 3);
+            testCase.verifyTrue(isfield(rebuilt, 'NewVar'));
+        end
     end
 
     methods (Access = private)
@@ -74,6 +126,19 @@ classdef MetaTableCacheInvalidationTest < matlab.unittest.TestCase
 
             mt = nansen.metadata.MetaTable(entries, ...
                 'MetaTableClass', 'nansen.unittest.metadata.helper.ObservableTestItem', ...
+                'MetaTableIdVarname', 'itemID');
+        end
+
+        function mt = createStructBackedMetaTable(~)
+            % Build a MetaTable with no item class so meta objects are
+            % created via the @table2struct fallback. Each meta object is a
+            % struct whose field set mirrors the current column set.
+            itemIds = {'item_001'; 'item_002'; 'item_003'};
+            values = [10; 20; 30];
+            entries = table(itemIds, values, ...
+                'VariableNames', {'itemID', 'Value'});
+
+            mt = nansen.metadata.MetaTable(entries, ...
                 'MetaTableIdVarname', 'itemID');
         end
     end
