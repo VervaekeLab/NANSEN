@@ -756,7 +756,14 @@ classdef AddonManager < handle
                 end
             end
             if ~isempty(addonEntry.Name)
-                matlab.addons.enableAddon(addonEntry.Name)
+                try
+                    matlab.addons.enableAddon(addonEntry.Name)
+                catch exception
+                    newException = MException('NANSEN:AddOns:EnableAddonFailed', ...
+                        'Failed to add-on with name: %s', addonEntry.Name);
+                    newException = newException.addCause(exception);
+                    throw(newException)
+                end
             end
         end
     end
