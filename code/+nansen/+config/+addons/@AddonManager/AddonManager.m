@@ -189,7 +189,7 @@ classdef AddonManager < handle
             for i = 1:numel(addonEntries)
                 addonEntry = addonEntries(i);
                 if addonEntry.IsInstalled
-                    obj.downloadAddon(addonEntry.Name, true)
+                    obj.downloadAddon(addonEntry.Name, true);
                 end
             end
             obj.saveAddonList()
@@ -360,6 +360,10 @@ classdef AddonManager < handle
             installResult = nansen.config.addons.InstallationResult.create( ...
                 obj.AddonList(addonIdx), "succeeded", "complete", ...
                 sprintf('Installed %s.', addonEntry.Name));
+
+            if ~nargout
+                clear installResult
+            end
         end
 
         % Check if specified Add-On is installed
