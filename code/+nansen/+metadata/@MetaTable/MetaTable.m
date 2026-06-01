@@ -820,6 +820,12 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
     end
 
     methods % MetaObject caching methods
+
+        function metaObject = getMetaObjectById(obj, identifier)
+            rowInd = obj.getIndexById(identifier);
+            metaObject = obj.getMetaObjects(rowInd);
+        end
+
         function [metaObjects, status] = getMetaObjects(obj, rowIndices, ...
                 objectPropertyName, objectPropertyValue, options)
         % getMetaObjects - Get metadata objects for a set of table rows
