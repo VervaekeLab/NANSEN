@@ -19,7 +19,7 @@ classdef MetaTableTest < matlab.unittest.TestCase
 
     properties
         TestDir char
-        TestMetaTable nansen.unittest.metadata.TestableMetaTable
+        TestMetaTable nansen.unittest.metadata.helper.TestableMetaTable
         TestEntries table
         TempFiles cell = {}
     end
@@ -66,7 +66,7 @@ classdef MetaTableTest < matlab.unittest.TestCase
 
         function createTestMetaTable(testCase)
             % Create a clean MetaTable instance using testable subclass
-            testCase.TestMetaTable = nansen.unittest.metadata.TestableMetaTable( ...
+            testCase.TestMetaTable = nansen.unittest.metadata.helper.TestableMetaTable( ...
                 testCase.TestEntries, ...
                 'MetaTableClass', 'table', ...
                 'ItemClassName', '', ...
