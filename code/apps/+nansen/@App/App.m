@@ -759,6 +759,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem = uimenu(hMenu, 'Text', 'Edit Table Variable Definition', 'Tag', 'core.metatable.edit_variable');
             app.updateTableVariableMenuItems(mitem)
 
+            % Menu with submenus for resetting a table variable column:
+            mitem = uimenu(hMenu, 'Text', 'Reset Table Variable', 'Tag', 'core.metatable.reset_variable');
+            app.updateResetTableVariableMenuItems(mitem)
+
             % TODO: Include table variables from a metadata model.
             % TODO: Turn this section for creating a submenu into a function.
 
@@ -953,6 +957,27 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Create a menu list with items for each variable
             mItem = uics.MenuList(hMenu, columnVariables, '', 'SelectionMode', 'none');
             mItem.MenuSelectedFcn = @app.editTableVariableDefinition;
+        end
+
+        function updateResetTableVariableMenuItems(app, hMenu)
+
+            if nargin < 2
+                hMenu = findobj(app.Figure, 'Text', 'Reset Table Variable');
+                if ~isempty(hMenu.Children)
+                    delete(hMenu.Children)
+                end
+            end
+
+            tableVariableAttributes = app.CurrentProject.getTable('TableVariable');
+
+            % Get names of variables that have update functions.
+            getRowsToKeep = @(T) T.HasUpdateFunction & ~T.IsEditable;
+            rowsToKeep = getRowsToKeep(tableVariableAttributes);
+            columnVariables = tableVariableAttributes{rowsToKeep, 'Name'};
+
+            % Create a menu list with items for each variable
+            mItem = uics.MenuList(hMenu, columnVariables, '', 'SelectionMode', 'none');
+            mItem.MenuSelectedFcn = @app.resetTableVariableColumn;
         end
 
         function updateMenu_PipelineItems(app, hMenu)
@@ -1885,6 +1910,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.SessionContextMenu = app.createSessionTableContextMenu();
             app.updateMenu_PipelineItems()
             app.updateTableVariableMenuItems()
+            app.updateResetTableVariableMenuItems()
             app.updateMenu_DatalocationRootConfiguration()
 
             app.createMenu_Tools()
@@ -2858,7 +2884,78 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
 
         function resetTableVariable(app, src, evt)
+        %resetTableVariable Reset table variable values for visible/selected rows
+        %
+        %   Callback for the column header reset action. Writes the variable's
+        %   default value into the chosen rows of the existing column. The
+        %   column type is left unchanged, so this fails if the variable
+        %   definition's default value type was changed externally. Use the
+        %   "Reset Table Variable" menu (resetTableVariableColumn) to rebuild
+        %   a column whose type has changed.
+
             app.updateTableVariable(src, evt, true)
+        end
+
+        function resetTableVariableColumn(app, src, ~)
+        %resetTableVariableColumn Discard a column's values and rebuild it
+        %
+        %   Callback for the "Reset Table Variable" menu. Replaces every value
+        %   in the column with the variable's current default value, rebuilding
+        %   the column from scratch. Because the column is rebuilt, its data
+        %   type may differ from the previous one (e.g. when the variable
+        %   definition's default value type has changed from numeric to text).
+        %   This permanently discards any values that were entered or computed
+        %   for the column.
+
+            if ischar(src) || isstring(src)
+                varName = char(src);
+            else
+                varName = src.Text; % Menu callback: src is the menu item
+            end
+
+            % Confirm, since this permanently discards entered values.
+            question = sprintf(['Reset ''%s''?\n\nThis permanently discards ', ...
+                'all values in the column and rebuilds it with the default ', ...
+                'value.'], varName);
+            answer = app.MessageDisplay.ask(question, ...
+                'Title', "Reset Table Variable", ...
+                'Alternatives', ["Reset", "Cancel"], ...
+                'DefaultAnswer', "Cancel");
+            if ~strcmp(answer, "Reset"); return; end
+
+            defaultValue = app.getTableVariableDefaultValue(varName);
+
+            % Build a full column of the default value and replace the column.
+            numRows = height(app.MetaTable.entries);
+            columnValues = repmat(defaultValue, numRows, 1);
+            app.MetaTable.replaceDataColumn(varName, columnValues);
+
+            % Cached metaObjects now hold stale values for this column.
+            app.MetaTable.resetMetaObjectCache();
+
+            app.UiMetaTableViewer.refreshColumnModel();
+            app.UiMetaTableViewer.refreshTable(app.MetaTable)
+        end
+
+        function defaultValue = getTableVariableDefaultValue(app, varName)
+        %getTableVariableDefaultValue Get a variable's default (null) value
+        %
+        %   Returns the default value produced by calling a table variable's
+        %   update function with no input arguments.
+
+            tableType = lower(app.CurrentItemType);
+
+            T = app.CurrentProject.getTable('TableVariable');
+            T = T(T.TableType==tableType, :);
+            S = table2struct(T);
+
+            isMatch = strcmp({S.Name}, varName);
+            assert(any(isMatch), ...
+                'No table variable named "%s" was found for table type "%s".', ...
+                varName, tableType)
+
+            updateFcn = str2func(S(isMatch).UpdateFunctionName);
+            defaultValue = updateFcn();
         end
 
         function updateTableVariable(app, src, evt, reset)
