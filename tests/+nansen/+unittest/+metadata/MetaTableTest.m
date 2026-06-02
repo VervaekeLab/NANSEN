@@ -328,6 +328,49 @@ classdef MetaTableTest < matlab.unittest.TestCase
             testCase.verifyEqual(testCase.TestMetaTable.entries.Value(1), 10);
         end
 
+        function testReplaceDataColumnChangesColumnType(testCase)
+            % Replacing a column should rebuild it, allowing a type change
+            % from numeric to text (the use case for resetting a variable
+            % whose default value type changed).
+            testCase.createTestMetaTable();
+
+            % 'Value' starts out as a numeric column
+            testCase.verifyTrue(isnumeric(testCase.TestMetaTable.entries.Value));
+
+            newValues = arrayfun(@(i) sprintf('item_%d', i), ...
+                1:testCase.NUM_TEST_ENTRIES, 'uni', 0)';
+            testCase.TestMetaTable.replaceDataColumn('Value', newValues);
+
+            % Column is now text (cellstr), with no leftover numeric data
+            testCase.verifyTrue(iscell(testCase.TestMetaTable.entries.Value));
+            testCase.verifyEqual(testCase.TestMetaTable.entries.Value{1}, 'item_1');
+        end
+
+        function testReplaceDataColumnAcceptsNonCellVector(testCase)
+            % A non-cell vector is assigned directly to the column
+            testCase.createTestMetaTable();
+
+            newValues = (1:testCase.NUM_TEST_ENTRIES)' * 100;
+            testCase.TestMetaTable.replaceDataColumn('Value', newValues);
+
+            testCase.verifyEqual(testCase.TestMetaTable.entries.Value, newValues);
+        end
+
+        function testReplaceDataColumnRowCountMismatchErrors(testCase)
+            % Mismatched element count should error and report both counts
+            testCase.createTestMetaTable();
+
+            tooFewValues = {1; 2}; % Table has NUM_TEST_ENTRIES (5) rows
+
+            try
+                testCase.TestMetaTable.replaceDataColumn('Value', tooFewValues);
+                testCase.verifyFail('Expected an error for row-count mismatch');
+            catch ME
+                testCase.verifySubstring(ME.message, '5 rows');
+                testCase.verifySubstring(ME.message, '2 elements');
+            end
+        end
+
         function testGetColumnIndex(testCase)
             % Test getting column index by name
             testCase.createTestMetaTable();
