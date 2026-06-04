@@ -2135,9 +2135,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     'VariableModel', app.VariableModel
                     };
 
-            if numel(tableRowIndices) > 5
+            if numel(tableRowIndices) > 5 % 5 is ad hoc here. Make preference?
                 [h, waitbarCleanup] = app.MessageDisplay.wait(message, ...
                     'Title', 'Updating Values'); %#ok<ASGLU>
+            else
+                h = [];
             end
 
 
