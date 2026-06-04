@@ -894,13 +894,14 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             end
             arguments
                 options.UseCache (1,1) logical = true
+                options.Waitbar = []
             end
 
             tableEntries = obj.entries(rowIndices, :);
             propertyArgs = cat(1, objectPropertyName, objectPropertyValue);
 
             if isempty(tableEntries) || ~options.UseCache
-                [metaObjects, status] = obj.createMetaObjects(tableEntries, propertyArgs{:});
+                [metaObjects, status] = obj.createMetaObjects(tableEntries, propertyArgs{:}, 'Waitbar', options.Waitbar);
             else
                 % Check if objects already exists in cache
                 ids = obj.getObjectId(tableEntries);
@@ -917,7 +918,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 statusOld(indInTableEntries) = true;
 
                 % Create meta objects for remaining entries if any
-                [metaObjectsNew, statusNew] = obj.createMetaObjects(tableEntries, propertyArgs{:});
+                [metaObjectsNew, statusNew] = obj.createMetaObjects(tableEntries, propertyArgs{:}, 'Waitbar', options.Waitbar);
 
                 % Collect outputs
                 if isequal(matchedIds, ids)
@@ -1099,7 +1100,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         end
 
         function [metaObjects, status] = createMetaObjects(obj, tableEntries, ...
-                objectPropertyName, objectPropertyValue)
+                objectPropertyName, objectPropertyValue, options)
         % createMetaObjects - Create new meta objects from table entries
 
             arguments
@@ -1109,6 +1110,9 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             arguments (Repeating)
                 objectPropertyName string
                 objectPropertyValue
+            end
+            arguments
+                options.Waitbar = []
             end
 
             % Relevant for meta objects that have datalocations:
@@ -1148,6 +1152,10 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             status = false(1, numItems);
 
             for i = 1:numItems
+                if ~isempty(options.Waitbar)
+                    value = i/numItems;
+                    nansen.MessageDisplay.updateProgress(options.Waitbar, value)
+                end
                 try
                     metaObjects{i} = itemConstructor(tableEntries(i,:), propertyArgs{:});
                     status(i) = true;

@@ -2135,8 +2135,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     'VariableModel', app.VariableModel
                     };
 
+            if numel(tableRowIndices) > 5
+                [h, waitbarCleanup] = app.MessageDisplay.wait(message, ...
+                    'Title', 'Updating Values'); %#ok<ASGLU>
+            end
+
+
             [metaObjects, status] = app.MetaTable.getMetaObjects(tableRowIndices, ...
-                nvPairs{:}, "UseCache", options.UseCache);
+                nvPairs{:}, "UseCache", options.UseCache, "Waitbar", h);
         end
     end
 
