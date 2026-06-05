@@ -53,6 +53,29 @@ classdef SessionDataCacheIntegrationTest < matlab.unittest.TestCase
                 "Display must not populate the cache")
         end
 
+        function displayShowsOnDemandPlaceholderForUnloaded(testCase)
+        %displayShowsOnDemandPlaceholderForUnloaded Unloaded vars render as a placeholder.
+            [~, sd] = testCase.makeSession("sess-1");
+            sd.registerVariable("dff");
+
+            shown = evalc('disp(sd)');
+            testCase.verifyTrue(contains(shown, "<on demand>"), ...
+                "Unloaded variable should render with the on-demand placeholder")
+        end
+
+        function displayAfterLoadDoesNotReload(testCase)
+        %displayAfterLoadDoesNotReload Display peeks loaded values without reloading.
+            [fake, sd] = testCase.makeSession("sess-1");
+            sd.registerVariable("dff");
+
+            loaded = sd.dff;        % load once
+            evalc('disp(sd)');      % display must not reload
+
+            testCase.verifyEqual(fake.loadCount("dff"), 1, ...
+                "Displaying after a load must not reload the variable")
+            testCase.verifyEqual(loaded, magic(8))
+        end
+
         function resetCacheForcesReload(testCase)
         %resetCacheForcesReload Invalidating one variable forces a reload.
             [fake, sd] = testCase.makeSession("sess-1");
