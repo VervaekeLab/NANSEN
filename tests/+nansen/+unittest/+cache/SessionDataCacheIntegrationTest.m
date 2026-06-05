@@ -110,8 +110,8 @@ classdef SessionDataCacheIntegrationTest < matlab.unittest.TestCase
 
     methods (Static, Access = private)
         function [spy, sd] = makeSession(sessionID)
-            spy = nansen.unittest.cache.SessionSpy(sessionID);
-            sd = nansen.unittest.cache.SessionDataHarness(spy);
+            spy = nansen.unittest.cache.helper.SessionSpy(sessionID);
+            sd = nansen.unittest.cache.helper.SessionDataFake(spy);
         end
     end
 end

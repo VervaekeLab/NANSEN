@@ -1,19 +1,19 @@
-classdef SessionDataHarness < nansen.session.SessionData
-%SessionDataHarness Test harness exposing protected SessionData internals
+classdef SessionDataFake < nansen.session.SessionData
+%SessionDataFake Minimal SessionData subclass for cache integration tests
 %
-%   Lets a test register a data variable without a full project or
-%   VariableModel, so the real subsref -> shared-cache load-through path can
-%   be exercised directly.
+%   Exposes registerVariable so tests can add data variables without a full
+%   project or VariableModel, exercising the real load-through and display
+%   paths directly.
 
     methods
-        function obj = SessionDataHarness(sessionObj)
+        function obj = SessionDataFake(sessionObj)
             obj@nansen.session.SessionData(sessionObj);
         end
 
         function registerVariable(obj, variableName)
             obj.addDataProperty(variableName);
             % Include the fields the display (getPropertyGroups) reads, so a
-            % harness-built object can also be rendered without a project.
+            % fake-built object can also be rendered without a project.
             item = struct( ...
                 "VariableName", char(variableName), ...
                 "IsInternal", false, ...

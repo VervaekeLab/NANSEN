@@ -1,5 +1,8 @@
-classdef TestOptionsOwner < applify.mixin.HasOptionsManager
-%TestOptionsOwner Test double for option-owner lifecycle tests.
+classdef OptionsOwnerSpy < applify.mixin.HasOptionsManager
+%OptionsOwnerSpy Spy for options-owner lifecycle tests.
+%
+%   Records OptionsChangedCount so tests can assert how many times options
+%   changes were fired without a real UI.
 
     properties
         Editor
@@ -8,7 +11,7 @@ classdef TestOptionsOwner < applify.mixin.HasOptionsManager
 
     methods
 
-        function obj = TestOptionsOwner(options)
+        function obj = OptionsOwnerSpy(options)
             obj@applify.mixin.HasOptionsManager(options)
             obj.Modal = false;
         end

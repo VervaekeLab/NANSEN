@@ -167,7 +167,7 @@ classdef DataCacheTest < matlab.unittest.TestCase
         function getCacheSizeHookIsUsedForObjects(testCase)
         %getCacheSizeHookIsUsedForObjects A heavy class can report its own footprint.
             cache = nansen.cache.DataCache(MaxBytes = 1e7);
-            stub = nansen.unittest.cache.CacheSizeStub(4096);
+            stub = nansen.unittest.cache.helper.CacheSizeStub(4096);
 
             cache.put("session:a:obj", stub);
 
