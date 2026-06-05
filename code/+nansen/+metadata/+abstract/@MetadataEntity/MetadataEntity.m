@@ -224,7 +224,7 @@ classdef MetadataEntity < ...
         end
     end
 
-    methods (Access = {?nansen.metadata.MetaTable, ?nansen.metadata.abstract.MetadataEntity})
+    methods (Access = ?nansen.metadata.MetaTable)
         function refreshFromTableRow(obj, tableRow)
         %refreshFromTableRow Update table-backed properties from one row
 
@@ -338,7 +338,7 @@ classdef MetadataEntity < ...
         end
     end
 
-    methods % Methods for retyping
+    methods % Methods for re-typing
 
         function fromStruct(obj, S)
 
