@@ -692,6 +692,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             else
                 obj.updateMetaObjectCacheMembers();
             end
+        end
 
         function refreshMetaObjectCacheRows(obj, objectIds, rowInd)
         %refreshMetaObjectCacheRows Refresh full table rows in cached objects
