@@ -11,7 +11,7 @@ classdef MetaTableCacheInvalidationTest < matlab.unittest.TestCase
     %   so adding or removing a table variable must invalidate the cache.
     %
     %   These tests are intentionally self-contained: they build a MetaTable
-    %   backed by a lightweight ObservableTestItem metaObject and do not
+    %   backed by a lightweight MetaObjectStub metaObject and do not
     %   require a configured project.
     %
     %   Run tests:
@@ -25,7 +25,7 @@ classdef MetaTableCacheInvalidationTest < matlab.unittest.TestCase
 
             cachedItem = mt.getMetaObjects(1); % Prime the cache
             testCase.assertClass(cachedItem, ...
-                'nansen.unittest.metadata.helper.ObservableTestItem');
+                'nansen.unittest.metadata.helper.MetaObjectStub');
 
             mt.editEntries(1, 'Value', 9999);
 
@@ -175,14 +175,14 @@ classdef MetaTableCacheInvalidationTest < matlab.unittest.TestCase
 
     methods (Access = private)
         function mt = createObservableItemMetaTable(~)
-            % Build a MetaTable backed by ObservableTestItem metaObjects.
+            % Build a MetaTable backed by MetaObjectStub metaObjects.
             itemIds = {'item_001'; 'item_002'; 'item_003'};
             values = [10; 20; 30];
             entries = table(itemIds, values, ...
                 'VariableNames', {'itemID', 'Value'});
 
             mt = nansen.metadata.MetaTable(entries, ...
-                'MetaTableClass', 'nansen.unittest.metadata.helper.ObservableTestItem', ...
+                'MetaTableClass', 'nansen.unittest.metadata.helper.MetaObjectStub', ...
                 'MetaTableIdVarname', 'itemID');
         end
 

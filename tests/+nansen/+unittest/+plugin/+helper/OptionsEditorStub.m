@@ -1,5 +1,8 @@
-classdef TestOptionsEditor < handle
-%TestOptionsEditor Minimal options editor test double.
+classdef OptionsEditorStub < handle
+%OptionsEditorStub Stub options editor for plugin lifecycle tests.
+%
+%   Provides canned wasCanceled state and a no-op waitfor so tests can
+%   drive the options-editor protocol without a real UI.
 
     properties
         dataEdit
@@ -14,7 +17,7 @@ classdef TestOptionsEditor < handle
 
     methods
 
-        function obj = TestOptionsEditor(dataEdit, wasCanceled)
+        function obj = OptionsEditorStub(dataEdit, wasCanceled)
             obj.dataEdit = dataEdit;
             obj.wasCanceled = wasCanceled;
         end

@@ -7,9 +7,9 @@ classdef ModalMethodPreviewControllerTest < matlab.unittest.TestCase
             originalOptions = struct('Main', struct('Value', 1));
             editedOptions = struct('Main', struct('Value', 2));
 
-            plugin = nansen.unittest.plugin.helper.TestModalPreviewController(originalOptions);
+            plugin = nansen.unittest.plugin.helper.ModalPreviewControllerSpy(originalOptions);
             testCase.addTeardown(@() testCase.deleteIfValid(plugin))
-            editor = nansen.unittest.plugin.helper.TestOptionsEditor(editedOptions, true);
+            editor = nansen.unittest.plugin.helper.OptionsEditorStub(editedOptions, true);
             plugin.Editor = editor;
 
             [options, wasAborted] = plugin.editOptions();
@@ -26,9 +26,9 @@ classdef ModalMethodPreviewControllerTest < matlab.unittest.TestCase
             originalOptions = struct('Main', struct('Value', 1));
             editedOptions = struct('Main', struct('Value', 2));
 
-            plugin = nansen.unittest.plugin.helper.TestModalPreviewController(originalOptions);
+            plugin = nansen.unittest.plugin.helper.ModalPreviewControllerSpy(originalOptions);
             testCase.addTeardown(@() testCase.deleteIfValid(plugin))
-            editor = nansen.unittest.plugin.helper.TestOptionsEditor(editedOptions, false);
+            editor = nansen.unittest.plugin.helper.OptionsEditorStub(editedOptions, false);
             plugin.Editor = editor;
 
             [options, wasAborted] = plugin.editOptions();
@@ -45,10 +45,10 @@ classdef ModalMethodPreviewControllerTest < matlab.unittest.TestCase
             originalOptions = struct('Main', struct('Value', 1));
             editedOptions = struct('Main', struct('Value', 2));
 
-            plugin = nansen.unittest.plugin.helper.TestModalPreviewController(originalOptions);
+            plugin = nansen.unittest.plugin.helper.ModalPreviewControllerSpy(originalOptions);
             testCase.addTeardown(@() testCase.deleteIfValid(plugin))
             plugin.RunMethodOnFinish = false;
-            plugin.Editor = nansen.unittest.plugin.helper.TestOptionsEditor(editedOptions, false);
+            plugin.Editor = nansen.unittest.plugin.helper.OptionsEditorStub(editedOptions, false);
 
             [~, wasAborted] = plugin.editOptions();
 
@@ -61,9 +61,9 @@ classdef ModalMethodPreviewControllerTest < matlab.unittest.TestCase
             originalOptions = struct('Main', struct('Value', 1));
             editedOptions = struct('Main', struct('Value', 2));
 
-            plugin = nansen.unittest.plugin.helper.TestModalPreviewController(originalOptions);
+            plugin = nansen.unittest.plugin.helper.ModalPreviewControllerSpy(originalOptions);
             plugin.DestroyOnFinish = true;
-            plugin.Editor = nansen.unittest.plugin.helper.TestOptionsEditor(editedOptions, false);
+            plugin.Editor = nansen.unittest.plugin.helper.OptionsEditorStub(editedOptions, false);
 
             plugin.editOptions()
 

@@ -1,9 +1,9 @@
-classdef TestableMetaTable < nansen.metadata.MetaTable
-    % TestableMetaTable - A MetaTable subclass for unit testing
-    %
-    %   This subclass exposes methods to set properties that have
-    %   restricted SetAccess in the parent class, allowing tests to
-    %   configure MetaTable instances without requiring complex setup.
+classdef MetaTableFake < nansen.metadata.MetaTable
+%MetaTableFake Minimal MetaTable subclass for unit testing
+%
+%   Exposes methods to set properties that have restricted SetAccess in the
+%   parent class, allowing tests to configure MetaTable instances without
+%   requiring a real file-backed project.
     
     methods
         function setFilepath(obj, filepath)

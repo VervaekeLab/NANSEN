@@ -48,9 +48,9 @@ classdef AppPluginSmokeTest < matlab.unittest.TestCase
             originalOptions = struct('Main', struct('Value', 1));
             editedOptions = struct('Main', struct('Value', 2));
 
-            plugin = nansen.unittest.plugin.helper.TestOptionsOwner(originalOptions);
+            plugin = nansen.unittest.plugin.helper.OptionsOwnerSpy(originalOptions);
             testCase.addTeardown(@() testCase.deleteIfValid(plugin))
-            editor = nansen.unittest.plugin.helper.TestOptionsEditor(editedOptions, false);
+            editor = nansen.unittest.plugin.helper.OptionsEditorStub(editedOptions, false);
             plugin.Editor = editor;
 
             plugin.editOptions()
