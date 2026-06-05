@@ -1,8 +1,7 @@
 classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin.UserSettings
 % SessionData - Provides lazy access to data variables of a Session object
 
-
-% NOTE: 
+% NOTE:
 % Each data variable is exposed as a dynamic property whose get-method
 % loads the data through the shared nansen.cache.DataCache on first access.
 % Display does not go through the get-methods: getPropertyGroups supplies the
@@ -33,7 +32,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
     end
 
     properties (Access = private)
-        State = 'uninitialized'
+        State (1,1) string {mustBeMember(State, ["initialized", "uninitialized"])} = "uninitialized"
         VariableList struct
         FileList containers.Map
         OnDemandLabel = categorical({'<on demand>'})
@@ -44,7 +43,6 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
     end
 
     methods (Hidden) % Constructor
-
         function obj = SessionData(sessionObj)
 
             obj.SessionObject = sessionObj;
@@ -58,7 +56,6 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
     end
 
     methods
-
         function obj = initialize(obj)
         %initialize Initialize the variables of session
             fprintf('Initializing session data variables...\n')
@@ -94,7 +91,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
         end
     end
 
-    methods
+    methods % Set/get methods
         function dlModel = get.DataLocationModel(obj)
             dlModel = obj.SessionObject.DataLocationModel;
         end
@@ -108,9 +105,9 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
         end
 
         function tf = get.IsInitialized(obj)
-            if strcmp(obj.State, 'uninitialized')
+            if obj.State == "uninitialized"
                 tf = false;
-            elseif strcmp(obj.State, 'initialized')
+            elseif obj.State == "initialized"
                 tf = true;
             end
         end
@@ -177,7 +174,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
                 end
             end
 
-            obj.State = 'initialized';
+            obj.State = "initialized";
         end
 
         function varNames = getDataType(obj, typeName, mustExist)
@@ -186,7 +183,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
             if nargin < 3; mustExist = true; end
 
             % Todo: get from session object:
-            %dataVariableModel = obj.SessionObject.VariableModel;
+            % dataVariableModel = obj.SessionObject.VariableModel;
             dataVariableModel = nansen.VariableModel();
             fileAdapters = {dataVariableModel.Data.FileAdapter};
 
@@ -214,7 +211,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
 
         function varNames = uiSelectVariableName(obj, dataType, selectionMode)
         %uiSelectVariableName Open dialog to select variable from sdata
-        %------------------------------------------------------------------
+        % ------------------------------------------------------------------
         %
         %   SYNTAX:
         %
@@ -291,7 +288,6 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
     end
 
     methods (Access = protected)
-
         function addDataProperty(obj, variableName)
             % The actual data lives in the shared nansen.cache.DataCache, so
             % no private backing property is needed here. The get-method is a
@@ -342,7 +338,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
             className = strrep(class(obj), 'nansen.session.', '');
 
             if numel(obj) == 1
-                if strcmp(obj.State, 'uninitialized')
+                if obj.State == "uninitialized"
                     className = sprintf('%s (%s)', className, obj.State);
                 end
             end
@@ -410,7 +406,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
         %   Values are peeked from the shared cache, never loaded: a loaded
         %   variable shows its value and an unloaded one shows the on-demand
         %   placeholder, all without touching disk.
-        
+
             cache = nansen.cache.DataCache.instance();
             propNames = sort( {obj.VariableList(isMember).VariableName} );
 
@@ -429,7 +425,6 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
     end
 
     methods (Sealed, Hidden)
-
         function T = addprop(obj, varargin)
             T = addprop@dynamicprops(obj, varargin{:});
             if ~nargout; clear T; end
@@ -437,7 +432,6 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
     end
 
     methods (Access = protected) % Load data variables
-
         function data = loadData(obj, varName, varargin)
             data = obj.SessionObject.loadData(varName, varargin{:});
         end
