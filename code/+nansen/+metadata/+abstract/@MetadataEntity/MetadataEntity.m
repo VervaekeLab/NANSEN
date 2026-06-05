@@ -211,6 +211,76 @@ classdef MetadataEntity < ...
             accessCleanup = onCleanup(@() resetPropertySetAccess(P));
             obj.(variableName) = propertyValue;
         end
+
+        function setTableBackedPropertyValue(obj, propertyName, propertyValue)
+            propertyName = char(propertyName);
+            propertyMeta = obj.findprop(propertyName);
+
+            if isa(propertyMeta, 'meta.DynamicProperty')
+                obj.setDynamicPropertyValue(propertyName, propertyValue)
+            else
+                obj.(propertyName) = propertyValue;
+            end
+        end
+    end
+
+    methods (Access = {?nansen.metadata.MetaTable, ?nansen.metadata.abstract.MetadataEntity})
+        function refreshFromTableRow(obj, tableRow)
+        %refreshFromTableRow Update table-backed properties from one row
+
+            arguments
+                obj (1,1) nansen.metadata.abstract.MetadataEntity
+                tableRow (1,:) table
+            end
+
+            assert(height(tableRow) == 1, ...
+                'NANSEN:MetadataEntity:ExpectedScalarTableRow', ...
+                'Input must be a single table row.')
+
+            rowStruct = table2struct(tableRow);
+            propertyNames = fieldnames(rowStruct);
+
+            for iProperty = 1:numel(propertyNames)
+                obj.refreshProperty(propertyNames{iProperty}, ...
+                    rowStruct.(propertyNames{iProperty}))
+            end
+        end
+
+        function refreshProperty(obj, propertyName, newValue)
+        %refreshProperty Update or create one table-backed property
+
+            arguments
+                obj (1,1) nansen.metadata.abstract.MetadataEntity
+                propertyName (1,1) string
+                newValue
+            end
+
+            propertyNameChar = char(propertyName);
+            if isprop(obj, propertyNameChar)
+                obj.setTableBackedPropertyValue(propertyNameChar, newValue)
+            else
+                obj.createDynamicProperty(propertyName, {newValue})
+            end
+        end
+
+        function removeTableBackedProperty(obj, propertyName)
+        %removeTableBackedProperty Remove a dynamic table-backed property
+
+            arguments
+                obj (1,1) nansen.metadata.abstract.MetadataEntity
+                propertyName (1,1) string
+            end
+
+            propertyNameChar = char(propertyName);
+            if ~isprop(obj, propertyNameChar)
+                return
+            end
+
+            propertyMeta = obj.findprop(propertyNameChar);
+            if isa(propertyMeta, 'meta.DynamicProperty')
+                delete(propertyMeta)
+            end
+        end
     end
 
     methods (Access = private)
