@@ -383,7 +383,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             clear cleanup
 
             obj.onEntriesChanged()
-            obj.refreshMetaObjectCacheVariableRemoved(variableName)
+            obj.refreshCacheOnVariableRemoved(variableName)
         end
 
         function addTable(obj, T, options)
@@ -619,7 +619,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             obj.onEntriesChanged()
 
             if options.RefreshCache
-                obj.refreshMetaObjectCacheProperty(editedIds, rowInd, varName)
+                obj.refreshCacheOnPropertyChanged(editedIds, rowInd, varName)
             end
         end
 
@@ -632,9 +632,8 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             clear cleanup
 
             obj.onEntriesChanged()
-            obj.refreshMetaObjectCacheVariableAdded(variableName)
+            obj.refreshCacheOnVariableAdded(variableName)
         end
-
 
         function rowInd = normalizeRowIndices(obj, rowInd)
         %normalizeRowIndices Resolve row index shorthands to numeric indices
@@ -648,8 +647,8 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             end
         end
 
-        function refreshMetaObjectCacheProperty(obj, objectIds, rowInd, varName)
-        %refreshMetaObjectCacheProperty Refresh one property on cached rows
+        function refreshCacheOnPropertyChanged(obj, objectIds, rowInd, varName)
+        %refreshCacheOnPropertyChanged Refresh one property on cached rows
 
             objectIds = nansen.metadata.MetaTable.normalizeIdentifier(objectIds);
             rowInd = obj.normalizeRowIndices(rowInd);
@@ -679,8 +678,8 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             end
         end
 
-        function refreshMetaObjectCacheRows(obj, objectIds, rowInd)
-        %refreshMetaObjectCacheRows Refresh full table rows in cached objects
+        function refreshCacheOnRowsChanged(obj, objectIds, rowInd)
+        %refreshCacheOnRowsChanged Refresh full table rows in cached objects
 
             objectIds = nansen.metadata.MetaTable.normalizeIdentifier(objectIds);
             rowInd = obj.normalizeRowIndices(rowInd);
@@ -704,20 +703,20 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             end
         end
 
-        function refreshMetaObjectCacheVariableAdded(obj, variableName)
-        %refreshMetaObjectCacheVariableAdded Add/refresh property on cache
+        function refreshCacheOnVariableAdded(obj, variableName)
+        %refreshCacheOnVariableAdded Add/refresh property on cache
 
             if obj.MetaObjectCache.Count == 0; return; end
             cachedIds = keys(obj.MetaObjectCache);
             for i = 1:numel(cachedIds)
                 rowInd = obj.getIndexById(cachedIds{i});
                 if isempty(rowInd); continue; end
-                obj.refreshMetaObjectCacheProperty(cachedIds(i), rowInd, variableName)
+                obj.refreshCacheOnPropertyChanged(cachedIds(i), rowInd, variableName)
             end
         end
 
-        function refreshMetaObjectCacheVariableRemoved(obj, variableName)
-        %refreshMetaObjectCacheVariableRemoved Remove property from cache
+        function refreshCacheOnVariableRemoved(obj, variableName)
+        %refreshCacheOnVariableRemoved Remove property from cache
 
             if obj.MetaObjectCache.Count == 0; return; end
             cachedIds = keys(obj.MetaObjectCache);  % snapshot before loop
@@ -794,7 +793,6 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
     end
 
     methods
-
         function wasMerged = mergeEntries(obj, sourceEntries, sourceMembers)
         %mergeEntries Update or append entries from another MetaTable payload
 
@@ -833,7 +831,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             end
 
             if ~isempty(updatedEntryIds)
-                obj.refreshMetaObjectCacheRows(updatedEntryIds, targetIdx)
+                obj.refreshCacheOnRowsChanged(updatedEntryIds, targetIdx)
             end
 
             for i = 1:numel(changedEntryNotifications)
@@ -898,7 +896,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             end
         end
 
-% % % % Get names of all (dummy) MetaTables connected to the current master
+        % Get names of all (dummy) MetaTables connected to the current master
         function names = getAssociatedMetaTables(obj, mode)
         %getAssociatedMetaTables Get associated MetaTables
         %
@@ -1027,7 +1025,6 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
     end
 
     methods % MetaObject caching methods
-
         function metaObject = getMetaObjectById(obj, identifier)
             rowInd = obj.getIndexById(identifier);
             metaObject = obj.getMetaObjects(rowInd);
@@ -1462,7 +1459,6 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             obj.editEntries(metaTableEntryIdx, propertyName, newValue, ...
                 RefreshCache=false)
         end
-
     end
 
     methods (Hidden)
