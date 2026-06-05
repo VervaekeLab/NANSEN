@@ -1,4 +1,4 @@
-function createMockProject(projectName, projectDirectory, datasetDirectory)
+function createMockProject(projectName, projectDirectory, datasetDirectory, options)
 % CREATEMOCKPROJECT Create a mock project for testing NANSEN
 %
 %   nansen.mock.CREATEMOCKPROJECT(projectName, projectDirectory, datasetDirectory) 
@@ -22,14 +22,21 @@ function createMockProject(projectName, projectDirectory, datasetDirectory)
 %       projectFolder = fullfile(pwd, 'mock_project')
 %       nansen.mock.createMockProject('MockProject', projectFolder, datasetFolder)
 
+    arguments
+        projectName
+        projectDirectory
+        datasetDirectory
+        options.Verbose (1,1) logical = false
+    end
+    verbose = options.Verbose;
+
     % Ensure the dataset directory exists and create the mock dataset
     if ~isfolder(datasetDirectory)
         mkdir(datasetDirectory);
     end
     
     % Create the mock dataset
-    nansen.mock.createMockDataset(datasetDirectory);
-    fprintf('Mock dataset created in %s\n', datasetDirectory);
+    nansen.mock.createMockDataset(datasetDirectory, "Verbose", verbose);
     
     % Create a new project
     projectManager = nansen.config.project.ProjectManager.instance();
@@ -45,28 +52,28 @@ function createMockProject(projectName, projectDirectory, datasetDirectory)
     % Create the project
     description = sprintf('Mock project for testing NANSEN with dataset in %s', datasetDirectory);
     projectManager.createProject(projectName, description, projectPath);
-    fprintf('Project "%s" created in %s\n', projectName, projectPath);
+    logStatus(verbose, 'Project "%s" created in %s\n', projectName, projectPath);
     
     % Get the project object
     project = projectManager.getProjectObject(projectName);
     
     % Configure the DataLocationModel
-    configureDataLocationModel(project, datasetDirectory);
-    
+    configureDataLocationModel(project, datasetDirectory, verbose);
+
     % Configure the VariableModel
-    configureVariableModel(project);
+    configureVariableModel(project, verbose);
 
     % Create subject and session tables
-    wasAborted = nansen.config.initializeSessionTable(...
+    nansen.config.initializeSessionTable(...
         project.DataLocationModel, @nansen.metadata.type.Session);
 
     MTC = project.MetaTableCatalog;
     nansen.config.initializeSubjectTable(MTC)
 
-    fprintf('Mock project "%s" has been successfully created and configured.\n', projectName);
+    logStatus(verbose, 'Mock project "%s" has been successfully created and configured.\n', projectName);
 end
 
-function configureDataLocationModel(project, datasetDirectory)
+function configureDataLocationModel(project, datasetDirectory, verbose)
 % Configure the DataLocationModel to point to the mock dataset
 
     % Get the DataLocationModel
@@ -157,13 +164,13 @@ function configureDataLocationModel(project, datasetDirectory)
     %dataLocationModel.DefaultDataLocation = 'Processed';
     dataLocationModel.save()
 
-    fprintf('DataLocationModel configured to use mock dataset.\n');
-    
+    logStatus(verbose, 'DataLocationModel configured to use mock dataset.\n');
+
     % Create the data location extractor functions
-    createDataLocationFunctions(project);
+    createDataLocationFunctions(project, verbose);
 end
 
-function configureVariableModel(project)
+function configureVariableModel(project, verbose)
 % Configure the VariableModel with definitions for neural data
 
     % Get the VariableModel
@@ -181,10 +188,10 @@ function configureVariableModel(project)
     % Add the variable to the model
     variableModel.insertItem(neuralDataVar);
     variableModel.save()
-    fprintf('VariableModel configured with neural data variable.\n');
+    logStatus(verbose, 'VariableModel configured with neural data variable.\n');
 end
 
-function createDataLocationFunctions(project)
+function createDataLocationFunctions(project, verbose)
 % Create the data location extractor functions for the project
 
     % Get the project module folder
@@ -331,5 +338,12 @@ function createDataLocationFunctions(project)
     fprintf(fid, timeFunction);
     fclose(fid);
     
-    fprintf('Created data location extractor functions for the project.\n');
+    logStatus(verbose, 'Created data location extractor functions for the project.\n');
+end
+
+function logStatus(verbose, varargin)
+% Print a progress message to the command window only when verbose is true
+    if verbose
+        fprintf(varargin{:});
+    end
 end

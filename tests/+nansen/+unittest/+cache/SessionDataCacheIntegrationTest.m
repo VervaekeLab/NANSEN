@@ -1,7 +1,7 @@
 classdef SessionDataCacheIntegrationTest < matlab.unittest.TestCase
 %SessionDataCacheIntegrationTest Integration tests for SessionData + DataCache
 %
-%   Drives the real SessionData subsref load-through path with a fake
+%   Drives the real SessionData load-through path with a spy
 %   session (no project fixture required), verifying that variable access
 %   loads from disk only once and is then served from the shared cache,
 %   that displaying the object triggers no load, and that resetCache
@@ -17,13 +17,13 @@ classdef SessionDataCacheIntegrationTest < matlab.unittest.TestCase
     methods (Test)
         function accessLoadsOnceThenServesFromCache(testCase)
         %accessLoadsOnceThenServesFromCache Repeated access reads disk once.
-            [fake, sd] = testCase.makeSession("sess-1");
+            [spy, sd] = testCase.makeSession("sess-1");
             sd.registerVariable("dff");
 
             first = sd.dff;
             second = sd.dff;
 
-            testCase.verifyEqual(fake.loadCount("dff"), 1, ...
+            testCase.verifyEqual(spy.loadCount("dff"), 1, ...
                 "Repeated access should load from disk only once")
             testCase.verifyEqual(first, second)
         end
@@ -41,12 +41,12 @@ classdef SessionDataCacheIntegrationTest < matlab.unittest.TestCase
 
         function displayDoesNotTriggerLoad(testCase)
         %displayDoesNotTriggerLoad Rendering the object loads nothing.
-            [fake, sd] = testCase.makeSession("sess-1");
+            [spy, sd] = testCase.makeSession("sess-1");
             sd.registerVariable("dff");
 
             evalc('disp(sd)');
 
-            testCase.verifyEqual(fake.loadCount("dff"), 0, ...
+            testCase.verifyEqual(spy.loadCount("dff"), 0, ...
                 "Displaying the object must not load any variable")
             testCase.verifyFalse( ...
                 nansen.cache.DataCache.instance().isKey("session:sess-1:dff"), ...
@@ -65,27 +65,27 @@ classdef SessionDataCacheIntegrationTest < matlab.unittest.TestCase
 
         function displayAfterLoadDoesNotReload(testCase)
         %displayAfterLoadDoesNotReload Display peeks loaded values without reloading.
-            [fake, sd] = testCase.makeSession("sess-1");
+            [spy, sd] = testCase.makeSession("sess-1");
             sd.registerVariable("dff");
 
             loaded = sd.dff;        % load once
             evalc('disp(sd)');      % display must not reload
 
-            testCase.verifyEqual(fake.loadCount("dff"), 1, ...
+            testCase.verifyEqual(spy.loadCount("dff"), 1, ...
                 "Displaying after a load must not reload the variable")
             testCase.verifyEqual(loaded, magic(8))
         end
 
         function resetCacheForcesReload(testCase)
         %resetCacheForcesReload Invalidating one variable forces a reload.
-            [fake, sd] = testCase.makeSession("sess-1");
+            [spy, sd] = testCase.makeSession("sess-1");
             sd.registerVariable("dff");
 
             firstValue = sd.dff;
             sd.resetCache("dff");
             secondValue = sd.dff;
 
-            testCase.verifyEqual(fake.loadCount("dff"), 2, ...
+            testCase.verifyEqual(spy.loadCount("dff"), 2, ...
                 "resetCache should invalidate the entry, forcing a reload")
             testCase.verifyEqual(firstValue, secondValue)
         end
@@ -109,9 +109,9 @@ classdef SessionDataCacheIntegrationTest < matlab.unittest.TestCase
     end
 
     methods (Static, Access = private)
-        function [fake, sd] = makeSession(sessionID)
-            fake = nansen.unittest.cache.FakeSession(sessionID);
-            sd = nansen.unittest.cache.SessionDataHarness(fake);
+        function [spy, sd] = makeSession(sessionID)
+            spy = nansen.unittest.cache.SessionSpy(sessionID);
+            sd = nansen.unittest.cache.SessionDataHarness(spy);
         end
     end
 end

@@ -1,9 +1,10 @@
-classdef FakeSession < handle
-%FakeSession Minimal session stand-in for SessionData cache integration tests
+classdef SessionSpy < handle
+%SessionSpy Test spy standing in for the Session that a SessionData wraps
 %
-%   Provides only the surface that SessionData's cache path touches: a
-%   sessionID and a loadData method that records how many times each
-%   variable has been loaded, so a test can assert load-through behaviour.
+%   Provides the small surface SessionData's cache path touches (a sessionID
+%   and loadData) and records how many times each variable has been loaded,
+%   so a test can assert load-through behaviour (e.g. loaded once, reloaded
+%   after invalidation).
 
     properties
         sessionID (1,1) string
@@ -12,7 +13,7 @@ classdef FakeSession < handle
     end
 
     methods
-        function obj = FakeSession(sessionID)
+        function obj = SessionSpy(sessionID)
             obj.sessionID = sessionID;
             obj.LoadCounts = containers.Map("KeyType", "char", "ValueType", "double");
         end
