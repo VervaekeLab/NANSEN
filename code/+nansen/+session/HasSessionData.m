@@ -11,10 +11,12 @@ classdef HasSessionData < uim.handle & matlab.mixin.CustomDisplay
 %   property from its private backing field, so rendering the object never
 %   calls get.Data and never scans disk.
 
-%   Note: Data is transient because it may hold a lot of in-memory cached
-%   data that should not be saved, and transient properties do not follow
-%   an object sent to a parallel worker. It is therefore dependent, backed
-%   by a private Data_; a fresh SessionData is created if Data_ is empty.
+%   Note: Data is a runtime accessor, not persistent state. It is kept 
+%   Transient so it is neither saved with the object nor carried to a 
+%   parallel worker (it is per-process runtime state). Because Transient 
+%   strips Data_ on save/load and on transfer to a worker, Data is Dependent 
+%   and backed by a private Data_.
+%   get.Data recreates a fresh SessionData whenever Data_ is empty.
 
     properties (Dependent, Transient)
         Data nansen.session.SessionData
@@ -65,7 +67,7 @@ classdef HasSessionData < uim.handle & matlab.mixin.CustomDisplay
             % without evaluating any get-methods. We then supply the values
             % ourselves so the Data property can be shown from its backing
             % field (Data_) without calling get.Data - displaying the object
-            % therefore never triggers a scan.
+            % therefore never triggers a scan for linked data variables.
             propNames = properties(obj);
 
             values = struct();
