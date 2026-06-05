@@ -421,11 +421,19 @@ classdef DataCache < handle & matlab.mixin.CustomDisplay
         %   that removeByPrefix can target a single entity unambiguously.
 
             arguments
-                entityType (1,1) string
-                entityId (1,1) string
-                variableName (1,1) string
+                entityType (1,1) string {mustNotContainColon}
+                entityId (1,1) string {mustNotContainColon}
+                variableName (1,1) string {mustNotContainColon}
             end
             key = entityType + ":" + entityId + ":" + variableName;
         end
+    end
+end
+
+function mustNotContainColon(value)
+    if contains(value, ":")
+        throwAsCaller(...
+            MException("NANSEN:validator:mustNotContainColon", ...
+                'Cache key componentn must not contain colon.'));
     end
 end
