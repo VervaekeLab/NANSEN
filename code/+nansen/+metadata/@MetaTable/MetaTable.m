@@ -365,11 +365,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 masterMT.save();
             end
 
-            obj.entries = obj.addTableVariableStatic(obj.entries, variableName, initValue);
-
-            % Cached meta objects mirror the table's column set, so a change
-            % to the columns invalidates them.
-            obj.resetMetaObjectCache()
+            obj.assignTableVariableAdded(variableName, initValue)
         end
 
         function removeTableVariable(obj, variableName)
@@ -379,11 +375,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         %   a table-change event. Callers that maintain views should refresh
         %   them after removing variables.
 
-            obj.entries(:, variableName) = [];
-
-            % Cached meta objects mirror the table's column set, so a change
-            % to the columns invalidates them.
-            obj.resetMetaObjectCache()
+            obj.assignTableVariableRemoved(variableName)
         end
 
         function addTable(obj, T, options)
@@ -483,31 +475,24 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         %editEntries Edit entries given some parameters.
         %
         %   editEntries(obj, rowInd, varName, newValue) writes newValue into
-        %   the given rows/column of the entries table and invalidates any
-        %   cached metaObjects for the edited rows, so the next
-        %   getMetaObjects call rebuilds them from the updated data.
+        %   the given rows/column of the entries table and repairs any
+        %   cached metaObjects for the edited rows.
         %
-        %   editEntries(..., InvalidateCache=false) skips cache invalidation.
+        %   editEntries(..., RefreshCache=false) skips cache repair.
         %   Use this only when the edit originates from a live metaObject
         %   (e.g. a property-set sync), where the cached object is already up
-        %   to date and invalidating it would delete the object the caller is
-        %   currently holding.
+        %   to date.
 
             arguments
                 obj
                 rowInd
                 varName
                 newValue
-                options.InvalidateCache (1,1) logical = true
+                options.RefreshCache (1,1) logical = true
             end
 
-            if options.InvalidateCache
-                editedIds = obj.getObjectId(obj.entries(rowInd, :));
-            end
-            obj.assignEntries(rowInd, varName, newValue)
-            if options.InvalidateCache
-                obj.invalidateMetaObjectCache(editedIds)
-            end
+            obj.assignEntries(rowInd, varName, newValue, ...
+                RefreshCache=options.RefreshCache)
             obj.notifyEntryChanged(rowInd, varName)
         end
 
@@ -519,15 +504,9 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                  'The metatable has %d rows, but columnValues has %d elements.'], ...
                 height(obj.entries), numel(columnValues))
 
-            if isa(columnValues, 'cell') % keep for backwards-compatibility
-                % Convert to struct in order to assign values that does not
-                % match type or size of current values
-                tempS = table2struct(obj.entries);
-                [tempS(:).(columnName)] = deal( columnValues{:} );
-                obj.entries = struct2table(tempS, 'AsArray', true);
-            else
-                obj.entries.(columnName) = columnValues;
-            end
+            rowInd = 1:height(obj.entries);
+            obj.assignEntries(rowInd, columnName, columnValues, ...
+                AllowColumnTypeChange=true)
             obj.notifyEntryChanged(':', columnName)
         end
     end
@@ -536,9 +515,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         function editEntriesFromTable(obj, rowInd, varName, newValue)
         %editEntriesFromTable Apply an edit that already originated in a table UI
 
-            editedIds = obj.getObjectId(obj.entries(rowInd, :));
             obj.assignEntries(rowInd, varName, newValue)
-            obj.invalidateMetaObjectCache(editedIds)
         end
     end
 
@@ -590,11 +567,34 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             obj.notify('TableEntryChanged', evtData)
         end
 
-        function assignEntries(obj, rowInd, varName, newValue)
-        %assignEntries Apply entry values without emitting view-sync events
+        function assignEntries(obj, rowInd, varName, newValue, options)
+        %assignEntries Apply entry values and repair cached metaObjects
+
+            arguments
+                obj (1,1) nansen.metadata.MetaTable
+                rowInd
+                varName
+                newValue
+                options.RefreshCache (1,1) logical = true
+                options.AllowColumnTypeChange (1,1) logical = false
+            end
+
+            rowInd = obj.normalizeRowIndices(rowInd);
+            varName = char(varName);
+
+            if options.RefreshCache
+                editedIds = obj.getObjectId(obj.entries(rowInd, :));
+            end
 
             cleanup = obj.beginEntriesUpdate(); %#ok<NASGU>
-            if isa( obj.entries{rowInd, varName}, 'cell')
+            if options.AllowColumnTypeChange && iscell(newValue)
+                tempS = table2struct(obj.entries);
+                [tempS(rowInd).(varName)] = deal(newValue{:});
+                obj.entries = struct2table(tempS, 'AsArray', true);
+            elseif options.AllowColumnTypeChange ...
+                    && isequal(rowInd, 1:height(obj.entries))
+                obj.entries.(varName) = newValue;
+            elseif isa( obj.entries{rowInd, varName}, 'cell')
                 try
                     obj.entries{rowInd, varName} = newValue;
                 catch % Todo: Better way?
@@ -606,8 +606,199 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 obj.entries{rowInd, varName} = newValue;
             end
 
+            if strcmp(varName, obj.SchemaIdName)
+                obj.MetaTableMembers = obj.entries.(obj.SchemaIdName);
+            end
+
             clear cleanup
             obj.onEntriesChanged()
+
+            if options.RefreshCache
+                obj.refreshMetaObjectCacheProperty(editedIds, rowInd, varName)
+            end
+        end
+
+        function assignTableVariableAdded(obj, variableName, initValue)
+        %assignTableVariableAdded Add a column and repair cached metaObjects
+
+            variableName = char(variableName);
+            cleanup = obj.beginEntriesUpdate(); %#ok<NASGU>
+            obj.entries = obj.addTableVariableStatic(obj.entries, variableName, initValue);
+            clear cleanup
+
+            obj.onEntriesChanged()
+            obj.refreshMetaObjectCacheVariableAdded(variableName)
+        end
+
+        function assignTableVariableRemoved(obj, variableName)
+        %assignTableVariableRemoved Remove a column and repair cached metaObjects
+
+            variableName = char(variableName);
+            cleanup = obj.beginEntriesUpdate(); %#ok<NASGU>
+            obj.entries(:, variableName) = [];
+            clear cleanup
+
+            obj.onEntriesChanged()
+            obj.refreshMetaObjectCacheVariableRemoved(variableName)
+        end
+
+        function rowInd = normalizeRowIndices(obj, rowInd)
+        %normalizeRowIndices Resolve row index shorthands to numeric indices
+
+            if isequal(rowInd, ':')
+                rowInd = 1:height(obj.entries);
+            elseif islogical(rowInd)
+                rowInd = find(rowInd);
+            else
+                rowInd = rowInd(:)';
+            end
+        end
+
+        function refreshMetaObjectCacheProperty(obj, objectIds, rowInd, varName)
+        %refreshMetaObjectCacheProperty Refresh one property on cached rows
+
+            objectIds = nansen.metadata.MetaTable.normalizeIdentifier(objectIds);
+            rowInd = obj.normalizeRowIndices(rowInd);
+            varName = char(varName);
+
+            if isempty(objectIds) || isempty(obj.MetaObjectCacheMembers)
+                return
+            end
+
+            [isCached, cacheIdx] = ismember(objectIds, obj.MetaObjectCacheMembers);
+            cachedRows = find(isCached);
+            idsToInvalidate = {};
+
+            for i = 1:numel(cachedRows)
+                iObject = cachedRows(i);
+                cachedObject = obj.MetaObjectCache(cacheIdx(iObject));
+
+                if ~obj.isRefreshableMetaObject(cachedObject)
+                    idsToInvalidate(end+1) = objectIds(iObject); %#ok<AGROW>
+                    continue
+                end
+
+                try
+                    newValue = obj.getTableBackedPropertyValue(rowInd(iObject), varName);
+                    cachedObject.refreshProperty(varName, newValue)
+                catch ME
+                    obj.warnMetaObjectRefreshFailed(objectIds{iObject}, varName, ME)
+                    idsToInvalidate(end+1) = objectIds(iObject); %#ok<AGROW>
+                end
+            end
+
+            if ~isempty(idsToInvalidate)
+                obj.invalidateMetaObjectCache(idsToInvalidate)
+            else
+                obj.updateMetaObjectCacheMembers();
+            end
+        end
+
+        function refreshMetaObjectCacheRows(obj, objectIds, rowInd)
+        %refreshMetaObjectCacheRows Refresh full table rows in cached objects
+
+            objectIds = nansen.metadata.MetaTable.normalizeIdentifier(objectIds);
+            rowInd = obj.normalizeRowIndices(rowInd);
+
+            for iObject = 1:numel(objectIds)
+                cacheIdx = obj.findCachedMetaObjectIndex(objectIds{iObject});
+                if isempty(cacheIdx)
+                    continue
+                end
+
+                cachedObject = obj.MetaObjectCache(cacheIdx);
+                if ~obj.isRefreshableMetaObject(cachedObject)
+                    obj.invalidateMetaObjectCache(objectIds(iObject))
+                    continue
+                end
+
+                try
+                    cachedObject.refreshFromTableRow(obj.entries(rowInd(iObject), :))
+                catch ME
+                    obj.warnMetaObjectRefreshFailed(objectIds{iObject}, "row", ME)
+                    obj.invalidateMetaObjectCache(objectIds(iObject))
+                end
+            end
+
+            obj.updateMetaObjectCacheMembers();
+        end
+
+        function refreshMetaObjectCacheVariableAdded(obj, variableName)
+        %refreshMetaObjectCacheVariableAdded Add/refresh property on cache
+
+            cachedIds = obj.MetaObjectCacheMembers;
+            for iObject = 1:numel(cachedIds)
+                rowInd = obj.getIndexById(cachedIds{iObject});
+                if isempty(rowInd)
+                    continue
+                end
+                obj.refreshMetaObjectCacheProperty(cachedIds(iObject), rowInd, variableName)
+            end
+        end
+
+        function refreshMetaObjectCacheVariableRemoved(obj, variableName)
+        %refreshMetaObjectCacheVariableRemoved Remove property from cache
+
+            cachedIds = obj.MetaObjectCacheMembers;
+            variableName = char(variableName);
+
+            for iObject = 1:numel(cachedIds)
+                cacheIdx = obj.findCachedMetaObjectIndex(cachedIds{iObject});
+                if isempty(cacheIdx)
+                    continue
+                end
+
+                cachedObject = obj.MetaObjectCache(cacheIdx);
+                if ~obj.isRefreshableMetaObject(cachedObject)
+                    obj.invalidateMetaObjectCache(cachedIds(iObject))
+                    continue
+                end
+
+                try
+                    cachedObject.removeTableBackedProperty(variableName)
+                catch ME
+                    obj.warnMetaObjectRefreshFailed(cachedIds{iObject}, variableName, ME)
+                    obj.invalidateMetaObjectCache(cachedIds(iObject))
+                end
+            end
+
+            obj.updateMetaObjectCacheMembers();
+        end
+
+        function cacheIdx = findCachedMetaObjectIndex(obj, objectId)
+        %findCachedMetaObjectIndex Find one cached object by normalized id
+
+            cacheIdx = find(strcmp(obj.MetaObjectCacheMembers, objectId), 1, 'first');
+        end
+
+        function tf = isRefreshableMetaObject(~, metaObject)
+        %isRefreshableMetaObject True for MetadataEntity cache entries
+
+            tf = isa(metaObject, 'nansen.metadata.abstract.MetadataEntity') ...
+                && isvalid(metaObject);
+        end
+
+        function newValue = getTableBackedPropertyValue(obj, rowInd, varName)
+        %getTableBackedPropertyValue Match constructor table-to-property mapping
+
+            rowStruct = table2struct(obj.entries(rowInd, varName));
+            newValue = rowStruct.(varName);
+        end
+
+        function warnMetaObjectRefreshFailed(~, objectId, context, exception)
+        %warnMetaObjectRefreshFailed Warn before falling back to deletion
+
+            if iscell(objectId) && isscalar(objectId)
+                objectId = objectId{1};
+            end
+            objectId = char(string(objectId));
+            context = char(string(context));
+
+            warning('NANSEN:MetaTable:MetaObjectRefreshFailed', ...
+                ['Failed to refresh cached meta object "%s" for "%s". ', ...
+                 'The cached object was deleted and will be rebuilt on ', ...
+                 'the next request. Reason:\n%s'], ...
+                objectId, context, exception.message)
         end
 
         function changeNotifications = getChangedEntryNotifications(~, oldEntries, newEntries, rowIndices)
@@ -644,10 +835,12 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             [~, targetIdx, sourceIdx] = intersect(obj.MetaTableMembers, sourceMembers);
             updatedEntries = sourceEntries(sourceIdx, :);
             targetEntries = obj.entries(targetIdx, :);
+            updatedEntryIds = {};
 
             cleanup = obj.beginEntriesUpdate(); %#ok<NASGU>
             if ~isequaln(targetEntries, updatedEntries)
                 changedEntryNotifications = obj.getChangedEntryNotifications(targetEntries, updatedEntries, targetIdx);
+                updatedEntryIds = obj.getObjectId(targetEntries);
                 obj.entries(targetIdx, :) = updatedEntries;
                 wasMerged = true;
             end
@@ -666,6 +859,10 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
 
             if wasMerged
                 obj.onEntriesChanged()
+            end
+
+            if ~isempty(updatedEntryIds)
+                obj.refreshMetaObjectCacheRows(updatedEntryIds, targetIdx)
             end
 
             for i = 1:numel(changedEntryNotifications)
@@ -1302,10 +1499,10 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             end
 
             % The edit originates from the live metaObject (src), so its
-            % cached entry is already current. Invalidating here would
-            % delete the very object whose property was just set.
+            % cached entry is already current. Refreshing here would only
+            % repeat the property assignment that just happened.
             obj.editEntries(metaTableEntryIdx, propertyName, newValue, ...
-                InvalidateCache=false)
+                RefreshCache=false)
         end
 
         function attachCacheEvictionListener(obj, metaObjects)
