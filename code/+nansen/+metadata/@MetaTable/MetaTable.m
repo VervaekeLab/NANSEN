@@ -661,15 +661,20 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             rowInd = obj.normalizeRowIndices(rowInd);
             varName = char(varName);
 
-            for iObject = 1:numel(objectIds)
-                cacheIdx = obj.findCachedMetaObjectIndex(objectIds{iObject});
-                if isempty(cacheIdx)
-                    continue
-                end
+            if isempty(objectIds) || isempty(obj.MetaObjectCacheMembers)
+                return
+            end
 
-                cachedObject = obj.MetaObjectCache(cacheIdx);
+            [isCached, cacheIdx] = ismember(objectIds, obj.MetaObjectCacheMembers);
+            cachedRows = find(isCached);
+            idsToInvalidate = {};
+
+            for i = 1:numel(cachedRows)
+                iObject = cachedRows(i);
+                cachedObject = obj.MetaObjectCache(cacheIdx(iObject));
+
                 if ~obj.isRefreshableMetaObject(cachedObject)
-                    obj.invalidateMetaObjectCache(objectIds(iObject))
+                    idsToInvalidate(end+1) = objectIds(iObject); %#ok<AGROW>
                     continue
                 end
 
@@ -678,12 +683,15 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                     cachedObject.refreshProperty(varName, newValue)
                 catch ME
                     obj.warnMetaObjectRefreshFailed(objectIds{iObject}, varName, ME)
-                    obj.invalidateMetaObjectCache(objectIds(iObject))
+                    idsToInvalidate(end+1) = objectIds(iObject); %#ok<AGROW>
                 end
             end
 
-            obj.updateMetaObjectCacheMembers();
-        end
+            if ~isempty(idsToInvalidate)
+                obj.invalidateMetaObjectCache(idsToInvalidate)
+            else
+                obj.updateMetaObjectCacheMembers();
+            end
 
         function refreshMetaObjectCacheRows(obj, objectIds, rowInd)
         %refreshMetaObjectCacheRows Refresh full table rows in cached objects
