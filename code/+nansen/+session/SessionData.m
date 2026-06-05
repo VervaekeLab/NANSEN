@@ -14,8 +14,6 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
 % Note: This class is not yet well adapted non-scalar objects!
 
 % Todo:
-%   [v] Should hold the session object and call methods from the session
-%       object, instead of running a copy of those methods....
 %   [ ] Remove all methods that are duplicates from the session class.
 
     properties (Constant, Hidden)
@@ -91,8 +89,12 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
 
         function resetCache(obj, varNames)
 
+            cache = nansen.cache.DataCache.instance();
+
             if nargin < 2
-                varNames = {obj.VariableList.VariableName};
+                % Drop every cached variable belonging to this session.
+                cache.removeByPrefix( obj.getCacheKeyPrefix() );
+                return
             end
 
             if isa(varNames, 'char')
@@ -100,10 +102,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
             end
 
             for i = 1:numel(varNames)
-                varName_ = strcat( varNames{i}, '_' );
-                if isprop(obj, varName_)
-                    obj.(varName_) = [];
-                end
+                cache.remove( obj.getCacheKey(varNames{i}) );
             end
         end
     end
@@ -305,20 +304,12 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
     methods (Access = protected)
 
         function addDataProperty(obj, variableName)
+            % The actual data lives in the shared nansen.cache.DataCache, so
+            % no private backing property is needed here. The get-method is a
+            % display-safe read (it never triggers a load).
             pPublic = obj.addprop(variableName);
-
-            % Add a private property that will hold the actual data.
-            privateVariableName = strcat(variableName, '_');
-            pPrivate = obj.addprop(privateVariableName);
-            pPrivate.SetAccess = 'private';
-            pPrivate.GetAccess = 'private';
-
-            %obj.(privateVariableName) = [];
-
-            pPublic.GetMethod = @(h, varName) obj.getDataVariable(variableName);
-
-            %pPuplic.SetMethod = @obj.setDataVariable;
-            pPublic.SetAccess = 'private'; %todo: Add set functionality
+            pPublic.GetMethod = @(h) obj.getDataVariable(variableName);
+            pPublic.SetAccess = 'private'; % todo: Add set functionality
         end
 
         function appendToVariableList(obj, variableItem)
@@ -329,22 +320,27 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
             end
         end
 
-        function value = getDataVariable(obj, varName)
-            privateVarName = strcat(varName, '_');
-
-            if isempty(obj.(privateVarName))
-                value = 'Unassigned';
-            else
-                value = obj.(privateVarName);
-            end
+        function key = getCacheKey(obj, varName)
+        %getCacheKey Cache key for one of this session's data variables
+            key = nansen.cache.DataCache.buildKey( ...
+                "session", string(obj.sessionID), string(varName));
         end
 
-        function assignDataToPrivateVar(obj, varName)
-            privateVarName = strcat(varName, '_');
+        function prefix = getCacheKeyPrefix(obj)
+        %getCacheKeyPrefix Key prefix matching all of this session's variables
+            prefix = "session:" + string(obj.sessionID) + ":";
+        end
 
-            if isempty(obj.(privateVarName))
-                obj.(privateVarName) = obj.loadData(varName);
-            end
+        function value = getDataVariable(obj, varName)
+        %getDataVariable Return the cached value for display (never loads)
+            value = nansen.cache.DataCache.instance().peek( ...
+                obj.getCacheKey(varName), 'Unassigned');
+        end
+
+        function ensureCached(obj, varName)
+        %ensureCached Load the variable into the shared cache if not present
+            cache = nansen.cache.DataCache.instance();
+            cache.getOrLoad(obj.getCacheKey(varName), @() obj.loadData(varName));
         end
 
         function setDataVariable(obj, varargin)
@@ -441,7 +437,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
 
                 case '.'
                     if any(strcmp(obj.VariableNames, s(1).subs))
-                        obj.assignDataToPrivateVar(s(1).subs)
+                        obj.ensureCached(s(1).subs)
 
                     else % Take appropriate action if a property or method is requested.
 
