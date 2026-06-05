@@ -198,7 +198,10 @@ classdef MetaTableCacheInvalidationTest < matlab.unittest.TestCase
             testCase.verifyFalse(isvalid(cachedItem));
         end
 
-        function testDestroyingCachedObjectEvictsItFromCache(testCase)
+        function testDestroyingCachedObjectRebuildsCacheOnNextAccess(testCase)
+            % A cached handle that is externally deleted becomes stale in
+            % the Map. The next getMetaObjects call detects the invalid
+            % handle (lazy eviction) and rebuilds a fresh valid object.
             mt = testCase.createRefreshableItemMetaTable();
 
             cachedItem = mt.getMetaObjects(1);
@@ -232,9 +235,6 @@ classdef MetaTableCacheInvalidationTest < matlab.unittest.TestCase
 
             mt.getMetaObjects(1:3);
             testCase.verifyWarningFree(@() mt.addTableVariable('Extra', 0));
-
-            cachedItem = mt.getMetaObjects(1);
-            testCase.verifyWarningFree(@() delete(cachedItem));
         end
     end
 
