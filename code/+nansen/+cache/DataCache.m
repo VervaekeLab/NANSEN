@@ -380,13 +380,15 @@ classdef DataCache < handle & matlab.mixin.CustomDisplay
         %
         %   instance(mode) controls lifecycle:
         %       "get"      - (default) return existing, create if needed
-        %       "reset"    - tear down the shared cache and return []
+        %       "reset"    - delete the shared cache and return []
         %       "nocreate" - return existing or [] without creating
         %
-        %   After "reset" the next "get" creates a fresh cache. The instance
-        %   is held in a persistent variable, so a "clear all" frees the
-        %   cached memory. This is intentional for a cache, and differs from
-        %   singletons that must survive "clear all".
+        %   "reset" deletes the existing instance, so any handle held across
+        %   a reset becomes invalid: always obtain the cache via instance(),
+        %   never store the handle. After "reset" the next "get" creates a
+        %   fresh cache. The instance is held in a persistent variable, so a
+        %   "clear all" frees the cached memory too. This is intentional for
+        %   a cache, and differs from singletons that must survive "clear all".
 
             arguments
                 mode (1,1) string ...
@@ -396,8 +398,11 @@ classdef DataCache < handle & matlab.mixin.CustomDisplay
             persistent singleton
 
             if mode == "reset"
+                % Delete (not just detach) so a lingering reference to the old
+                % cache fails fast instead of silently diverging from the
+                % shared instance.
                 if ~isempty(singleton) && isvalid(singleton)
-                    singleton.clear();
+                    delete(singleton);
                 end
                 singleton = [];
             end

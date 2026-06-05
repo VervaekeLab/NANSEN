@@ -246,6 +246,14 @@ classdef DataCacheTest < matlab.unittest.TestCase
             testCase.verifyEqual(fresh.CurrentBytes, 0)
         end
 
+        function instanceResetDeletesPreviousInstance(testCase)
+        %instanceResetDeletesPreviousInstance reset deletes, not just detaches.
+            old = nansen.cache.DataCache.instance();
+            nansen.cache.DataCache.instance("reset");
+            testCase.verifyFalse(isvalid(old), ...
+                "reset should delete the previous instance, not just detach it")
+        end
+
         function instanceNocreateReturnsEmptyWhenAbsent(testCase)
         %instanceNocreateReturnsEmptyWhenAbsent nocreate never constructs.
             nansen.cache.DataCache.instance("reset");

@@ -46,6 +46,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
         State = 'uninitialized';
         VariableList struct
         FileList containers.Map
+        OnDemandLabel = categorical({'<on demand>'})
     end
 
     properties (Access = private, Dependent)
@@ -334,7 +335,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
         function value = getDataVariable(obj, varName)
         %getDataVariable Return the cached value for display (never loads)
             value = nansen.cache.DataCache.instance().peek( ...
-                obj.getCacheKey(varName), 'Unassigned');
+                obj.getCacheKey(varName), obj.OnDemandLabel);
         end
 
         function ensureCached(obj, varName)
