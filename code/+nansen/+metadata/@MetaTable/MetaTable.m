@@ -59,7 +59,6 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
 
     % Public properties to access MetaTable contents
     properties (SetAccess = protected)
-
         members             % IDs for MetaTable entries
         entries table       % MetaTable entries
     end
@@ -119,7 +118,6 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
     end
 
     methods
-
         function tf = hasSameMasterKey(obj, otherMetaTable)
         %hasSameMasterKey Check if two MetaTables share the same master key
             tf = strcmp(obj.MetaTableKey, otherMetaTable.MetaTableKey);
@@ -369,7 +367,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 masterMT.save();
             end
 
-            obj.assignTableVariableAdded(variableName, initValue)
+            obj.applyAddTableVariable(variableName, initValue)
         end
 
         function removeTableVariable(obj, variableName)
@@ -379,7 +377,13 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         %   a table-change event. Callers that maintain views should refresh
         %   them after removing variables.
 
-            obj.assignTableVariableRemoved(variableName)
+            variableName = char(variableName);
+            cleanup = obj.beginEntriesUpdate(); %#ok<NASGU>
+            obj.entries(:, variableName) = [];
+            clear cleanup
+
+            obj.onEntriesChanged()
+            obj.refreshMetaObjectCacheVariableRemoved(variableName)
         end
 
         function addTable(obj, T, options)
@@ -619,8 +623,8 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             end
         end
 
-        function assignTableVariableAdded(obj, variableName, initValue)
-        %assignTableVariableAdded Add a column and repair cached metaObjects
+        function applyAddTableVariable(obj, variableName, initValue)
+        %applyAddTableVariable Add a column and repair cached metaObjects
 
             variableName = char(variableName);
             cleanup = obj.beginEntriesUpdate(); %#ok<NASGU>
@@ -631,17 +635,6 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             obj.refreshMetaObjectCacheVariableAdded(variableName)
         end
 
-        function assignTableVariableRemoved(obj, variableName)
-        %assignTableVariableRemoved Remove a column and repair cached metaObjects
-
-            variableName = char(variableName);
-            cleanup = obj.beginEntriesUpdate(); %#ok<NASGU>
-            obj.entries(:, variableName) = [];
-            clear cleanup
-
-            obj.onEntriesChanged()
-            obj.refreshMetaObjectCacheVariableRemoved(variableName)
-        end
 
         function rowInd = normalizeRowIndices(obj, rowInd)
         %normalizeRowIndices Resolve row index shorthands to numeric indices
