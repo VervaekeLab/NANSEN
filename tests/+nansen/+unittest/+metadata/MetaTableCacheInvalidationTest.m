@@ -22,6 +22,19 @@ classdef MetaTableCacheInvalidationTest < matlab.unittest.TestCase
             testCase.verifyEqual(cachedItem.Value, 9999);
         end
 
+        function testEditEntriesWithRefreshCacheFalseSkipsRefresh(testCase)
+            mt = testCase.createRefreshableItemMetaTable();
+
+            cachedItem = mt.getMetaObjects(1);
+            mt.editEntries(1, 'Value', 9999, RefreshCache=false);
+
+            sameItem = mt.getMetaObjects(1);
+            testCase.verifyTrue(sameItem == cachedItem);
+            testCase.verifyTrue(isvalid(cachedItem));
+            testCase.verifyEqual(cachedItem.Value, 10);
+            testCase.verifyEqual(mt.entries.Value(1), 9999);
+        end
+
         function testReplaceDataColumnRefreshesMetadataEntitiesInPlace(testCase)
             mt = testCase.createRefreshableItemMetaTable();
 
@@ -139,6 +152,19 @@ classdef MetaTableCacheInvalidationTest < matlab.unittest.TestCase
             rebuilt = mt.getMetaObjects(1:3);
             testCase.verifyEqual(numel(rebuilt), 3);
             testCase.verifyTrue(isfield(rebuilt, 'NewVar'));
+        end
+
+        function testStructBackedEditEntriesRebuildsCache(testCase)
+            mt = testCase.createStructBackedMetaTable();
+
+            cached = mt.getMetaObjects(1);
+            testCase.assertTrue(isstruct(cached));
+            testCase.assertEqual(cached.Value, 10);
+
+            mt.editEntries(1, 'Value', 9999);
+
+            rebuilt = mt.getMetaObjects(1);
+            testCase.verifyEqual(rebuilt.Value, 9999);
         end
 
         function testNonMetadataEntityHandleFallsBackToDelete(testCase)

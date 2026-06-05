@@ -478,7 +478,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         %   the given rows/column of the entries table and repairs any
         %   cached metaObjects for the edited rows.
         %
-        %   editEntries(..., InvalidateCache=false) skips cache repair.
+        %   editEntries(..., RefreshCache=false) skips cache repair.
         %   Use this only when the edit originates from a live metaObject
         %   (e.g. a property-set sync), where the cached object is already up
         %   to date.
@@ -488,11 +488,11 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 rowInd
                 varName
                 newValue
-                options.InvalidateCache (1,1) logical = true
+                options.RefreshCache (1,1) logical = true
             end
 
             obj.assignEntries(rowInd, varName, newValue, ...
-                RefreshCache=options.InvalidateCache)
+                RefreshCache=options.RefreshCache)
             obj.notifyEntryChanged(rowInd, varName)
         end
 
@@ -1490,10 +1490,10 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             end
 
             % The edit originates from the live metaObject (src), so its
-            % cached entry is already current. Invalidating here would
-            % delete the very object whose property was just set.
+            % cached entry is already current. Refreshing here would only
+            % repeat the property assignment that just happened.
             obj.editEntries(metaTableEntryIdx, propertyName, newValue, ...
-                InvalidateCache=false)
+                RefreshCache=false)
         end
 
         function attachCacheEvictionListener(obj, metaObjects)
