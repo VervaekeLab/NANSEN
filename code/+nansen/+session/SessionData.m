@@ -1,7 +1,7 @@
 classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin.UserSettings
 % SessionData - Provides lazy access to data variables of a Session object
 
-% NOTE:
+% Note:
 % Each data variable is exposed as a dynamic property whose get-method
 % loads the data through the shared nansen.cache.DataCache on first access.
 % Display does not go through the get-methods: getPropertyGroups supplies the
@@ -17,10 +17,6 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
         DEFAULT_SETTINGS = nansen.session.SessionData.getDefaultSettings()
     end
 
-    properties
-        sessionID
-    end
-
     properties (Dependent, Hidden)
         IsInitialized
     end
@@ -29,6 +25,10 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
         SessionObject
         DataLocationModel
         DataVariableModel
+    end
+
+    properties (Dependent, Access = private)
+        SessionID
     end
 
     properties (Access = private)
@@ -44,11 +44,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
 
     methods (Hidden) % Constructor
         function obj = SessionData(sessionObj)
-
             obj.SessionObject = sessionObj;
-
-            % Inherit properties for sessionObj. Todo: Avoid duplication...
-            obj.sessionID = sessionObj.sessionID;
 
             % Initialize the property value here (because Map is handle)
             obj.FileList = containers.Map;
@@ -111,6 +107,10 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
                 tf = true;
             end
         end
+
+        function sessionID = get.SessionID(obj)
+            sessionID = obj.SessionObject.sessionID;
+        end
     end
 
     methods (Hidden)
@@ -150,8 +150,9 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
         function updateDataVariables(obj)
 
             if isempty(obj.SessionObject.DataLocationModel)
-                % Todo: Consider to throw an error.
-                fprintf('Aborted, this session does not have a DataLocationModel')
+                warning('NANSEN:SessionData:DataLocationModelNotSet', ...
+                    'Aborted, session "%s" does not have a DataLocationModel.', ...
+                    obj.SessionID)
                 return
             end
 
@@ -308,12 +309,12 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
         function key = getCacheKey(obj, varName)
         %getCacheKey Cache key for one of this session's data variables
             key = nansen.cache.DataCache.buildKey( ...
-                "session", string(obj.sessionID), string(varName));
+                "session", string(obj.SessionID), string(varName));
         end
 
         function prefix = getCacheKeyPrefix(obj)
         %getCacheKeyPrefix Key prefix matching all of this session's variables
-            prefix = "session:" + string(obj.sessionID) + ":";
+            prefix = "session:" + string(obj.SessionID) + ":";
         end
 
         function value = getDataVariable(obj, varName)
@@ -465,8 +466,6 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
         %       pathStr = sObj.getFilePath('dff', '-w', 'Subfolder', 'roisignals')
 
             % Todo:
-            %   [v] (Why) do I need mode here? If -w, variable is added to
-            %       model
             %   [ ] Implement load/save differences, and default datapath
             %       for variable names that are not defined.
             %   [ ] Implement ways to grab data spread over multiple files, i.e
