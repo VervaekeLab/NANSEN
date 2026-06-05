@@ -1,29 +1,20 @@
-classdef HasSessionData < uim.handle
-%HasSessionData Mixin to provide SessionData to a class
+classdef HasSessionData < uim.handle & matlab.mixin.CustomDisplay
+%HasSessionData Mixin providing lazy access to a SessionData object
 %
-%   This class overrides the subsref to initialize the Data upon the first
-%   subsref request. Updating all the variables of the SessionData has some
-%   overhead, so only want this to happen when necessary.
+%   Adds a Data property holding a nansen.session.SessionData for the
+%   object. The SessionData is initialized lazily on first access to Data
+%   (initialization scans which variables exist on disk), so constructing
+%   many entities stays cheap.
 %
-%   The reason for not adding the subsref directly to a class having a
-%   Data property is because overriding the subsref method can render the
-%   original class not to work as intended.
+%   Initialization is triggered by get.Data, i.e. an explicit obj.Data
+%   reference. Display does not trigger it: getPropertyGroups shows the Data
+%   property from its private backing field, so rendering the object never
+%   calls get.Data and never scans disk.
 
-%   I later found out that, of course, the class that inherits this
-%   superclass will also inherit the subsref method, so back to square 1.
-%
-%   Update: Seems like overriding the numArgumentsFromSubscript method and
-%   calling the builtin from there gives the expected behavior. Needs some
-%   stress testing.
-%
-%   Conclusion: Would be nice to solve this in a more elegant way...
-
-%   Note: The "Data" property is transient because it might potentially
-%   contain a lot of in-memory cached data which should not be saved. As the
-%   transient properties do not follow an object if it is sent to a
-%   separate worker, the Data property is dependent and there is a private
-%   property containing the SessionData object. If the Data object is empty
-%   or invalid a new Data object is created.
+%   Note: Data is transient because it may hold a lot of in-memory cached
+%   data that should not be saved, and transient properties do not follow
+%   an object sent to a parallel worker. It is therefore dependent, backed
+%   by a private Data_; a fresh SessionData is created if Data_ is empty.
 
     properties (Dependent, Transient)
         Data nansen.session.SessionData
@@ -35,7 +26,7 @@ classdef HasSessionData < uim.handle
 
     methods
         function obj = HasSessionData()
-            % Assign data for each obj individually
+            % Create (but do not initialize) a SessionData for each object.
             for i = 1:numel(obj)
                 obj(i).Data_ = nansen.session.SessionData(obj(i)); %#ok<AGROW>
             end
@@ -47,134 +38,47 @@ classdef HasSessionData < uim.handle
     end
 
     methods % Set/get
-
         function data = get.Data(obj)
-            % Reinitialize data if it is empty
             for i = 1:numel(obj)
                 if isempty(obj(i).Data_)
                     obj(i).Data_ = nansen.session.SessionData(obj(i));
+                end
+
+                % Initialize lazily on first explicit access. Display routes
+                % through getPropertyGroups instead, so it never reaches here.
+                if ~obj(i).Data_.IsInitialized
+                    obj(i).Data_.initialize();
                 end
             end
             data = obj.Data_;
         end
     end
 
-% %         Todo: Is this even possible without breaking my head. How to
-% %         properly output stuff from properties that i.e contains struct
-% %         arrays.
+    methods (Access = protected) % Custom display
+        function group = getPropertyGroups(obj)
+            if ~isscalar(obj)
+                group = getPropertyGroups@matlab.mixin.CustomDisplay(obj);
+                return
+            end
 
-    methods (Sealed, Hidden)
+            % properties() lists the public (non-hidden) properties by name
+            % without evaluating any get-methods. We then supply the values
+            % ourselves so the Data property can be shown from its backing
+            % field (Data_) without calling get.Data - displaying the object
+            % therefore never triggers a scan.
+            propNames = properties(obj);
 
-        function varargout = subsref(obj, s)
-
-% %             numRequestedOutputs = nargout();
-% %             if numRequestedOutputs == 0
-% %                 numOutputs = obj.determineNumArgout(s); %#ok<NASGU>
-% %             else
-% %                 numOutputs = numRequestedOutputs;
-% %             end
-
-            numOutputs = nargout;
-            varargout = cell(1, numOutputs);
-
-            [isDataRequested, ind] = obj.isDataSubsrefed(s);
-
-            if isDataRequested
-                for i = ind
-                    if ~obj(i).Data.IsInitialized
-                        obj(i).Data.initialize();
-                    end
+            values = struct();
+            for i = 1:numel(propNames)
+                name = propNames{i};
+                if strcmp(name, 'Data')
+                    values.Data = obj.Data_;   % shown without initializing
+                else
+                    values.(name) = obj.(name);
                 end
             end
 
-            % If we got this far, use the builtin subsref
-            if numOutputs > 0
-                [varargout{:}] = builtin('subsref', obj, s);
-            else
-                builtin('subsref', obj, s)
-            end
-
-% %                 varargout = builtin('subsref', obj, s);
-% %                 try
-% %                     varargout{1} = builtin('subsref', obj, s);
-% %                 catch ME
-% %                     switch ME.identifier
-% %                         case {'MATLAB:TooManyOutputs', 'MATLAB:maxlhs'}
-% %                             try
-% %                                 builtin('subsref', obj, s)
-% %                             catch ME
-% %                                 rethrow(ME)
-% %                             end
-% %                         otherwise
-% %                             rethrow(ME)
-% %                     end
-% %                 end
-% %             end
-
-% %             if numRequestedOutputs == 0
-% %                 varargout{:}
-% %                 clear varargout
-% %             end
-        end
-
-        function n = numArgumentsFromSubscript(obj, s, indexingContext)
-            if strcmp(s(1).type, '.')
-                if strcmp(s(1).subs, 'Data')
-                    for i = 1:numel(obj)
-                        if ~obj(i).Data.IsInitialized
-                            obj(i).Data.initialize();
-                        end
-                    end
-                end
-            end
-
-            n = builtin('numArgumentsFromSubscript', obj, s, indexingContext);
-        end
-    end
-
-    methods (Access = private)
-
-        function [tf, idx] = isDataSubsrefed(obj, s)
-
-            if strcmp(s(1).type, '.') && strcmp(s(1).subs, 'Data')
-                tf = true;
-                idx = 1:numel(obj);
-            elseif numel(s) >= 2 && strcmp(s(1).type, '()') ...
-                    && strcmp(s(2).type, '.') && strcmp(s(2).subs, 'Data')
-                tf = true;
-                idx = s(1).subs{1};
-            else
-                tf = false;
-                idx = [];
-            end
-        end
-
-        function numArgouts = determineNumArgout(obj, s)
-        %determineNumArgout Determine expected nargout from subsref
-
-        % This was an experiment. Did not work very well.
-
-            persistent ic
-            if isempty(ic)
-                ic = enumeration('matlab.mixin.util.IndexingContext');
-            end
-
-            % Determine the number of expected outputs from each of the
-            % indexing contexts
-            n = zeros(1, numel(ic));
-            for i = 1:numel(ic)
-                n(i) = builtin('numArgumentsFromSubscript', obj, s, ic(i));
-            end
-
-            % Check if different number of outputs are expected and issue
-            % warning if yes.
-            uniqueN = unique(n);
-            if numel(uniqueN) ~= 1
-                warning('The number of outputs from this subscripted reference might not be correct')
-            end
-
-            % Return the value from the "Statement" indexing context
-            numArgouts = n(1);
+            group = matlab.mixin.util.PropertyGroup(values);
         end
     end
 end
