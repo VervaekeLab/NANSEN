@@ -1054,8 +1054,10 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         %
         %   Outputs:
         %       metaObjects - An array of metadata objects
-        %       status - A logical vector indicating if an object was
-        %           created. Same length as tableEntries.
+        %       status - A logical vector indicating if a valid object was
+        %           returned for each row. True when an object was obtained
+        %           (from cache or newly constructed); false when construction
+        %           failed. Same length as tableEntries.
 
                 arguments
                 obj (1,1) nansen.metadata.MetaTable
