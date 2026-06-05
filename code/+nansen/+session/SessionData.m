@@ -233,7 +233,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
         %   SYNTAX:
         %
         %   varNames = obj.uiSelectVariableName() opens a dialog to select
-        %   on or more variables that are available in SessionData object
+        %   one or more variables that are available on the SessionData object
         %
         %   varNames = obj.uiSelectVariableName(dataType) lets user select
         %   among variables from the specified dataType
@@ -259,9 +259,11 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
 
             if isempty(varNames)
                 if exist('dataType', 'var')
-                    error('No variables are available for data type "%s"', dataType)
+                    error('NANSEN:SessionData:VariableOfTypeNotAvailable', ...
+                        'No variables are available for data type "%s"', dataType)
                 else
-                    error('No variables are available')
+                    error('NANSEN:SessionData:NoVariablesAvailable', ...
+                        'No data variables are available for this session.')
                 end
             end
 
@@ -344,8 +346,9 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
             cache.getOrLoad(obj.getCacheKey(varName), @() obj.loadData(varName));
         end
 
-        function setDataVariable(obj, varargin)
-            disp('variables can only be read for now')
+        function setDataVariable(~, varargin)
+            error('NANSEN:SessionData:SetDataVariableNotImplemented', ...
+                'Setting data variables is not implemented.')
         end
 
         function str = getHeader(obj)
@@ -413,7 +416,7 @@ classdef SessionData < dynamicprops & matlab.mixin.CustomDisplay & applify.mixin
             end
         end
 
-        function onSettingsChanged(obj, name, value)
+        function onSettingsChanged(obj, name, value) %#ok<INUSD>
             % Pass
         end
     end
