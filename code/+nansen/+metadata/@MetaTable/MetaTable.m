@@ -359,15 +359,17 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         % Todo: Make method for adding multiple variables in one go, i.e
         % allow "variableName" and "initValue" to be cell arrays.
 
-            if ~obj.IsMaster % Add to master metatable
-                catalog = nansen.metadata.MetaTableCatalog();
-                masterFilePath = catalog.getMasterFilePath(obj.MetaTableKey);
-                masterMT = nansen.metadata.MetaTable.open(masterFilePath);
-                masterMT.addTableVariable(variableName, initValue);
-                masterMT.save();
+            if ~obj.IsMaster
+                obj.applyAddTableVariableToMaster(variableName, initValue)
             end
 
-            obj.applyAddTableVariable(variableName, initValue)
+            variableName = char(variableName);
+            cleanup = obj.beginEntriesUpdate(); %#ok<NASGU>
+            obj.entries = obj.addTableVariableStatic(obj.entries, variableName, initValue);
+            clear cleanup
+
+            obj.onEntriesChanged()
+            obj.refreshCacheOnVariableAdded(variableName)
         end
 
         function removeTableVariable(obj, variableName)
@@ -376,6 +378,10 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         %   Note: This method changes the table structure and does not emit
         %   a table-change event. Callers that maintain views should refresh
         %   them after removing variables.
+
+            if ~obj.IsMaster
+                obj.applyRemoveTableVariableFromMaster(variableName)
+            end
 
             variableName = char(variableName);
             cleanup = obj.beginEntriesUpdate(); %#ok<NASGU>
@@ -528,6 +534,30 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
     end
 
     methods (Access = private)
+        function applyAddTableVariableToMaster(obj, variableName, initValue)
+        %applyAddTableVariableToMaster Propagate addTableVariable to master
+        %
+        %   Opens the master MetaTable, adds the variable, and saves. Called
+        %   by addTableVariable when obj is a dummy MetaTable.
+            catalog = nansen.metadata.MetaTableCatalog();
+            masterFilePath = catalog.getMasterFilePath(obj.MetaTableKey);
+            masterMT = nansen.metadata.MetaTable.open(masterFilePath);
+            masterMT.addTableVariable(variableName, initValue);
+            masterMT.save();
+        end
+
+        function applyRemoveTableVariableFromMaster(obj, variableName)
+        %applyRemoveTableVariableFromMaster Propagate removeTableVariable to master
+        %
+        %   Opens the master MetaTable, removes the variable, and saves. Called
+        %   by removeTableVariable when obj is a dummy MetaTable.
+            catalog = nansen.metadata.MetaTableCatalog();
+            masterFilePath = catalog.getMasterFilePath(obj.MetaTableKey);
+            masterMT = nansen.metadata.MetaTable.open(masterFilePath);
+            masterMT.removeTableVariable(variableName);
+            masterMT.save();
+        end
+
         function invalidateMetaObjectCache(obj, objectIds)
         %invalidateMetaObjectCache Remove cached meta objects for given IDs
 
@@ -621,18 +651,6 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             if options.RefreshCache
                 obj.refreshCacheOnPropertyChanged(editedIds, rowInd, varName)
             end
-        end
-
-        function applyAddTableVariable(obj, variableName, initValue)
-        %applyAddTableVariable Add a column and repair cached metaObjects
-
-            variableName = char(variableName);
-            cleanup = obj.beginEntriesUpdate(); %#ok<NASGU>
-            obj.entries = obj.addTableVariableStatic(obj.entries, variableName, initValue);
-            clear cleanup
-
-            obj.onEntriesChanged()
-            obj.refreshCacheOnVariableAdded(variableName)
         end
 
         function rowInd = normalizeRowIndices(obj, rowInd)
