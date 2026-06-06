@@ -623,6 +623,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             end
 
             cleanup = obj.beginEntriesUpdate(); %#ok<NASGU>
+            
             if options.AllowColumnTypeChange && iscell(newValue)
                 tempS = table2struct(obj.entries);
                 [tempS(rowInd).(varName)] = deal(newValue{:});
@@ -630,11 +631,13 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             elseif options.AllowColumnTypeChange ...
                     && isequal(rowInd, 1:height(obj.entries))
                 obj.entries.(varName) = newValue;
+            
             elseif isa( obj.entries{rowInd, varName}, 'cell')
-                try
-                    obj.entries{rowInd, varName} = newValue;
-                catch % Todo: Better way?
-                    obj.entries{rowInd, varName} = {newValue};
+                % Make sure we don't insert nested/wrapped cells in table
+                if nansen.util.cell.isWrapped(newValue)
+                    newValue = nansen.util.cell.unWrap(newValue);
+                elseif ~iscell(newValue) % Needs wrapping
+                    newValue = {newValue};
                 end
             elseif isa( obj.entries{rowInd, varName}, 'string')
                 obj.entries{rowInd, varName} = string(newValue);
@@ -691,6 +694,9 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
 
                 try
                     newValue = obj.entries{rowInd(i), varName};
+                    if isa(newValue, 'cell')
+                        newValue = newValue{1};
+                    end
                     cachedObject.refreshProperty(varName, newValue)
                 catch ME
                     obj.warnMetaObjectRefreshFailed(thisId, varName, ME)
