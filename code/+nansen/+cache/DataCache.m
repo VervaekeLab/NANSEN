@@ -413,6 +413,11 @@ classdef DataCache < handle & matlab.mixin.CustomDisplay
 
             obj = singleton;
         end
+        
+        function reset()
+            %reset Reset the DataCache
+            nansen.cache.DataCache.instance("reset")
+        end
 
         function key = buildKey(entityType, entityId, variableName)
         %buildKey Build a cache key "entityType:entityId:variableName"

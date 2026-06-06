@@ -536,6 +536,9 @@ classdef ProjectManager < handle
                 obj.unselectProject(oldProjectName)
             end
 
+            % Reset the cache to guard key collisions across projects.
+            nansen.cache.DataCache.reset()
+
             obj.CurrentProject = newProjectName;
             if ~isempty(newProjectName)
                 nansen.config.project.Project.addProjectToSearchPath(projectEntry.Path)
