@@ -1163,14 +1163,14 @@ classdef MetaTableTest < matlab.unittest.TestCase
             testCase.verifyEqual(normalized{1}, charId);
         end
 
-        function testAddTableVariableStatic(testCase)
+        function testInitializeTableColumn(testCase)
             % Test static method for adding table variable
             T = testCase.TestEntries;
             varName = 'NewStaticColumn';
             initValue = {'default'};
 
-            T = nansen.metadata.MetaTable.addTableVariableStatic(T, varName, initValue);
-
+            [T{:, varName}] = deal(initValue);
+            
             testCase.verifyTrue(any(strcmp(T.Properties.VariableNames, varName)));
         end
 
