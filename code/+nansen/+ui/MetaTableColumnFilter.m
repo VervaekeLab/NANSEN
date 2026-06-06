@@ -369,8 +369,11 @@ classdef MetaTableColumnFilter < handle
 
             % (mis)use the onColumnFilterValueChanged to update the filters
             % and add the optional flag for skipping event notification.
+            % Only rebuild filters for columns that are actually active. This
+            % guards against a widget whose reset() leaves a stale selection
+            % behind, and avoids recomputing filters for inactive columns.
             for i = 1:numColumns
-                if ~isempty(obj.hColumnFilterPopups{i})
+                if ~isempty(obj.hColumnFilterPopups{i}) && obj.isColumnFilterActive(i)
                     obj.onColumnFilterValueChanged([],[],i,true)
                 end
             end

@@ -111,6 +111,7 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
     methods
         function reset(obj)
             obj.Value = '';
+            obj.SelectedItems = [];
         end
     end
 

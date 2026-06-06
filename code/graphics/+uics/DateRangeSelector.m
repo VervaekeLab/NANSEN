@@ -58,6 +58,11 @@ classdef DateRangeSelector < handle & uiw.mixin.AssignPVPairs
     end
 
     methods
+        function reset(obj)
+        %reset Clear the selected date interval.
+            obj.hDatePanel.getSelectionModel.clearSelection()
+        end
+
         function dateInterval = get.SelectedDateInterval(obj)
             selectedDates = obj.hDatePanel.getSelectionModel.getSelectedDates();
 
