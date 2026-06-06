@@ -540,6 +540,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         %
         %   Opens the master MetaTable, adds the variable, and saves. Called
         %   by addTableVariable when obj is a dummy MetaTable.
+
             catalog = nansen.metadata.MetaTableCatalog();
             masterFilePath = catalog.getMasterFilePath(obj.MetaTableKey);
             masterMT = nansen.metadata.MetaTable.open(masterFilePath);
@@ -552,6 +553,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         %
         %   Opens the master MetaTable, removes the variable, and saves. Called
         %   by removeTableVariable when obj is a dummy MetaTable.
+
             catalog = nansen.metadata.MetaTableCatalog();
             masterFilePath = catalog.getMasterFilePath(obj.MetaTableKey);
             masterMT = nansen.metadata.MetaTable.open(masterFilePath);
@@ -688,7 +690,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 end
 
                 try
-                    newValue = obj.getTableBackedPropertyValue(rowInd(i), varName);
+                    newValue = obj.entries{rowInd(i), varName};
                     cachedObject.refreshProperty(varName, newValue)
                 catch ME
                     obj.warnMetaObjectRefreshFailed(thisId, varName, ME)
@@ -765,13 +767,6 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
 
             tf = isa(metaObject, 'nansen.metadata.abstract.MetadataEntity') ...
                 && isvalid(metaObject);
-        end
-
-        function newValue = getTableBackedPropertyValue(obj, rowInd, varName)
-        %getTableBackedPropertyValue Match constructor table-to-property mapping
-
-            rowStruct = table2struct(obj.entries(rowInd, varName));
-            newValue = rowStruct.(varName);
         end
 
         function warnMetaObjectRefreshFailed(~, objectId, context, exception)
