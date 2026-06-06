@@ -365,7 +365,8 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
 
             variableName = char(variableName);
             cleanup = obj.beginEntriesUpdate(); %#ok<NASGU>
-            obj.entries = obj.addTableVariableStatic(obj.entries, variableName, initValue);
+            [obj.entries{:, variableName}] = deal(initValue);
+
             clear cleanup
 
             obj.onEntriesChanged()
@@ -1621,20 +1622,6 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             end
 
             filename = sprintf('%s_%s.mat', filename, nameExtension);
-        end
-
-        function T = addTableVariableStatic(T, variableName, initValue)
-        %   addTableVariable(obj, variableName, initValue) adds a new
-        %   variable to the table and initializes all column values to the
-        %   initValue.
-
-            % This is kind of a more general table utility function..
-
-            numTableRows = size(T, 1);
-            if isempty(initValue); initValue = {initValue}; end
-            columnValues = repmat(initValue, numTableRows, 1);
-
-            T{:, variableName} = columnValues;
         end
     end
 
