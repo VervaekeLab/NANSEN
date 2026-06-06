@@ -632,6 +632,18 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
         function addTaskToHistory(obj, taskItem)
         %addTaskToHistory Add task to history and trigger event.
 
+            % Strip the entity object from args before archiving. Session
+            % (and other handle) objects are expensive to serialise and
+            % cannot be faithfully restored from disk as live handles.
+            % The entity identifier is preserved in entityId so the object
+            % can be reconstructed from the MetaTable on demand (e.g. when
+            % reassigning a history item back to the queue). Options and
+            % any other trailing args are small plain structs and are kept.
+            taskItem.entityId = obj.extractEntityId(taskItem.args);
+            if ~isempty(taskItem.args)
+                taskItem.args = taskItem.args(2:end); % drop entity, keep opts
+            end
+
             % Add to items of the task queue.
             if isempty(obj.TaskHistory)
                 obj.TaskHistory = taskItem;
@@ -719,6 +731,28 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
 
     methods (Static)
 
+        function entityId = extractEntityId(args)
+        % extractEntityId - Extract entity identifier(s) from task args.
+        %
+        %   entityId = extractEntityId(args) returns a cell array of entity
+        %   identifier strings extracted from args{1} (the entity object).
+        %   Returns {} if args is empty or the entity has no IDNAME property.
+        %   Supports both scalar and array entity objects (multi-session tasks).
+            entityId = {};
+            if isempty(args) || isempty(args{1})
+                return
+            end
+            try
+                entityObj = args{1};
+                idName = entityObj(1).IDNAME;
+                entityId = arrayfun(@(e) e.(idName), entityObj, ...
+                    'UniformOutput', false);
+            catch
+                % Entity type does not conform to MetadataEntity interface;
+                % re-queue from history will not be available for this item.
+            end
+        end
+
         function newTask = createTaskItem(name, func, numOut, args, optsName, comments)
 
             if nargin < 7; comments = ''; end
@@ -730,6 +764,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             newTask.status = 'Uninitialized';
             newTask.numOut = numOut;
             newTask.args = args;
+            newTask.entityId = {};  % populated when item moves to history
             newTask.timeCreated = char(datetime('now'), 'yyyy.MM.dd HH:mm:ss');
             newTask.timeStarted = '';
             newTask.elapsedTime = '';
