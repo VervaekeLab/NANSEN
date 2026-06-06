@@ -74,7 +74,6 @@ classdef multiSelectionDropDown <  uim.handle & uiw.mixin.AssignPVPairs
 
         function delete(obj)
             delete(obj.hUiControl)
-            delete(obj)
         end
     end
 
@@ -90,7 +89,7 @@ classdef multiSelectionDropDown <  uim.handle & uiw.mixin.AssignPVPairs
                 'ForegroundColor', obj.ForegroundColor);
 
             if ~isempty(obj.Parent)
-                %h.Parent = obj.Parent;
+                % h.Parent = obj.Parent;
                 obj.hFigure = ancestor(obj.Parent, 'figure');
             end
 
@@ -133,16 +132,16 @@ classdef multiSelectionDropDown <  uim.handle & uiw.mixin.AssignPVPairs
             tableBorder = javax.swing.border.LineBorder(borderColor, 1, 0); % color, thickness, rounded corners (tf)
             j.setBorder(tableBorder)
 
-            %j.setBorder(javax.swing.BorderFactory.createRaisedBevelBorder());
+            % j.setBorder(javax.swing.BorderFactory.createRaisedBevelBorder());
 
             % Get java handle for vertical scroller
-            %jVScroller = j.getComponent(1);
-            %set(jVScroller, 'PreferredSize', java.awt.Dimension(0, 50) );
+            % jVScroller = j.getComponent(1);
+            % set(jVScroller, 'PreferredSize', java.awt.Dimension(0, 50) );
 %             set(jVScroller, 'AdjustmentValueChangedCallback', ...
 %                 @app.onVerticalScrollerValueChanged)
 
             % Make sure listbox is invisible
-            %h.Visible = 'off';
+            % h.Visible = 'off';
 
             obj.hUiControl = h;
             obj.jUiControl = jList;
@@ -175,12 +174,12 @@ classdef multiSelectionDropDown <  uim.handle & uiw.mixin.AssignPVPairs
 
         function set.Value(obj, newValue) % Note: dependent
             obj.hUiControl.Value = newValue;
-            %obj.onValueUpdated(newValue)
+            % obj.onValueUpdated(newValue)
         end
 
         function set.Callback(obj, newValue)
 
-           %assert isa function handle
+           % assert isa function handle
            obj.Callback = newValue;
            obj.onCallbackChanged()
         end
@@ -222,7 +221,9 @@ classdef multiSelectionDropDown <  uim.handle & uiw.mixin.AssignPVPairs
 
         function onVisibleChanged(obj)
 
-            if ~isempty(obj.hUiControl) && ~isvalid(obj.hUiControl); return; end
+            if isempty(obj.hUiControl) || ~isvalid(obj.hUiControl)
+                return
+            end
 
             obj.hUiControl.Visible = obj.Visible;
 

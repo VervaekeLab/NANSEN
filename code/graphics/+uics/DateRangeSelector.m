@@ -60,7 +60,13 @@ classdef DateRangeSelector < handle & uiw.mixin.AssignPVPairs
     methods
         function reset(obj)
         %reset Clear the selected date interval.
+        %
+        %   Clear the selection model so the filter reads no interval, and
+        %   call setSelectedDate(null) so the calendar view stops showing the
+        %   previous selection. Clearing the model alone does not refresh the
+        %   panel display. Passing [] sends a Java null.
             obj.hDatePanel.getSelectionModel.clearSelection()
+            obj.hDatePanel.setSelectedDate([])
         end
 
         function dateInterval = get.SelectedDateInterval(obj)
@@ -68,15 +74,15 @@ classdef DateRangeSelector < handle & uiw.mixin.AssignPVPairs
 
             if isempty(selectedDates), dateInterval = []; return; end
 
-            initalDate = selectedDates(1);
+            initialDate = selectedDates(1);
             finalDate = selectedDates(end);
 
             pivotYear = 1900;
 
-            initalDate = datetime(initalDate.getYear + pivotYear, initalDate.getMonth+1, initalDate.getDate);
+            initialDate = datetime(initialDate.getYear + pivotYear, initialDate.getMonth+1, initialDate.getDate);
             finalDate = datetime(finalDate.getYear + pivotYear, finalDate.getMonth+1, finalDate.getDate);
 
-            dateInterval = [initalDate, finalDate];
+            dateInterval = [initialDate, finalDate];
         end
 
         function set.Position(obj, newValue)
@@ -107,6 +113,12 @@ classdef DateRangeSelector < handle & uiw.mixin.AssignPVPairs
     methods (Access = private)
 
         function onCallbackPropertySet(obj)
+            % The Callback property may be set via assignPVPairs before the
+            % date panel exists. Skip here in that case; the constructor wires
+            % the callback once the panel has been created.
+            if isempty(obj.hDatePanel)
+                return
+            end
             hModel = handle(obj.hDatePanel.getSelectionModel, 'CallbackProperties');
             set(hModel, 'ValueChangedCallback', obj.Callback);
         end

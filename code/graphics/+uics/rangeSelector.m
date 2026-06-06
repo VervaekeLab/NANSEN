@@ -213,7 +213,7 @@ classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
             % uicontrols...
 
             point = src.CurrentPoint;
-            %point = point - src.Position(1:2);
+            % point = point - src.Position(1:2);
             position = getpixelposition(obj.hPanel, true);
 
 % %             % Press outside this widget
@@ -338,7 +338,7 @@ classdef rangeSelector <  uim.handle & uiw.mixin.AssignPVPairs
 
         function updateLowValueField(obj, newValue)
             obj.hEditFieldLow.String = num2str( round( newValue ) ) ;
-            obj.hEditFieldHigh.UserData.PreviousValue = obj.hEditFieldLow.String;
+            obj.hEditFieldLow.UserData.PreviousValue = obj.hEditFieldLow.String;
         end
 
         function updateHighValueField(obj, newValue)

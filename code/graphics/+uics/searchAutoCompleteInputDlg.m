@@ -193,12 +193,12 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
 
         function set.String(obj, newValue)
             obj.Value = newValue;
-        	%obj.jSearchField.setText(newValue);
+        	% obj.jSearchField.setText(newValue);
             % Todo: add to items.......
         end
         function value = get.String(obj)
             value = obj.Value;
-            %value = char( obj.jSearchField.getText() );
+            % value = char( obj.jSearchField.getText() );
         end
 
         function set.PromptText(obj, newValue)
@@ -235,11 +235,13 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
         function createSearchInputField(obj)
 
             if isempty(obj.PromptText)
-                promtText = 'Search for item';
+                promptText = 'Search for item';
+            else
+                promptText = obj.PromptText;
             end
 
             % Create a SearchTextField control on top of the combo-box
-            searchField = com.mathworks.widgets.SearchTextField(obj.PromptText);
+            searchField = com.mathworks.widgets.SearchTextField(promptText);
             jComponent = searchField.getComponent;
 
             % This widget is different on windows and mac
@@ -258,7 +260,7 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
             set(hContainer2, 'Units', obj.Units_, 'Position', obj.Position_ + [0,30,0,0]);
             obj.hContainerSearchField = hContainer2;
 
-            %obj.stripUiControl(obj.jSearchField)
+            % obj.stripUiControl(obj.jSearchField)
             set(obj.jSearchField, 'Opaque', 0)
             % Expand the SearchTextField component to max available width
 %             jSize = java.awt.Dimension(9999, 30);
@@ -295,7 +297,7 @@ classdef searchAutoCompleteInputDlg < handle & uiw.mixin.AssignPVPairs
             end
             javacolor = @javax.swing.plaf.ColorUIResource;
 
-            %set(jControl, 'Focusable', 1)
+            % set(jControl, 'Focusable', 1)
             set(jControl, 'Opaque', 0)
             set(jControl, 'Border', []);
         end
