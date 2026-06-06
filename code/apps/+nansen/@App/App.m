@@ -118,6 +118,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         TableIsUpdating (1,1) logical = false
         QuitRequestInProgress (1,1) logical = false
         RequestFocusOnNextMetaTableRefresh (1,1) logical = true
+        TaskProcessorBusyCleanup_ = [] % Holds onCleanup from setBusy for task processor status
     end
 
     properties (Constant, Hidden = true) % move to appwindow superclass
@@ -2140,10 +2141,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
         function onTaskProcessorStatusChanged(app, ~, evt)
         %onTaskProcessorStatusChanged Callback for TaskProcessor Status
-            if strcmp( evt.AffectedObject.Status, 'busy' )
-                app.setBusy('Initializing task processor...')
+            if strcmp(evt.AffectedObject.Status, 'busy')
+                % Capture the cleanup handle so its statusId is registered and
+                % will be removed when the handle is cleared (see setIdle/setBusy).
+                app.TaskProcessorBusyCleanup_ = app.setBusy('Initializing task processor...');
             else
-                app.setIdle()
+                % Clearing the handle triggers onCleanup → setIdle(statusId),
+                % which removes the matching entry from StatusItems.
+                app.TaskProcessorBusyCleanup_ = [];
             end
         end
     end
