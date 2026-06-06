@@ -600,6 +600,8 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 catch % Todo: Better way?
                     obj.entries{rowInd, varName} = {newValue};
                 end
+            elseif isa( obj.entries{rowInd, varName}, 'string')
+                obj.entries{rowInd, varName} = string(newValue);
             elseif isa(newValue, 'cell')
                 obj.entries{rowInd, varName} = cat(1, newValue{:});
             else

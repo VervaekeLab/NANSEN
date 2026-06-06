@@ -162,6 +162,23 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
             obj.subjectID = subjectId;
         end
 
+        function reassignSubjectId(obj)
+        % reassignSubjectId - Re-extract and assign subject ID from current data location.
+        %
+        %   Bypasses the empty-check guard in assignSubjectID, allowing the
+        %   value to be refreshed when the DataLocationModel configuration or
+        %   folder structure has changed after initial table construction.
+        %
+        %   Because subjectID is SetObservable and is a MetaTable column,
+        %   assigning it here automatically propagates the new value to the
+        %   MetaTable for any cached session object. If extraction yields no
+        %   result, the existing value is preserved unchanged.
+            newValue = nansen.metadata.type.Session.extractSubjectId(obj);
+            if ~isempty(newValue)
+                obj.subjectID = newValue;
+            end
+        end
+
         function assignSessionID(obj, pathStr, dataLocationIndex)
         % Extract session ID using DataLocationModel and assign to property
             if ~isempty(obj.sessionID); return; end
@@ -1353,6 +1370,55 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
     end
 
     methods (Static)
+
+        function value = extractSubjectId(sessionObj)
+        % extractSubjectId - Extract subject ID from a session's stored data location.
+        %
+        %   value = extractSubjectId() returns '' as the null/default value.
+        %       Used by the table variable update machinery to determine the
+        %       expected data type before processing any session objects.
+        %
+        %   value = extractSubjectId(sessionObj) reconstructs the full folder
+        %       path from the session's stored (reduced) DataLocation struct and
+        %       re-extracts the subject ID using the current DataLocationModel.
+        %       Iterates data locations in order and returns the first non-empty
+        %       result. Returns '' if extraction fails for all data locations.
+            if nargin < 1
+                value = '';
+                return
+            end
+
+            value = '';
+
+            if isempty(sessionObj.DataLocationModel) || isempty(sessionObj.DataLocation)
+                return
+            end
+
+            for i = 1:numel(sessionObj.DataLocation)
+                dl = sessionObj.DataLocation(i);
+
+                if ~isfield(dl, 'RootPath') || isempty(dl.RootPath)
+                    continue
+                end
+
+                if ~isempty(dl.Subfolders)
+                    pathStr = fullfile(dl.RootPath, dl.Subfolders);
+                else
+                    pathStr = dl.RootPath;
+                end
+
+                dlIndex = sessionObj.DataLocationModel.getItemIndex(dl.Name);
+                if isempty(dlIndex)
+                    continue
+                end
+
+                extracted = sessionObj.DataLocationModel.getSubjectID(pathStr, dlIndex);
+                if ~isempty(extracted)
+                    value = extracted;
+                    return
+                end
+            end
+        end
 
         function assertValidFileAdapter(variableInfo, action)
 
