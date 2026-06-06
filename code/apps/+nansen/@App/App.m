@@ -1613,6 +1613,22 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.BatchProcessor.updateSessionObjectListeners(app)
         end
 
+        function entityObj = reconstructEntityFromTask(app, task)
+        %reconstructEntityFromTask Reconstruct entity object from a task item.
+        %
+        %   Returns the live entity object for the task by looking it up in
+        %   the current MetaTable via entityId. Returns [] silently if
+        %   entityId is missing (legacy items) or the session is not found.
+            entityObj = [];
+            if ~isfield(task, 'entityId') || isempty(task.entityId)
+                return
+            end
+            try
+                entityObj = app.reconstructEntityObjects(task.entityId);
+            catch
+            end
+        end
+
         function entityObjs = reconstructEntityObjects(app, entityIds)
         %reconstructEntityObjects Reconstruct entity objects from identifiers.
         %
@@ -2107,10 +2123,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
                 task = evt.Task;
 
-                sessionObj = task.args{1};
-                fcnName = func2str(task.method);
-
                 if strcmp(task.status, 'Completed')
+                    % args{1} (the session object) is stripped before the
+                    % TaskAdded event fires for history items. Reconstruct
+                    % the session object from the MetaTable using entityId.
+                    sessionObj = app.reconstructEntityFromTask(task);
+                    if isempty(sessionObj); return; end
+
+                    fcnName = func2str(task.method);
                     if ismethod(sessionObj, 'updateProgress') && numel(sessionObj) == 1
                         sessionObj.updateProgress(fcnName, task.status)
                     end
