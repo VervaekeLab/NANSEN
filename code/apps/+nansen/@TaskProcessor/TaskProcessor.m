@@ -371,8 +371,8 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             if isfile(filePath)
                 try
                     S = load(filePath, 'taskListQueue', 'taskListHistory');
-                    obj.TaskQueue = S.taskListQueue;
-                    obj.TaskHistory = S.taskListHistory;
+                    obj.TaskQueue = nansen.TaskProcessor.normalizeTaskItems(S.taskListQueue);
+                    obj.TaskHistory = nansen.TaskProcessor.normalizeTaskItems(S.taskListHistory);
                 catch ME
                     % Back up file
                     dateStr = char(datetime('now'), 'yyyyMMdd_HH_mm_ss');
@@ -750,6 +750,22 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             catch
                 % Entity type does not conform to MetadataEntity interface;
                 % re-queue from history will not be available for this item.
+            end
+        end
+
+        function items = normalizeTaskItems(items)
+        % normalizeTaskItems - Add missing fields to legacy task item structs.
+        %
+        %   items = normalizeTaskItems(items) ensures that all items in the
+        %   struct array have the fields introduced by later versions of
+        %   TaskProcessor. Legacy items loaded from older task_list.mat files
+        %   will be missing these fields; without normalization, appending a
+        %   new (fully-fielded) item would throw "dissimilar structures".
+            if isempty(items)
+                return
+            end
+            if ~isfield(items, 'entityId')
+                [items.entityId] = deal({});
             end
         end
 
