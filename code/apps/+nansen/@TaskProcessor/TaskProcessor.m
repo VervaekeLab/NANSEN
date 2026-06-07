@@ -501,9 +501,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
     end
 
     methods
-
-        function parPool = get.ActivePool(obj)
-
+        function parPool = get.ActivePool(~)
             % Todo: Does ActivePool need to be a property? Make static
             % method instead. Is it even used??
 

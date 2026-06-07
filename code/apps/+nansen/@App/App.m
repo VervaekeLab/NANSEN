@@ -118,7 +118,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         TableIsUpdating (1,1) logical = false
         QuitRequestInProgress (1,1) logical = false
         RequestFocusOnNextMetaTableRefresh (1,1) logical = true
-        TaskProcessorBusyCleanup_ = [] % Holds onCleanup from setBusy for task processor status
+        TaskProcessorBusyCleanup = [] % Holds onCleanup from setBusy for task processor status
     end
 
     properties (Constant, Hidden = true) % move to appwindow superclass
@@ -1645,7 +1645,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                         'Session "%s" was not found in the current MetaTable.', ...
                         entityIds{i})
                 end
-                obj = app.MetaTable.getMetaObjects(rowInd);
+                obj = app.MetaTable.getMetaObjects(rowInd, ...
+                    'DataLocationModel', app.DataLocationModel, ...
+                    'VariableModel', app.VariableModel);
                 if isempty(entityObjs)
                     entityObjs = obj;
                 else
@@ -2144,11 +2146,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if strcmp(evt.AffectedObject.Status, 'busy')
                 % Capture the cleanup handle so its statusId is registered and
                 % will be removed when the handle is cleared (see setIdle/setBusy).
-                app.TaskProcessorBusyCleanup_ = app.setBusy('Initializing task processor...');
+                app.TaskProcessorBusyCleanup = app.setBusy('Initializing task processor...');
             else
                 % Clearing the handle triggers onCleanup → setIdle(statusId),
                 % which removes the matching entry from StatusItems.
-                app.TaskProcessorBusyCleanup_ = [];
+                app.TaskProcessorBusyCleanup = [];
             end
         end
     end
