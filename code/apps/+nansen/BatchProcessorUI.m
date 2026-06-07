@@ -3,6 +3,11 @@ classdef BatchProcessorUI < handle
     properties
         ParentContainer
         BatchProcessor nansen.TaskProcessor
+        % Called with a cell array of entity ID strings; returns a session
+        % (or entity) object array. Set by the App after construction so
+        % that history items can be re-queued by reconstructing the entity
+        % object from the live MetaTable rather than the stale stored copy.
+        ReconstructEntityFcn = []
     end
 
     properties (Dependent)
@@ -483,10 +488,37 @@ classdef BatchProcessorUI < handle
             taskItems = obj.getTaskList('history', obj.SelectedRowIndices);
 
             for i = 1:numel(taskItems)
+                args = taskItems(i).args;
+
+                % History items have args{1} (the entity object) stripped.
+                % Reconstruct it from the live MetaTable using the stored
+                % entity identifier before re-submitting to the queue.
+                entityId = obj.getStoredEntityId(taskItems(i));
+                if ~isempty(entityId)
+                    if isempty(obj.ReconstructEntityFcn)
+                        uiwait(msgbox( ...
+                            sprintf(['Cannot reassign "%s": no session ' ...
+                            'reconstruction function is available.'], ...
+                            taskItems(i).name), ...
+                            'Reassign failed', 'warn'))
+                        continue
+                    end
+                    try
+                        entityObj = obj.ReconstructEntityFcn(entityId);
+                    catch ME
+                        uiwait(msgbox( ...
+                            sprintf('Cannot reassign "%s": %s', ...
+                                taskItems(i).name, ME.message), ...
+                                'Reassign failed', 'warn'))
+                        continue
+                    end
+                    args = [{entityObj}, args]; %#ok<AGROW>
+                end
+
                 taskArgs = {taskItems(i).name, taskItems(i).method, ...
-                    0, taskItems(i).args, taskItems(i).parameters, ...
-                    taskItems(i).comments} ;
-                obj.BatchProcessor.submitJob( taskArgs{:} )
+                    0, args, taskItems(i).parameters, ...
+                    taskItems(i).comments};
+                obj.BatchProcessor.submitJob(taskArgs{:})
             end
         end
 
@@ -498,6 +530,22 @@ classdef BatchProcessorUI < handle
             if evt.Indices(2) == 6
                 newComment = evt.NewValue;
                 obj.BatchProcessor.updateTaskComment(taskType, taskIdx, newComment)
+            end
+        end
+    end
+
+    methods (Access = private) % Helpers
+
+        function entityId = getStoredEntityId(~, taskItem)
+        % getStoredEntityId - Return entityId from a history item.
+        %
+        %   Returns the entityId cell array if present and non-empty.
+        %   Returns {} for legacy items that pre-date the entityId field,
+        %   which preserves backward compatibility without erroring.
+            if isfield(taskItem, 'entityId') && ~isempty(taskItem.entityId)
+                entityId = taskItem.entityId;
+            else
+                entityId = {};
             end
         end
     end

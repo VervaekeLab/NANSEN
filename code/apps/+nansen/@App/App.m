@@ -118,6 +118,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         TableIsUpdating (1,1) logical = false
         QuitRequestInProgress (1,1) logical = false
         RequestFocusOnNextMetaTableRefresh (1,1) logical = true
+        TaskProcessorBusyCleanup = [] % Holds onCleanup from setBusy for task processor status
     end
 
     properties (Constant, Hidden = true) % move to appwindow superclass
@@ -184,7 +185,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.VariableModel = nansen.VariableModel();
 
             app.loadMetaTable()
-            app.initializeBatchProcessor()
 
             warning('off', 'Nansen:OptionsManager:PresetChanged')
             app.createMenu()
@@ -1614,6 +1614,48 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.BatchProcessor.updateSessionObjectListeners(app)
         end
 
+        function entityObj = reconstructEntityFromTask(app, task)
+        %reconstructEntityFromTask Reconstruct entity object from a task item.
+        %
+        %   Returns the live entity object for the task by looking it up in
+        %   the current MetaTable via entityId. Returns [] silently if
+        %   entityId is missing (legacy items) or the session is not found.
+            entityObj = [];
+            if ~isfield(task, 'entityId') || isempty(task.entityId)
+                return
+            end
+            try
+                entityObj = app.reconstructEntityObjects(task.entityId);
+            catch
+            end
+        end
+
+        function entityObjs = reconstructEntityObjects(app, entityIds)
+        %reconstructEntityObjects Reconstruct entity objects from identifiers.
+        %
+        %   entityObjs = reconstructEntityObjects(app, entityIds) looks up
+        %   each ID in entityIds (a cell array of strings) in the current
+        %   MetaTable and returns the corresponding live entity objects.
+        %   Used when reassigning a history task back to the queue.
+            entityObjs = [];
+            for i = 1:numel(entityIds)
+                rowInd = app.MetaTable.getIndexById(entityIds{i});
+                if isempty(rowInd)
+                    error('NANSEN:App:EntityNotFound', ...
+                        'Session "%s" was not found in the current MetaTable.', ...
+                        entityIds{i})
+                end
+                obj = app.MetaTable.getMetaObjects(rowInd, ...
+                    'DataLocationModel', app.DataLocationModel, ...
+                    'VariableModel', app.VariableModel);
+                if isempty(entityObjs)
+                    entityObjs = obj;
+                else
+                    entityObjs(end+1) = obj; %#ok<AGROW>
+                end
+            end
+        end
+
         function initializeBatchProcessorUI(app, hContainer)
         %initializeBatchProcessorUI Initialize task processor applet in container.
 
@@ -1623,6 +1665,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
 
             h = nansen.BatchProcessorUI(app.BatchProcessor, hContainer);
+            h.ReconstructEntityFcn = @(entityId) app.reconstructEntityObjects(entityId);
             app.BatchProcessorUI = h;
         end
 
@@ -1862,7 +1905,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             [hDlg, dlgCleanup] = app.MessageDisplay.wait('Please wait, changing project...', ...
                 'Title', 'Changing Project'); %#ok<ASGLU>
 
-            app.BatchProcessor.closeTaskList()
+            if ~isempty(app.BatchProcessor) && isvalid(app.BatchProcessor)
+                app.BatchProcessor.closeTaskList()
+            end
 
             % Delete current file viewer
             delete(app.UiFileViewer); app.UiFileViewer = [];
@@ -1901,9 +1946,12 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             currentProjectName = app.ProjectManager.CurrentProject;
             currentProject = app.ProjectManager.getProjectObject(currentProjectName);
 
-            % Load new project's task list
-            taskListFilepath = currentProject.getDataFilePath('TaskList');
-            app.BatchProcessor.openTaskList(taskListFilepath)
+            % Reset task processor so it is re-initialised lazily on next
+            % use (tab open or session method submission).
+            if ~isempty(app.BatchProcessor) && isvalid(app.BatchProcessor)
+                delete(app.BatchProcessor)
+                app.BatchProcessor = nansen.TaskProcessor.empty;
+            end
 
             % Update menus
             app.SessionTaskMenu.updateSource(currentProject, app.CurrentItemType)
@@ -2078,10 +2126,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
                 task = evt.Task;
 
-                sessionObj = task.args{1};
-                fcnName = func2str(task.method);
-
                 if strcmp(task.status, 'Completed')
+                    % args{1} (the session object) is stripped before the
+                    % TaskAdded event fires for history items. Reconstruct
+                    % the session object from the MetaTable using entityId.
+                    sessionObj = app.reconstructEntityFromTask(task);
+                    if isempty(sessionObj); return; end
+
+                    fcnName = func2str(task.method);
                     if ismethod(sessionObj, 'updateProgress') && numel(sessionObj) == 1
                         sessionObj.updateProgress(fcnName, task.status)
                     end
@@ -2091,10 +2143,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
         function onTaskProcessorStatusChanged(app, ~, evt)
         %onTaskProcessorStatusChanged Callback for TaskProcessor Status
-            if strcmp( evt.AffectedObject.Status, 'busy' )
-                app.setBusy('Initializing task processor...')
+            if strcmp(evt.AffectedObject.Status, 'busy')
+                % Capture the cleanup handle so its statusId is registered and
+                % will be removed when the handle is cleared (see setIdle/setBusy).
+                app.TaskProcessorBusyCleanup = app.setBusy('Initializing task processor...');
             else
-                app.setIdle()
+                % Clearing the handle triggers onCleanup → setIdle(statusId),
+                % which removes the matching entry from StatusItems.
+                app.TaskProcessorBusyCleanup = [];
             end
         end
     end
@@ -2261,6 +2317,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     end
 
                 case nansen.enum.AppPage.TaskProcessor.Label
+
+                    if isempty(app.BatchProcessor) || ~isvalid(app.BatchProcessor)
+                        app.initializeBatchProcessor()
+                    end
 
                     if isempty(app.BatchProcessorUI)
                         app.initializeBatchProcessorUI(evt.NewValue)
@@ -3667,7 +3727,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
                 case {'TimerPeriod', 'RunTasksWhenQueued', 'RunTasksOnStartup'}
                     app.settings_.TaskProcessor.(name) = value;
-                    app.BatchProcessor.(name) = value;
+                    if ~isempty(app.BatchProcessor) && isvalid(app.BatchProcessor)
+                        app.BatchProcessor.(name) = value;
+                    end
 
                 case 'TableFontSize'
                     try
@@ -3892,6 +3954,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         %    Alternative    : Optional, for methods with multiple alternatives
         %    Restart        : Boolean flag, true if method should be restarted
 
+            if isempty(app.BatchProcessor) || ~isvalid(app.BatchProcessor)
+                app.initializeBatchProcessor()
+            end
+
             % Unpack variables from input struct:
             sessionMethod = taskConfiguration.Method;
             sessionObj = taskConfiguration.SessionObject;
@@ -4054,8 +4120,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             %   [ ] try/catch
             %   [ ] if session method - should run a "validation" method
 
-            if isempty(app.BatchProcessor)
-                app.BatchProcessor = nansen.TaskProcessor;
+            if isempty(app.BatchProcessor) || ~isvalid(app.BatchProcessor)
+                app.initializeBatchProcessor()
             end
 
             % Unpack variables from input struct:

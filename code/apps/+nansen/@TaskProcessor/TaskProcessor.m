@@ -371,8 +371,8 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             if isfile(filePath)
                 try
                     S = load(filePath, 'taskListQueue', 'taskListHistory');
-                    obj.TaskQueue = S.taskListQueue;
-                    obj.TaskHistory = S.taskListHistory;
+                    obj.TaskQueue = nansen.TaskProcessor.normalizeTaskItems(S.taskListQueue);
+                    obj.TaskHistory = nansen.TaskProcessor.normalizeTaskItems(S.taskListHistory);
                 catch ME
                     % Back up file
                     dateStr = char(datetime('now'), 'yyyyMMdd_HH_mm_ss');
@@ -501,9 +501,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
     end
 
     methods
-
-        function parPool = get.ActivePool(obj)
-
+        function parPool = get.ActivePool(~)
             % Todo: Does ActivePool need to be a property? Make static
             % method instead. Is it even used??
 
@@ -632,6 +630,18 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
         function addTaskToHistory(obj, taskItem)
         %addTaskToHistory Add task to history and trigger event.
 
+            % Strip the entity object from args before archiving. Session
+            % (and other handle) objects are expensive to serialise and
+            % cannot be faithfully restored from disk as live handles.
+            % The entity identifier is preserved in entityId so the object
+            % can be reconstructed from the MetaTable on demand (e.g. when
+            % reassigning a history item back to the queue). Options and
+            % any other trailing args are small plain structs and are kept.
+            taskItem.entityId = obj.extractEntityId(taskItem.args);
+            if ~isempty(taskItem.args)
+                taskItem.args = taskItem.args(2:end); % drop entity, keep opts
+            end
+
             % Add to items of the task queue.
             if isempty(obj.TaskHistory)
                 obj.TaskHistory = taskItem;
@@ -719,6 +729,44 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
 
     methods (Static)
 
+        function entityId = extractEntityId(args)
+        % extractEntityId - Extract entity identifier(s) from task args.
+        %
+        %   entityId = extractEntityId(args) returns a cell array of entity
+        %   identifier strings extracted from args{1} (the entity object).
+        %   Returns {} if args is empty or the entity has no IDNAME property.
+        %   Supports both scalar and array entity objects (multi-session tasks).
+            entityId = {};
+            if isempty(args) || isempty(args{1})
+                return
+            end
+            try
+                entityObj = args{1};
+                idName = entityObj(1).IDNAME;
+                entityId = arrayfun(@(e) e.(idName), entityObj, ...
+                    'UniformOutput', false);
+            catch
+                % Entity type does not conform to MetadataEntity interface;
+                % re-queue from history will not be available for this item.
+            end
+        end
+
+        function items = normalizeTaskItems(items)
+        % normalizeTaskItems - Add missing fields to legacy task item structs.
+        %
+        %   items = normalizeTaskItems(items) ensures that all items in the
+        %   struct array have the fields introduced by later versions of
+        %   TaskProcessor. Legacy items loaded from older task_list.mat files
+        %   will be missing these fields; without normalization, appending a
+        %   new (fully-fielded) item would throw "dissimilar structures".
+            if isempty(items)
+                return
+            end
+            if ~isfield(items, 'entityId')
+                [items.entityId] = deal({});
+            end
+        end
+
         function newTask = createTaskItem(name, func, numOut, args, optsName, comments)
 
             if nargin < 7; comments = ''; end
@@ -730,6 +778,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
             newTask.status = 'Uninitialized';
             newTask.numOut = numOut;
             newTask.args = args;
+            newTask.entityId = {};  % populated when item moves to history
             newTask.timeCreated = char(datetime('now'), 'yyyy.MM.dd HH:mm:ss');
             newTask.timeStarted = '';
             newTask.elapsedTime = '';
