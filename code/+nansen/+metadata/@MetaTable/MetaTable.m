@@ -640,7 +640,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                     newValue = {newValue};
                 end
                 obj.entries{rowInd, varName} = newValue;
-                
+
             elseif isa( obj.entries{rowInd, varName}, 'string')
                 obj.entries{rowInd, varName} = string(newValue);
             elseif isa(newValue, 'cell')
@@ -1093,45 +1093,49 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 % Determine which requested rows are already in the cache.
                 % Perform lazy eviction: a cached handle that is no longer
                 % valid is removed from the Map on first encounter.
-                ids = nansen.metadata.MetaTable.normalizeIdentifier(obj.getObjectId(tableEntries));
-                nIds = numel(ids);
-                isCachedMask = false(1, nIds);
+                allIdentifiers = obj.getObjectId(tableEntries);
+                allIdentifiers = nansen.metadata.MetaTable.normalizeIdentifier(allIdentifiers);
+                
+                numIdentifiers = numel(allIdentifiers);
+                isAlreadyCached = false(1, numIdentifiers);
 
-                for i = 1:nIds
-                    thisId = ids{i};
-                    if ~isKey(obj.MetaObjectCache, thisId); continue; end
-                    cached = obj.MetaObjectCache(thisId);
-                    if isa(cached, 'handle') && ~isvalid(cached)
-                        remove(obj.MetaObjectCache, thisId)  % lazy eviction
-                    else
-                        isCachedMask(i) = true;
+                for i = 1:numIdentifiers
+                    currentId = allIdentifiers{i};
+                    if isKey(obj.MetaObjectCache, currentId)
+                        cachedObject = obj.MetaObjectCache(currentId);
+                        if isa(cachedObject, 'handle') && ~isvalid(cachedObject)
+                            remove(obj.MetaObjectCache, currentId)  % lazy eviction
+                        else
+                            isAlreadyCached(i) = true;
+                        end
                     end
                 end
 
                 % Build new meta objects for uncached rows
                 [metaObjectsNew, statusNew] = obj.createMetaObjects( ...
-                    tableEntries(~isCachedMask, :), propertyArgs{:}, 'Waitbar', options.Waitbar);
+                    tableEntries(~isAlreadyCached, :), propertyArgs{:}, ...
+                    'Waitbar', options.Waitbar);
 
                 % Store new objects in the cache
-                idsNew = ids(~isCachedMask);
+                idsNew = allIdentifiers(~isAlreadyCached);
                 for i = 1:numel(idsNew)
                     obj.MetaObjectCache(idsNew{i}) = metaObjectsNew(i);
                 end
 
                 % Assemble outputs in the requested row order
-                if ~any(isCachedMask)
+                if ~any(isAlreadyCached)
                     metaObjects = metaObjectsNew;
                     status = statusNew;
-                elseif all(isCachedMask)
-                    cachedCell = values(obj.MetaObjectCache, ids);
+                elseif all(isAlreadyCached)
+                    cachedCell = values(obj.MetaObjectCache, allIdentifiers);
                     metaObjects = [cachedCell{:}];
-                    status = true(1, nIds);
+                    status = true(1, numIdentifiers);
                 else
-                    indCached = find(isCachedMask);
-                    cachedCell = values(obj.MetaObjectCache, ids(isCachedMask));
+                    cachedIndices = find(isAlreadyCached);
+                    cachedCell = values(obj.MetaObjectCache, allIdentifiers(isAlreadyCached));
                     metaObjectsCached = [cachedCell{:}];
-                    metaObjects = utility.insertIntoArray(metaObjectsNew, metaObjectsCached, indCached, 2);
-                    status = utility.insertIntoArray(statusNew, true(1, sum(isCachedMask)), indCached, 2);
+                    metaObjects = utility.insertIntoArray(metaObjectsNew, metaObjectsCached, cachedIndices, 2);
+                    status = utility.insertIntoArray(statusNew, true(1, sum(isAlreadyCached)), cachedIndices, 2);
                 end
             end
 
