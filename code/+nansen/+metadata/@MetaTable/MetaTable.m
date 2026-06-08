@@ -639,6 +639,8 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 elseif ~iscell(newValue) % Needs wrapping
                     newValue = {newValue};
                 end
+                obj.entries{rowInd, varName} = newValue;
+                
             elseif isa( obj.entries{rowInd, varName}, 'string')
                 obj.entries{rowInd, varName} = string(newValue);
             elseif isa(newValue, 'cell')
@@ -1069,7 +1071,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         %           (from cache or newly constructed); false when construction
         %           failed. Same length as tableEntries.
 
-                arguments
+            arguments
                 obj (1,1) nansen.metadata.MetaTable
                 rowIndices (1,:) {mustBeA(rowIndices, ["logical", "double"])}
             end
