@@ -578,7 +578,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 if isa(cachedObject, 'handle') && isvalid(cachedObject)
                     delete(cachedObject)
                 end
-                remove(obj.MetaObjectCache, thisId)
+                remove(obj.MetaObjectCache, thisId);
             end
         end
 
@@ -1104,7 +1104,7 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                     if isKey(obj.MetaObjectCache, currentId)
                         cachedObject = obj.MetaObjectCache(currentId);
                         if isa(cachedObject, 'handle') && ~isvalid(cachedObject)
-                            remove(obj.MetaObjectCache, currentId)  % lazy eviction
+                            remove(obj.MetaObjectCache, currentId);  % lazy eviction
                         else
                             isAlreadyCached(i) = true;
                         end
