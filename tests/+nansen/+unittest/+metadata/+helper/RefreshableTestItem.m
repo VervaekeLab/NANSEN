@@ -10,6 +10,7 @@ classdef RefreshableTestItem < nansen.metadata.abstract.MetadataEntity
         itemID char
         Value double
         NonnegativeValue (1,1) double {mustBeNonnegative} = 0
+        Tags = {}   % Untyped: table stores {value} cells; property holds the unwrapped content
     end
 
     methods

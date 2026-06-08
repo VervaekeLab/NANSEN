@@ -416,7 +416,7 @@ classdef DataCache < handle & matlab.mixin.CustomDisplay
         
         function reset()
             %reset Reset the DataCache
-            nansen.cache.DataCache.instance("reset")
+            nansen.cache.DataCache.instance("reset");
         end
 
         function key = buildKey(entityType, entityId, variableName)

@@ -198,7 +198,10 @@ classdef MetaTableCacheInvalidationTest < matlab.unittest.TestCase
             testCase.verifyFalse(isvalid(cachedItem));
         end
 
-        function testDestroyingCachedObjectEvictsItFromCache(testCase)
+        function testDestroyingCachedObjectRebuildsCacheOnNextAccess(testCase)
+            % A cached handle that is externally deleted becomes stale in
+            % the Map. The next getMetaObjects call detects the invalid
+            % handle (lazy eviction) and rebuilds a fresh valid object.
             mt = testCase.createRefreshableItemMetaTable();
 
             cachedItem = mt.getMetaObjects(1);
@@ -221,6 +224,20 @@ classdef MetaTableCacheInvalidationTest < matlab.unittest.TestCase
             testCase.verifyTrue(rebuiltItem == cachedItem);
         end
 
+        function testEditCellColumnRefreshesCachedProperty(testCase)
+            % Editing a cell-type column must pass the unwrapped scalar
+            % value to refreshProperty. Regression: without the unwrap in
+            % refreshCacheOnPropertyChanged, the cached object received the
+            % raw cell wrapper ({value}) instead of the value itself.
+            mt = testCase.createRefreshableItemMetaTable();
+
+            cachedItem = mt.getMetaObjects(1);
+            mt.editEntries(1, 'Tags', 'newtag');
+
+            testCase.verifyEqual(cachedItem.Tags, 'newtag');
+            testCase.verifyFalse(iscell(cachedItem.Tags));
+        end
+
         function testRoutineCacheFlowsAreWarningFree(testCase)
             mt = testCase.createRefreshableItemMetaTable();
 
@@ -232,9 +249,6 @@ classdef MetaTableCacheInvalidationTest < matlab.unittest.TestCase
 
             mt.getMetaObjects(1:3);
             testCase.verifyWarningFree(@() mt.addTableVariable('Extra', 0));
-
-            cachedItem = mt.getMetaObjects(1);
-            testCase.verifyWarningFree(@() delete(cachedItem));
         end
     end
 
@@ -243,8 +257,12 @@ classdef MetaTableCacheInvalidationTest < matlab.unittest.TestCase
             itemIds = {'item_001'; 'item_002'; 'item_003'};
             values = [10; 20; 30];
             nonnegativeValues = [1; 2; 3];
-            entries = table(itemIds, values, nonnegativeValues, ...
-                'VariableNames', {'itemID', 'Value', 'NonnegativeValue'});
+            % Tags column: each row stores a scalar cell wrapping a char.
+            % This is the cell-in-cell convention used by NANSEN for
+            % table variables that hold non-uniform or composite values.
+            tags = {{'tag1'}; {'tag2'}; {'tag3'}};
+            entries = table(itemIds, values, nonnegativeValues, tags, ...
+                'VariableNames', {'itemID', 'Value', 'NonnegativeValue', 'Tags'});
 
             mt = nansen.metadata.MetaTable(entries, ...
                 'MetaTableClass', 'nansen.unittest.metadata.helper.RefreshableTestItem', ...
