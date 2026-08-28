@@ -65,7 +65,7 @@ classdef Binary < nansen.stack.data.VirtualArray
 
             % If both ini- and yaml file exists, delete the ini file.
             iniPath = nansen.stack.virtual.Binary.getIniFilepath(obj.FilePath);
-            yamlPath = utility.path.changeFilenameExtension(iniPath, 'yaml');
+            yamlPath = nansen.util.path.changeFilenameExtension(iniPath, 'yaml');
             if isfile(iniPath) && isfile(yamlPath)
                 obj.removeIniFile(iniPath)
             end
