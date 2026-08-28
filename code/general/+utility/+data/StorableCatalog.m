@@ -230,8 +230,15 @@ classdef StorableCatalog < handle
             if strcmp(obj.SaveFormat, 'mat')
                 save(filePath, '-struct', 'S')
             elseif strcmp(obj.SaveFormat, 'json')
+                % Derive the json path from the file name only. Replacing
+                % the substring "mat" across the whole path corrupts any
+                % parent folder containing those letters, which silently
+                % writes the catalog to a different folder.
+                [folderPath, fileName] = fileparts(filePath);
+                jsonFilePath = fullfile(folderPath, [fileName, '.json']);
+
                 str = jsonencode(S, 'PrettyPrint', true);
-                utility.filewrite(strrep(filePath, 'mat', 'json'), str)
+                utility.filewrite(jsonFilePath, str)
             end
         end
     end
