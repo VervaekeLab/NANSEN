@@ -1998,6 +1998,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         function onDataLocationModelChanged(app, src, ~)
         %onDataLocationModelChanged Event callback for datalocation model
 
+            d = [];
             try
                 d = src.openProgressDialog('Update Model');
                 % Todo: Ask model app if config is valid, i.e session
@@ -2011,11 +2012,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     app.MetaTable, app.DataLocationModel);
             catch exception
                 app.MessageDisplay.alert(exception.message)
+                if ~isempty(d) && isvalid(d)
+                    close(d)
+                end
+                return
             end
 
             app.saveMetaTable()
             try
-                close(d)
+                if ~isempty(d) && isvalid(d)
+                    close(d)
+                end
             catch
                 warning('NANSEN:App:DialogCloseFailed', ...
                     'Failed to close progress dialog')
@@ -3198,6 +3205,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Open app by creating new instance or showing previous
             if isempty(app.DLModelApp) || ~app.DLModelApp.Valid
                 hApp = nansen.config.dloc.DataLocationModelApp(args{:});
+                app.setDataLocationEditorCommitValidator(hApp)
                 hApp.transferOwnership(app)
                 app.DLModelApp = hApp;
 
@@ -3205,6 +3213,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     @app.onDataLocationModelChanged);
 
             else
+                app.setDataLocationEditorCommitValidator(app.DLModelApp)
                 app.DLModelApp.Visible = 'on';
             end
         end
@@ -3362,6 +3371,22 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
         end
 
+        function validateDataLocationRelink(app, dataLocationModel)
+        %validateDataLocationRelink Guard in-place data location updates.
+            if isempty(app.MetaTable)
+                return
+            end
+            nansen.manage.validateDataLocationRelink(app.MetaTable, dataLocationModel);
+        end
+
+        function setDataLocationEditorCommitValidator(app, dataLocationModelApp)
+        %setDataLocationEditorCommitValidator Set optional save guard.
+            if isprop(dataLocationModelApp, 'CommitValidator')
+                dataLocationModelApp.CommitValidator = ...
+                    @(dlm) app.validateDataLocationRelink(dlm);
+            end
+        end
+        
         function openMetaTable(app, metaTableName)
         % openMetaTable - Open a metatable with the given name
 
