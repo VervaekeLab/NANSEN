@@ -19,7 +19,7 @@ function items = scanFolderForFileAdapters(folderPath)
     % would split a class folder into its unusable individual m-files.
     if isFileAdapterFolder(folderPath)
         items(1).sourcePath = folderPath;
-        items(1).destName   = getDestinationName(folderPath);
+        items(1).destName = getDestinationName(folderPath);
         return
     end
 
@@ -32,10 +32,10 @@ function items = scanFolderForFileAdapters(folderPath)
 
         if ~listing(i).isdir && endsWith(name, '.m')
             items(end+1).sourcePath = itemPath; %#ok<AGROW>
-            items(end).destName     = name;
+            items(end).destName = name;
         elseif listing(i).isdir && isFileAdapterFolder(itemPath)
             items(end+1).sourcePath = itemPath; %#ok<AGROW>
-            items(end).destName     = getDestinationName(itemPath);
+            items(end).destName = getDestinationName(itemPath);
         end
     end
 end
