@@ -16,6 +16,11 @@ classdef StorableCatalogFake < utility.data.StorableCatalog
         function obj = StorableCatalogFake(varargin)
             obj@utility.data.StorableCatalog(varargin{:})
         end
+
+        function item = orderItemFields(obj, item)
+            % orderItemFields - Call validateFieldOrder (for testing only)
+            item = obj.validateFieldOrder(item);
+        end
     end
 
     methods (Static)
