@@ -138,6 +138,8 @@ classdef StorableCatalog < handle
                 obj.FilePath = obj.getDefaultFilePath();
             end
 
+            obj.resolveFilePath()
+
             if ~isfile(obj.FilePath)
                 obj.initialize()
             end
@@ -193,7 +195,7 @@ classdef StorableCatalog < handle
             [S.Data(:).Uuid] = {};
             S.Data = orderfields(S.Data, ['Uuid'; origNames]);
 
-            save(obj.FilePath, '-struct', 'S')
+            obj.writeCatalogFile(S, obj.FilePath);
 
             if ~nargout
                 clear S
@@ -207,7 +209,7 @@ classdef StorableCatalog < handle
                 obj.initialize()
             end
 
-            S = load(obj.FilePath, 'Data', 'Preferences');
+            S = obj.readCatalogFile(obj.FilePath);
 
             S = obj.addUuidIfMissing(S); % Todo: Remove this on release.
 
@@ -219,22 +221,128 @@ classdef StorableCatalog < handle
 
         function save(obj)
         %save Save data to file
-            obj.saveas(obj.FilePath)
+        %
+        %   The file path follows the save format, so converting a catalog
+        %   by setting SaveFormat and saving also repoints the catalog at
+        %   the file it just wrote.
+            obj.FilePath = obj.saveas(obj.FilePath);
         end
 
-        function saveas(obj, filePath)
-        %save Save data to file at file path given as input
+        function filePath = saveas(obj, filePath)
+        %saveas Save data to file at file path given as input
             S = obj.toStruct();
             S = obj.cleanStructOnSave(S);
 
-            if strcmp(obj.SaveFormat, 'mat')
-                save(filePath, '-struct', 'S')
-            elseif strcmp(obj.SaveFormat, 'json')
-                jsonFilePath = nansen.util.path.changeFilenameExtension(...
-                    filePath, '.json');
+            filePath = obj.writeCatalogFile(S, filePath);
 
-                str = jsonencode(S, 'PrettyPrint', true);
-                utility.filewrite(jsonFilePath, str)
+            if ~nargout
+                clear filePath
+            end
+        end
+    end
+
+    methods (Access = protected) % Catalog file io
+
+        function resolveFilePath(obj)
+        %resolveFilePath Point at the catalog file that exists and adopt its format
+        %
+        %   A catalog is stored either as a mat file or as a json file.
+        %   When the requested file does not exist but its sibling in the
+        %   other format does, that sibling is used instead. This keeps
+        %   projects written before json storage loadable without changing
+        %   any caller, and lets a converted project be picked up the same
+        %   way.
+
+            if ~isfile(obj.FilePath)
+                for format = {'json', 'mat'}
+                    candidate = nansen.util.path.changeFilenameExtension(...
+                        obj.FilePath, format{1});
+                    if isfile(candidate)
+                        obj.FilePath = candidate;
+                        break
+                    end
+                end
+            end
+
+            obj.SaveFormat = utility.data.StorableCatalog.getFormatFromPath(obj.FilePath);
+        end
+
+        function filePath = writeCatalogFile(obj, S, filePath)
+        %writeCatalogFile Write a catalog struct in the catalog's save format
+        %
+        %   The extension of the written file always follows SaveFormat, so
+        %   saving a catalog whose path still carries the previous
+        %   extension writes beside it instead of overwriting it.
+
+            filePath = nansen.util.path.changeFilenameExtension(filePath, obj.SaveFormat);
+
+            if strcmp(obj.SaveFormat, 'json')
+                % Encode the items, and every struct array nested in them,
+                % as json arrays even when they hold one element or none,
+                % so that a reader in another language does not have to
+                % guess whether a value is a list.
+                S.Data = utility.data.StorableCatalog.encodeStructArraysAsLists(S.Data);
+                utility.filewrite(filePath, jsonencode(S, 'PrettyPrint', true))
+            else
+                save(filePath, '-struct', 'S')
+            end
+        end
+
+        function S = readCatalogFile(obj, filePath)
+        %readCatalogFile Read a catalog struct, restoring shapes lost by json
+
+            if ~strcmp(utility.data.StorableCatalog.getFormatFromPath(filePath), 'json')
+                S = load(filePath, 'Data', 'Preferences');
+                return
+            end
+
+            S = jsondecode(fileread(filePath));
+
+            if ~isfield(S, 'Data')
+                S.Data = obj.getEmptyItem();
+            end
+            if ~isfield(S, 'Preferences') || ~isstruct(S.Preferences)
+                S.Preferences = struct();
+            end
+
+            S.Data = utility.data.conformStructToTemplate(S.Data, obj.getBlankItem());
+            S.Data = obj.validateFieldOrder(S.Data);
+        end
+    end
+
+    methods (Static, Access = protected)
+
+        function format = getFormatFromPath(filePath)
+        %getFormatFromPath Save format implied by a catalog file extension
+            [~, ~, extension] = fileparts(filePath);
+
+            if strcmpi(extension, '.json')
+                format = 'json';
+            else
+                format = 'mat';
+            end
+        end
+
+        function value = encodeStructArraysAsLists(value)
+        %encodeStructArraysAsLists Turn every nested struct array into a cell
+        %
+        %   jsonencode writes a struct array of one element as a json
+        %   object and a struct array of several as an array, so a reader
+        %   can not tell a list of one from a single value. Encoding struct
+        %   arrays as cell arrays makes every list a json array. Reading
+        %   accepts either shape, so files written before this still load.
+
+            if isstruct(value)
+                items = num2cell(reshape(value, 1, []));
+
+                for i = 1:numel(items)
+                    for fieldName = fieldnames(items{i})'
+                        items{i}.(fieldName{1}) = ...
+                            utility.data.StorableCatalog.encodeStructArraysAsLists( ...
+                                items{i}.(fieldName{1}));
+                    end
+                end
+                value = items;
             end
         end
     end
