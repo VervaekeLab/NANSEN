@@ -1282,12 +1282,11 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
 
             obj.DataLocation(dlIdx).Subfolders = subfolders;
 
-            newValue = obj.DataLocation;
-            %newValue = obj.DataLocationModel.reduceDataLocationInfo( obj.DataLocation );
-
+            % The data location is passed on in full. It is reduced to
+            % the fields that are not specific to this computer when the
+            % metatable is written.
             eventData = uiw.event.EventData('Property', 'DataLocation', ...
-                'NewValue', newValue);%obj.DataLocation);
-            %eventData = obj.getPropertyChangedEventData('DataLocation');
+                'NewValue', obj.DataLocation);
             obj.notify('PropertyChanged', eventData)
 
             if ~nargout
@@ -1317,10 +1316,8 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
             rmdir(sessionFolder, "s")
 
             obj.DataLocation(dlIdx).Subfolders = '';
-            newValue = obj.DataLocation;
-
             eventData = uiw.event.EventData('Property', 'DataLocation', ...
-                'NewValue', newValue);%obj.DataLocation);
+                'NewValue', obj.DataLocation);
             obj.notify('PropertyChanged', eventData)
         end
 
