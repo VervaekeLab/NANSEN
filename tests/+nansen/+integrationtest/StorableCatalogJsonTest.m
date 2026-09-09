@@ -116,6 +116,97 @@ classdef StorableCatalogJsonTest < matlab.unittest.TestCase
             testCase.verifyTrue(isfile(catalogPath));
             testCase.verifyFalse(isfile(fullfile(folderPath, 'test_catalog.json')));
         end
+
+        function testItemsAreWrittenAsAJsonArray(testCase)
+            % Data must be a json array whatever its length, so that a
+            % reader in another language does not have to tell a
+            % one-element list from an object.
+            folderPath = testCase.createCatalogFolder('configs');
+            catalogPath = fullfile(folderPath, 'test_catalog.json');
+            catalog = testCase.createCatalog(catalogPath);
+
+            catalog.save();
+
+            raw = jsondecode(fileread(catalogPath));
+            testCase.verifyClass(raw.Data, 'struct');
+            testCase.verifyEqual(numel(raw.Data), 1);
+            testCase.verifyTrue(contains(fileread(catalogPath), '"Data": ['), ...
+                'A single item must still be written inside a json array.')
+        end
+
+        function testEmptyCatalogIsWrittenAsAnEmptyArray(testCase)
+            folderPath = testCase.createCatalogFolder('configs');
+            catalogPath = fullfile(folderPath, 'test_catalog.json');
+
+            catalog = nansen.integrationtest.helper.StorableCatalogFake(catalogPath);
+
+            testCase.verifyTrue(isfile(catalogPath));
+            testCase.verifyTrue(contains(fileread(catalogPath), '"Data": []'));
+            testCase.verifyClass(catalog.Data, 'struct');
+            testCase.verifyEmpty(catalog.Data);
+        end
+    end
+
+    % --------------------------------------------------------------------
+    % Reading back
+    % --------------------------------------------------------------------
+
+    methods (Test)
+
+        function testJsonCatalogRoundTrips(testCase)
+            % Writing and reloading must give back the same items, with the
+            % shapes jsondecode would otherwise have changed.
+            folderPath = testCase.createCatalogFolder('configs');
+            catalogPath = fullfile(folderPath, 'test_catalog.json');
+
+            catalog = testCase.createCatalog(catalogPath);
+            item = catalog.getBlankItem();
+            item.Name = 'Beta';
+            item.Value = 7;
+            catalog.insertItem(item);
+
+            reloaded = nansen.integrationtest.helper.StorableCatalogFake(catalogPath);
+
+            testCase.verifyEqual(size(reloaded.Data), [1 2]);
+            testCase.verifyEqual({reloaded.Data.Name}, {'Alpha', 'Beta'});
+            testCase.verifyEqual([reloaded.Data.Value], [42 7]);
+            testCase.verifyEqual(fieldnames(reloaded.Data), fieldnames(catalog.Data));
+        end
+
+        function testCatalogFallsBackToTheMatFileWhenNoJsonExists(testCase)
+            % Projects written before json storage ask for a .json path but
+            % only have a .mat beside it.
+            folderPath = testCase.createCatalogFolder('configs');
+            matPath = fullfile(folderPath, 'test_catalog.mat');
+            testCase.createCatalog(matPath);
+
+            catalog = nansen.integrationtest.helper.StorableCatalogFake( ...
+                fullfile(folderPath, 'test_catalog.json'));
+
+            testCase.verifyEqual(catalog.FilePath, matPath);
+            testCase.verifyEqual({catalog.Data.Name}, {'Alpha'});
+            testCase.verifyFalse(isfile(fullfile(folderPath, 'test_catalog.json')), ...
+                'Loading must not convert the catalog on its own.')
+        end
+
+        function testConvertingToJsonRepointsTheCatalog(testCase)
+            % Setting the format and saving is the conversion path. The mat
+            % file is left in place as a backup.
+            folderPath = testCase.createCatalogFolder('configs');
+            matPath = fullfile(folderPath, 'test_catalog.mat');
+            catalog = testCase.createCatalog(matPath);
+
+            catalog.SaveFormat = 'json';
+            catalog.save();
+
+            jsonPath = fullfile(folderPath, 'test_catalog.json');
+            testCase.verifyEqual(catalog.FilePath, jsonPath);
+            testCase.verifyTrue(isfile(jsonPath));
+            testCase.verifyTrue(isfile(matPath));
+
+            reloaded = nansen.integrationtest.helper.StorableCatalogFake(jsonPath);
+            testCase.verifyEqual({reloaded.Data.Name}, {'Alpha'});
+        end
     end
 
     methods (Static, Access = private)
