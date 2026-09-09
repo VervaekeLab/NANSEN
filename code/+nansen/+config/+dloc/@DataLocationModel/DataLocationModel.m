@@ -199,8 +199,15 @@ classdef DataLocationModel < utility.data.StorableCatalog
         end
 
         function defaultDataLocation = get.DefaultDataLocation(obj)
+        %get.DefaultDataLocation Name of the default data location, or ''
+        %
+        %   A model whose data locations can only be read from has no
+        %   default, so the preference may be absent.
 
-            if isempty(obj.Data); defaultDataLocation = ''; return; end
+            defaultDataLocation = '';
+
+            if isempty(obj.Data); return; end
+            if ~isfield(obj.Preferences, 'DefaultDataLocation'); return; end
 
             dataLocationUuid = obj.Preferences.DefaultDataLocation;
             defaultDataLocation = obj.getNameFromUuid(dataLocationUuid);
@@ -985,14 +992,20 @@ classdef DataLocationModel < utility.data.StorableCatalog
     methods (Access = private)
 
         function fixDefaultDataLocation(obj)
+        %fixDefaultDataLocation Pick a default for a model that has none
+        %
+        %   Chooses the first data location whose type may be a default,
+        %   which excludes read only types such as recorded. When no data
+        %   location qualifies the preference is left unset, because a
+        %   model that can only be read from has no default to give.
 
             % Todo: Add uuid, not name
 
-            if obj.NumDataLocations == 1
-                obj.DefaultDataLocation = obj.Data(1).Name;
-            elseif obj.NumDataLocations > 1
-                obj.Data(2).Type = nansen.config.dloc.DataLocationType('PROCESSED');
-                obj.DefaultDataLocation = obj.Data(2).Name;
+            for i = 1:obj.NumDataLocations
+                if obj.Data(i).Type.AllowAsDefault
+                    obj.DefaultDataLocation = obj.Data(i).Name;
+                    return
+                end
             end
         end
 

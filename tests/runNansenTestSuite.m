@@ -29,6 +29,9 @@ function results = runNansenTestSuite(options)
 %     % Run all unit tests in the NANSEN test suite.
 %     runNansenTestSuite('Name', 'unittest.*')
 %
+%     % Run the suite in a batch session, without the confirmation prompt.
+%     runNansenTestSuite('ClearAll', true)
+%
 %     % Run only tests that match the ProcedureName 'testSmoke*'.
 %     runNansenTestSuite('ProcedureName', 'testSmoke*')
 %
@@ -42,6 +45,11 @@ function results = runNansenTestSuite(options)
         options.Name = "*" % Includes everything by default
         options.ProcedureName = "*" % Includes everything by default
         options.Verbosity = 1
+
+        % ClearAll - Skip the confirmation before closing figures and
+        % clearing the workspace. Required to run the suite in a batch
+        % session, where there is no one to answer the prompt.
+        options.ClearAll (1,1) logical = false
     end
 
     import matlab.unittest.TestSuite
@@ -51,11 +59,12 @@ function results = runNansenTestSuite(options)
     import matlab.unittest.plugins.CodeCoveragePlugin
     import matlab.unittest.plugins.codecoverage.CoberturaFormat
 
-    [status, teardownObjects] = setupNansenTestEnvironment(); %#ok<ASGLU>
+    [status, teardownObjects] = setupNansenTestEnvironment( ...
+        'ClearAll', options.ClearAll); %#ok<ASGLU>
     if status ~= 0; error('Something went wrong'); end
 
     verbosity = options.Verbosity;
-    options = rmfield(options, 'Verbosity');
+    options = rmfield(options, {'Verbosity', 'ClearAll'});
 
     try
         nansenRootPath = nansen.rootpath();
