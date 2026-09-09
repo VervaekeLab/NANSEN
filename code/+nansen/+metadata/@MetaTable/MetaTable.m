@@ -1157,6 +1157,85 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         end
     end
 
+    methods (Access = protected) % Data location column
+
+        function tableEntries = reduceDataLocationColumn(~, tableEntries)
+        %reduceDataLocationColumn Drop the machine specific data location fields
+        %
+        %   A metatable records where a session's data is as the uuid of
+        %   the data location, the uid of its root path, and the subfolders
+        %   below that root. The absolute root path, and the name, type,
+        %   root index and disk name that go with it, are properties of the
+        %   data location model on the computer that opens the table. They
+        %   are rebuilt on load, so storing them would tie the file to the
+        %   computer that wrote it.
+
+            if isempty(tableEntries) || ...
+                    ~ismember('DataLocation', tableEntries.Properties.VariableNames)
+                return
+            end
+
+            derivedFields = nansen.config.dloc.DataLocationModel.getDerivedFieldNames();
+            columnValues = tableEntries.DataLocation;
+
+            if iscell(columnValues)
+                for i = 1:numel(columnValues)
+                    columnValues{i} = removeFields(columnValues{i}, derivedFields);
+                end
+            else
+                columnValues = removeFields(columnValues, derivedFields);
+            end
+
+            tableEntries.DataLocation = columnValues;
+        end
+
+        function tableEntries = expandDataLocationColumn(obj, tableEntries)
+        %expandDataLocationColumn Rebuild data location paths for this computer
+        %
+        %   Fills in the fields that reduceDataLocationColumn removed,
+        %   using the data location model of the current project. When
+        %   there is no project to ask, the fields stay absent and are
+        %   filled in later, when a session object is made from a row.
+
+            if isempty(tableEntries) || ...
+                    ~ismember('DataLocation', tableEntries.Properties.VariableNames)
+                return
+            end
+
+            dataLocationModel = obj.getDataLocationModel();
+            if isempty(dataLocationModel)
+                return
+            end
+
+            columnValues = tableEntries.DataLocation;
+
+            if iscell(columnValues)
+                for i = 1:numel(columnValues)
+                    columnValues{i} = expandOne(dataLocationModel, columnValues{i});
+                end
+            else
+                columnValues = expandOne(dataLocationModel, columnValues);
+            end
+
+            tableEntries.DataLocation = columnValues;
+        end
+
+        function dataLocationModel = getDataLocationModel(~)
+        %getDataLocationModel Data location model of the current project
+        %
+        %   Empty when no project is active. As elsewhere in the table
+        %   variables, this assumes the table being opened belongs to the
+        %   current project.
+
+            dataLocationModel = [];
+            try
+                dataLocationModel = nansen.DataLocationModel();
+            catch
+                % Leave empty; there is no project to expand against.
+            end
+        end
+    end
+
     methods (Access = protected)
         function S = toFileStruct(obj)
         %toFileStruct Serialize MetaTable state to struct for saving
@@ -1174,7 +1253,12 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         end
 
         function S = processFileStruct(obj, S)
-        %processFileStruct Synchronize to master before saving (if dummy)
+        %processFileStruct Reduce data locations and synchronize to master before saving
+
+            % Reduce before synchronizing, so that a master table receives
+            % entries in the stored form as well.
+            S.MetaTableEntries = obj.reduceDataLocationColumn(S.MetaTableEntries);
+
             if ~obj.IsMaster && ~isempty(S.MetaTableEntries)
                 catalog = nansen.metadata.MetaTableCatalog();
                 catalog.synchronizeToMaster(obj, S)
@@ -1183,11 +1267,13 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         end
 
         function onAfterLoad(obj)
-        %onAfterLoad Synchronize from master after loading (if dummy)
+        %onAfterLoad Synchronize from master and rebuild data location paths
             if ~obj.IsMaster
                 catalog = nansen.metadata.MetaTableCatalog();
                 catalog.synchronizeFromMaster(obj)
             end
+
+            obj.entries = obj.expandDataLocationColumn(obj.entries);
 
             % Check that members and entries correspond
             if ~isempty(obj.members)
@@ -1761,4 +1847,26 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             filePath = fullfile(catalogFolder, entry.FileName{1});
         end
     end
+end
+
+function value = removeFields(value, fieldNames)
+%removeFields Remove the named fields from a struct, ignoring absent ones
+    if ~isstruct(value); return; end
+
+    for i = 1:numel(fieldNames)
+        if isfield(value, fieldNames{i})
+            value = rmfield(value, fieldNames{i});
+        end
+    end
+end
+
+function value = expandOne(dataLocationModel, value)
+%expandOne Expand one entry's data location struct
+%
+%   Entries written before data locations were given a uuid store a struct
+%   whose fields are data location names. Those are left for the legacy
+%   handling in the DataLocation table variable.
+    if ~isstruct(value) || isempty(value) || ~isfield(value, 'Uuid'); return; end
+
+    value = dataLocationModel.expandDataLocationInfo(value);
 end
