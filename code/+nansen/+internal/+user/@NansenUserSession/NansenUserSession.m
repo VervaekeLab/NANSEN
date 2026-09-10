@@ -419,31 +419,64 @@ classdef NansenUserSession < handle
                 return
             end
 
-            legacyFolder = fullfile(preferenceDirectory, 'projects');
-            if ~isfolder(legacyFolder); return; end
+            % The task list and the watched folder catalog used to sit in
+            % the settings folder. They name state of one machine, so they
+            % go to the machine specific folder rather than being shared.
+            folderNames = ["projects", "settings", "custom_options"];
 
-            targetFolder = fullfile(userDataDirectory, 'projects');
+            legacyFolders = fullfile(preferenceDirectory, folderNames);
+            if ~any( isfolder(legacyFolders) ); return; end
 
             try
-                nansen.internal.system.moveFolderContents(legacyFolder, targetFolder)
+                for i = 1:numel(folderNames)
+                    if ~isfolder(legacyFolders(i)); continue; end
+
+                    nansen.internal.system.moveFolderContents( ...
+                        char(legacyFolders(i)), ...
+                        char(fullfile(userDataDirectory, folderNames(i))))
+
+                    rmdir(legacyFolders(i))
+                end
             catch ME
                 % Keep using the old location, so that a failed move does
                 % not start NANSEN with an empty project catalog.
                 obj.Preferences.UserDataDirectory = string(preferenceDirectory);
 
                 warning('NANSEN:UserSession:UserDataMigrationFailed', ...
-                    ['NANSEN could not move its project data out of MATLAB''s ' ...
+                    ['NANSEN could not move its data out of MATLAB''s ' ...
                      'preference directory, and keeps using "%s" for now.\n%s'], ...
                     preferenceDirectory, ME.message)
                 return
             end
 
-            rmdir(legacyFolder)
+            obj.moveMachineLocalSettings(userDataDirectory)
             obj.repointMigratedProjectPaths(preferenceDirectory, userDataDirectory)
 
-            fprintf(['NANSEN''s project data was moved out of MATLAB''s preference ' ...
-                'directory to\n"%s",\nso that it is kept when MATLAB is upgraded.\n'], ...
-                userDataDirectory)
+            fprintf(['NANSEN''s project catalog and configurations were moved out of ' ...
+                'MATLAB''s\npreference directory to "%s",\nso that they are kept ' ...
+                'when MATLAB is upgraded.\n'], userDataDirectory)
+        end
+
+        function moveMachineLocalSettings(~, userDataDirectory)
+        %moveMachineLocalSettings Separate machine state from shared settings
+        %
+        %   The task list and the watched folder catalog were kept in the
+        %   settings folder, which is now shared. They name queued work and
+        %   paths on one machine, so they belong in the machine specific
+        %   folder instead.
+
+            machineLocalFileNames = ["task_list.mat", "watch_folder_catalog.mat"];
+
+            settingsFolder = fullfile(userDataDirectory, 'settings');
+            localFolder = nansen.localdatadir();
+
+            for i = 1:numel(machineLocalFileNames)
+                sourcePath = fullfile(settingsFolder, machineLocalFileNames(i));
+                if ~isfile(sourcePath); continue; end
+
+                if ~isfolder(localFolder); mkdir(localFolder); end
+                movefile(sourcePath, fullfile(localFolder, machineLocalFileNames(i)))
+            end
         end
 
         function repointMigratedProjectPaths(~, oldDirectory, newDirectory)
