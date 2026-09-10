@@ -43,6 +43,13 @@ classdef CreateProjectTest < matlab.unittest.TestCase
             testCase.ProjectManager.createProject(name, 'A project', char(projectRootDir))
         end
 
+        function folderPath = makeFolderHolding(testCase, entryName)
+        %makeFolderHolding Create a folder that holds one named file
+            folderPath = fullfile(testCase.RootFolder, 'occupied');
+            mkdir(folderPath)
+            utility.filewrite(char(fullfile(folderPath, entryName)), 'in the way')
+        end
+
         function tryCreateProject(testCase, name, projectRootDir)
         %tryCreateProject Attempt a creation, keeping the error out of the way
             try
@@ -106,15 +113,35 @@ classdef CreateProjectTest < matlab.unittest.TestCase
             testCase.verifyEqual(testCase.ProjectManager.CurrentProject, 'alpha')
         end
 
+        function testANonEmptyFolderIsRefused(testCase)
+            occupiedFolder = testCase.makeFolderHolding('notes.txt');
+
+            testCase.verifyError( ...
+                @() testCase.ProjectManager.createProject('beta', 'A project', char(occupiedFolder)), ...
+                'NANSEN:ProjectManager:ProjectFolderExists')
+        end
+
+        function testAFolderHoldingOnlyAHiddenFileIsRefused(testCase)
+        %testAFolderHoldingOnlyAHiddenFileIsRefused Hidden entries count
+        %
+        %   A failed creation empties the folder it was given, so a folder
+        %   holding a .git directory or a similar hidden entry must not be
+        %   read as empty and accepted.
+
+            occupiedFolder = testCase.makeFolderHolding('.hidden');
+
+            testCase.verifyError( ...
+                @() testCase.ProjectManager.createProject('beta', 'A project', char(occupiedFolder)), ...
+                'NANSEN:ProjectManager:ProjectFolderExists')
+        end
+
         function testTheCurrentProjectSurvivesTheFolderExistsCheck(testCase)
         %testTheCurrentProjectSurvivesTheFolderExistsCheck Refusal changes nothing
         %
         %   The current project used to be unset before this check ran, so
         %   a refused creation left no project selected.
 
-            occupiedFolder = fullfile(testCase.RootFolder, 'occupied');
-            mkdir(occupiedFolder)
-
+            occupiedFolder = testCase.makeFolderHolding('notes.txt');
             testCase.createProject('alpha');
 
             testCase.verifyError( ...
@@ -122,6 +149,32 @@ classdef CreateProjectTest < matlab.unittest.TestCase
                 'NANSEN:ProjectManager:ProjectFolderExists')
 
             testCase.verifyEqual(testCase.ProjectManager.CurrentProject, 'alpha')
+        end
+
+        function testAProjectCanBeCreatedIntoAnEmptyFolder(testCase)
+            preparedFolder = fullfile(testCase.RootFolder, 'prepared');
+            mkdir(preparedFolder)
+
+            testCase.ProjectManager.createProject('beta', 'A project', char(preparedFolder))
+
+            testCase.verifyTrue(testCase.ProjectManager.containsProject('beta'))
+            testCase.verifyTrue(isfile(fullfile(preparedFolder, 'project.nansen.json')))
+        end
+
+        function testAFolderThatWasThereBeforeIsKeptWhenCreationFails(testCase)
+        %testAFolderThatWasThereBeforeIsKeptWhenCreationFails Not ours to remove
+        %
+        %   Cleanup empties a folder the caller prepared rather than
+        %   removing it, since removing it would delete a folder this call
+        %   did not create.
+
+            preparedFolder = fullfile(testCase.RootFolder, 'not-an-identifier');
+            mkdir(preparedFolder)
+
+            testCase.tryCreateProject('not-an-identifier', preparedFolder)
+
+            testCase.verifyTrue(isfolder(preparedFolder))
+            testCase.verifyEmpty(setdiff({dir(preparedFolder).name}, {'.', '..'}))
         end
 
         function testCreationCanLeaveTheCurrentProjectAlone(testCase)
