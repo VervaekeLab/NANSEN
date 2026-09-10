@@ -28,9 +28,11 @@ classdef ProjectFixture < matlab.unittest.fixtures.Fixture
             warnState = warning('off', 'Nansen:NoProjectsAvailable');
             warningCleanup = onCleanup(@() warning(warnState));
 
+            % ConfirmNewUser is disabled because the fixture creates a
+            % throwaway profile and must not block on user input.
             fixture.UserSession = ...
                 nansen.internal.user.NansenUserSession.instance(...
-                userProfileName, "force");
+                userProfileName, "force", ConfirmNewUser=false);
 
             datasetFolder = fullfile(F.Folder, 'mock_dataset');
             projectFolder = fullfile(F.Folder, 'mock_project');

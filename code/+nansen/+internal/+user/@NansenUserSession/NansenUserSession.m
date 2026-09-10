@@ -7,8 +7,8 @@ classdef NansenUserSession < handle
 %   session at a later time. It should work behind the scenes, but users
 %   are free to interact with it directly.
 %
-%   Note: The class is created to handle multiple users/user profiles, but
-%   this functionality is not supported yet.
+%   Note: Each user has a separate profile, holding that user's
+%   preferences and projects. Only one profile is active at a time.
 %
 %   Syntax:
 %       nansen.internal.user.NansenUserSession.instance() returns a
@@ -67,7 +67,7 @@ classdef NansenUserSession < handle
 
     methods (Static)
         %instance Return a singleton instance of the NansenUserSession
-        obj = instance(userName, mode, skipProjectCheck) % Method in separate file
+        obj = instance(userName, mode, skipProjectCheck, options) % Method in separate file
 
         function reset()
             singletonName = nansen.internal.user.NansenUserSession.SINGLETON_NAME;
@@ -307,7 +307,156 @@ classdef NansenUserSession < handle
                 className = mfilename('class');
                 userName = nansen.internal.introspection.getConstantPropertyValue(className, 'DEFAULT_USER_NAME');
             end
-            preferenceDirectory = fullfile(prefdir, 'Nansen', userName);
+            userRootDirectory = ...
+                nansen.internal.user.NansenUserSession.getUserRootDirectory();
+            preferenceDirectory = fullfile(userRootDirectory, userName);
+        end
+
+        function userRootDirectory = getUserRootDirectory()
+        % getUserRootDirectory - Get the directory holding every user profile
+        %
+        %   Each user profile is a subdirectory of this directory, named
+        %   after the user.
+
+            userRootDirectory = fullfile(prefdir, 'Nansen');
+        end
+
+        function userNames = listUserNames()
+        % listUserNames - List user profiles that exist on this computer
+        %
+        %   userNames = listUserNames() returns a sorted string array with
+        %   the name of every user profile which has a preference directory.
+
+            userRootDirectory = ...
+                nansen.internal.user.NansenUserSession.getUserRootDirectory();
+
+            if ~isfolder(userRootDirectory)
+                userNames = string.empty(1, 0);
+                return
+            end
+
+            listing = dir(userRootDirectory);
+            listing = listing([listing.isdir]);
+
+            userNames = reshape(string({listing.name}), 1, []);
+            userNames(startsWith(userNames, ".")) = []; % Drop "." and ".."
+            userNames = sort(userNames);
+        end
+
+        function tf = isExistingUser(userName)
+        % isExistingUser - Check whether a user profile exists on this computer
+        %
+        %   tf = isExistingUser(userName) returns true if a profile with
+        %   exactly this name exists.
+        %
+        %   The names are compared directly rather than by testing whether
+        %   the preference directory exists. On macOS and Windows the file
+        %   system matches names case insensitively, so isfolder would
+        %   accept "John" as the existing profile "john" and the session
+        %   would then run under a name that does not match the profile
+        %   directory it reads and writes.
+
+            arguments
+                userName (1,1) string
+            end
+            userNames = nansen.internal.user.NansenUserSession.listUserNames();
+            tf = any(userNames == userName);
+        end
+    end
+
+    methods (Static, Access = private)
+
+        function tf = askYesNo(message)
+        % askYesNo - Ask the user a yes/no question in the command window
+        %
+        %   tf = askYesNo(message) displays message followed by a "(y/n)"
+        %   prompt, and returns true for yes and false for no.
+        %
+        %   Throws NANSEN:UserSession:UnexpectedInput if the answer is
+        %   neither.
+
+            arguments
+                message (1,1) string
+            end
+
+            fprintf(newline)
+            answer = string( input(char(message + newline + "(y/n): "), 's') );
+            fprintf(newline)
+
+            switch lower(strtrim(answer))
+                case {"y", "yes"}
+                    tf = true;
+                case {"n", "no"}
+                    tf = false;
+                otherwise
+                    error("NANSEN:UserSession:UnexpectedInput", ...
+                        "Unexpected input '%s'. Enter 'y' or 'n'.", answer)
+            end
+        end
+
+        function confirmNewUserProfile(userName)
+        % confirmNewUserProfile - Confirm creation of an unknown user profile
+        %
+        %   Starting a session for a user name that does not exist silently
+        %   creates a new user profile, so a typo in the name leaves an
+        %   unwanted profile behind. Ask for confirmation before that
+        %   happens and list the profiles that already exist, so a
+        %   misspelled name is easy to spot.
+        %
+        %   Throws NANSEN:UserSession:UserProfileCreationAborted if the user
+        %   declines to create the profile.
+
+            arguments
+                userName (1,1) string
+            end
+
+            import nansen.internal.user.NansenUserSession
+
+            % The default profile is created implicitly the first time
+            % nansen runs, so it never needs to be confirmed.
+            if userName == NansenUserSession.DEFAULT_USER_NAME
+                return
+            end
+
+            if NansenUserSession.isExistingUser(userName)
+                return
+            end
+
+            % Nobody is present to answer in a non-interactive session.
+            if batchStartupOptionUsed
+                return
+            end
+
+            existingUserNames = NansenUserSession.listUserNames();
+
+            messageLines = "No NANSEN user profile named '" + userName + "' exists.";
+
+            % A name differing only by capitalisation is the most likely
+            % typo, and on macOS and Windows the new profile would share
+            % the existing profile's directory. Call it out separately.
+            similarUserNames = existingUserNames( ...
+                lower(existingUserNames) == lower(userName));
+            if ~isempty(similarUserNames)
+                messageLines(end+1) = "An existing profile differs only by " + ...
+                    "capitalisation: " + strjoin(similarUserNames, ", ");
+            end
+
+            if isempty(existingUserNames)
+                messageLines(end+1) = "No user profiles exist on this computer yet.";
+            else
+                messageLines(end+1) = "Existing user profiles: " + ...
+                    strjoin(existingUserNames, ", ");
+            end
+
+            messageLines(end+1) = "Do you want to create a new user profile named '" + ...
+                userName + "'?";
+
+            if ~NansenUserSession.askYesNo( strjoin(messageLines, newline) )
+                error("NANSEN:UserSession:UserProfileCreationAborted", ...
+                    "Creation of the user profile '%s' was aborted. " + ...
+                    "Start a session using the name of an existing user profile.", ...
+                    userName)
+            end
         end
     end
 end
