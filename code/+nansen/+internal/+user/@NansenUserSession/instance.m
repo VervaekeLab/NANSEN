@@ -1,10 +1,15 @@
-function obj = instance(userName, mode, skipProjectCheck)
+function obj = instance(userName, mode, skipProjectCheck, options)
 %instance Return a singleton instance of the NansenUserSession
 %
 %   Input arguments:
 %       userName    - Not supported yet
 %       mode        - char, 'check' (default) | 'force' | 'nocreate' | 'reset'
 %       skipProjectCheck - logical (default = false)
+%
+%   Name-value arguments:
+%       ConfirmNewUser - logical (default = true). Ask the user to confirm
+%           before a user profile is created for a name that does not exist
+%           yet. Set to false for programmatic use, e.g. in tests.
 
 %   Note: to achieve a persistent singleton instance that survives a "clear
 %   all" statement, the singleton instance is stored in the graphics root
@@ -18,6 +23,7 @@ function obj = instance(userName, mode, skipProjectCheck)
         mode (1,1) string ...
             {mustBeMember(mode, ["check", "force", "nocreate", "reset"])} = "check"
         skipProjectCheck (1,1) logical = false
+        options.ConfirmNewUser (1,1) logical = true
     end
 
     if ismissing(userName) || isempty(char(userName))
@@ -30,6 +36,13 @@ function obj = instance(userName, mode, skipProjectCheck)
     SINGLETON_NAME = nansen.internal.user.NansenUserSession.SINGLETON_NAME;
 
     userName = string(userName); mode = string(mode);
+
+    % Guard against a typo in the user name silently creating a new user
+    % profile. This runs before an active session is closed, so declining
+    % leaves the current session untouched.
+    if options.ConfirmNewUser && ~any(mode == ["nocreate", "reset"])
+        nansen.internal.user.NansenUserSession.confirmNewUserProfile(userName)
+    end
 
     resetUserSessionInstance = false;
     userSessionObject = getappdata(0, SINGLETON_NAME);

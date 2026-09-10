@@ -67,7 +67,7 @@ classdef NansenUserSession < handle
 
     methods (Static)
         %instance Return a singleton instance of the NansenUserSession
-        obj = instance(userName, mode, skipProjectCheck) % Method in separate file
+        obj = instance(userName, mode, skipProjectCheck, options) % Method in separate file
 
         function reset()
             singletonName = nansen.internal.user.NansenUserSession.SINGLETON_NAME;
@@ -308,6 +308,104 @@ classdef NansenUserSession < handle
                 userName = nansen.internal.introspection.getConstantPropertyValue(className, 'DEFAULT_USER_NAME');
             end
             preferenceDirectory = fullfile(prefdir, 'Nansen', userName);
+        end
+
+        function userNames = listUserNames()
+        % listUserNames - List user profiles that exist on this computer
+        %
+        %   userNames = listUserNames() returns a sorted string array with
+        %   the name of every user profile which has a preference directory.
+
+            userRootDirectory = fileparts( ...
+                nansen.internal.user.NansenUserSession.getPrefdir("default"));
+
+            if ~isfolder(userRootDirectory)
+                userNames = string.empty(1, 0);
+                return
+            end
+
+            listing = dir(userRootDirectory);
+            listing = listing([listing.isdir]);
+
+            userNames = string({listing.name});
+            userNames(startsWith(userNames, ".")) = [];
+            userNames = sort(userNames);
+        end
+
+        function tf = isExistingUser(userName)
+        % isExistingUser - Check whether a user profile exists on this computer
+        %
+        %   tf = isExistingUser(userName) returns true if a preference
+        %   directory has been created for the given user name.
+
+            arguments
+                userName (1,1) string
+            end
+            preferenceDirectory = ...
+                nansen.internal.user.NansenUserSession.getPrefdir(userName);
+            tf = isfolder(preferenceDirectory);
+        end
+    end
+
+    methods (Static, Access = private)
+
+        function confirmNewUserProfile(userName)
+        % confirmNewUserProfile - Confirm creation of an unknown user profile
+        %
+        %   Starting a session for a user name that does not exist silently
+        %   creates a new user profile, so a typo in the name leaves an
+        %   unwanted profile behind. Ask for confirmation before that
+        %   happens and list the profiles that already exist, so a
+        %   misspelled name is easy to spot.
+        %
+        %   Throws NANSEN:UserSession:UserProfileCreationAborted if the user
+        %   declines to create the profile.
+
+            import nansen.internal.user.NansenUserSession
+
+            % The default profile is created implicitly the first time
+            % nansen runs, so it never needs to be confirmed.
+            if userName == NansenUserSession.DEFAULT_USER_NAME
+                return
+            end
+
+            if NansenUserSession.isExistingUser(userName)
+                return
+            end
+
+            % Nobody is present to answer in a non-interactive session.
+            if batchStartupOptionUsed
+                return
+            end
+
+            existingUserNames = NansenUserSession.listUserNames();
+            if isempty(existingUserNames)
+                existingProfileInfo = "No user profiles exist on this computer yet.";
+            else
+                existingProfileInfo = "Existing user profiles: " + ...
+                    strjoin(existingUserNames, ", ");
+            end
+
+            message = sprintf( ...
+                "\nNo NANSEN user profile named '%s' exists.\n%s\n" + ...
+                "Do you want to create a new user profile named '%s'?\n(y/n): ", ...
+                userName, existingProfileInfo, userName);
+
+            answer = string( input(message, 's') );
+            fprintf(newline)
+
+            switch lower(strtrim(answer))
+                case {"y", "yes"}
+                    % Continue and let the constructor create the profile.
+                case {"n", "no"}
+                    error("NANSEN:UserSession:UserProfileCreationAborted", ...
+                        "Creation of the user profile '%s' was aborted. " + ...
+                        "Start a session using the name of an existing user profile.", ...
+                        userName)
+                otherwise
+                    error("NANSEN:UserSession:UnexpectedInput", ...
+                        "Unexpected input '%s'. Enter 'y' or 'n'.", answer)
+            end
         end
     end
 end
