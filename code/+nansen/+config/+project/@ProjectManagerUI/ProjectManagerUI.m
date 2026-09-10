@@ -36,6 +36,15 @@ classdef ProjectManagerUI < handle
 
     properties (Constant, Access = private)
         DefaultColumnWidth = {65, 100, 100, 200, 500};
+
+        % CATALOG_CONTROL_HEIGHT - Height of the catalog location controls
+        CATALOG_CONTROL_HEIGHT = 25
+
+        % CATALOG_CONTROL_SPACING - Gap between the table and those controls
+        CATALOG_CONTROL_SPACING = 10
+
+        % CATALOG_BUTTON_WIDTH - Width of the catalog location button
+        CATALOG_BUTTON_WIDTH = 150
     end
 
     methods % Constructor
@@ -336,8 +345,44 @@ classdef ProjectManagerUI < handle
             obj.UIControls.ProjectTable = uitable(obj.TabList(tabIdx));
             obj.UIControls.ProjectTable.Position = [10,10,530,200];
 
+            % Created before the resize listener, because positioning the
+            % table also positions these controls.
+            obj.createCatalogLocationControls(obj.TabList(tabIdx))
+
             addlistener(obj.UIControls.ProjectTable, ...
                 "SizeChanged", @(s,e) obj.setProjectTablePosition);
+        end
+
+        function createCatalogLocationControls(obj, hTab)
+        %createCatalogLocationControls Create controls for the catalog location
+        %
+        %   These show where the project catalog is saved, and let the user
+        %   move it somewhere else.
+
+            obj.UILabels.CatalogDirectory = uilabel(hTab);
+            obj.UILabels.CatalogDirectory.FontName = 'Segoe UI';
+            obj.UILabels.CatalogDirectory.VerticalAlignment = 'center';
+
+            hButton = uibutton(hTab, 'push');
+            hButton.Text = 'Change Location...';
+            hButton.FontName = 'Segoe UI';
+            hButton.FontWeight = 'bold';
+            hButton.ButtonPushedFcn = @(s, e) obj.onChangeCatalogDirectoryButtonPushed;
+            hButton.Tooltip = 'Select a folder to save the project catalog in';
+
+            obj.UIControls.ChangeCatalogDirectoryButton = hButton;
+
+            obj.updateCatalogDirectoryLabel()
+        end
+
+        function updateCatalogDirectoryLabel(obj)
+        %updateCatalogDirectoryLabel Show where the project catalog is saved
+
+            folderPath = obj.ProjectManager.CatalogDirectory;
+
+            obj.UILabels.CatalogDirectory.Text = ...
+                sprintf('Catalog location: %s', folderPath);
+            obj.UILabels.CatalogDirectory.Tooltip = folderPath;
         end
 
         function createProjectTable(obj)
@@ -394,9 +439,17 @@ classdef ProjectManagerUI < handle
         end
 
         function setProjectTablePosition(obj)
-        %setProjectTablePosition Position the table within the UI
+        %setProjectTablePosition Position the controls on the Manage Projects tab
+        %
+        %   The table and the catalog location controls share the available
+        %   space, so they are positioned together.
 
             margin = 10;
+
+            % Strip along the bottom for the catalog location controls
+            reservedHeight = obj.CATALOG_CONTROL_HEIGHT + obj.CATALOG_CONTROL_SPACING;
+
+            hTab = obj.TabList( strcmp({obj.TabList.Title}, 'Manage Projects') );
 
             % We need the figure to draw before we position the table in
             % the parent panel. Do a small polling loop
@@ -405,9 +458,14 @@ classdef ProjectManagerUI < handle
 
             for iTry = 1:numTries
                 try
-                    parentPosition = obj.TabList(2).InnerPosition;
+                    parentPosition = hTab.InnerPosition;
+
                     tablePosition = parentPosition + [1, 1, -2, -2] * margin;
+                    tablePosition(2) = tablePosition(2) + reservedHeight;
+                    tablePosition(4) = max(1, tablePosition(4) - reservedHeight);
+
                     obj.UIControls.ProjectTable.Position = tablePosition;
+                    obj.setCatalogLocationControlPosition(tablePosition)
                     break
 
                 catch exception
@@ -429,6 +487,24 @@ classdef ProjectManagerUI < handle
             else
                 obj.UIControls.ProjectTable.ColumnWidth = obj.DefaultColumnWidth;
             end
+        end
+
+        function setCatalogLocationControlPosition(obj, tablePosition)
+        %setCatalogLocationControlPosition Place the controls below the table
+
+            controlHeight = obj.CATALOG_CONTROL_HEIGHT;
+            buttonWidth = obj.CATALOG_BUTTON_WIDTH;
+
+            y = tablePosition(2) - controlHeight - obj.CATALOG_CONTROL_SPACING;
+            buttonX = tablePosition(1) + tablePosition(3) - buttonWidth;
+
+            obj.UIControls.ChangeCatalogDirectoryButton.Position = ...
+                [buttonX, y, buttonWidth, controlHeight];
+
+            % The label takes whatever width the button leaves behind
+            labelWidth = max(1, buttonX - tablePosition(1) - obj.CATALOG_CONTROL_SPACING);
+            obj.UILabels.CatalogDirectory.Position = ...
+                [tablePosition(1), y, labelWidth, controlHeight];
         end
 
         function createTableContextMenu(obj)
@@ -781,6 +857,69 @@ classdef ProjectManagerUI < handle
                 case 'Update project folder location'
                     obj.uiLocateProjectFolder(obj.SelectedRow)
             end
+        end
+
+        function onChangeCatalogDirectoryButtonPushed(obj)
+        %onChangeCatalogDirectoryButtonPushed Move the project catalog
+        %
+        %   Lets the user select a folder to save the project catalog in.
+
+            hFigure = ancestor(obj.hParent, 'figure');
+
+            message = sprintf([ ...
+                'The project catalog is currently saved in:\n%s\n\n', ...
+                'Select a folder without a project catalog to move it to. ', ...
+                'MATLAB''s preference directory belongs to a single MATLAB ', ...
+                'release, so keeping the catalog elsewhere preserves your ', ...
+                'projects when you upgrade MATLAB.'], ...
+                obj.ProjectManager.CatalogDirectory);
+
+            selection = uiconfirm(hFigure, message, 'Change Catalog Location', ...
+                'Options', {'Select Folder...', 'Cancel'}, ...
+                'DefaultOption', 1, 'CancelOption', 2);
+
+            if ~strcmp(selection, 'Select Folder...'); return; end
+
+            % Minimize figure, because folder dialog appear below figure
+            hFigure.WindowState = 'minimized';
+            folderPath = uigetdir(obj.ProjectManager.CatalogDirectory);
+
+            % Bring figure back to view
+            hFigure.WindowState = 'normal';
+            figure( hFigure )
+
+            if isequal(folderPath, 0); return; end
+
+            previousDirectory = obj.ProjectManager.CatalogDirectory;
+
+            progressDlg = uiprogressdlg(hFigure, ...
+                'Message', 'Moving project catalog...', ...
+                'Title', 'Please wait!', ...
+                'Indeterminate', 'on');
+            progressDialogCleanup = onCleanup(@() delete(progressDlg));
+
+            try
+                obj.ProjectManager.setCatalogDirectory(folderPath)
+            catch ME
+                clear progressDialogCleanup
+                obj.uialert(ME.message, 'Catalog Not Moved', 'error')
+                return
+            end
+            clear progressDialogCleanup
+
+            if isequal(obj.ProjectManager.CatalogDirectory, previousDirectory)
+                % The catalog is already saved in the selected folder
+                return
+            end
+
+            % A project folder located inside the catalog directory moves
+            % with it, so the paths shown in the table can have changed.
+            obj.updateProjectTableData()
+            obj.updateCatalogDirectoryLabel()
+
+            message = sprintf('The project catalog was moved to:\n%s', ...
+                obj.ProjectManager.CatalogDirectory);
+            obj.uialert(message, 'Catalog Moved', 'success')
         end
 
         function onAddExistingProjectButtonPushed(obj)
