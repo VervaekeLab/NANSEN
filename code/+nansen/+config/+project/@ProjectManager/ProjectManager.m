@@ -56,8 +56,6 @@ classdef ProjectManager < handle
         % CATALOG_FOLDER_NAME - Catalog folder within the user data directory
         CATALOG_FOLDER_NAME = "projects"
 
-        % LOCAL_FOLDER_NAME - Folder holding the per-machine subfolders
-        LOCAL_FOLDER_NAME = "local"
     end
 
     events (NotifyAccess = private)
@@ -663,46 +661,17 @@ classdef ProjectManager < handle
 
     methods % Catalog location
 
-        function folderPath = getLocalDirectory(obj)
-        %getLocalDirectory Get the directory for machine specific configurations
+        function folderPath = getLocalDirectory(obj) %#ok<MANU>
+        %getLocalDirectory Get the directory for machine specific project configs
         %
         %   folderPath = getLocalDirectory(obj) returns the directory
         %   holding project configurations that belong to this machine
         %   only, such as local data root paths and task lists.
         %
-        %   The user data directory can be a shared or a synchronized
-        %   folder, so these configurations are kept in a subfolder keyed
-        %   by a machine identifier. Two machines sharing a user data
-        %   directory would otherwise overwrite each other's
-        %   configurations.
-        %
-        %   See also nansen.internal.user.NansenUserSession/setUserDataDirectory
+        %   See also nansen.localdatadir
 
-            import nansen.config.project.ProjectManager
-
-            folderPath = char( fullfile(obj.CatalogDirectory, ...
-                ProjectManager.LOCAL_FOLDER_NAME, ProjectManager.getMachineIdentifier()) );
-        end
-    end
-
-    methods (Static, Access = private) % Catalog location helpers
-
-        function machineIdentifier = getMachineIdentifier()
-        %getMachineIdentifier Get an identifier for the current machine
-        %
-        %   This is the same identifier the data location model uses as its
-        %   SourceID, so that a project shared between machines resolves its
-        %   local configurations and its local data root paths by one key.
-        %
-        %   The identifier is cached, because resolving it queries the
-        %   operating system and it is needed on every local path lookup.
-
-            persistent cachedIdentifier
-
-            if isempty(cachedIdentifier)
-                cachedIdentifier = string( utility.system.getComputerName(true) );
-            end
-            machineIdentifier = cachedIdentifier;
+            folderPath = char( fullfile(nansen.localdatadir(), ...
+                nansen.config.project.ProjectManager.CATALOG_FOLDER_NAME) );
         end
     end
 

@@ -156,14 +156,48 @@ classdef UserDataDirectoryTest < matlab.unittest.TestCase
         function testLocalDirectoryIsKeyedByMachine(testCase)
         % Machines sharing a user data directory must not share this folder
 
-            localDirectory = testCase.ProjectManager.getLocalDirectory();
+            machineIdentifier = string(utility.system.getComputerName(true));
 
-            testCase.verifyTrue( startsWith(localDirectory, ...
-                char(fullfile(testCase.DefaultDirectory, 'projects', 'local'))) )
+            testCase.verifyEqual(nansen.localdatadir(), ...
+                char(fullfile(testCase.DefaultDirectory, 'local', machineIdentifier)))
 
-            [~, machineIdentifier] = fileparts(localDirectory);
-            testCase.verifyEqual( ...
-                string(machineIdentifier), string(utility.system.getComputerName(true)))
+            % Project configurations sit under the machine folder
+            testCase.verifyEqual(testCase.ProjectManager.getLocalDirectory(), ...
+                char(fullfile(nansen.localdatadir(), 'projects')))
+        end
+
+        function testSharedConfigurationsResolveUnderUserData(testCase)
+        % Settings and options belong to the user, not to a machine
+
+            testCase.verifyEqual(nansen.localpath('user_settings'), ...
+                char(fullfile(testCase.DefaultDirectory, 'settings')))
+            testCase.verifyEqual(nansen.localpath('custom_options'), ...
+                char(fullfile(testCase.DefaultDirectory, 'custom_options')))
+        end
+
+        function testMachineStateResolvesUnderLocalDirectory(testCase)
+        % Queued tasks and watched folders name state of one machine
+
+            testCase.verifyEqual(nansen.localpath('TaskList'), ...
+                char(fullfile(nansen.localdatadir(), 'task_list.mat')))
+            testCase.verifyEqual(nansen.localpath('WatchFolderCatalog'), ...
+                char(fullfile(nansen.localdatadir(), 'watch_folder_catalog.mat')))
+        end
+
+        function testSharedConfigurationsMoveWithTheDirectory(testCase)
+        % Settings and options follow the user data directory
+
+            settingsMarker = fullfile(nansen.localpath('user_settings'), 'marker.txt');
+            optionsMarker = fullfile(nansen.localpath('custom_options'), 'marker.txt');
+            utility.filewrite(settingsMarker, 'marker')
+            utility.filewrite(optionsMarker, 'marker')
+
+            newDirectory = testCase.moveUserDataDirectory('withsharedconfigs');
+
+            testCase.verifyTrue(isfile(fullfile(newDirectory, 'settings', 'marker.txt')))
+            testCase.verifyTrue(isfile(fullfile(newDirectory, 'custom_options', 'marker.txt')))
+            testCase.verifyFalse(isfile(settingsMarker))
+            testCase.verifyFalse(isfile(optionsMarker))
         end
 
         function testLocalProjectPathIsUnderLocalDirectory(testCase)
