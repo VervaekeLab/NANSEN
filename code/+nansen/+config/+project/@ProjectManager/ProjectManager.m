@@ -396,7 +396,7 @@ classdef ProjectManager < handle
             % Check that project with given name does not already exist.
             % Names must match in full: a project may be named "alpha" while
             % an unrelated "alpha_recordings" is already in the catalog.
-            if ~isempty( obj.getProjectIndex(pStruct.Name) )
+            if obj.containsProject(pStruct.Name)
                 error('Nansen:ProjectExists', ...
                     'Project with name "%s" already exists.', pStruct.Name)
             end
