@@ -64,21 +64,32 @@ classdef ProjectFixture < matlab.unittest.fixtures.Fixture
         %   another profile may be active by the time teardown runs. The
         %   test profile is therefore activated first, and only the mock
         %   project is removed from it, by name.
+            import nansen.internal.user.NansenUserSession
+
             warnState = warning('off', 'NANSEN:UserSession:UserSessionActive');
             warningCleanup = onCleanup(@() warning(warnState));
 
-            nansen.internal.user.NansenUserSession.instance(profileName, "force");
+            NansenUserSession.instance(profileName, "force");
 
             projectManager = nansen.ProjectManager();
             if any(strcmp({projectManager.Catalog.Name}, fixture.MockProjectName))
                 projectManager.removeProject(fixture.MockProjectName, true, true)
             end
 
-            nansen.internal.user.NansenUserSession.instance(profileName, "reset");
+            % Resolve both before the preference file naming the user data
+            % directory is removed along with the preference directory.
+            preferenceDirectory = NansenUserSession.getPrefdir(profileName);
+            userDataDirectory = NansenUserSession.getUserDataDirectory(profileName);
 
-            profileFolder = fullfile(prefdir, 'Nansen', profileName);
-            if isfolder(profileFolder)
-                rmdir(profileFolder, "s")
+            NansenUserSession.instance(profileName, "reset");
+
+            % The two coincide when userpath is empty
+            if ~nansen.util.path.isSamePath(userDataDirectory, preferenceDirectory) ...
+                    && isfolder(userDataDirectory)
+                rmdir(userDataDirectory, "s")
+            end
+            if isfolder(preferenceDirectory)
+                rmdir(preferenceDirectory, "s")
             end
         end
     end

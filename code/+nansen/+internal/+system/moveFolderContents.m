@@ -26,11 +26,6 @@ function moveFolderContents(sourceDirectory, targetDirectory)
     listing = dir(sourceDirectory);
     listing = listing( ~ismember({listing.name}, {'.', '..'}) );
 
-    if isempty(listing)
-        if ~isfolder(targetDirectory); mkdir(targetDirectory); end
-        return
-    end
-
     sourcePaths = strings(1, numel(listing));
     targetPaths = strings(1, numel(listing));
 
