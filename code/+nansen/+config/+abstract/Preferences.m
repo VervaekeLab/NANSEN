@@ -181,9 +181,19 @@ classdef Preferences < matlab.mixin.CustomDisplay & handle
         end
 
         function fromStruct(obj, S)
-            propNames = fieldnames(S);
-            for i = 1:numel(propNames)
-                obj.(propNames{i}) = S.(propNames{i});
+        %fromStruct Assign saved preference values onto this object
+        %
+        %   A preference file written by an older version can name
+        %   preferences that no longer exist. Those are skipped, so that
+        %   renaming or removing a preference does not make every existing
+        %   file unreadable.
+
+            savedNames = fieldnames(S);
+            knownNames = properties(obj);
+
+            for i = 1:numel(savedNames)
+                if ~any( strcmp(knownNames, savedNames{i}) ); continue; end
+                obj.(savedNames{i}) = S.(savedNames{i});
             end
         end
 

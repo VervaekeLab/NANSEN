@@ -24,7 +24,14 @@ function pathStr = localpath(pathKeyword)
 
     pathKeyword = char(pathKeyword);
 
-    if isKey(nansenLocalPathNames.localPath, pathKeyword)
+    % Paths under the user data directory are not cached, because that
+    % directory can be moved while MATLAB is running.
+    isCacheable = ~ismember(pathKeyword, { ...
+        '_user_data', 'user_data', '_userdata', 'userdata', ...
+        'custom_options', 'user_settings', 'project_settings', ...
+        'ProjectCatalog', 'TaskList', 'WatchFolderCatalog'});
+
+    if isCacheable && isKey(nansenLocalPathNames.localPath, pathKeyword)
         pathStr = nansenLocalPathNames.localPath(pathKeyword);
         return
     end
@@ -46,16 +53,16 @@ function pathStr = localpath(pathKeyword)
             folderPath = fullfile(rootPath, '+dataio', '+fileadapter');
 
         case {'_user_data', 'user_data', '_userdata', 'userdata'}
-            folderPath = nansen.prefdir();
+            folderPath = nansen.userdatadir();
 
         case 'project_settings'
-            folderPath = fullfile(nansen.prefdir, 'projects');
+            folderPath = nansen.config.project.ProjectManager.getCatalogDirectory();
 
         case 'custom_options'
-            folderPath = fullfile(nansen.prefdir, 'custom_options');
+            folderPath = fullfile(nansen.userdatadir, 'custom_options');
 
         case 'user_settings'
-            folderPath = fullfile(nansen.prefdir, 'settings');
+            folderPath = fullfile(nansen.userdatadir, 'settings');
 
         case {'current_project_folder', 'Current Project'}
             pm = nansen.ProjectManager();
@@ -64,16 +71,17 @@ function pathStr = localpath(pathKeyword)
       % % Files
 
         case 'WatchFolderCatalog'
-            folderPath = nansen.localpath('user_settings');
+            % Watched folders are paths on this machine
+            folderPath = nansen.localdatadir();
             fileName = 'watch_folder_catalog.mat';
 
         case 'TaskList'
-            folderPath = nansen.localpath('user_settings');
+            % Queued tasks belong to the machine that queued them
+            folderPath = nansen.localdatadir();
             fileName = 'task_list.mat';
 
         case 'ProjectCatalog'
-            initPath = nansen.localpath('user_data');
-            folderPath = fullfile(initPath, 'projects');
+            folderPath = nansen.config.project.ProjectManager.getCatalogDirectory();
             fileName = 'project_catalog.mat';
 
         otherwise
@@ -105,5 +113,7 @@ function pathStr = localpath(pathKeyword)
         pathStr = folderPath;
     end
 
-    nansenLocalPathNames.localPath(pathKeyword) = pathStr;
+    if isCacheable
+        nansenLocalPathNames.localPath(pathKeyword) = pathStr;
+    end
 end

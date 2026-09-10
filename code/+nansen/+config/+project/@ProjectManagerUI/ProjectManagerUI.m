@@ -14,6 +14,7 @@ classdef ProjectManagerUI < handle
     %   [ ] Add menu item for editing preferences
 
     properties
+        UserSession
         ProjectManager
         ProjectRootFolderPath
     end
@@ -36,6 +37,15 @@ classdef ProjectManagerUI < handle
 
     properties (Constant, Access = private)
         DefaultColumnWidth = {65, 100, 100, 200, 500};
+
+        % LOCATION_CONTROL_HEIGHT - Height of the user data location controls
+        LOCATION_CONTROL_HEIGHT = 25
+
+        % LOCATION_CONTROL_SPACING - Gap between the table and those controls
+        LOCATION_CONTROL_SPACING = 10
+
+        % LOCATION_BUTTON_WIDTH - Width of the user data location button
+        LOCATION_BUTTON_WIDTH = 150
     end
 
     methods % Constructor
@@ -44,8 +54,8 @@ classdef ProjectManagerUI < handle
 
             obj.assignInitialProjectRootFolderPath()
 
-            userSession = nansen.internal.user.NansenUserSession.instance();
-            obj.ProjectManager = userSession.getProjectManager();
+            obj.UserSession = nansen.internal.user.NansenUserSession.instance();
+            obj.ProjectManager = obj.UserSession.getProjectManager();
 
             % If no parent is added, return before creating components
             if nargin < 1 || isempty(hParent)
@@ -336,8 +346,46 @@ classdef ProjectManagerUI < handle
             obj.UIControls.ProjectTable = uitable(obj.TabList(tabIdx));
             obj.UIControls.ProjectTable.Position = [10,10,530,200];
 
+            % Created before the resize listener, because positioning the
+            % table also positions these controls.
+            obj.createUserDataLocationControls(obj.TabList(tabIdx))
+
             addlistener(obj.UIControls.ProjectTable, ...
                 "SizeChanged", @(s,e) obj.setProjectTablePosition);
+        end
+
+        function createUserDataLocationControls(obj, hTab)
+        %createUserDataLocationControls Create controls for the user data location
+        %
+        %   These show where the user's NANSEN data is kept, and let the
+        %   user move it somewhere else.
+
+            obj.UILabels.UserDataLocation = uilabel(hTab);
+            obj.UILabels.UserDataLocation.FontName = 'Segoe UI';
+            obj.UILabels.UserDataLocation.VerticalAlignment = 'center';
+
+            hButton = uibutton(hTab, 'push');
+            hButton.Text = 'Change Location...';
+            hButton.FontName = 'Segoe UI';
+            hButton.FontWeight = 'bold';
+            hButton.ButtonPushedFcn = @(s, e) obj.onChangeUserDataLocationButtonPushed;
+            hButton.Tooltip = 'Select a folder to keep this user''s NANSEN data in';
+
+            obj.UIControls.ChangeUserDataLocationButton = hButton;
+
+            obj.updateUserDataLocationLabel()
+        end
+
+        function updateUserDataLocationLabel(obj)
+        %updateUserDataLocationLabel Show where the NANSEN user data is kept
+
+            folderPath = obj.UserSession.getCurrentUserDataDirectory();
+
+            obj.UILabels.UserDataLocation.Text = ...
+                sprintf('User data location: %s', folderPath);
+
+            % A long path is truncated in the label, so keep the whole of it here
+            obj.UILabels.UserDataLocation.Tooltip = folderPath;
         end
 
         function createProjectTable(obj)
@@ -394,9 +442,17 @@ classdef ProjectManagerUI < handle
         end
 
         function setProjectTablePosition(obj)
-        %setProjectTablePosition Position the table within the UI
+        %setProjectTablePosition Position the controls on the Manage Projects tab
+        %
+        %   The table and the user data location controls share the
+        %   available space, so they are positioned together.
 
             margin = 10;
+
+            % Strip along the bottom for the user data location controls
+            reservedHeight = obj.LOCATION_CONTROL_HEIGHT + obj.LOCATION_CONTROL_SPACING;
+
+            hTab = obj.TabList( strcmp({obj.TabList.Title}, 'Manage Projects') );
 
             % We need the figure to draw before we position the table in
             % the parent panel. Do a small polling loop
@@ -405,9 +461,14 @@ classdef ProjectManagerUI < handle
 
             for iTry = 1:numTries
                 try
-                    parentPosition = obj.TabList(2).InnerPosition;
+                    parentPosition = hTab.InnerPosition;
+
                     tablePosition = parentPosition + [1, 1, -2, -2] * margin;
+                    tablePosition(2) = tablePosition(2) + reservedHeight;
+                    tablePosition(4) = max(1, tablePosition(4) - reservedHeight);
+
                     obj.UIControls.ProjectTable.Position = tablePosition;
+                    obj.setUserDataLocationControlPosition(tablePosition)
                     break
 
                 catch exception
@@ -429,6 +490,24 @@ classdef ProjectManagerUI < handle
             else
                 obj.UIControls.ProjectTable.ColumnWidth = obj.DefaultColumnWidth;
             end
+        end
+
+        function setUserDataLocationControlPosition(obj, tablePosition)
+        %setUserDataLocationControlPosition Place the controls below the table
+
+            controlHeight = obj.LOCATION_CONTROL_HEIGHT;
+            buttonWidth = obj.LOCATION_BUTTON_WIDTH;
+
+            y = tablePosition(2) - controlHeight - obj.LOCATION_CONTROL_SPACING;
+            buttonX = tablePosition(1) + tablePosition(3) - buttonWidth;
+
+            obj.UIControls.ChangeUserDataLocationButton.Position = ...
+                [buttonX, y, buttonWidth, controlHeight];
+
+            % The label takes whatever width the button leaves behind
+            labelWidth = max(1, buttonX - tablePosition(1) - obj.LOCATION_CONTROL_SPACING);
+            obj.UILabels.UserDataLocation.Position = ...
+                [tablePosition(1), y, labelWidth, controlHeight];
         end
 
         function createTableContextMenu(obj)
@@ -781,6 +860,69 @@ classdef ProjectManagerUI < handle
                 case 'Update project folder location'
                     obj.uiLocateProjectFolder(obj.SelectedRow)
             end
+        end
+
+        function onChangeUserDataLocationButtonPushed(obj)
+        %onChangeUserDataLocationButtonPushed Move the user's NANSEN data
+        %
+        %   Lets the user select a folder to keep their NANSEN data in.
+
+            hFigure = ancestor(obj.hParent, 'figure');
+
+            currentDirectory = obj.UserSession.getCurrentUserDataDirectory();
+
+            message = sprintf([ ...
+                'The project catalog, and the configurations kept next to ', ...
+                'it, are currently saved in:\n\n%s\n\n', ...
+                'Select a folder without a project catalog to move them to. ', ...
+                'A folder that is shared or synchronized can be used to ', ...
+                'carry this setup between machines.'], ...
+                currentDirectory);
+
+            selection = uiconfirm(hFigure, message, 'Change User Data Location', ...
+                'Options', {'Select Folder...', 'Cancel'}, ...
+                'DefaultOption', 1, 'CancelOption', 2);
+
+            if ~strcmp(selection, 'Select Folder...'); return; end
+
+            % Minimize figure, because folder dialog appear below figure
+            hFigure.WindowState = 'minimized';
+            folderPath = uigetdir(currentDirectory);
+
+            % Bring figure back to view
+            hFigure.WindowState = 'normal';
+            figure( hFigure )
+
+            if isequal(folderPath, 0); return; end
+
+            progressDlg = uiprogressdlg(hFigure, ...
+                'Message', 'Moving NANSEN user data...', ...
+                'Title', 'Please wait!', ...
+                'Indeterminate', 'on');
+            progressDialogCleanup = onCleanup(@() delete(progressDlg));
+
+            try
+                obj.UserSession.setUserDataDirectory(folderPath)
+            catch ME
+                clear progressDialogCleanup
+                obj.uialert(ME.message, 'User Data Not Moved', 'error')
+                return
+            end
+            clear progressDialogCleanup
+
+            newDirectory = obj.UserSession.getCurrentUserDataDirectory();
+            if isequal(newDirectory, currentDirectory)
+                % The data is already kept in the selected folder
+                return
+            end
+
+            % A project folder located inside the user data directory moves
+            % with it, so the paths shown in the table can have changed.
+            obj.updateProjectTableData()
+            obj.updateUserDataLocationLabel()
+
+            message = sprintf('The NANSEN user data was moved to:\n%s', newDirectory);
+            obj.uialert(message, 'User Data Moved', 'success')
         end
 
         function onAddExistingProjectButtonPushed(obj)
