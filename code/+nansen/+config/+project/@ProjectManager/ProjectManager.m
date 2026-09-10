@@ -98,6 +98,51 @@ classdef ProjectManager < handle
 
     methods (Static, Access = private)
 
+        function discardProjectFolder(projectRootDir, isExistingFolder)
+        %discardProjectFolder Undo what a failed creation wrote to disk
+        %
+        %   isExistingFolder tells whether the folder was already there
+        %   when the creation started. Such a folder belongs to the caller
+        %   and is emptied rather than removed. Emptying it is safe because
+        %   a folder is only accepted when it holds nothing, so everything
+        %   in it now was written by the creation that failed.
+        %
+        %   This is best effort. It runs while a failure is already being
+        %   handled, so a folder that cannot be removed is reported as a
+        %   warning rather than replacing the original error.
+
+            if ~isfolder(projectRootDir)
+                return
+            end
+
+            [wasRemoved, message] = rmdir(projectRootDir, "s");
+
+            if ~wasRemoved
+                warning('Nansen:ProjectManager:CleanupFailed', ...
+                    ['Could not remove the folder of the project that ', ...
+                    'failed to be created ("%s"). Remove it before ', ...
+                    'creating the project again. Reason:\n%s'], ...
+                    projectRootDir, message)
+                return
+            end
+
+            if isExistingFolder
+                mkdir(projectRootDir)
+            end
+        end
+
+        function tf = isFolderEmpty(folderPath)
+        %isFolderEmpty Whether a folder holds no entries of its own
+        %
+        %   Hidden entries count, so a folder holding only files such as
+        %   .git or .DS_Store is not empty. A project is written into a
+        %   folder that this reports as empty, and a failed creation empties
+        %   it again, so anything it overlooked would be deleted.
+
+            entries = dir(folderPath);
+            tf = all( ismember({entries.name}, {'.', '..'}) );
+        end
+
         function pStruct = castTextFieldsToChar(pStruct)
         %castTextFieldsToChar Store the text of a project entry as char
 
@@ -149,34 +194,48 @@ classdef ProjectManager < handle
                 error('Project with name "%s" already exists', name)
             end
 
-            % Temporarily disable current project
-            currentProject = obj.CurrentProject;
-            if ~setAsCurrentProject
-                setCurrentProjectCleanup = onCleanup(@() obj.changeProject(currentProject));
-            end
-            obj.changeProject('', "Verbose", false)
-
             % Add project to project manager.
             projectInfo = obj.createProjectInfo(name, description, projectRootDir);
 
-            % Add check for whether project folder already exists
+            % A folder that is already there can be used, as long as it
+            % holds nothing. Whether it was there is remembered, because a
+            % folder the caller made is not this method's to delete if the
+            % creation fails.
             projectDirectoryPath = char( projectInfo.Path );
-            if isfolder(projectDirectoryPath)
+            isExistingFolder = isfolder(projectDirectoryPath);
+
+            if isExistingFolder && ~obj.isFolderEmpty(projectDirectoryPath)
                 error('NANSEN:ProjectManager:ProjectFolderExists', ...
-                    'Can not create project because a folder already exist in this location')
+                    ['Can not create the project "%s" because the folder ', ...
+                    '"%s" is not empty. Choose a location that is empty ', ...
+                    'or does not exist yet.'], name, projectDirectoryPath)
             end
 
-            nansen.config.project.Project.initializeProjectDirectory(projectInfo)
+            % The project is initialized with no project active, because
+            % initialization reads the project being built rather than
+            % whichever project happens to be open.
+            currentProject = obj.CurrentProject;
+            obj.changeProject('', "Verbose", false)
 
-            nansen.config.project.Project.updateProjectConfiguration(projectRootDir, projectInfo)
-            nansen.config.project.Project.updateModuleConfiguration(projectRootDir, projectInfo)
-
-            % Create a project instance and initialize the project
+            % Every step below writes something that outlives the call: the
+            % project folder, and the catalog entry that is how the project
+            % is found again. A failure part way through has to undo them,
+            % or it leaves a project folder that nothing points at and no
+            % project selected.
             try
+                nansen.config.project.Project.initializeProjectDirectory(projectInfo)
+
+                nansen.config.project.Project.updateProjectConfiguration(projectRootDir, projectInfo)
+                nansen.config.project.Project.updateModuleConfiguration(projectRootDir, projectInfo)
+
+                % Create a project instance and initialize the project
                 newProject = nansen.config.project.Project(name, projectRootDir);
                 newProject.initializeProject()
+
+                % Add project to project catalog if project was initialized
+                obj.addProject(name, description, projectRootDir);
             catch MECause
-                rmdir(projectRootDir, "s")
+                obj.discardProjectFolder(projectRootDir, isExistingFolder)
                 obj.changeProject(currentProject)
                 ME = MException('Nansen:CreateProjectFailed', ...
                     'Failed to create project with name "%s"', name);
@@ -184,12 +243,11 @@ classdef ProjectManager < handle
                 throw(ME)
             end
 
-            % Add project to project catalog if project was initialized
-            obj.addProject(name, description, projectRootDir);
-
             % Set as current project
             if setAsCurrentProject
                 obj.changeProject(name)
+            else
+                obj.changeProject(currentProject)
             end
         end
 
