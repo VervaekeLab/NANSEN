@@ -9,8 +9,11 @@ function userDataDirectory = userdatadir()
 %   release. It is the UserDataDirectory preference when one is set, and a
 %   default location under MATLAB's userpath otherwise.
 %
-%   See also nansen.prefdir,
-%   nansen.internal.user.NansenUserSession/getUserDataDirectory
+%   An active session answers from memory. Without one the preference file
+%   of the anonymous user is read instead.
+%
+%   See also nansen.prefdir, nansen.localdatadir,
+%   nansen.internal.user.NansenUserSession/getCurrentUserDataDirectory
 
     import nansen.internal.user.NansenUserSession
 
@@ -18,6 +21,6 @@ function userDataDirectory = userdatadir()
     if isempty(userSession)
         userDataDirectory = NansenUserSession.getUserDataDirectory('anon_user');
     else
-        userDataDirectory = NansenUserSession.getUserDataDirectory(userSession.CurrentUserName);
+        userDataDirectory = userSession.getCurrentUserDataDirectory();
     end
 end

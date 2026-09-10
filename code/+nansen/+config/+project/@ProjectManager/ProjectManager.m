@@ -29,7 +29,8 @@ classdef ProjectManager < handle
     end
 
     properties (Hidden, SetAccess = private)
-        CatalogDirectory    % Directory where the catalog and its project configurations are saved
+        UserDataDirectory   % Directory holding the user's NANSEN data
+        CatalogDirectory    % Directory where the project catalog is saved
         CatalogPath         % Path where catalog is saved
     end
 
@@ -55,7 +56,6 @@ classdef ProjectManager < handle
 
         % CATALOG_FOLDER_NAME - Catalog folder within the user data directory
         CATALOG_FOLDER_NAME = "projects"
-
     end
 
     events (NotifyAccess = private)
@@ -94,8 +94,7 @@ classdef ProjectManager < handle
                 userDataDirectory = nansen.userdatadir();
             end
 
-            obj.CatalogDirectory = obj.getCatalogDirectory(userDataDirectory);
-            obj.CatalogPath = obj.getCatalogPath(userDataDirectory);
+            obj.assignLocations(userDataDirectory)
             obj.loadCatalog()
 
             obj.ProjectCache = containers.Map();
@@ -646,6 +645,8 @@ classdef ProjectManager < handle
 
             projectCatalog = obj.Catalog;  %#ok<NASGU
 
+            if ~isfolder(obj.CatalogDirectory); mkdir(obj.CatalogDirectory); end
+
             if obj.CatalogSaveFormat == "mat"
                 save(obj.CatalogPath, 'projectCatalog')
             elseif obj.CatalogSaveFormat == "json"
@@ -661,7 +662,7 @@ classdef ProjectManager < handle
 
     methods % Catalog location
 
-        function folderPath = getLocalDirectory(obj) %#ok<MANU>
+        function folderPath = getLocalDirectory(obj)
         %getLocalDirectory Get the directory for machine specific project configs
         %
         %   folderPath = getLocalDirectory(obj) returns the directory
@@ -670,11 +671,10 @@ classdef ProjectManager < handle
         %
         %   See also nansen.localdatadir
 
-            folderPath = char( fullfile(nansen.localdatadir(), ...
-                nansen.config.project.ProjectManager.CATALOG_FOLDER_NAME) );
+            folderPath = char( fullfile( ...
+                nansen.localdatadir(obj.UserDataDirectory), obj.CATALOG_FOLDER_NAME) );
         end
     end
-
 
     methods (Access = {?nansen.App, ?nansen.internal.user.NansenUserSession})
 
@@ -843,11 +843,6 @@ classdef ProjectManager < handle
             if nargin < 1; userDataDirectory = ''; end
 
             projectRootPath = ProjectManager.getCatalogDirectory(userDataDirectory);
-
-            % Get default project path
-            if ~isfolder(projectRootPath); mkdir(projectRootPath); end
-
-            % Add project details to project catalog file
             pathStr = char( fullfile(projectRootPath, ProjectManager.CATALOG_FILENAME) );
         end
 
@@ -861,8 +856,7 @@ classdef ProjectManager < handle
         %   directory within the given user data directory.
         %
         %   The catalog is saved in a "projects" folder of the user data
-        %   directory, which is where the machine specific project
-        %   configurations are kept as well.
+        %   directory.
         %
         %   See also nansen.userdatadir,
         %   nansen.internal.user.NansenUserSession/getUserDataDirectory
@@ -905,8 +899,9 @@ classdef ProjectManager < handle
             elseif strcmp(location, 'local')
 
                 % Local refers to project configs that belong to this
-                % machine only, and are kept out of the shareable part of
-                % the catalog directory.
+                % machine only. They are kept in a machine specific folder,
+                % so that a shared user data directory does not mix them
+                % between machines.
 
                 pm = nansen.config.project.ProjectManager.instance();
 
@@ -1022,23 +1017,50 @@ classdef ProjectManager < handle
         %   location. Project folders kept inside the user data directory
         %   moved with it, so those catalog entries are repointed.
 
+            obj.assignLocations(newUserDataDirectory)
+
+            obj.Catalog = obj.repointProjectPaths( ...
+                obj.Catalog, oldUserDataDirectory, newUserDataDirectory);
+
+            obj.saveCatalog()
+        end
+    end
+
+    methods (Static, Access = ?nansen.internal.user.NansenUserSession)
+
+        function [catalog, wasChanged] = repointProjectPaths(catalog, oldDirectory, newDirectory)
+        %repointProjectPaths Update project paths that moved with a directory
+        %
+        %   [catalog, wasChanged] = repointProjectPaths(catalog, ...
+        %   oldDirectory, newDirectory) rewrites the Path of every catalog
+        %   entry located inside oldDirectory to the same relative location
+        %   inside newDirectory. Entries elsewhere are left alone.
+
             import nansen.util.path.isSubPath
             import nansen.util.path.stripTrailingSeparator
 
-            obj.CatalogDirectory = obj.getCatalogDirectory(newUserDataDirectory);
-            obj.CatalogPath = char( fullfile(obj.CatalogDirectory, obj.CATALOG_FILENAME) );
+            oldDirectory = stripTrailingSeparator(oldDirectory);
+            wasChanged = false;
 
-            oldUserDataDirectory = stripTrailingSeparator(oldUserDataDirectory);
+            for i = 1:numel(catalog)
+                projectPath = catalog(i).Path;
+                if ~isSubPath(projectPath, oldDirectory); continue; end
 
-            for i = 1:numel(obj.Catalog)
-                projectPath = obj.Catalog(i).Path;
-                if ~isSubPath(projectPath, oldUserDataDirectory); continue; end
-
-                relativePath = extractAfter(string(projectPath), strlength(oldUserDataDirectory));
-                obj.Catalog(i).Path = char( fullfile(newUserDataDirectory, char(relativePath)) );
+                relativePath = extractAfter(string(projectPath), strlength(oldDirectory));
+                catalog(i).Path = char( fullfile(newDirectory, char(relativePath)) );
+                wasChanged = true;
             end
+        end
+    end
 
-            obj.saveCatalog()
+    methods (Access = private)
+
+        function assignLocations(obj, userDataDirectory)
+        %assignLocations Derive every location from the user data directory
+
+            obj.UserDataDirectory = char(userDataDirectory);
+            obj.CatalogDirectory = obj.getCatalogDirectory(obj.UserDataDirectory);
+            obj.CatalogPath = obj.getCatalogPath(obj.UserDataDirectory);
         end
     end
 
@@ -1049,10 +1071,10 @@ classdef ProjectManager < handle
         %migrateLocalProjectFolders Move local configurations into the machine folder
         %
         %   Machine specific project configurations used to sit directly in
-        %   the catalog directory, one folder per project. They now live in
-        %   a subfolder keyed by machine identifier, so that a catalog
-        %   directory can be shared between machines without them
-        %   overwriting each other's configurations.
+        %   the catalog directory, one folder per project. They now live
+        %   under the machine specific folder, so that a user data directory
+        %   can be shared between machines without them overwriting each
+        %   other's configurations.
         %
         %   See also nansen.config.project.ProjectManager/getLocalDirectory
 

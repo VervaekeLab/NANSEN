@@ -47,6 +47,8 @@ classdef ProjectFixture < matlab.unittest.fixtures.Fixture
     methods (Access = private)
         function deleteUserProfile(~, profileName)
 
+            import nansen.internal.user.NansenUserSession
+
             projectManager = nansen.ProjectManager();
             currentProjectName = projectManager.CurrentProject;
 
@@ -54,8 +56,19 @@ classdef ProjectFixture < matlab.unittest.fixtures.Fixture
                 projectManager.removeProject(currentProjectName, true, true)
             end
 
-            nansen.internal.user.NansenUserSession.instance(profileName, "reset");
-            rmdir(fullfile(prefdir, 'Nansen', profileName), "s")
+            % Resolve both before the preference file naming the user data
+            % directory is removed along with the preference directory.
+            preferenceDirectory = NansenUserSession.getPrefdir(profileName);
+            userDataDirectory = NansenUserSession.getUserDataDirectory(profileName);
+
+            NansenUserSession.instance(profileName, "reset");
+
+            % The two coincide when userpath is empty
+            if ~nansen.util.path.isSamePath(userDataDirectory, preferenceDirectory) ...
+                    && isfolder(userDataDirectory)
+                rmdir(userDataDirectory, "s")
+            end
+            rmdir(preferenceDirectory, "s")
         end
     end
 end
