@@ -368,7 +368,7 @@ classdef ProjectManagerUI < handle
             hButton.FontName = 'Segoe UI';
             hButton.FontWeight = 'bold';
             hButton.ButtonPushedFcn = @(s, e) obj.onChangeCatalogDirectoryButtonPushed;
-            hButton.Tooltip = 'Select a folder to save the project catalog in';
+            hButton.Tooltip = 'Select a folder to keep this user''s NANSEN data in';
 
             obj.UIControls.ChangeCatalogDirectoryButton = hButton;
 
@@ -376,26 +376,28 @@ classdef ProjectManagerUI < handle
         end
 
         function updateCatalogDirectoryLabel(obj)
-        %updateCatalogDirectoryLabel Show where the project catalog is saved
+        %updateCatalogDirectoryLabel Show where the NANSEN user data is kept
 
             obj.UILabels.CatalogDirectory.Text = ...
-                sprintf('Catalog location: %s', obj.getCatalogLocationName());
+                sprintf('User data location: %s', obj.getCatalogLocationName());
 
             % The name can stand for a path, so keep the path itself here
-            obj.UILabels.CatalogDirectory.Tooltip = obj.ProjectManager.CatalogDirectory;
+            obj.UILabels.CatalogDirectory.Tooltip = ...
+                nansen.internal.user.NansenUserSession.instance().getCurrentUserDataDirectory();
         end
 
-        function locationName = getCatalogLocationName(obj)
-        %getCatalogLocationName Describe where the project catalog is saved
+        function locationName = getCatalogLocationName(~)
+        %getCatalogLocationName Describe where the NANSEN user data is kept
         %
-        %   The default location is named rather than spelled out. Its path
-        %   is long and says little, while naming it says what the location
-        %   is, which is what makes it worth moving away from.
+        %   The default location is named rather than spelled out, because
+        %   its path is long and says little.
 
-            if obj.ProjectManager.isCatalogDirectoryDefault()
-                locationName = 'MATLAB''s preference folder';
+            userSession = nansen.internal.user.NansenUserSession.instance();
+
+            if userSession.isUserDataDirectoryDefault()
+                locationName = 'default location (MATLAB userpath)';
             else
-                locationName = obj.ProjectManager.CatalogDirectory;
+                locationName = userSession.getCurrentUserDataDirectory();
             end
         end
 
@@ -880,25 +882,16 @@ classdef ProjectManagerUI < handle
 
             hFigure = ancestor(obj.hParent, 'figure');
 
-            currentDirectory = obj.ProjectManager.CatalogDirectory;
+            userSession = nansen.internal.user.NansenUserSession.instance();
+            currentDirectory = userSession.getCurrentUserDataDirectory();
 
-            if obj.ProjectManager.isCatalogDirectoryDefault()
-                message = sprintf([ ...
-                    'The project catalog is currently saved in MATLAB''s ', ...
-                    'preference folder:\n\n%s\n\n', ...
-                    'That folder belongs to a single MATLAB release, so the ', ...
-                    'catalog is not carried over when you upgrade MATLAB. ', ...
-                    'Select a folder without a project catalog to move it to.'], ...
-                    currentDirectory);
-            else
-                message = sprintf([ ...
-                    'The project catalog is currently saved in:\n\n%s\n\n', ...
-                    'Select a folder without a project catalog to move it to. ', ...
-                    'MATLAB''s preference folder belongs to a single MATLAB ', ...
-                    'release, so keeping the catalog elsewhere preserves your ', ...
-                    'projects when you upgrade MATLAB.'], ...
-                    currentDirectory);
-            end
+            message = sprintf([ ...
+                'The project catalog, and the configurations kept next to ', ...
+                'it, are currently saved in:\n\n%s\n\n', ...
+                'Select a folder without a project catalog to move them to. ', ...
+                'A folder that is shared or synchronized can be used to ', ...
+                'carry this setup between machines.'], ...
+                currentDirectory);
 
             selection = uiconfirm(hFigure, message, 'Change Catalog Location', ...
                 'Options', {'Select Folder...', 'Cancel'}, ...
@@ -916,25 +909,25 @@ classdef ProjectManagerUI < handle
 
             if isequal(folderPath, 0); return; end
 
-            previousDirectory = obj.ProjectManager.CatalogDirectory;
+            previousDirectory = currentDirectory;
 
             progressDlg = uiprogressdlg(hFigure, ...
-                'Message', 'Moving project catalog...', ...
+                'Message', 'Moving NANSEN user data...', ...
                 'Title', 'Please wait!', ...
                 'Indeterminate', 'on');
             progressDialogCleanup = onCleanup(@() delete(progressDlg));
 
             try
-                obj.ProjectManager.setCatalogDirectory(folderPath)
+                userSession.setUserDataDirectory(folderPath)
             catch ME
                 clear progressDialogCleanup
-                obj.uialert(ME.message, 'Catalog Not Moved', 'error')
+                obj.uialert(ME.message, 'User Data Not Moved', 'error')
                 return
             end
             clear progressDialogCleanup
 
-            if isequal(obj.ProjectManager.CatalogDirectory, previousDirectory)
-                % The catalog is already saved in the selected folder
+            if isequal(userSession.getCurrentUserDataDirectory(), previousDirectory)
+                % The data is already saved in the selected folder
                 return
             end
 
@@ -943,9 +936,9 @@ classdef ProjectManagerUI < handle
             obj.updateProjectTableData()
             obj.updateCatalogDirectoryLabel()
 
-            message = sprintf('The project catalog was moved to:\n%s', ...
-                obj.ProjectManager.CatalogDirectory);
-            obj.uialert(message, 'Catalog Moved', 'success')
+            message = sprintf('The NANSEN user data was moved to:\n%s', ...
+                userSession.getCurrentUserDataDirectory());
+            obj.uialert(message, 'User Data Moved', 'success')
         end
 
         function onAddExistingProjectButtonPushed(obj)

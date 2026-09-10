@@ -10,14 +10,13 @@ classdef Preferences < nansen.config.abstract.Preferences
         InteractionMode (1,1) string ...
             { mustBeMember(InteractionMode, ["API", "GUI"]) } = "API"
 
-        UserdataDirectory = userpath
-
-        % ProjectCatalogDirectory - Directory holding the project catalog.
-        % An empty value means the "projects" folder of the user's
-        % preference directory is used. MATLAB's preference directory is
-        % specific to a MATLAB release, so set this to keep the project
-        % catalog across release upgrades.
-        ProjectCatalogDirectory (1,1) string = ""
+        % UserDataDirectory - Directory holding this user's NANSEN data.
+        % Holds the project catalog and, alongside it, the configurations
+        % that belong to this user rather than to a MATLAB release. An
+        % empty value means the default location under MATLAB's userpath
+        % is used. Set it to keep everything in one place across MATLAB
+        % releases, or to put it on a shared or synchronized folder.
+        UserDataDirectory (1,1) string = ""
         %PreferredDateFormat = "yyyy.mm.dd"
         %PreferredTimeFormat = "HH:MM:SS"
     end
