@@ -734,10 +734,8 @@ classdef Project < nansen.module.Module
 
         % Todo: Rename to getProjectPreferenceDirectory()
 
-            localProjectPath = fullfile(nansen.prefdir, 'projects');
-
-            folderPath = fullfile(localProjectPath, obj.Name);
-            if ~isfolder(folderPath); mkdir(folderPath); end
+            folderPath = nansen.config.project.ProjectManager.getProjectPath(...
+                obj.Name, 'local');
         end
     end
 

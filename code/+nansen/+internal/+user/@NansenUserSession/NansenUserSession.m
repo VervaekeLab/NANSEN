@@ -278,6 +278,8 @@ classdef NansenUserSession < handle
                 obj.AddonManager.moveExternalToolboxes() % Todo: Remove
             end
 
+            obj.ProjectManager.migrateLocalProjectFolders()
+
             obj.ProjectManager.checkProjectsExist()
 
             if obj.ProjectManager.hasUnversionedProjects()
