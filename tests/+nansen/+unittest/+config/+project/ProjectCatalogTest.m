@@ -1,5 +1,5 @@
-classdef AddProjectTest < matlab.unittest.TestCase
-    %AddProjectTest Adding an entry to the project catalog
+classdef ProjectCatalogTest < matlab.unittest.TestCase
+    %ProjectCatalogTest Recording projects in the catalog by name
     %
     %   The catalog is the record of which projects exist and where they
     %   live. createProject writes to it as the last step of creating a
@@ -8,7 +8,7 @@ classdef AddProjectTest < matlab.unittest.TestCase
     %   catalog entry to reach it by.
     %
     %   Run tests:
-    %       runtests('nansen.unittest.config.project.AddProjectTest')
+    %       runtests('nansen.unittest.config.project.ProjectCatalogTest')
 
     properties
         ProjectManager
@@ -112,6 +112,26 @@ classdef AddProjectTest < matlab.unittest.TestCase
             testCase.verifyError( ...
                 @() testCase.ProjectManager.addProject(42), ...
                 'Nansen:ProjectManager:InvalidInput')
+        end
+
+        function testContainsProjectMatchesNamesInFull(testCase)
+        %testContainsProjectMatchesNamesInFull A name is not a substring test
+        %
+        %   containsProject used to report a project as present whenever its
+        %   name appeared anywhere inside the name of a project that was in
+        %   the catalog.
+
+            testCase.ProjectManager.addProject('alpha_recordings', 'First', '/tmp/one')
+
+            testCase.verifyTrue(testCase.ProjectManager.containsProject('alpha_recordings'))
+            testCase.verifyFalse(testCase.ProjectManager.containsProject('alpha'))
+            testCase.verifyFalse(testCase.ProjectManager.containsProject('recordings'))
+        end
+
+        function testContainsProjectAcceptsAStringName(testCase)
+            testCase.ProjectManager.addProject('alpha', 'First', '/tmp/one')
+
+            testCase.verifyTrue(testCase.ProjectManager.containsProject("alpha"))
         end
     end
 end
