@@ -503,7 +503,12 @@ classdef ProjectManager < handle
         end
 
         function tf = containsProject(obj, projectName)
-            tf = any(contains({obj.Catalog.Name}, projectName));
+        %containsProject Whether the catalog holds a project of this name
+        %
+        %   Names must match in full: a catalog holding "alpha_recordings"
+        %   does not contain a project named "alpha".
+
+            tf = any(strcmp({obj.Catalog.Name}, projectName));
         end
 
         function projectObj = getProjectObject(obj, name)
