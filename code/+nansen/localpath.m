@@ -49,7 +49,7 @@ function pathStr = localpath(pathKeyword)
             folderPath = nansen.prefdir();
 
         case 'project_settings'
-            folderPath = fullfile(nansen.prefdir, 'projects');
+            folderPath = nansen.config.project.ProjectManager.getCatalogDirectory();
 
         case 'custom_options'
             folderPath = fullfile(nansen.prefdir, 'custom_options');
@@ -72,8 +72,7 @@ function pathStr = localpath(pathKeyword)
             fileName = 'task_list.mat';
 
         case 'ProjectCatalog'
-            initPath = nansen.localpath('user_data');
-            folderPath = fullfile(initPath, 'projects');
+            folderPath = nansen.config.project.ProjectManager.getCatalogDirectory();
             fileName = 'project_catalog.mat';
 
         otherwise
