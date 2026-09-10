@@ -583,9 +583,14 @@ classdef ProjectManager < handle
         end
 
         function reset(obj)
-            keys = obj.ProjectCache.keys();
-            for i = 1:numel(obj.ProjectCache)
-                delete(obj.ProjectCache(keys{i}))
+        %reset Delete every cached project object
+
+            % Note: numel of a containers.Map is the number of map objects,
+            % which is always one. Count the keys instead.
+            projectNames = obj.ProjectCache.keys();
+
+            for i = 1:numel(projectNames)
+                delete( obj.ProjectCache(projectNames{i}) )
             end
             obj.ProjectCache = containers.Map;
         end
