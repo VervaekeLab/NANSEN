@@ -1,9 +1,13 @@
-function localDataDirectory = localdatadir()
+function localDataDirectory = localdatadir(userDataDirectory)
 % localdatadir - Get the machine specific data directory for this user
 %
 %   localDataDirectory = nansen.localdatadir() returns the directory
 %   holding configurations that belong to this machine only, such as task
 %   lists, watched folders and local data root paths.
+%
+%   localDataDirectory = nansen.localdatadir(userDataDirectory) returns
+%   the machine specific directory within the given user data directory,
+%   for callers that hold one and must not depend on the active session.
 %
 %   The user data directory can be a shared or synchronized folder, so
 %   these configurations are kept in a subfolder keyed by a machine
@@ -13,6 +17,14 @@ function localDataDirectory = localdatadir()
 %   See also nansen.userdatadir,
 %   nansen.internal.system.getMachineIdentifier
 
-    localDataDirectory = char( fullfile(nansen.userdatadir(), 'local', ...
+    arguments
+        userDataDirectory (1,1) string = ""
+    end
+
+    if strlength(userDataDirectory) == 0
+        userDataDirectory = nansen.userdatadir();
+    end
+
+    localDataDirectory = char( fullfile(userDataDirectory, 'local', ...
         nansen.internal.system.getMachineIdentifier()) );
 end
