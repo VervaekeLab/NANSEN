@@ -378,11 +378,25 @@ classdef ProjectManagerUI < handle
         function updateCatalogDirectoryLabel(obj)
         %updateCatalogDirectoryLabel Show where the project catalog is saved
 
-            folderPath = obj.ProjectManager.CatalogDirectory;
-
             obj.UILabels.CatalogDirectory.Text = ...
-                sprintf('Catalog location: %s', folderPath);
-            obj.UILabels.CatalogDirectory.Tooltip = folderPath;
+                sprintf('Catalog location: %s', obj.getCatalogLocationName());
+
+            % The name can stand for a path, so keep the path itself here
+            obj.UILabels.CatalogDirectory.Tooltip = obj.ProjectManager.CatalogDirectory;
+        end
+
+        function locationName = getCatalogLocationName(obj)
+        %getCatalogLocationName Describe where the project catalog is saved
+        %
+        %   The default location is named rather than spelled out. Its path
+        %   is long and says little, while naming it says what the location
+        %   is, which is what makes it worth moving away from.
+
+            if obj.ProjectManager.isCatalogDirectoryDefault()
+                locationName = 'MATLAB''s preference folder';
+            else
+                locationName = obj.ProjectManager.CatalogDirectory;
+            end
         end
 
         function createProjectTable(obj)
@@ -866,13 +880,25 @@ classdef ProjectManagerUI < handle
 
             hFigure = ancestor(obj.hParent, 'figure');
 
-            message = sprintf([ ...
-                'The project catalog is currently saved in:\n%s\n\n', ...
-                'Select a folder without a project catalog to move it to. ', ...
-                'MATLAB''s preference directory belongs to a single MATLAB ', ...
-                'release, so keeping the catalog elsewhere preserves your ', ...
-                'projects when you upgrade MATLAB.'], ...
-                obj.ProjectManager.CatalogDirectory);
+            currentDirectory = obj.ProjectManager.CatalogDirectory;
+
+            if obj.ProjectManager.isCatalogDirectoryDefault()
+                message = sprintf([ ...
+                    'The project catalog is currently saved in MATLAB''s ', ...
+                    'preference folder:\n\n%s\n\n', ...
+                    'That folder belongs to a single MATLAB release, so the ', ...
+                    'catalog is not carried over when you upgrade MATLAB. ', ...
+                    'Select a folder without a project catalog to move it to.'], ...
+                    currentDirectory);
+            else
+                message = sprintf([ ...
+                    'The project catalog is currently saved in:\n\n%s\n\n', ...
+                    'Select a folder without a project catalog to move it to. ', ...
+                    'MATLAB''s preference folder belongs to a single MATLAB ', ...
+                    'release, so keeping the catalog elsewhere preserves your ', ...
+                    'projects when you upgrade MATLAB.'], ...
+                    currentDirectory);
+            end
 
             selection = uiconfirm(hFigure, message, 'Change Catalog Location', ...
                 'Options', {'Select Folder...', 'Cancel'}, ...
@@ -882,7 +908,7 @@ classdef ProjectManagerUI < handle
 
             % Minimize figure, because folder dialog appear below figure
             hFigure.WindowState = 'minimized';
-            folderPath = uigetdir(obj.ProjectManager.CatalogDirectory);
+            folderPath = uigetdir(currentDirectory);
 
             % Bring figure back to view
             hFigure.WindowState = 'normal';

@@ -685,6 +685,19 @@ classdef ProjectManager < handle
                 ProjectManager.LOCAL_FOLDER_NAME, ProjectManager.getMachineIdentifier()) );
         end
 
+        function tf = isCatalogDirectoryDefault(obj)
+        %isCatalogDirectoryDefault Check whether the catalog is in its default location
+        %
+        %   tf = isCatalogDirectoryDefault(obj) returns true when the
+        %   project catalog is saved in the user's preference directory,
+        %   which is where it is saved while the ProjectCatalogDirectory
+        %   preference is unset.
+        %
+        %   See also nansen.config.project.ProjectManager/setCatalogDirectory
+
+            tf = obj.isSamePath(obj.CatalogDirectory, obj.getDefaultCatalogDirectory());
+        end
+
         function setCatalogDirectory(obj, newDirectory)
         %setCatalogDirectory Change where the project catalog is saved
         %
@@ -775,11 +788,17 @@ classdef ProjectManager < handle
 
     methods (Access = private) % Catalog location helpers
 
+        function folderPath = getDefaultCatalogDirectory(obj)
+        %getDefaultCatalogDirectory Location used while the preference is unset
+
+            folderPath = char( fullfile(obj.PreferenceDirectory, obj.DEFAULT_FOLDER_NAME) );
+        end
+
         function folderPath = resolveCatalogDirectory(obj, newDirectory)
         %resolveCatalogDirectory Validate a requested catalog directory
 
             if strlength(newDirectory) == 0
-                folderPath = char( fullfile(obj.PreferenceDirectory, obj.DEFAULT_FOLDER_NAME) );
+                folderPath = obj.getDefaultCatalogDirectory();
                 return
             end
 
@@ -874,9 +893,7 @@ classdef ProjectManager < handle
         %   catalog keeps following the preference directory of whichever
         %   user is active.
 
-            defaultDirectory = fullfile(obj.PreferenceDirectory, obj.DEFAULT_FOLDER_NAME);
-
-            if obj.isSamePath(folderPath, defaultDirectory)
+            if obj.isSamePath(folderPath, obj.getDefaultCatalogDirectory())
                 preferenceValue = "";
             else
                 preferenceValue = string(folderPath);

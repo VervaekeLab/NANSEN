@@ -92,6 +92,16 @@ classdef ProjectCatalogLocationTest < matlab.unittest.TestCase
             testCase.verifyEqual(preferenceValue, "")
         end
 
+        function testIsCatalogDirectoryDefault(testCase)
+        % The UI names the default location instead of spelling out its path
+
+            testCase.verifyTrue(testCase.ProjectManager.isCatalogDirectoryDefault())
+
+            testCase.moveCatalogDirectory('notthedefault');
+
+            testCase.verifyFalse(testCase.ProjectManager.isCatalogDirectoryDefault())
+        end
+
         function testCurrentProjectIsPreservedAcrossMove(testCase)
         % Moving the catalog must not deselect the current project
 
