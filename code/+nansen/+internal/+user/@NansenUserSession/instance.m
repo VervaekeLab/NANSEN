@@ -2,7 +2,9 @@ function obj = instance(userName, mode, skipProjectCheck, options)
 %instance Return a singleton instance of the NansenUserSession
 %
 %   Input arguments:
-%       userName    - Not supported yet
+%       userName    - string, name of the user profile to open. Each
+%           profile keeps its own preferences and projects in its own
+%           preference directory. Defaults to the "default" profile.
 %       mode        - char, 'check' (default) | 'force' | 'nocreate' | 'reset'
 %       skipProjectCheck - logical (default = false)
 %
@@ -59,23 +61,13 @@ function obj = instance(userName, mode, skipProjectCheck, options)
             elseif mode == "check"
                 message = sprintf(...
                     "Another user session (user: '%s') is active.\n" + ...
-                    "Do you want to end that session and start " + ...
-                    "a new one?\n(y/n):", ...
+                    "Do you want to end that session and start a new one?", ...
                     userSessionObject.CurrentUserName);
 
-                fprintf(newline)
-                answer = input(message, 's');
-                fprintf(newline)
-
-                switch answer
-                    case 'y'
-                        resetUserSessionInstance = true;
-                        %delete(userSessionObject)
-                        %userSessionObject = [];
-                    case 'n'
-                        disp('Returning current user session.')
-                    otherwise
-                        error('Unexpected input "%s". Expected "y" or "n"', answer)
+                if nansen.internal.user.NansenUserSession.askYesNo(message)
+                    resetUserSessionInstance = true;
+                else
+                    disp('Returning current user session.')
                 end
             end
         end

@@ -33,6 +33,11 @@ function hApp = nansen(userName, flags)
     catch ME
         hApp = [];
         switch ME.identifier
+            case {'NANSEN:UserSession:UserProfileCreationAborted', ...
+                    'NANSEN:UserSession:UnexpectedInput'}
+                % The user answered the profile prompt. Show what they were
+                % told, not a stack trace.
+                disp(ME.message)
             case 'Nansen:ProjectNotConfigured:MetatableMissing'
                 disp(ME.message)
                 disp('Run nansen.setup to configure project or nansen.ProjectManager to change current project.')

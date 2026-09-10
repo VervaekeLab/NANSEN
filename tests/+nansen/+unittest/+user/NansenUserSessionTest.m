@@ -37,6 +37,11 @@ classdef NansenUserSessionTest < matlab.unittest.TestCase
 
             userNames = nansen.internal.user.NansenUserSession.listUserNames();
 
+            % Locate both names first. Comparing positions straight away
+            % would fail with an unrelated error if either were missing.
+            testCase.assertTrue(any(userNames == firstName));
+            testCase.assertTrue(any(userNames == lastName));
+
             testCase.verifyLessThan( ...
                 find(userNames == firstName), find(userNames == lastName));
         end
@@ -44,10 +49,15 @@ classdef NansenUserSessionTest < matlab.unittest.TestCase
         function testListUserNamesExcludesDotEntries(testCase)
             % dir returns "." and ".." for every folder. They are not user
             % profiles and must never reach the confirmation message.
+            %
+            % The profile is created so that the root directory is known to
+            % exist. Without it listUserNames could take its early return
+            % and the test would pass without listing anything.
             testCase.createProfileDirectory();
 
             userNames = nansen.internal.user.NansenUserSession.listUserNames();
 
+            testCase.verifyNotEmpty(userNames);
             testCase.verifyFalse(any(userNames == "."));
             testCase.verifyFalse(any(userNames == ".."));
         end
@@ -64,12 +74,23 @@ classdef NansenUserSessionTest < matlab.unittest.TestCase
         end
 
         function testIsExistingUserRejectsUnknownName(testCase)
-            % A misspelled name has no preference directory. This is the
-            % condition which triggers the confirmation prompt.
+            % A misspelled name has no profile. This is the condition which
+            % triggers the confirmation prompt.
             userName = "unittest_user_never_created";
 
             testCase.verifyFalse( ...
                 nansen.internal.user.NansenUserSession.isExistingUser(userName));
+        end
+
+        function testIsExistingUserRejectsNameDifferingOnlyByCase(testCase)
+            % Regression: the check used isfolder, which matches names case
+            % insensitively on macOS and Windows. A capitalisation typo was
+            % therefore accepted as the existing profile, and the session
+            % ran under a name that did not match its own directory.
+            userName = testCase.createProfileDirectory();
+
+            testCase.verifyFalse( ...
+                nansen.internal.user.NansenUserSession.isExistingUser(upper(userName)));
         end
 
         % ----------------------------------------------------------------
@@ -82,12 +103,20 @@ classdef NansenUserSessionTest < matlab.unittest.TestCase
             % throwaway profiles and must not block on user input.
             import nansen.internal.user.NansenUserSession
 
-            userName = testCase.buildUserName();
+            userName = buildUserName();
             profileDirectory = NansenUserSession.getPrefdir(userName);
 
+            % "force" closes any session left open by another test. Under
+            % "check" that situation is resolved by prompting, which fails
+            % outright in a non-interactive session.
+            warnState = warning('off', 'NANSEN:UserSession:UserSessionActive');
+            testCase.addTeardown(@() warning(warnState));
+
             % Teardown runs in reverse order: reset the session, and only
-            % then remove the preference directory it wrote to.
-            testCase.addTeardown(@() rmdir(profileDirectory, "s"));
+            % then remove the preference directory it wrote to. The
+            % directory does not exist yet, so guard against a failure
+            % before it is created.
+            testCase.addTeardown(@() removeDirectoryIfPresent(profileDirectory));
             testCase.addTeardown(@() NansenUserSession.instance("", "reset"));
 
             userSession = NansenUserSession.instance( ...
@@ -102,7 +131,7 @@ classdef NansenUserSessionTest < matlab.unittest.TestCase
             % prompt nor leave a profile behind for an unknown name.
             import nansen.internal.user.NansenUserSession
 
-            userName = testCase.buildUserName();
+            userName = buildUserName();
 
             % A singleton left by an earlier test would be returned here
             % instead of an empty result.
@@ -129,23 +158,35 @@ classdef NansenUserSessionTest < matlab.unittest.TestCase
                 prefix (1,1) string = "unittest_user_"
             end
 
-            userName = testCase.buildUserName(prefix);
+            userName = buildUserName(prefix);
             profileDirectory = ...
                 nansen.internal.user.NansenUserSession.getPrefdir(userName);
 
             mkdir(profileDirectory)
-            testCase.addTeardown(@() rmdir(profileDirectory, "s"));
+            testCase.addTeardown( ...
+                @() removeDirectoryIfPresent(profileDirectory));
         end
+    end
 
-        function userName = buildUserName(~, prefix)
-        % buildUserName - Build a name unlikely to collide with a real profile
+end
 
-            arguments
-                ~
-                prefix (1,1) string = "unittest_user_"
-            end
+function userName = buildUserName(prefix)
+% buildUserName - Build a name unlikely to collide with a real profile
 
-            userName = prefix + string(randi([1e8, 1e9-1]));
-        end
+    arguments
+        prefix (1,1) string = "unittest_user_"
+    end
+
+    userName = prefix + string(randi([1e8, 1e9-1]));
+end
+
+function removeDirectoryIfPresent(directoryPath)
+% removeDirectoryIfPresent - Remove a directory, tolerating absence
+%
+%   A test which fails before the directory is created would otherwise
+%   report a second, unrelated failure from its teardown.
+
+    if isfolder(directoryPath)
+        rmdir(directoryPath, "s")
     end
 end
