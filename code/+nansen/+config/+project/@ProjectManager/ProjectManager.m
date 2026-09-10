@@ -48,14 +48,13 @@ classdef ProjectManager < handle
 
     properties (Access = private)
         ProjectCache % containers.Map
-        PreferenceDirectory char % Directory holding this user's nansen preferences
     end
 
     properties (Constant, Access = private)
         CATALOG_FILENAME = "project_catalog.mat"
 
-        % DEFAULT_FOLDER_NAME - Catalog folder within the preference directory
-        DEFAULT_FOLDER_NAME = "projects"
+        % CATALOG_FOLDER_NAME - Catalog folder within the user data directory
+        CATALOG_FOLDER_NAME = "projects"
 
         % LOCAL_FOLDER_NAME - Folder holding the per-machine subfolders
         LOCAL_FOLDER_NAME = "local"
@@ -73,16 +72,16 @@ classdef ProjectManager < handle
 
     methods (Static, Hidden) %(Access = ?nansen.internal.user.NansenUserSession)
 
-        function obj = instance(preferenceDirectory, mode)
+        function obj = instance(userDataDirectory, mode)
         %instance Get singleton instance of class
 
-            if nargin < 1; preferenceDirectory = ''; end
+            if nargin < 1; userDataDirectory = ''; end
             if nargin < 2; mode = 'normal'; end
 
             persistent instance
 
             if isempty(instance) || strcmp(mode, 'reset')
-                instance = nansen.config.project.ProjectManager(preferenceDirectory);
+                instance = nansen.config.project.ProjectManager(userDataDirectory);
             end
 
             obj = instance;
@@ -91,15 +90,14 @@ classdef ProjectManager < handle
 
     methods (Access = private) % Constructor
 
-        function obj = ProjectManager(preferenceDirectory)
+        function obj = ProjectManager(userDataDirectory)
             % Create instance of the project manager class
-            if nargin < 1 || isempty(preferenceDirectory)
-                preferenceDirectory = nansen.prefdir();
+            if nargin < 1 || isempty(userDataDirectory)
+                userDataDirectory = nansen.userdatadir();
             end
 
-            obj.PreferenceDirectory = char(preferenceDirectory);
-            obj.CatalogDirectory = obj.getCatalogDirectory(preferenceDirectory);
-            obj.CatalogPath = obj.getCatalogPath(preferenceDirectory);
+            obj.CatalogDirectory = obj.getCatalogDirectory(userDataDirectory);
+            obj.CatalogPath = obj.getCatalogPath(userDataDirectory);
             obj.loadCatalog()
 
             obj.ProjectCache = containers.Map();
@@ -672,232 +670,18 @@ classdef ProjectManager < handle
         %   holding project configurations that belong to this machine
         %   only, such as local data root paths and task lists.
         %
-        %   The catalog directory can be a shared or a synchronized folder,
-        %   so these configurations are kept in a subfolder keyed by a
-        %   machine identifier. Two machines sharing a catalog directory
-        %   would otherwise overwrite each other's configurations.
+        %   The user data directory can be a shared or a synchronized
+        %   folder, so these configurations are kept in a subfolder keyed
+        %   by a machine identifier. Two machines sharing a user data
+        %   directory would otherwise overwrite each other's
+        %   configurations.
         %
-        %   See also nansen.config.project.ProjectManager/setCatalogDirectory
+        %   See also nansen.internal.user.NansenUserSession/setUserDataDirectory
 
             import nansen.config.project.ProjectManager
 
             folderPath = char( fullfile(obj.CatalogDirectory, ...
                 ProjectManager.LOCAL_FOLDER_NAME, ProjectManager.getMachineIdentifier()) );
-        end
-
-        function tf = isCatalogDirectoryDefault(obj)
-        %isCatalogDirectoryDefault Check whether the catalog is in its default location
-        %
-        %   tf = isCatalogDirectoryDefault(obj) returns true when the
-        %   project catalog is saved in the user's preference directory,
-        %   which is where it is saved while the ProjectCatalogDirectory
-        %   preference is unset.
-        %
-        %   See also nansen.config.project.ProjectManager/setCatalogDirectory
-
-            tf = obj.isSamePath(obj.CatalogDirectory, obj.getDefaultCatalogDirectory());
-        end
-
-        function setCatalogDirectory(obj, newDirectory)
-        %setCatalogDirectory Change where the project catalog is saved
-        %
-        %   setCatalogDirectory(obj, newDirectory) moves the project
-        %   catalog, and the project configurations stored next to it, into
-        %   newDirectory and remembers the location for later sessions.
-        %
-        %   setCatalogDirectory(obj, "") moves everything back to the
-        %   default directory inside the user's preference directory.
-        %
-        %   MATLAB's preference directory belongs to a single MATLAB
-        %   release, so the default location is not carried over when
-        %   upgrading MATLAB. Point this at a release independent directory
-        %   to keep the project catalog across upgrades.
-        %
-        %   The catalog is not moved if newDirectory already holds a
-        %   project catalog, or any entry that the move would overwrite.
-        %
-        %   Example:
-        %       pm = nansen.ProjectManager();
-        %       pm.setCatalogDirectory("/Users/me/Documents/Nansen/projects")
-        %
-        %   See also nansen.config.project.ProjectManager/getLocalDirectory
-
-            arguments
-                obj (1,1) nansen.config.project.ProjectManager
-                newDirectory (1,1) string
-            end
-
-            newDirectory = obj.resolveCatalogDirectory(newDirectory);
-            oldDirectory = obj.CatalogDirectory;
-
-            if obj.isSamePath(newDirectory, oldDirectory); return; end
-
-            % Resolve everything that can fail before anything is moved.
-            userSession = nansen.internal.user.NansenUserSession.instance('', 'nocreate');
-            if isempty(userSession)
-                error('NANSEN:ProjectManager:NoUserSession', ...
-                    ['The project catalog location can only be changed while ' ...
-                     'a NANSEN user session is active. Run "nansen.ProjectManager" ' ...
-                     'to start a session, then change the location.'])
-            end
-
-            newCatalogPath = char( fullfile(newDirectory, obj.CATALOG_FILENAME) );
-            if isfile(newCatalogPath)
-                error('NANSEN:ProjectManager:CatalogExists', ...
-                    ['A project catalog already exists in "%s". Select a ' ...
-                     'directory without a project catalog, or remove the ' ...
-                     'existing catalog first.'], newDirectory)
-            end
-
-            [sourcePaths, targetPaths] = obj.resolveMoveList(oldDirectory, newDirectory);
-
-            % Cached project objects, and the current project's entries on
-            % the search path, both point into the old directory. Restore
-            % the current project on the way out, whether or not the move
-            % succeeds.
-            currentProjectName = obj.CurrentProject;
-            if ~isempty(currentProjectName)
-                obj.changeProject('', "Verbose", false)
-                restoreCurrentProject = onCleanup( ...
-                    @() obj.changeProject(currentProjectName, "Verbose", false) );
-            end
-            obj.reset()
-
-            if ~isfolder(newDirectory); mkdir(newDirectory); end
-            obj.moveEntries(sourcePaths, targetPaths, newDirectory)
-
-            obj.CatalogDirectory = newDirectory;
-            obj.CatalogPath = newCatalogPath;
-
-            % An older installation can keep project folders inside the
-            % catalog directory. Those projects have just been moved, so
-            % their catalog entries no longer point at an existing folder.
-            obj.updateProjectPathsAfterMove(oldDirectory, newDirectory)
-            obj.saveCatalog()
-
-            userSession.Preferences.ProjectCatalogDirectory = ...
-                obj.toPreferenceValue(newDirectory);
-
-            if isfolder(oldDirectory) && isempty( obj.listFolderContent(oldDirectory) )
-                rmdir(oldDirectory)
-            end
-
-            fprintf('Project catalog directory was changed to "%s"\n', newDirectory)
-        end
-    end
-
-    methods (Access = private) % Catalog location helpers
-
-        function folderPath = getDefaultCatalogDirectory(obj)
-        %getDefaultCatalogDirectory Location used while the preference is unset
-
-            folderPath = char( fullfile(obj.PreferenceDirectory, obj.DEFAULT_FOLDER_NAME) );
-        end
-
-        function folderPath = resolveCatalogDirectory(obj, newDirectory)
-        %resolveCatalogDirectory Validate a requested catalog directory
-
-            if strlength(newDirectory) == 0
-                folderPath = obj.getDefaultCatalogDirectory();
-                return
-            end
-
-            folderPath = char(newDirectory);
-
-            if ~obj.isAbsolutePath(folderPath)
-                error('NANSEN:ProjectManager:RelativeCatalogDirectory', ...
-                    ['"%s" is a relative path. Provide an absolute path, so ' ...
-                     'that the project catalog is found independently of the ' ...
-                     'current folder.'], folderPath)
-            end
-
-            parentDirectory = fileparts(folderPath);
-            if ~isfolder(parentDirectory)
-                error('NANSEN:ProjectManager:MissingParentDirectory', ...
-                    ['The parent directory "%s" does not exist. Create it ' ...
-                     'before moving the project catalog.'], parentDirectory)
-            end
-        end
-
-        function [sourcePaths, targetPaths] = resolveMoveList(obj, sourceDirectory, targetDirectory)
-        %resolveMoveList List the entries to move, and where they move to
-        %
-        %   movefile places sourceDirectory inside targetDirectory when the
-        %   target already exists, so the entries are moved one by one.
-        %   Every target is resolved up front, so a name collision can not
-        %   leave the directory half moved.
-
-            listing = obj.listFolderContent(sourceDirectory);
-
-            sourcePaths = strings(1, numel(listing));
-            targetPaths = strings(1, numel(listing));
-
-            for i = 1:numel(listing)
-                sourcePaths(i) = fullfile(sourceDirectory, listing(i).name);
-                targetPaths(i) = fullfile(targetDirectory, listing(i).name);
-
-                if isfolder(targetPaths(i)) || isfile(targetPaths(i))
-                    error('NANSEN:ProjectManager:TargetExists', ...
-                        ['"%s" already exists. Select a directory that does ' ...
-                         'not contain an entry named "%s".'], ...
-                        targetPaths(i), listing(i).name)
-                end
-            end
-        end
-
-        function moveEntries(~, sourcePaths, targetPaths, targetDirectory)
-        %moveEntries Move the resolved entries, or move them all back
-        %
-        %   A move that stops halfway would leave the catalog split across
-        %   two directories, where neither is a complete catalog directory.
-
-            numMoved = 0;
-
-            try
-                for i = 1:numel(sourcePaths)
-                    movefile(sourcePaths(i), targetPaths(i))
-                    numMoved = i;
-                end
-            catch MECause
-                for i = numMoved:-1:1
-                    movefile(targetPaths(i), sourcePaths(i))
-                end
-
-                ME = MException('NANSEN:ProjectManager:MoveFailed', ...
-                    ['Failed to move the project catalog to "%s", so it was ' ...
-                     'left in its original location. Check that the directory ' ...
-                     'is writable.'], targetDirectory);
-                ME = ME.addCause(MECause);
-                throw(ME)
-            end
-        end
-
-        function updateProjectPathsAfterMove(obj, oldDirectory, newDirectory)
-        %updateProjectPathsAfterMove Repoint catalog entries that moved along
-
-            oldDirectory = obj.stripTrailingSeparator(oldDirectory);
-
-            for i = 1:numel(obj.Catalog)
-                projectPath = obj.Catalog(i).Path;
-                if ~obj.isSubPath(projectPath, oldDirectory); continue; end
-
-                relativePath = extractAfter(string(projectPath), strlength(oldDirectory));
-                obj.Catalog(i).Path = char( fullfile(newDirectory, char(relativePath)) );
-            end
-        end
-
-        function preferenceValue = toPreferenceValue(obj, folderPath)
-        %toPreferenceValue Convert a directory to the value stored in preferences
-        %
-        %   The default directory is stored as an empty value, so that the
-        %   catalog keeps following the preference directory of whichever
-        %   user is active.
-
-            if obj.isSamePath(folderPath, obj.getDefaultCatalogDirectory())
-                preferenceValue = "";
-            else
-                preferenceValue = string(folderPath);
-            end
         end
     end
 
@@ -920,53 +704,8 @@ classdef ProjectManager < handle
             end
             machineIdentifier = cachedIdentifier;
         end
-
-        function listing = listFolderContent(folderPath)
-        %listFolderContent List the entries of a folder, without "." and ".."
-            listing = dir(folderPath);
-            listing = listing( ~ismember({listing.name}, {'.', '..'}) );
-        end
-
-        function tf = isAbsolutePath(pathStr)
-        %isAbsolutePath Check whether a path is absolute on this platform
-            pathStr = char(pathStr);
-            if ispc
-                tf = ~isempty( regexp(pathStr, '^([A-Za-z]:[\\/]|\\\\)', 'once') );
-            else
-                tf = startsWith(pathStr, '/');
-            end
-        end
-
-        function tf = isSamePath(pathA, pathB)
-        %isSamePath Compare two paths, ignoring a trailing file separator
-            import nansen.config.project.ProjectManager
-
-            pathA = ProjectManager.stripTrailingSeparator(pathA);
-            pathB = ProjectManager.stripTrailingSeparator(pathB);
-
-            if ispc
-                tf = strcmpi(pathA, pathB);
-            else
-                tf = strcmp(pathA, pathB);
-            end
-        end
-
-        function tf = isSubPath(pathStr, parentPath)
-        %isSubPath Check whether a path is located inside a parent directory
-            import nansen.config.project.ProjectManager
-
-            parentPath = ProjectManager.stripTrailingSeparator(parentPath);
-            tf = startsWith(string(pathStr), strcat(parentPath, filesep), "IgnoreCase", ispc);
-        end
-
-        function pathStr = stripTrailingSeparator(pathStr)
-        %stripTrailingSeparator Remove trailing file separators from a path
-            pathStr = char(pathStr);
-            while numel(pathStr) > 1 && strcmp(pathStr(end), filesep)
-                pathStr(end) = [];
-            end
-        end
     end
+
 
     methods (Access = {?nansen.App, ?nansen.internal.user.NansenUserSession})
 
@@ -1119,23 +858,22 @@ classdef ProjectManager < handle
 
     methods (Static, Hidden) % Todo: private?
 
-        function pathStr = getCatalogPath(preferenceDirectory)
+        function pathStr = getCatalogPath(userDataDirectory)
         %getCatalogPath Get the file path of the project catalog
         %
         %   pathStr = getCatalogPath() returns the path for the current
         %   user session.
         %
-        %   pathStr = getCatalogPath(preferenceDirectory) returns the path
-        %   for the user whose preferences are stored in
-        %   preferenceDirectory.
+        %   pathStr = getCatalogPath(userDataDirectory) returns the path
+        %   within the given user data directory.
         %
         %   See also nansen.config.project.ProjectManager/getCatalogDirectory
 
             import nansen.config.project.ProjectManager
 
-            if nargin < 1; preferenceDirectory = ''; end
+            if nargin < 1; userDataDirectory = ''; end
 
-            projectRootPath = ProjectManager.getCatalogDirectory(preferenceDirectory);
+            projectRootPath = ProjectManager.getCatalogDirectory(userDataDirectory);
 
             % Get default project path
             if ~isfolder(projectRootPath); mkdir(projectRootPath); end
@@ -1144,39 +882,29 @@ classdef ProjectManager < handle
             pathStr = char( fullfile(projectRootPath, ProjectManager.CATALOG_FILENAME) );
         end
 
-        function folderPath = getCatalogDirectory(preferenceDirectory)
+        function folderPath = getCatalogDirectory(userDataDirectory)
         %getCatalogDirectory Get the directory where the project catalog is saved
         %
         %   folderPath = getCatalogDirectory() returns the directory for
         %   the current user session.
         %
-        %   folderPath = getCatalogDirectory(preferenceDirectory) returns
-        %   the directory for the user whose preferences are stored in
-        %   preferenceDirectory.
+        %   folderPath = getCatalogDirectory(userDataDirectory) returns the
+        %   directory within the given user data directory.
         %
-        %   The directory is the ProjectCatalogDirectory preference when
-        %   one is set, and a "projects" folder inside the preference
-        %   directory otherwise.
+        %   The catalog is saved in a "projects" folder of the user data
+        %   directory, which is where the machine specific project
+        %   configurations are kept as well.
         %
-        %   Note: The preference is read from file rather than from the
-        %   user session, because this method runs while the user session
-        %   is still constructing its project manager.
-        %
-        %   See also nansen.internal.user.Preferences/readValue
+        %   See also nansen.userdatadir,
+        %   nansen.internal.user.NansenUserSession/getUserDataDirectory
 
             import nansen.config.project.ProjectManager
 
-            if nargin < 1 || isempty(preferenceDirectory)
-                preferenceDirectory = nansen.prefdir();
+            if nargin < 1 || isempty(userDataDirectory)
+                userDataDirectory = nansen.userdatadir();
             end
 
-            folderPath = nansen.internal.user.Preferences.readValue(...
-                preferenceDirectory, "ProjectCatalogDirectory");
-
-            if strlength(folderPath) == 0
-                folderPath = fullfile(preferenceDirectory, ProjectManager.DEFAULT_FOLDER_NAME);
-            end
-            folderPath = char(folderPath);
+            folderPath = char( fullfile(userDataDirectory, ProjectManager.CATALOG_FOLDER_NAME) );
         end
 
         function pathStr = getProjectPath(projectName, location)
@@ -1316,6 +1044,36 @@ classdef ProjectManager < handle
     end
 
     methods (Access = ?nansen.internal.user.NansenUserSession)
+
+        function relocate(obj, oldUserDataDirectory, newUserDataDirectory)
+        %relocate Re-point the manager after the user data directory moved
+        %
+        %   relocate(obj, oldUserDataDirectory, newUserDataDirectory) is
+        %   called by the user session once the files are in their new
+        %   location. Project folders kept inside the user data directory
+        %   moved with it, so those catalog entries are repointed.
+
+            import nansen.util.path.isSubPath
+            import nansen.util.path.stripTrailingSeparator
+
+            obj.CatalogDirectory = obj.getCatalogDirectory(newUserDataDirectory);
+            obj.CatalogPath = char( fullfile(obj.CatalogDirectory, obj.CATALOG_FILENAME) );
+
+            oldUserDataDirectory = stripTrailingSeparator(oldUserDataDirectory);
+
+            for i = 1:numel(obj.Catalog)
+                projectPath = obj.Catalog(i).Path;
+                if ~isSubPath(projectPath, oldUserDataDirectory); continue; end
+
+                relativePath = extractAfter(string(projectPath), strlength(oldUserDataDirectory));
+                obj.Catalog(i).Path = char( fullfile(newUserDataDirectory, char(relativePath)) );
+            end
+
+            obj.saveCatalog()
+        end
+    end
+
+    methods (Access = ?nansen.internal.user.NansenUserSession)
         % Note: These methods will be removed in a future version (todo).
 
         function migrateLocalProjectFolders(obj)
@@ -1344,7 +1102,7 @@ classdef ProjectManager < handle
 
                 % An older installation can keep the project folder itself
                 % here. That folder is project data, not a configuration.
-                if obj.isSamePath(legacyFolderPath, obj.Catalog(i).Path); continue; end
+                if nansen.util.path.isSamePath(legacyFolderPath, obj.Catalog(i).Path); continue; end
 
                 targetFolderPath = fullfile(localDirectory, projectName);
                 if isfolder(targetFolderPath)
