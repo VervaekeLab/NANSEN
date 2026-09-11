@@ -1,0 +1,153 @@
+{
+  "schemaVersion": "1.0.0",
+  "entityTypes": [
+    {
+      "name": "cell",
+      "isPrimary": true,
+      "identifierRef": "cell_id",
+      "description": "One whole-cell patched CA1 pyramidal neuron; one neuron per slice per day. The descriptor reports 7 cells from 2 mice on 2 days. Cells have no folder; identity is read from the recording file names."
+    },
+    {
+      "name": "recording",
+      "identifierRef": "recording_id",
+      "description": "One ABF file: one repetition of the excitability protocol (0-450 pA, 50 pA steps, 500 ms) for a cell. Five repetitions (a-e) per cell."
+    }
+  ],
+  "metadataDefinitions": {
+    "cell_id": {
+      "name": "cell_id",
+      "title": "Cell ID",
+      "description": "Recording date (yyMMdd) and slice number on that day, e.g. 170518_1. One neuron was recorded per slice.",
+      "dataType": "string",
+      "ofEntity": "cell",
+      "validation": {
+        "pattern": "^\\d{6}_\\d+$"
+      }
+    },
+    "recording_date": {
+      "name": "recording_date",
+      "title": "Recording date",
+      "dataType": "date",
+      "ofEntity": "cell",
+      "description": "Day of recording, from the yyMMdd prefix of the file name"
+    },
+    "recording_id": {
+      "name": "recording_id",
+      "title": "Recording ID",
+      "description": "File name without extension, e.g. 170518_1a",
+      "dataType": "string",
+      "ofEntity": "recording",
+      "validation": {
+        "pattern": "^\\d{6}_\\d+[a-z]$"
+      }
+    },
+    "slice_number": {
+      "name": "slice_number",
+      "title": "Slice number",
+      "description": "Number of the slice recorded on that day from the same animal (data descriptor naming convention)",
+      "dataType": "integer",
+      "ofEntity": "cell"
+    },
+    "protocol_repeat": {
+      "name": "protocol_repeat",
+      "title": "Protocol repeat",
+      "description": "Letter a-e: which of the five repetitions of the excitability protocol this file holds",
+      "dataType": "string",
+      "ofEntity": "recording",
+      "validation": {
+        "pattern": "^[a-e]$"
+      }
+    }
+  },
+  "dataLocations": [
+    {
+      "identifier": "garad",
+      "displayName": "Garad & Lessmann 2022, CA1 excitability ABF recordings",
+      "description": "Flat folder of Axon Binary Format files named <yyMMdd>_<slice><repeat>.ABF, plus the EBRAINS data descriptor and licence PDFs. Category 'raw' per the descriptor (original Patchmaster recordings). Every entry in the folder was listed; nothing was sampled.",
+      "dataCategory": "raw",
+      "access": "read",
+      "sourceType": "filesystem",
+      "filesystemSource": {
+        "rootStoragePaths": [
+          {
+            "identifier": "main",
+            "path": "/Users/eivihe/Data/ShareBrain/InDepthCuration/garad-2022",
+            "storageType": "local"
+          }
+        ],
+        "entityLayout": [
+          {
+            "name": "recording-files",
+            "entityType": "recording",
+            "fileSystemType": "file",
+            "matchPattern": "^\\d{6}_\\d+[a-z]\\.ABF$",
+            "excludePatterns": [
+              "^\\..*",
+              "^EBRAINS-datadescriptor_.*",
+              "^Licence-CC-BY\\.pdf$"
+            ],
+            "filePatterns": [
+              {
+                "name": "abf",
+                "pattern": "^{recording_id}\\.ABF$",
+                "isRequired": true,
+                "cardinality": "one"
+              }
+            ]
+          }
+        ],
+        "metadataMapping": [
+          {
+            "metadataRef": "recording_id",
+            "extraction": {
+              "method": "regex",
+              "pattern": "^(\\d{6}_\\d+[a-z])\\.ABF$",
+              "entityLayoutLevel": "recording-files"
+            }
+          },
+          {
+            "metadataRef": "protocol_repeat",
+            "extraction": {
+              "method": "regex",
+              "pattern": "^\\d{6}_\\d+([a-z])\\.ABF$",
+              "entityLayoutLevel": "recording-files"
+            }
+          },
+          {
+            "metadataRef": "cell_id",
+            "extraction": {
+              "method": "regex",
+              "pattern": "^(\\d{6}_\\d+)[a-z]\\.ABF$",
+              "entityLayoutLevel": "recording-files"
+            }
+          },
+          {
+            "metadataRef": "slice_number",
+            "extraction": {
+              "method": "regex",
+              "pattern": "^\\d{6}_(\\d+)[a-z]\\.ABF$",
+              "entityLayoutLevel": "recording-files"
+            }
+          },
+          {
+            "metadataRef": "recording_date",
+            "extraction": {
+              "method": "substring",
+              "pattern": "0:6",
+              "valueFormat": "yyMMdd",
+              "entityLayoutLevel": "recording-files"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "entityRelationships": [
+    {
+      "sourceEntity": "cell",
+      "targetEntity": "recording",
+      "relationType": "oneToMany",
+      "relationName": "hasRecordings"
+    }
+  ]
+}
