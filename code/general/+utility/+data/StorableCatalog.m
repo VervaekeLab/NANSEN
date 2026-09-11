@@ -122,8 +122,11 @@ classdef StorableCatalog < handle
         %validateFieldOrder Enforce Uuid as the first field of item struct
             itemFields = fieldnames(item);
 
-            % Make sure uuid is the first field...
-            if contains('Uuid', itemFields) && ~strcmp(itemFields{1}, 'Uuid')
+            % Make sure uuid is the first field. Note that this asks
+            % whether Uuid is one of the fields; contains() would ask
+            % whether any field name is a substring of "Uuid", which is
+            % true for an unrelated field named id, ui or uid.
+            if ismember('Uuid', itemFields) && ~strcmp(itemFields{1}, 'Uuid')
                 fieldOrder = ['Uuid'; setdiff(itemFields, 'Uuid', 'stable') ];
                 item = orderfields(item, fieldOrder);
             end
@@ -482,8 +485,21 @@ classdef StorableCatalog < handle
         end
 
         function [S, idx] = getItem(obj, itemName)
+        %getItem Get the item with a given name, uuid or index
+        %
+        %   Looking up a name or uuid that the catalog does not hold raises
+        %   NANSEN:StorableCatalog:ItemNotFound. Use getItemIndex where a
+        %   missing item is an expected outcome. Lookup by index keeps
+        %   MATLAB indexing semantics, including its out-of-range error.
 
             idx = obj.getItemIndex( itemName );
+
+            if isempty(idx) && ~isnumeric(itemName)
+                error('NANSEN:StorableCatalog:ItemNotFound', ...
+                    'No %s named "%s" exists in this catalog.', ...
+                    lower(obj.ITEM_TYPE), itemName)
+            end
+
             S = obj.Data(idx);
 
             if nargout == 1

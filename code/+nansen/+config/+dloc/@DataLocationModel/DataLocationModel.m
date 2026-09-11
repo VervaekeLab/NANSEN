@@ -100,8 +100,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
 
             % Add default data location to preferences
             if ~isfield(obj.Preferences, 'DefaultDataLocation')
-                obj.fixDefaultDataLocation()
-                dirty = true;
+                dirty = obj.fixDefaultDataLocation() || dirty;
             end
 
             % Rootpath field changed from cell array with 2 cells to root
@@ -199,8 +198,15 @@ classdef DataLocationModel < utility.data.StorableCatalog
         end
 
         function defaultDataLocation = get.DefaultDataLocation(obj)
+        %get.DefaultDataLocation Name of the default data location, or ''
+        %
+        %   A model whose data locations can only be read from has no
+        %   default, so the preference may be absent.
 
-            if isempty(obj.Data); defaultDataLocation = ''; return; end
+            defaultDataLocation = '';
+
+            if isempty(obj.Data); return; end
+            if ~isfield(obj.Preferences, 'DefaultDataLocation'); return; end
 
             dataLocationUuid = obj.Preferences.DefaultDataLocation;
             defaultDataLocation = obj.getNameFromUuid(dataLocationUuid);
@@ -358,8 +364,15 @@ classdef DataLocationModel < utility.data.StorableCatalog
 
             for i = 1:numDatalocations
 
-                dlUuid = dataLocationStructArray(1,i).Uuid;
-                dlInfo = obj.getItem(dlUuid);
+                % A table may refer to a data location that has since been
+                % removed from the model. Its entries are kept, with the
+                % root path marked as unresolved below.
+                dlIdx = obj.getItemIndex(dataLocationStructArray(1,i).Uuid);
+                if isempty(dlIdx)
+                    dlInfo = obj.getBlankItem();
+                else
+                    dlInfo = obj.Data(dlIdx);
+                end
 
                 for j = 1:numItems
 
@@ -668,16 +681,11 @@ classdef DataLocationModel < utility.data.StorableCatalog
 
             for iDl = 1:numel(dlStruct) %obj.NumDataLocations
 
-                % getItem returns an empty struct array for a uuid this
-                % model does not hold, rather than raising.
-                try
-                    thisDlItem = obj.getItem(dlStruct(iDl).Uuid);
-                catch
-                    thisDlItem = [];
-                end
-                if ~isscalar(thisDlItem)
+                dlIdx = obj.getItemIndex(dlStruct(iDl).Uuid);
+                if isempty(dlIdx)
                     continue % Data location is not in this model
                 end
+                thisDlItem = obj.Data(dlIdx);
 
                 % Add name and type fields
                 fields = {'Name', 'Type'};
@@ -984,15 +992,26 @@ classdef DataLocationModel < utility.data.StorableCatalog
 
     methods (Access = private)
 
-        function fixDefaultDataLocation(obj)
+        function wasSet = fixDefaultDataLocation(obj)
+        %fixDefaultDataLocation Pick a default for a model that has none
+        %
+        %   Chooses the first data location whose type may be a default,
+        %   which excludes read only types such as recorded. When no data
+        %   location qualifies the preference is left unset, so that a
+        %   default is picked once a qualifying data location is added.
+        %   The output says whether a default was set, so that the caller
+        %   only marks the model dirty when there is something to save.
 
             % Todo: Add uuid, not name
 
-            if obj.NumDataLocations == 1
-                obj.DefaultDataLocation = obj.Data(1).Name;
-            elseif obj.NumDataLocations > 1
-                obj.Data(2).Type = nansen.config.dloc.DataLocationType('PROCESSED');
-                obj.DefaultDataLocation = obj.Data(2).Name;
+            wasSet = false;
+
+            for i = 1:obj.NumDataLocations
+                if obj.Data(i).Type.AllowAsDefault
+                    obj.DefaultDataLocation = obj.Data(i).Name;
+                    wasSet = true;
+                    return
+                end
             end
         end
 
@@ -1157,18 +1176,21 @@ classdef DataLocationModel < utility.data.StorableCatalog
             switch lower(mode)
                 case 'ind'
 
-                    if strcmp(pattern, '1:end') % Special case
-                        pattern = sprintf('1:%d', strlength(text));
-                    end
+                    % end only has a value inside an indexing expression,
+                    % and the pattern is evaluated on its own, so end is
+                    % replaced by the length of the text first. This keeps
+                    % patterns such as 5:end and 1:end-4 working.
+                    indexExpression = regexprep(char(pattern), '\<end\>', ...
+                        sprintf('%d', strlength(text)));
                     try
-                        indices = eval(['[' pattern ']']);
+                        indices = eval(['[' indexExpression ']']);
                     catch
                         error('NANSEN:DataLocationModel:InvalidIndexPattern', ...
                             'Index pattern "%s" is not valid MATLAB index syntax.', pattern)
                     end
-                    if any(indices > strlength(text))
+                    if any(indices > strlength(text)) || any(indices < 1)
                         error('NANSEN:DataLocationModel:IndexOutOfRange', ...
-                            'Index range [%s] exceeds the string length (%d characters).', ...
+                            'Index range [%s] is outside the string (%d characters).', ...
                             pattern, strlength(text))
                     end
                     substring = text(indices);
