@@ -75,6 +75,9 @@ classdef StorableCatalog < handle
     end
 
     properties (Hidden)
+        % SaveFormat - Format that save writes in, 'mat' or 'json'. It
+        % follows the extension of FilePath. Setting it and saving converts
+        % the catalog to the other format.
         SaveFormat = 'mat';
     end
 
@@ -138,12 +141,6 @@ classdef StorableCatalog < handle
                 obj.FilePath = obj.getDefaultFilePath();
             end
 
-            obj.resolveFilePath()
-
-            if ~isfile(obj.FilePath)
-                obj.initialize()
-            end
-
             obj.load()
         end
     end
@@ -163,10 +160,12 @@ classdef StorableCatalog < handle
             if ~isfolder(folderPath); mkdir(folderPath); end
 
             obj.FilePath = filePath;
+            obj.resolveFilePath()
         end
 
         function refreshFilePath(obj)
             obj.FilePath = obj.getDefaultFilePath();
+            obj.resolveFilePath()
         end % resetFilePath
 
         function reloadDefault(obj)
@@ -205,6 +204,8 @@ classdef StorableCatalog < handle
         function load(obj)
         %load Load data from file
 
+            obj.resolveFilePath()
+
             if ~isfile(obj.FilePath)
                 obj.initialize()
             end
@@ -220,63 +221,62 @@ classdef StorableCatalog < handle
         end
 
         function save(obj)
-        %save Save data to file
+        %save Save data to the catalog file, in the save format
         %
-        %   The file path follows the save format, so converting a catalog
-        %   by setting SaveFormat and saving also repoints the catalog at
-        %   the file it just wrote.
-            obj.FilePath = obj.saveas(obj.FilePath);
+        %   The extension of the file follows SaveFormat, so converting a
+        %   catalog by setting SaveFormat and saving writes the new file
+        %   beside the old one and repoints the catalog at it. The old file
+        %   is left in place as a backup.
+            filePath = nansen.util.path.changeFilenameExtension(obj.FilePath, obj.SaveFormat);
+            obj.saveas(filePath)
+            obj.FilePath = filePath;
         end
 
-        function filePath = saveas(obj, filePath)
-        %saveas Save data to file at file path given as input
+        function saveas(obj, filePath)
+        %saveas Save data to a file, in the format its extension implies
+        %
+        %   The catalog itself keeps pointing at its own file.
             S = obj.toStruct();
             S = obj.cleanStructOnSave(S);
 
-            filePath = obj.writeCatalogFile(S, filePath);
-
-            if ~nargout
-                clear filePath
-            end
+            obj.writeCatalogFile(S, filePath);
         end
     end
 
     methods (Access = protected) % Catalog file io
 
         function resolveFilePath(obj)
-        %resolveFilePath Point at the catalog file that exists and adopt its format
+        %resolveFilePath Point at the catalog file to use and adopt its format
         %
-        %   A catalog is stored either as a mat file or as a json file.
-        %   When the requested file does not exist but its sibling in the
-        %   other format does, that sibling is used instead. This keeps
-        %   projects written before json storage loadable without changing
-        %   any caller, and lets a converted project be picked up the same
-        %   way.
+        %   A catalog is stored either as a json file or as a mat file, and
+        %   the format follows the file extension. Whenever FilePath is
+        %   assigned this runs so that the two can not disagree.
+        %
+        %   The json file is used whenever it exists, whichever extension
+        %   was asked for. Converting a catalog leaves the mat file behind
+        %   as a backup, and a backup must not be loaded as if it were
+        %   current. When neither the requested file nor a json sibling
+        %   exists but a mat sibling does, the mat file is used, so that a
+        %   project written before json storage keeps loading with no
+        %   change to any caller.
+            import nansen.util.path.changeFilenameExtension
 
-            if ~isfile(obj.FilePath)
-                for format = {'json', 'mat'}
-                    candidate = nansen.util.path.changeFilenameExtension(...
-                        obj.FilePath, format{1});
-                    if isfile(candidate)
-                        obj.FilePath = candidate;
-                        break
-                    end
-                end
+            jsonPath = changeFilenameExtension(obj.FilePath, 'json');
+            matPath = changeFilenameExtension(obj.FilePath, 'mat');
+
+            if isfile(jsonPath)
+                obj.FilePath = jsonPath;
+            elseif ~isfile(obj.FilePath) && isfile(matPath)
+                obj.FilePath = matPath;
             end
 
-            obj.SaveFormat = utility.data.StorableCatalog.getFormatFromPath(obj.FilePath);
+            obj.SaveFormat = obj.getFormatFromPath(obj.FilePath);
         end
 
-        function filePath = writeCatalogFile(obj, S, filePath)
-        %writeCatalogFile Write a catalog struct in the catalog's save format
-        %
-        %   The extension of the written file always follows SaveFormat, so
-        %   saving a catalog whose path still carries the previous
-        %   extension writes beside it instead of overwriting it.
+        function writeCatalogFile(obj, S, filePath)
+        %writeCatalogFile Write a catalog struct in the format its extension implies
 
-            filePath = nansen.util.path.changeFilenameExtension(filePath, obj.SaveFormat);
-
-            if strcmp(obj.SaveFormat, 'json')
+            if strcmp(obj.getFormatFromPath(filePath), 'json')
                 % Encode the items, and every struct array nested in them,
                 % as json arrays even when they hold one element or none,
                 % so that a reader in another language does not have to
@@ -331,6 +331,11 @@ classdef StorableCatalog < handle
         %   can not tell a list of one from a single value. Encoding struct
         %   arrays as cell arrays makes every list a json array. Reading
         %   accepts either shape, so files written before this still load.
+        %
+        %   The rule is applied to every struct, so a scalar struct meant
+        %   as a single object is written as a list of one as well. No
+        %   catalog item declares such a field; if one ever does, the
+        %   template in getBlankItem is where to tell the two apart.
 
             if isstruct(value)
                 items = num2cell(reshape(value, 1, []));
