@@ -633,13 +633,24 @@ classdef DataLocationModel < utility.data.StorableCatalog
     methods % Utility methods
 
         function dlStruct = expandDataLocationInfo(obj, dlStruct)
-        %expandDataLocation Expand information of data location structure
+        %expandDataLocationInfo Expand information of data location structure
         %
-        %   dlStruct = dlm_obj.expandDataLocationInfo(dlStruct) add the
-        %   following fields to a data location structure:
-        %       Name : Name of datalocation
-        %       Type : Datalocation type
-        %       RootPath : Key, Value pair of local rootpath.
+        %   dlStruct = dlm_obj.expandDataLocationInfo(dlStruct) adds the
+        %   fields that this model derives for a data location:
+        %       Name     : Name of datalocation
+        %       Type     : Datalocation type
+        %       RootPath : Local root path for the RootUid of the struct
+        %       RootIdx  : Index of that root path in the model
+        %       Diskname : Disk name of that root path
+        %
+        %   The expanded fields describe this machine, so they are derived
+        %   on demand rather than stored. This is the inverse of
+        %   reduceDataLocationInfo.
+        %
+        %   A data location that the model no longer holds, or a root uid
+        %   it does not know, leaves the derived fields empty rather than
+        %   raising, so that a metatable referring to a removed data
+        %   location can still be opened.
 
             % Todo: Why is this sometimes a cell?
 
@@ -648,11 +659,25 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 warning('Data is in an unexpected format. This is not critical, but should be investigated.')
             end
 
+            if isempty(dlStruct); return; end
+
+            % Add the derived fields to every element up front, so that
+            % assigning into the array below can not fail on dissimilar
+            % structures.
+            dlStruct = obj.setDerivedFieldsToDefault(dlStruct);
+
             for iDl = 1:numel(dlStruct) %obj.NumDataLocations
 
-                dlUuid = dlStruct(iDl).Uuid;
-
-                thisDlItem = obj.getItem(dlUuid);
+                % getItem returns an empty struct array for a uuid this
+                % model does not hold, rather than raising.
+                try
+                    thisDlItem = obj.getItem(dlStruct(iDl).Uuid);
+                catch
+                    thisDlItem = [];
+                end
+                if ~isscalar(thisDlItem)
+                    continue % Data location is not in this model
+                end
 
                 % Add name and type fields
                 fields = {'Name', 'Type'};
@@ -660,23 +685,64 @@ classdef DataLocationModel < utility.data.StorableCatalog
                     dlStruct(iDl).(fields{k}) = thisDlItem.(fields{k});
                 end
 
-                % Add rootpath field
+                % Add the fields describing the root path on this machine
                 rootUid = dlStruct(iDl).RootUid;
                 rootIdx = find( strcmp( {thisDlItem.RootPath.Key}, rootUid ));
 
                 if ~isempty(rootIdx)
                     dlStruct(iDl).RootPath = thisDlItem.RootPath(rootIdx).Value;
+                    dlStruct(iDl).RootIdx = rootIdx;
+                    dlStruct(iDl).Diskname = thisDlItem.RootPath(rootIdx).DiskName;
                 end
             end
         end
+    end
 
-        function dlStruct = reduceDataLocationInfo(~, dlStruct)
+    methods (Static)
 
-            fieldsToRemove = {'Name', 'Type', 'RootPath'};
+        function fieldNames = getDerivedFieldNames()
+        %getDerivedFieldNames Data location fields derived from this model
+        %
+        %   These describe the model and the computer it is used on, not
+        %   the session, so they are not stored with a session's metadata.
+            fieldNames = {'Name', 'Type', 'RootPath', 'RootIdx', 'Diskname'};
+        end
+
+        function dlStruct = reduceDataLocationInfo(dlStruct)
+        %reduceDataLocationInfo Remove the fields the model derives
+        %
+        %   dlStruct = DataLocationModel.reduceDataLocationInfo(dlStruct)
+        %   removes the fields that expandDataLocationInfo adds, leaving
+        %   the Uuid of the data location, the uid of its root path and the
+        %   subfolders below that root. That is the part which identifies
+        %   where data is without naming a path on any particular computer.
+        %
+        %   Static because the fields to remove are the same for every
+        %   model, so a metatable can reduce its column without one at hand.
+
+            fieldsToRemove = nansen.config.dloc.DataLocationModel.getDerivedFieldNames();
             for i = 1:numel(fieldsToRemove)
                 if isfield(dlStruct, fieldsToRemove{i})
                     dlStruct = rmfield(dlStruct, fieldsToRemove{i});
                 end
+            end
+        end
+    end
+
+    methods (Static, Access = private)
+
+        function dlStruct = setDerivedFieldsToDefault(dlStruct)
+        %setDerivedFieldsToDefault Make every derived field present but empty
+        %
+        %   Assigns across the whole struct array, so that every element
+        %   carries the field even when the model can not resolve it.
+
+            defaults = struct('Name', '', ...
+                'Type', nansen.config.dloc.DataLocationType.empty, ...
+                'RootPath', '', 'RootIdx', [], 'Diskname', '');
+
+            for fieldName = fieldnames(defaults)'
+                [dlStruct.(fieldName{1})] = deal(defaults.(fieldName{1}));
             end
         end
     end
