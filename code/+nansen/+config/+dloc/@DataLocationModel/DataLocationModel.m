@@ -365,8 +365,15 @@ classdef DataLocationModel < utility.data.StorableCatalog
 
             for i = 1:numDatalocations
 
-                dlUuid = dataLocationStructArray(1,i).Uuid;
-                dlInfo = obj.getItem(dlUuid);
+                % A table may refer to a data location that has since been
+                % removed from the model. Its entries are kept, with the
+                % root path marked as unresolved below.
+                dlIdx = obj.getItemIndex(dataLocationStructArray(1,i).Uuid);
+                if isempty(dlIdx)
+                    dlInfo = obj.getBlankItem();
+                else
+                    dlInfo = obj.Data(dlIdx);
+                end
 
                 for j = 1:numItems
 
@@ -675,16 +682,11 @@ classdef DataLocationModel < utility.data.StorableCatalog
 
             for iDl = 1:numel(dlStruct) %obj.NumDataLocations
 
-                % getItem returns an empty struct array for a uuid this
-                % model does not hold, rather than raising.
-                try
-                    thisDlItem = obj.getItem(dlStruct(iDl).Uuid);
-                catch
-                    thisDlItem = [];
-                end
-                if ~isscalar(thisDlItem)
+                dlIdx = obj.getItemIndex(dlStruct(iDl).Uuid);
+                if isempty(dlIdx)
                     continue % Data location is not in this model
                 end
+                thisDlItem = obj.Data(dlIdx);
 
                 % Add name and type fields
                 fields = {'Name', 'Type'};
