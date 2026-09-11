@@ -473,7 +473,7 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
 
             % Get index for the given data location name.
             if ~isempty(obj.DataLocationModel)
-                [~, idx] = obj.DataLocationModel.getItem(dataLocationName);
+                idx = obj.DataLocationModel.getItemIndex(dataLocationName);
             elseif ~isempty(obj.DataLocation)
                 idx = find(strcmp({obj.DataLocation.Name}, dataLocationName));
             else

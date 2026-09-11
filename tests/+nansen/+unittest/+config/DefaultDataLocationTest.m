@@ -12,6 +12,15 @@ classdef DefaultDataLocationTest < matlab.unittest.TestCase
         ModelPath char
     end
 
+    methods (TestClassSetup)
+        function setupProject(testCase)
+            % The model constructor resolves the current project, so the
+            % test runs against a mock project rather than whatever
+            % profile is active on the machine.
+            testCase.applyFixture(nansen.fixture.ProjectFixture)
+        end
+    end
+
     methods (TestMethodSetup)
         function createModelPath(testCase)
             import matlab.unittest.fixtures.TemporaryFolderFixture
