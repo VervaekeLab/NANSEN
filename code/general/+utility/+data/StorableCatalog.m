@@ -75,6 +75,9 @@ classdef StorableCatalog < handle
     end
 
     properties (Hidden)
+        % SaveFormat - Format that save writes in, 'mat' or 'json'. It
+        % follows the extension of FilePath. Setting it and saving converts
+        % the catalog to the other format.
         SaveFormat = 'mat';
     end
 
@@ -138,10 +141,6 @@ classdef StorableCatalog < handle
                 obj.FilePath = obj.getDefaultFilePath();
             end
 
-            if ~isfile(obj.FilePath)
-                obj.initialize()
-            end
-
             obj.load()
         end
     end
@@ -161,10 +160,12 @@ classdef StorableCatalog < handle
             if ~isfolder(folderPath); mkdir(folderPath); end
 
             obj.FilePath = filePath;
+            obj.resolveFilePath()
         end
 
         function refreshFilePath(obj)
             obj.FilePath = obj.getDefaultFilePath();
+            obj.resolveFilePath()
         end % resetFilePath
 
         function reloadDefault(obj)
@@ -193,7 +194,7 @@ classdef StorableCatalog < handle
             [S.Data(:).Uuid] = {};
             S.Data = orderfields(S.Data, ['Uuid'; origNames]);
 
-            save(obj.FilePath, '-struct', 'S')
+            obj.writeCatalogFile(S, obj.FilePath);
 
             if ~nargout
                 clear S
@@ -203,11 +204,13 @@ classdef StorableCatalog < handle
         function load(obj)
         %load Load data from file
 
+            obj.resolveFilePath()
+
             if ~isfile(obj.FilePath)
                 obj.initialize()
             end
 
-            S = load(obj.FilePath, 'Data', 'Preferences');
+            S = obj.readCatalogFile(obj.FilePath);
 
             S = obj.addUuidIfMissing(S); % Todo: Remove this on release.
 
@@ -218,23 +221,133 @@ classdef StorableCatalog < handle
         end
 
         function save(obj)
-        %save Save data to file
-            obj.saveas(obj.FilePath)
+        %save Save data to the catalog file, in the save format
+        %
+        %   The extension of the file follows SaveFormat, so converting a
+        %   catalog by setting SaveFormat and saving writes the new file
+        %   beside the old one and repoints the catalog at it. The old file
+        %   is left in place as a backup.
+            filePath = nansen.util.path.changeFilenameExtension(obj.FilePath, obj.SaveFormat);
+            obj.saveas(filePath)
+            obj.FilePath = filePath;
         end
 
         function saveas(obj, filePath)
-        %save Save data to file at file path given as input
+        %saveas Save data to a file, in the format its extension implies
+        %
+        %   The catalog itself keeps pointing at its own file.
             S = obj.toStruct();
             S = obj.cleanStructOnSave(S);
 
-            if strcmp(obj.SaveFormat, 'mat')
-                save(filePath, '-struct', 'S')
-            elseif strcmp(obj.SaveFormat, 'json')
-                jsonFilePath = nansen.util.path.changeFilenameExtension(...
-                    filePath, '.json');
+            obj.writeCatalogFile(S, filePath);
+        end
+    end
 
-                str = jsonencode(S, 'PrettyPrint', true);
-                utility.filewrite(jsonFilePath, str)
+    methods (Access = protected) % Catalog file io
+
+        function resolveFilePath(obj)
+        %resolveFilePath Point at the catalog file to use and adopt its format
+        %
+        %   A catalog is stored either as a json file or as a mat file, and
+        %   the format follows the file extension. Whenever FilePath is
+        %   assigned this runs so that the two can not disagree.
+        %
+        %   The json file is used whenever it exists, whichever extension
+        %   was asked for. Converting a catalog leaves the mat file behind
+        %   as a backup, and a backup must not be loaded as if it were
+        %   current. When neither the requested file nor a json sibling
+        %   exists but a mat sibling does, the mat file is used, so that a
+        %   project written before json storage keeps loading with no
+        %   change to any caller.
+            import nansen.util.path.changeFilenameExtension
+
+            jsonPath = changeFilenameExtension(obj.FilePath, 'json');
+            matPath = changeFilenameExtension(obj.FilePath, 'mat');
+
+            if isfile(jsonPath)
+                obj.FilePath = jsonPath;
+            elseif ~isfile(obj.FilePath) && isfile(matPath)
+                obj.FilePath = matPath;
+            end
+
+            obj.SaveFormat = obj.getFormatFromPath(obj.FilePath);
+        end
+
+        function writeCatalogFile(obj, S, filePath)
+        %writeCatalogFile Write a catalog struct in the format its extension implies
+
+            if strcmp(obj.getFormatFromPath(filePath), 'json')
+                % Encode the items, and every struct array nested in them,
+                % as json arrays even when they hold one element or none,
+                % so that a reader in another language does not have to
+                % guess whether a value is a list.
+                S.Data = utility.data.StorableCatalog.encodeStructArraysAsLists(S.Data);
+                utility.filewrite(filePath, jsonencode(S, 'PrettyPrint', true))
+            else
+                save(filePath, '-struct', 'S')
+            end
+        end
+
+        function S = readCatalogFile(obj, filePath)
+        %readCatalogFile Read a catalog struct, restoring shapes lost by json
+
+            if ~strcmp(utility.data.StorableCatalog.getFormatFromPath(filePath), 'json')
+                S = load(filePath, 'Data', 'Preferences');
+                return
+            end
+
+            S = jsondecode(fileread(filePath));
+
+            if ~isfield(S, 'Data')
+                S.Data = obj.getEmptyItem();
+            end
+            if ~isfield(S, 'Preferences') || ~isstruct(S.Preferences)
+                S.Preferences = struct();
+            end
+
+            S.Data = utility.data.conformStructToTemplate(S.Data, obj.getBlankItem());
+            S.Data = obj.validateFieldOrder(S.Data);
+        end
+    end
+
+    methods (Static, Access = protected)
+
+        function format = getFormatFromPath(filePath)
+        %getFormatFromPath Save format implied by a catalog file extension
+            [~, ~, extension] = fileparts(filePath);
+
+            if strcmpi(extension, '.json')
+                format = 'json';
+            else
+                format = 'mat';
+            end
+        end
+
+        function value = encodeStructArraysAsLists(value)
+        %encodeStructArraysAsLists Turn every nested struct array into a cell
+        %
+        %   jsonencode writes a struct array of one element as a json
+        %   object and a struct array of several as an array, so a reader
+        %   can not tell a list of one from a single value. Encoding struct
+        %   arrays as cell arrays makes every list a json array. Reading
+        %   accepts either shape, so files written before this still load.
+        %
+        %   The rule is applied to every struct, so a scalar struct meant
+        %   as a single object is written as a list of one as well. No
+        %   catalog item declares such a field; if one ever does, the
+        %   template in getBlankItem is where to tell the two apart.
+
+            if isstruct(value)
+                items = num2cell(reshape(value, 1, []));
+
+                for i = 1:numel(items)
+                    for fieldName = fieldnames(items{i})'
+                        items{i}.(fieldName{1}) = ...
+                            utility.data.StorableCatalog.encodeStructArraysAsLists( ...
+                                items{i}.(fieldName{1}));
+                    end
+                end
+                value = items;
             end
         end
     end
