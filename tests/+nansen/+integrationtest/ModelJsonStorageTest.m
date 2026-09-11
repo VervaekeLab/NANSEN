@@ -9,6 +9,15 @@ classdef ModelJsonStorageTest < matlab.unittest.TestCase
     %   Run tests:
     %       runtests('nansen.integrationtest.ModelJsonStorageTest')
 
+    methods (TestClassSetup)
+        function setupProject(testCase)
+            % Both model constructors resolve the current project, so the
+            % test runs against a throwaway user session and mock project
+            % rather than whatever profile is active on the machine.
+            testCase.applyFixture(nansen.fixture.ProjectFixture)
+        end
+    end
+
     methods (Access = private)
 
         function folderPath = createConfigFolder(testCase)
