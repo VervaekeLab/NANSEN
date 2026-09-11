@@ -696,23 +696,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 end
             end
         end
-
-        function dlStruct = reduceDataLocationInfo(obj, dlStruct)
-        %reduceDataLocationInfo Remove the fields this model derives
-        %
-        %   dlStruct = dlm_obj.reduceDataLocationInfo(dlStruct) removes the
-        %   fields that expandDataLocationInfo adds, leaving the Uuid of
-        %   the data location, the uid of its root path and the subfolders
-        %   below that root. That is the part which identifies where data
-        %   is without naming a path on any particular computer.
-
-            fieldsToRemove = obj.getDerivedFieldNames();
-            for i = 1:numel(fieldsToRemove)
-                if isfield(dlStruct, fieldsToRemove{i})
-                    dlStruct = rmfield(dlStruct, fieldsToRemove{i});
-                end
-            end
-        end
     end
 
     methods (Static)
@@ -723,6 +706,26 @@ classdef DataLocationModel < utility.data.StorableCatalog
         %   These describe the model and the computer it is used on, not
         %   the session, so they are not stored with a session's metadata.
             fieldNames = {'Name', 'Type', 'RootPath', 'RootIdx', 'Diskname'};
+        end
+
+        function dlStruct = reduceDataLocationInfo(dlStruct)
+        %reduceDataLocationInfo Remove the fields the model derives
+        %
+        %   dlStruct = DataLocationModel.reduceDataLocationInfo(dlStruct)
+        %   removes the fields that expandDataLocationInfo adds, leaving
+        %   the Uuid of the data location, the uid of its root path and the
+        %   subfolders below that root. That is the part which identifies
+        %   where data is without naming a path on any particular computer.
+        %
+        %   Static because the fields to remove are the same for every
+        %   model, so a metatable can reduce its column without one at hand.
+
+            fieldsToRemove = nansen.config.dloc.DataLocationModel.getDerivedFieldNames();
+            for i = 1:numel(fieldsToRemove)
+                if isfield(dlStruct, fieldsToRemove{i})
+                    dlStruct = rmfield(dlStruct, fieldsToRemove{i});
+                end
+            end
         end
     end
 

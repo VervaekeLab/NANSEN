@@ -115,7 +115,7 @@ classdef MetaTableDataLocationStorageTest < matlab.unittest.TestCase
                 'Only the fields identifying the data location should be stored.')
 
             rootPaths = {model.getItem(1).RootPath.Value};
-            testCase.verifyFalse(contains(evalc('disp(savedDataLocation)'), rootPaths{1}), ...
+            testCase.verifyFalse(contains(jsonencode(savedDataLocation), rootPaths{1}), ...
                 'The saved struct should not contain an absolute root path.')
         end
 
@@ -202,6 +202,26 @@ classdef MetaTableDataLocationStorageTest < matlab.unittest.TestCase
             cachedMaster = nansen.metadata.MetaTable.open(masterTable.filepath);
             testCase.verifyTrue(isfield(cachedMaster.entries.DataLocation{1}, 'RootPath'), ...
                 'The master must keep its expanded entries after a dummy synchronizes.')
+        end
+
+        function testSynchronizingFromTheMasterExpandsTheDummy(testCase)
+            % Entries pulled from the master file arrive in the stored
+            % form. They must be expanded like entries read from the
+            % dummy's own file, so that a dummy never holds the stored
+            % form in memory.
+            model = nansen.DataLocationModel();
+            stored = testCase.makeStoredDataLocation(model);
+            expanded = model.expandDataLocationInfo(stored);
+
+            masterTable = testCase.registerMasterTable(expanded);
+            dummyTable = testCase.registerDummyTable(masterTable, expanded);
+
+            nansen.getCurrentProject().MetaTableCatalog.synchronizeFromMaster(dummyTable);
+
+            actual = dummyTable.entries.DataLocation{1};
+            testCase.verifyTrue(isfield(actual, 'RootPath'), ...
+                'Entries pulled from the master must be expanded.')
+            testCase.verifyEqual(actual(1).RootPath, model.getItem(1).RootPath(1).Value)
         end
     end
 
