@@ -712,13 +712,16 @@ classdef Project < nansen.module.Module
                 % %     foldername = obj.METATABLE_FOLDER_NAME;
                 % %     filename = 'metatable_column_settings.mat';
 
+                % Note: These two catalogs are stored as json. A project
+                % written before that keeps its mat file: the catalog falls
+                % back to the sibling file when the json one is absent.
                 case 'DataLocationModel'
                     foldername = obj.CONFIG_FOLDER_NAME;
-                    filename = 'datalocation_settings.mat';
+                    filename = 'datalocation_settings.json';
 
                 case 'VariableModel'
                     foldername = obj.CONFIG_FOLDER_NAME;
-                    filename = 'filepath_settings.mat';
+                    filename = 'filepath_settings.json';
             end
 
             folderPathStr = fullfile(obj.FolderPath, foldername);
