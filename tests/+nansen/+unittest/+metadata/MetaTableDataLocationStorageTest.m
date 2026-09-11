@@ -176,5 +176,72 @@ classdef MetaTableDataLocationStorageTest < matlab.unittest.TestCase
 
             testCase.verifyEqual(reloaded.entries.DataLocation{1}, legacy)
         end
+
+        function testSavingADummyKeepsTheMasterExpanded(testCase)
+            % A dummy hands its entries to the master when it is saved. The
+            % master is opened through load, so its entries are expanded
+            % and stay cached that way. The dummy's entries must arrive in
+            % the same form. Otherwise identical entries look changed, the
+            % master is rewritten, and the cached master is left holding
+            % the reduced form.
+            model = nansen.DataLocationModel();
+            stored = testCase.makeStoredDataLocation(model);
+            expanded = model.expandDataLocationInfo(stored);
+
+            masterTable = testCase.registerMasterTable(expanded);
+            S = load(masterTable.filepath, 'VersionNumber');
+            versionBeforeDummy = S.VersionNumber;
+
+            % Registering saves the dummy, which synchronizes it to the master.
+            testCase.registerDummyTable(masterTable, expanded);
+
+            S = load(masterTable.filepath, 'VersionNumber');
+            testCase.verifyEqual(S.VersionNumber, versionBeforeDummy, ...
+                'A dummy whose entries match the master must not rewrite it.')
+
+            cachedMaster = nansen.metadata.MetaTable.open(masterTable.filepath);
+            testCase.verifyTrue(isfield(cachedMaster.entries.DataLocation{1}, 'RootPath'), ...
+                'The master must keep its expanded entries after a dummy synchronizes.')
+        end
+    end
+
+    methods (Access = private)
+
+        function masterTable = registerMasterTable(testCase, dlStruct)
+        %registerMasterTable Register a master table holding one entry
+            catalog = nansen.getCurrentProject().MetaTableCatalog;
+
+            masterTable = nansen.metadata.MetaTable( ...
+                testCase.makeEntries(dlStruct), ...
+                'MetaTableClass', 'table', ...
+                'MetaTableIdVarname', 'sessionID');
+            catalog.registerMetaTable(masterTable, struct( ...
+                'MetaTableName', sprintf('MasterTable_%09d', randi(1e9)), ...
+                'IsDefault', false, ...
+                'IsMaster', true));
+        end
+
+        function dummyTable = registerDummyTable(testCase, masterTable, dlStruct)
+        %registerDummyTable Register a dummy of the master with the same entry
+            catalog = nansen.getCurrentProject().MetaTableCatalog;
+
+            dummyTable = nansen.metadata.MetaTable( ...
+                testCase.makeEntries(dlStruct), ...
+                'MetaTableClass', 'table', ...
+                'MetaTableIdVarname', 'sessionID');
+            dummyTable.setAsDummy();
+            S = dummyTable.toStruct('metatable_file');
+            S.MetaTableKey = masterTable.MetaTableKey;
+            dummyTable.fromStruct(S);
+            catalog.registerMetaTable(dummyTable, struct( ...
+                'MetaTableName', sprintf('DummyTable_%09d', randi(1e9)), ...
+                'IsDefault', false, ...
+                'IsMaster', false));
+        end
+
+        function entries = makeEntries(~, dlStruct)
+            entries = table({'sub-01_ses-01'}, {dlStruct}, ...
+                'VariableNames', {'sessionID', 'DataLocation'});
+        end
     end
 end
