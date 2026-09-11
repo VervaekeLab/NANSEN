@@ -41,29 +41,17 @@ function S = conformStructToTemplate(S, template)
         return
     end
 
-    if iscell(S)
-        % A json array whose objects do not all carry the same keys decodes
-        % to a cell of scalar structs, which cannot be concatenated until
-        % every element has the same fields in the same order.
-        S = concatenateItems(cellfun(@(item) conformItem(item, template), ...
-            reshape(S, 1, []), 'UniformOutput', false), template);
-        return
+    % A homogeneous json array decodes to a struct array and a
+    % heterogeneous one to a cell of scalar structs. Both are handled as a
+    % list of scalar structs, conformed one at a time and joined once every
+    % element carries the same fields in the same order.
+    if isstruct(S)
+        S = num2cell(S);
     end
 
-    S = reshape(S, 1, []);
-
-    % Assign field by field rather than element by element, so that a field
-    % the stored items lack can be added across the whole array.
-    for fieldName = fieldnames(template)'
-        for i = 1:numel(S)
-            if isfield(S, fieldName{1})
-                S(i).(fieldName{1}) = conformValue( ...
-                    S(i).(fieldName{1}), template.(fieldName{1}));
-            else
-                S(i).(fieldName{1}) = template.(fieldName{1});
-            end
-        end
-    end
+    items = cellfun(@(item) conformItem(item, template), ...
+        reshape(S, 1, []), 'UniformOutput', false);
+    S = concatenateItems(items, template);
 end
 
 function item = conformItem(item, template)
@@ -82,15 +70,18 @@ end
 function S = concatenateItems(items, template)
 %concatenateItems Join scalar structs that may carry different extra fields
 
+    % Shapes are forced to columns because setdiff of two 1-by-1 cells
+    % returns a 1-by-0 row, which would otherwise break the concatenation.
     fieldOrder = fieldnames(template);
     for i = 1:numel(items)
-        fieldOrder = [fieldOrder; setdiff(fieldnames(items{i}), fieldOrder, 'stable')]; %#ok<AGROW>
+        extraFields = setdiff(fieldnames(items{i}), fieldOrder, 'stable');
+        fieldOrder = [fieldOrder; reshape(extraFields, [], 1)]; %#ok<AGROW>
     end
 
     for i = 1:numel(items)
         missingFields = setdiff(fieldOrder, fieldnames(items{i}), 'stable');
-        for fieldName = missingFields'
-            items{i}.(fieldName{1}) = [];
+        for k = 1:numel(missingFields)
+            items{i}.(missingFields{k}) = [];
         end
         items{i} = orderfields(items{i}, fieldOrder);
     end
