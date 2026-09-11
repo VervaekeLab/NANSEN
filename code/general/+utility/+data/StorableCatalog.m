@@ -484,10 +484,10 @@ classdef StorableCatalog < handle
         function [S, idx] = getItem(obj, itemName)
         %getItem Get the item with a given name, uuid or index
         %
-        %   Looking up a name or uuid that the catalog does not hold is an
-        %   error. It used to return an empty struct array, which fails far
-        %   from the call site with a message about the number of outputs
-        %   on the right hand side of an assignment.
+        %   Looking up a name or uuid that the catalog does not hold raises
+        %   NANSEN:StorableCatalog:ItemNotFound. Use getItemIndex where a
+        %   missing item is an expected outcome. Lookup by index keeps
+        %   MATLAB indexing semantics, including its out-of-range error.
 
             idx = obj.getItemIndex( itemName );
 
