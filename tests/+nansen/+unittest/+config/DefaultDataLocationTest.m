@@ -61,20 +61,36 @@ classdef DefaultDataLocationTest < matlab.unittest.TestCase
         end
 
         function testAModelOfOnlyReadOnlyLocationsLoads(testCase)
-            % This used to raise while loading, because the first data
-            % location was assigned as the default without asking whether
-            % its type allows it.
+            % A model whose only data location is read only has no default,
+            % and loading it must not assign one anyway.
             model = testCase.modelWithTypes('recorded');
 
             model = testCase.reload(model);
 
             testCase.verifyEmpty(model.DefaultDataLocation)
             testCase.verifyEqual(numel(model.Data), 1)
+            testCase.verifyFalse(isfield(model.Preferences, 'DefaultDataLocation'), ...
+                'No default is recorded, so one can be picked once a writable location exists.')
+        end
+
+        function testADefaultIsPickedOnceAWritableLocationExists(testCase)
+            model = testCase.modelWithTypes('recorded');
+            model = testCase.reload(model);
+            testCase.assertEmpty(model.DefaultDataLocation)
+
+            item = model.getBlankItem();
+            item.Name = 'Location2';
+            item.Type = nansen.config.dloc.DataLocationType('processed');
+            model.insertItem(item)
+
+            model = testCase.reload(model);
+
+            testCase.verifyEqual(model.DefaultDataLocation, 'Location2')
         end
 
         function testTypesAreNotOverwritten(testCase)
-            % Choosing a default used to force the second data location to
-            % be of type processed, discarding what it was configured as.
+            % Choosing a default must not change the type of any data
+            % location.
             model = testCase.modelWithTypes('processed', 'curated');
 
             model = testCase.reload(model);

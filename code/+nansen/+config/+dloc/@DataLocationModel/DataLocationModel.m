@@ -100,8 +100,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
 
             % Add default data location to preferences
             if ~isfield(obj.Preferences, 'DefaultDataLocation')
-                obj.fixDefaultDataLocation()
-                dirty = true;
+                dirty = obj.fixDefaultDataLocation() || dirty;
             end
 
             % Rootpath field changed from cell array with 2 cells to root
@@ -992,19 +991,24 @@ classdef DataLocationModel < utility.data.StorableCatalog
 
     methods (Access = private)
 
-        function fixDefaultDataLocation(obj)
+        function wasSet = fixDefaultDataLocation(obj)
         %fixDefaultDataLocation Pick a default for a model that has none
         %
         %   Chooses the first data location whose type may be a default,
         %   which excludes read only types such as recorded. When no data
-        %   location qualifies the preference is left unset, because a
-        %   model that can only be read from has no default to give.
+        %   location qualifies the preference is left unset, so that a
+        %   default is picked once a qualifying data location is added.
+        %   The output says whether a default was set, so that the caller
+        %   only marks the model dirty when there is something to save.
 
             % Todo: Add uuid, not name
+
+            wasSet = false;
 
             for i = 1:obj.NumDataLocations
                 if obj.Data(i).Type.AllowAsDefault
                     obj.DefaultDataLocation = obj.Data(i).Name;
+                    wasSet = true;
                     return
                 end
             end

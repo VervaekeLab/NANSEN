@@ -2,10 +2,9 @@ classdef ExtractionPatternTest < matlab.unittest.TestCase
     %ExtractionPatternTest Index extraction of metadata from folder and file names
     %
     %   An ind rule is a MATLAB index expression such as 1:6 or 5:end. The
-    %   expression is evaluated on its own rather than inside an indexing
-    %   expression, where end has no value. Since a refactor in March only
-    %   the exact pattern 1:end worked, which broke the shipped BIDS and
-    %   SciScan data location templates (5:end and 19:end).
+    %   expression is evaluated on its own, outside any indexing expression,
+    %   so end has to be given a value first. The shipped BIDS and SciScan
+    %   data location templates rely on 5:end and 19:end.
     %
     %   Run tests:
     %       runtests('nansen.unittest.config.ExtractionPatternTest')
@@ -40,9 +39,7 @@ classdef ExtractionPatternTest < matlab.unittest.TestCase
 
         function testBidsTemplateExtractsTheSubject(testCase)
             % The template reads the subject id after the "sub-" prefix.
-            repositoryRoot = fileparts(fileparts(fileparts(fileparts(fileparts( ...
-                mfilename('fullpath'))))));
-            template = jsondecode(fileread(fullfile(repositoryRoot, 'code', 'modules', ...
+            template = jsondecode(fileread(fullfile(nansen.rootpath(), 'code', 'modules', ...
                 '+nansen', '+module', '+general', '+core', 'resources', 'datalocations', 'bids.json')));
 
             subjectRule = template.MetaDataDef(strcmp({template.MetaDataDef.VariableName}, 'Subject ID'));

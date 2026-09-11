@@ -38,9 +38,8 @@ classdef StorableCatalogLookupTest < matlab.unittest.TestCase
         end
 
         function testGetItemRaisesForAnUnknownName(testCase)
-            % An unknown name used to give back an empty struct array, and
-            % the failure then surfaced somewhere else entirely, as a
-            % message about the number of outputs of an assignment.
+            % An unknown name is reported at the call site, rather than
+            % wherever an empty result would first be used.
             catalog = testCase.catalogWithOneItem();
 
             testCase.verifyError(@() catalog.getItem('NoSuchItem'), ...
@@ -75,12 +74,10 @@ classdef StorableCatalogLookupTest < matlab.unittest.TestCase
         end
 
         function testFieldOrderingIgnoresFieldsThatOnlyLookLikeUuid(testCase)
-            % validateFieldOrder asked whether "Uuid" contains any of the
-            % field names, rather than whether Uuid is one of them. A field
-            % named id, ui or uid is a substring of Uuid, so an item
-            % without a Uuid was taken to have one and then failed when its
-            % fields were reordered. Items reach this without a Uuid when a
-            % catalog file is read.
+            % A field named id, ui or uid is a substring of "Uuid". The check
+            % has to ask whether Uuid is one of the fields, not whether a
+            % field name is contained in "Uuid". Items reach this without a
+            % Uuid when a catalog file is read.
             catalog = testCase.catalogWithOneItem();
 
             for fieldName = {'id', 'uid', 'ui'}
