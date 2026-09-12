@@ -64,9 +64,6 @@ function results = runNansenTestSuite(options)
         
         nvPairs = namedargs2cell(options);
         suite = TestSuite.fromPackage('nansen.unittest', 'IncludingSubpackages', true, nvPairs{:});
-        % Two-photon tests live in their own package so that they can
-        % move to the module repository unchanged.
-        suite = [suite, TestSuite.fromPackage('twophotontest', 'IncludingSubpackages', true, nvPairs{:})];
         
         runner = TestRunner.withTextOutput('Verbosity', verbosity);
         
