@@ -17,9 +17,9 @@ function cellOfMasks = createMasks(roiArray, varargin)
 %     [ ] fix implementation for only getting subset of rois
 %     [ ] function for fissa style mask dilation
 
-    import nansen.processing.roi.removeSpatialOverlaps
-    import nansen.processing.roi.estimateNeuropilMasks
-    import nansen.processing.roi.splitNeuropilMasks
+    import nansen.module.twophoton.roi.removeSpatialOverlaps
+    import nansen.module.twophoton.roi.estimateNeuropilMasks
+    import nansen.module.twophoton.roi.splitNeuropilMasks
 
     % Get default parameters and assertion functions.
     [P, V] = nansen.module.twophoton.roisignals.extract.getDefaultParameters();

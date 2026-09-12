@@ -5,9 +5,9 @@ classdef CaimanDeconvolution < applify.mixin.AppPlugin & applify.mixin.HasOption
 %   options and applying them to ROI dF/F signals.
 %
 %   SYNTAX:
-%       deconvolutionPlugin = nansen.plugin.signalviewer.CaimanDeconvolution(signalViewerHandle)
-%       deconvolutionPlugin = nansen.plugin.signalviewer.CaimanDeconvolution(signalViewerHandle, options)
-%       deconvolutionPlugin = nansen.plugin.signalviewer.CaimanDeconvolution(signalViewerHandle, options, Name, Value, ...)
+%       deconvolutionPlugin = nansen.module.twophoton.ui.signalviewer.CaimanDeconvolution(signalViewerHandle)
+%       deconvolutionPlugin = nansen.module.twophoton.ui.signalviewer.CaimanDeconvolution(signalViewerHandle, options)
+%       deconvolutionPlugin = nansen.module.twophoton.ui.signalviewer.CaimanDeconvolution(signalViewerHandle, options, Name, Value, ...)
 
     properties (Constant) % Implementation of AppPlugin property
         Name = 'CaImAn Deconvolution'

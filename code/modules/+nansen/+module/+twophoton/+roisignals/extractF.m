@@ -97,7 +97,7 @@ function [signalArray, P] = extractF(imageData, roiData, varargin)
     numRois = numel(params.roiInd);
 
     % Prepare array of RoIs for efficient signal extraction:
-    roiData = nansen.processing.roi.prepareRoiMasks(roiArray, params);
+    roiData = nansen.module.twophoton.roi.prepareRoiMasks(roiArray, params);
 
     % Allocate array for collecting extracted signals
     numSubRegions = params.numNeuropilSlices .* params.createNeuropilMask + 1; % Add 1 for the main roi

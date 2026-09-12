@@ -6,9 +6,9 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewC
 %   current image stack.
 %
 %   SYNTAX:
-%       normcorrePlugin = nansen.plugin.imviewer.NoRMCorre(imviewerHandle)
-%       normcorrePlugin = nansen.plugin.imviewer.NoRMCorre(imviewerHandle, options)
-%       normcorrePlugin = nansen.plugin.imviewer.NoRMCorre(imviewerHandle, options, Name, Value, ...)
+%       normcorrePlugin = nansen.module.twophoton.ui.imviewer.NoRMCorre(imviewerHandle)
+%       normcorrePlugin = nansen.module.twophoton.ui.imviewer.NoRMCorre(imviewerHandle, options)
+%       normcorrePlugin = nansen.module.twophoton.ui.imviewer.NoRMCorre(imviewerHandle, options, Name, Value, ...)
 %
 %   INHERITANCE:
 %       |- imviewer.ImviewerPlugin

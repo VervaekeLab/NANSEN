@@ -20,8 +20,8 @@ function [roiImageData, roiStats] = gatherRoiData(imArray, roiData, varargin)
 
     import nansen.module.twophoton.roi.compute.computeRoiImages
 
-    import roimanager.autosegment.extractRoiImages
-    import roimanager.autosegment.calculateRoiStats
+    import nansen.module.twophoton.roi.extractRoiImages
+    import nansen.module.twophoton.roi.calculateRoiStats
 
     params = struct;
     params.ImageTypes = {'Activity Weighted Mean', 'Diff Surround', 'Top 99th Percentile', 'Local Correlation'};
@@ -73,7 +73,7 @@ function [roiImageData, roiStats] = gatherRoiData(imArray, roiData, varargin)
         ringW = mean(cat(3, roiImageData.enhancedAverage), 3);
         diskW = mean(cat(3, roiImageData.correlation), 3);
 
-        roiStats = roimanager.autosegment.calculateRoiStats(roiArray, ...
+        roiStats = nansen.module.twophoton.roi.calculateRoiStats(roiArray, ...
             roiImageData, dff, ringW, diskW);
     end
 end

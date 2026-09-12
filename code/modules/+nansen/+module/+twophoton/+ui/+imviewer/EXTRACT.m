@@ -6,9 +6,9 @@ classdef EXTRACT < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewCon
 %   segmentation.
 %
 %   SYNTAX:
-%       extractPlugin = nansen.plugin.imviewer.EXTRACT(imviewerHandle)
-%       extractPlugin = nansen.plugin.imviewer.EXTRACT(imviewerHandle, options)
-%       extractPlugin = nansen.plugin.imviewer.EXTRACT(imviewerHandle, options, Name, Value, ...)
+%       extractPlugin = nansen.module.twophoton.ui.imviewer.EXTRACT(imviewerHandle)
+%       extractPlugin = nansen.module.twophoton.ui.imviewer.EXTRACT(imviewerHandle, options)
+%       extractPlugin = nansen.module.twophoton.ui.imviewer.EXTRACT(imviewerHandle, options, Name, Value, ...)
 
     properties (Constant)
        Name = 'EXTRACT'

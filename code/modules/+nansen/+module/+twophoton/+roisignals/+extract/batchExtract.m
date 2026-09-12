@@ -42,7 +42,7 @@ function signalArray = batchExtract(imArray, roiData, varargin)
 %       signals for fewer rois (<100) see serialExtract
 %
 %   See also nansen.module.twophoton.roisignals.extract.getDefaultParameters
-%            nansen.processing.roi.prepareRoiMasks
+%            nansen.module.twophoton.roi.prepareRoiMasks
 %            nansen.processing.signal.serialExtract
 %
 
@@ -62,7 +62,7 @@ function signalArray = batchExtract(imArray, roiData, varargin)
         [P, V] = nansen.module.twophoton.roisignals.extract.getDefaultParameters();
         params = utility.parsenvpairs(P, V, varargin{:});
         params.RoiOutputFormat = 'sparse';
-        roiData = nansen.processing.roi.prepareRoiMasks(roiData, params);
+        roiData = nansen.module.twophoton.roi.prepareRoiMasks(roiData, params);
     end
 
     % Reshape image array to a 2D matrix of nPixelsPerImage x nSamples
