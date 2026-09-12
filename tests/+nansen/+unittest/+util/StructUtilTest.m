@@ -1,5 +1,5 @@
-classdef ConformStructToTemplateTest < matlab.unittest.TestCase
-    %ConformStructToTemplateTest Unit tests for utility.data.conformStructToTemplate
+classdef StructUtilTest < matlab.unittest.TestCase
+    %StructUtilTest Unit tests for nansen.util.struct.conformToTemplate
     %
     %   Each test states one way jsondecode changes the shape of a struct,
     %   and asserts that the shape is restored. The inputs are produced by
@@ -7,7 +7,7 @@ classdef ConformStructToTemplateTest < matlab.unittest.TestCase
     %   fail if jsondecode changes behaviour.
     %
     %   Run tests:
-    %       runtests('nansen.unittest.data.ConformStructToTemplateTest')
+    %       runtests('nansen.unittest.util.StructUtilTest')
 
     methods (Access = private)
 
@@ -31,7 +31,7 @@ classdef ConformStructToTemplateTest < matlab.unittest.TestCase
             testCase.assertEqual(size(decoded), [2 1], ...
                 'Precondition: jsondecode returns a column struct array.')
 
-            conformed = utility.data.conformStructToTemplate(decoded, template);
+            conformed = nansen.util.struct.conformToTemplate(decoded, template);
 
             testCase.verifyEqual(size(conformed), [1 2])
             testCase.verifyEqual({conformed.Name}, {'a', 'b'})
@@ -42,7 +42,7 @@ classdef ConformStructToTemplateTest < matlab.unittest.TestCase
             % Code that validates items against fieldnames needs them back.
             template = struct('Name', '', 'Value', 0);
 
-            conformed = utility.data.conformStructToTemplate([], template);
+            conformed = nansen.util.struct.conformToTemplate([], template);
 
             testCase.verifyClass(conformed, 'struct')
             testCase.verifyEmpty(conformed)
@@ -54,7 +54,7 @@ classdef ConformStructToTemplateTest < matlab.unittest.TestCase
             template = struct('Name', '', 'Value', 0);
             decoded = {struct('Name', 'a', 'Value', 1), struct('Name', 'b')};
 
-            conformed = utility.data.conformStructToTemplate(decoded, template);
+            conformed = nansen.util.struct.conformToTemplate(decoded, template);
 
             testCase.verifyEqual(size(conformed), [1 2])
             testCase.verifyEqual(conformed(2).Value, 0, ...
@@ -64,7 +64,7 @@ classdef ConformStructToTemplateTest < matlab.unittest.TestCase
         function testSingleItemStaysAnArray(testCase)
             template = struct('Name', '', 'Value', 0);
 
-            conformed = utility.data.conformStructToTemplate( ...
+            conformed = nansen.util.struct.conformToTemplate( ...
                 testCase.roundTrip(struct('Name', 'only', 'Value', 1)), template);
 
             testCase.verifyEqual(size(conformed), [1 1])
@@ -84,7 +84,7 @@ classdef ConformStructToTemplateTest < matlab.unittest.TestCase
             testCase.assertClass(decoded.IgnoreList, 'double', ...
                 'Precondition: an empty cell decodes to [].')
 
-            conformed = utility.data.conformStructToTemplate(decoded, template);
+            conformed = nansen.util.struct.conformToTemplate(decoded, template);
 
             testCase.verifyClass(conformed.IgnoreList, 'cell')
             testCase.verifyEmpty(conformed.IgnoreList)
@@ -93,7 +93,7 @@ classdef ConformStructToTemplateTest < matlab.unittest.TestCase
         function testPopulatedCellBecomesRow(testCase)
             template = struct('IgnoreList', {{}});
 
-            conformed = utility.data.conformStructToTemplate( ...
+            conformed = nansen.util.struct.conformToTemplate( ...
                 testCase.roundTrip(struct('IgnoreList', {{'temp', 'backup'}})), template);
 
             testCase.verifyEqual(conformed.IgnoreList, {'temp', 'backup'})
@@ -102,7 +102,7 @@ classdef ConformStructToTemplateTest < matlab.unittest.TestCase
         function testNumericColumnBecomesRow(testCase)
             template = struct('SubfolderLevel', []);
 
-            conformed = utility.data.conformStructToTemplate( ...
+            conformed = nansen.util.struct.conformToTemplate( ...
                 testCase.roundTrip(struct('SubfolderLevel', [1 2])), template);
 
             testCase.verifyEqual(conformed.SubfolderLevel, [1 2])
@@ -111,7 +111,7 @@ classdef ConformStructToTemplateTest < matlab.unittest.TestCase
         function testEmptyNumericStaysEmpty(testCase)
             template = struct('SubfolderLevel', []);
 
-            conformed = utility.data.conformStructToTemplate( ...
+            conformed = nansen.util.struct.conformToTemplate( ...
                 testCase.roundTrip(struct('SubfolderLevel', [])), template);
 
             testCase.verifyEmpty(conformed.SubfolderLevel)
@@ -120,7 +120,7 @@ classdef ConformStructToTemplateTest < matlab.unittest.TestCase
         function testLogicalIsRestored(testCase)
             template = struct('IsFolder', true);
 
-            conformed = utility.data.conformStructToTemplate( ...
+            conformed = nansen.util.struct.conformToTemplate( ...
                 testCase.roundTrip(struct('IsFolder', false)), template);
 
             testCase.verifyClass(conformed.IsFolder, 'logical')
@@ -131,7 +131,7 @@ classdef ConformStructToTemplateTest < matlab.unittest.TestCase
             % A json null decodes to [], which is not a char vector.
             template = struct('Expression', '');
 
-            conformed = utility.data.conformStructToTemplate( ...
+            conformed = nansen.util.struct.conformToTemplate( ...
                 struct('Expression', []), template);
 
             testCase.verifyClass(conformed.Expression, 'char')
@@ -150,7 +150,7 @@ classdef ConformStructToTemplateTest < matlab.unittest.TestCase
             item = struct('Name', 'Rawdata', 'SubfolderStructure', ...
                 struct('Type', {'Subject', 'Session'}, 'IgnoreList', {{}, {'temp'}}));
 
-            conformed = utility.data.conformStructToTemplate( ...
+            conformed = nansen.util.struct.conformToTemplate( ...
                 testCase.roundTrip(item), template);
 
             nested = conformed.SubfolderStructure;
@@ -165,7 +165,7 @@ classdef ConformStructToTemplateTest < matlab.unittest.TestCase
             % pairs, so the template for its items has no example element.
             template = struct('RootPath', struct('Key', {}, 'Value', {}));
 
-            conformed = utility.data.conformStructToTemplate( ...
+            conformed = nansen.util.struct.conformToTemplate( ...
                 struct('RootPath', []), template);
 
             testCase.verifyClass(conformed.RootPath, 'struct')
@@ -179,7 +179,7 @@ classdef ConformStructToTemplateTest < matlab.unittest.TestCase
             template = struct('Name', '');
             decoded = struct('Name', 'a', 'Uuid', 'abc-123');
 
-            conformed = utility.data.conformStructToTemplate(decoded, template);
+            conformed = nansen.util.struct.conformToTemplate(decoded, template);
 
             testCase.verifyEqual(conformed.Uuid, 'abc-123')
         end
@@ -189,7 +189,7 @@ classdef ConformStructToTemplateTest < matlab.unittest.TestCase
             % the char the file holds. This must not interfere.
             template = struct('Type', nansen.config.dloc.DataLocationType('processed'));
 
-            conformed = utility.data.conformStructToTemplate( ...
+            conformed = nansen.util.struct.conformToTemplate( ...
                 struct('Type', 'recorded'), template);
 
             testCase.verifyEqual(conformed.Type, 'recorded')

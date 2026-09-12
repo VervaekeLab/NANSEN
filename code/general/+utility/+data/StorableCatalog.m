@@ -304,7 +304,7 @@ classdef StorableCatalog < handle
                 S.Preferences = struct();
             end
 
-            S.Data = utility.data.conformStructToTemplate(S.Data, obj.getBlankItem());
+            S.Data = nansen.util.struct.conformToTemplate(S.Data, obj.getBlankItem());
             S.Data = obj.validateFieldOrder(S.Data);
         end
     end
