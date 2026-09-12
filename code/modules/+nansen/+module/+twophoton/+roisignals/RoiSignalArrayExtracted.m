@@ -1,4 +1,4 @@
-classdef RoiSignalArrayExtracted < nansen.roisignals.RoiSignalArray
+classdef RoiSignalArrayExtracted < nansen.module.twophoton.roisignals.RoiSignalArray
 
     methods
         function obj = RoiSignalArrayExtracted(roiSignalArray, roiGroup)

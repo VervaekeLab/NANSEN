@@ -22,7 +22,7 @@ function cellOfMasks = createMasks(roiArray, varargin)
     import nansen.processing.roi.splitNeuropilMasks
 
     % Get default parameters and assertion functions.
-    [P, V] = nansen.twophoton.roisignals.extract.getDefaultParameters();
+    [P, V] = nansen.module.twophoton.roisignals.extract.getDefaultParameters();
 
     % Parse potential parameters from input arguments
     params = utility.parsenvpairs(P, V, varargin{:});

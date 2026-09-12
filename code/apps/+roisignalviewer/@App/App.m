@@ -115,9 +115,9 @@ classdef App < signalviewer.App & roimanager.roiDisplay
 
         Parameters % signal extraction.
 
-        SignalExtractionOptions = nansen.twophoton.roisignals.extract.getDefaultParameters();
-        DeconvolutionOptions = nansen.twophoton.roisignals.getDeconvolutionParameters();
-        DffOptions = nansen.twophoton.roisignals.computeDff();
+        SignalExtractionOptions = nansen.module.twophoton.roisignals.extract.getDefaultParameters();
+        DeconvolutionOptions = nansen.module.twophoton.roisignals.getDeconvolutionParameters();
+        DffOptions = nansen.module.twophoton.roisignals.computeDff();
 
         hLineObjects = struct()          % Line handle for signals in signal plot
 
@@ -146,7 +146,7 @@ classdef App < signalviewer.App & roimanager.roiDisplay
             obj.AxesLabel = signalviewer.signalViewerLabel(obj.Axes, '');
             obj.AxesLabel.FontColor = [obj.Theme.AxesForegroundColor, 0.5] .* 0.5;
 
-            tf = cellfun(@(c) isa(c, 'nansen.roisignals.RoiSignalArray'), varargin);
+            tf = cellfun(@(c) isa(c, 'nansen.module.twophoton.roisignals.RoiSignalArray'), varargin);
             roiSignalArray = varargin{tf};
 
             obj.RoiSignalArray = roiSignalArray;
@@ -205,7 +205,7 @@ classdef App < signalviewer.App & roimanager.roiDisplay
 
         function set.SignalsToDisplay(obj, newValue)
 
-            validNames = nansen.roisignals.RoiSignalArray.SIGNAL_NAMES;
+            validNames = nansen.module.twophoton.roisignals.RoiSignalArray.SIGNAL_NAMES;
             isValid = all(contains(newValue, validNames));
             assert(isValid, 'One or more signal names are not valid.')
 
@@ -280,7 +280,7 @@ classdef App < signalviewer.App & roimanager.roiDisplay
 
         function createSignalSelectionDropdown(obj)
 
-            strings = nansen.roisignals.RoiSignalArray.SIGNAL_NAMES;
+            strings = nansen.module.twophoton.roisignals.RoiSignalArray.SIGNAL_NAMES;
 
             [obj.SignalSelectionDropdown, hButtons] = signalviewer.createDropdownListbox(obj.Panel, strings);
             obj.SignalSelectionDropdown.Visible = 'off';
@@ -396,7 +396,7 @@ classdef App < signalviewer.App & roimanager.roiDisplay
         % Todo: Move to signal extraction / computation plugins:
         function setParameters(obj)
 
-            params = nansen.twophoton.roisignals.extract.getDefaultParameters;
+            params = nansen.module.twophoton.roisignals.extract.getDefaultParameters;
 
             obj.Parameters = params;
 
@@ -415,7 +415,7 @@ classdef App < signalviewer.App & roimanager.roiDisplay
 
         function editDeconvolutionParameters(obj, s, e)
 
-            [P, ~] = nansen.twophoton.roisignals.getDeconvolutionParameters();
+            [P, ~] = nansen.module.twophoton.roisignals.getDeconvolutionParameters();
             P = rmfield(P, 'modelParams');
 
             P = obj.DeconvolutionOptions;
@@ -847,7 +847,7 @@ classdef App < signalviewer.App & roimanager.roiDisplay
 
 %             persistent signalNames
 %             if isempty(signalNames)
-%                 signalNames = nansen.roisignals.RoiSignalArray.SIGNAL_NAMES;
+%                 signalNames = nansen.module.twophoton.roisignals.RoiSignalArray.SIGNAL_NAMES;
 %             end
 
             resetInd = ismember(obj.DisplayedRoiIndices, roiInd);
@@ -896,7 +896,7 @@ classdef App < signalviewer.App & roimanager.roiDisplay
 
         function initializeTimeSeriesObjects(obj)
 
-            signalNames = nansen.roisignals.RoiSignalArray.SIGNAL_NAMES;
+            signalNames = nansen.module.twophoton.roisignals.RoiSignalArray.SIGNAL_NAMES;
 
             STEP = 10;
 
@@ -932,7 +932,7 @@ classdef App < signalviewer.App & roimanager.roiDisplay
 
             %Todo:Should be a super class method.
 
-            signalNames = nansen.roisignals.RoiSignalArray.SIGNAL_NAMES;
+            signalNames = nansen.module.twophoton.roisignals.RoiSignalArray.SIGNAL_NAMES;
 
             obj.tsNames = {};
             obj.tsArray = timeseries.empty;
@@ -1159,7 +1159,7 @@ classdef App < signalviewer.App & roimanager.roiDisplay
 
             persistent referenceNames
             if isempty(referenceNames)
-                referenceNames = nansen.roisignals.RoiSignalArray.SIGNAL_NAMES;
+                referenceNames = nansen.module.twophoton.roisignals.RoiSignalArray.SIGNAL_NAMES;
             end
 
             signalNames = intersect(referenceNames, signalNames, "stable");

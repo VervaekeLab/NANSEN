@@ -10,7 +10,7 @@ classdef SignalExtractor < nansen.stack.ImageStackProcessor
         MethodName = 'Extract Signals'
         IsManual = false        % Does method require manual supervision
         IsQueueable = true      % Can method be added to a queue
-        OptionsManager = nansen.OptionsManager('nansen.processing.SignalExtractor')
+        OptionsManager = nansen.OptionsManager('nansen.module.twophoton.roisignals.SignalExtractor')
     end
 
     properties (Constant, Hidden) % Inherited from DataMethod (not implemented yet)
@@ -37,7 +37,7 @@ classdef SignalExtractor < nansen.stack.ImageStackProcessor
 
         function S = getDefaultOptions()
             S = struct();
-            S.Extraction = nansen.twophoton.roisignals.extract.getDefaultParameters();
+            S.Extraction = nansen.module.twophoton.roisignals.extract.getDefaultParameters();
 
             S.Extraction.showTimer      = false;    %V.showTimer = @(x) assert(islogical(x), 'Value must be logical');
             S.Extraction.verbose        = false;    %V.verbose = @(x) assert(islogical(x), 'Value must be logical');
@@ -184,7 +184,7 @@ classdef SignalExtractor < nansen.stack.ImageStackProcessor
 
             % Only serial extract supports median/percentile methods.
             if ~strcmp( params.pixelComputationMethod, 'mean' )
-                params.extractFcn = @nansen.twophoton.roisignals.extract.serialExtract;
+                params.extractFcn = @nansen.module.twophoton.roisignals.extract.serialExtract;
             end
 
             % Count number of rois to extract signals for.
@@ -194,14 +194,14 @@ classdef SignalExtractor < nansen.stack.ImageStackProcessor
             % for fewer rois and batchExtract is faster for more rois.
             % Todo: Find out if the 200 threshold depends on memory/cpu
             if numRois < 200 && isempty(params.extractFcn)
-                params.extractFcn = @nansen.twophoton.roisignals.extract.serialExtract;
+                params.extractFcn = @nansen.module.twophoton.roisignals.extract.serialExtract;
                 params.roiMaskFormat = 'struct';
 
             elseif numRois >= 200 && isempty(params.extractFcn)
-                params.extractFcn = @nansen.twophoton.roisignals.extract.batchExtract;
+                params.extractFcn = @nansen.module.twophoton.roisignals.extract.batchExtract;
                 params.roiMaskFormat = 'sparse';
 
-            elseif isequal(params.extractFcn, @nansen.twophoton.roisignals.extract.serialExtract)
+            elseif isequal(params.extractFcn, @nansen.module.twophoton.roisignals.extract.serialExtract)
                 if ~strcmp(params.roiMaskFormat, 'struct')
                     params.roiMaskFormat = 'struct';
                     msg = ['Roi mask format was changed to ''struct'' because ', ...
@@ -209,7 +209,7 @@ classdef SignalExtractor < nansen.stack.ImageStackProcessor
                     warning(msg);
                 end
 
-            elseif isequal(params.extractFcn, @nansen.twophoton.roisignals.extract.batchExtract)
+            elseif isequal(params.extractFcn, @nansen.module.twophoton.roisignals.extract.batchExtract)
                 if ~strcmp(params.roiMaskFormat, 'sparse')
                     params.roiMaskFormat = 'sparse';
                     msg = ['Roi mask format was changed to ''sparse'' because ', ...

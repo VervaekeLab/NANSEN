@@ -1,7 +1,7 @@
 classdef SignalExtractionTest < matlab.unittest.TestCase
 %SignalExtractionTest Pins ROI signal extraction on a synthetic stack
 %
-%   Characterization tests for nansen.twophoton.roisignals.extractF. A
+%   Characterization tests for nansen.module.twophoton.roisignals.extractF. A
 %   small in-memory image stack carries a known value inside one ROI and
 %   zeros elsewhere, so the extracted ROI mean must reproduce that value
 %   exactly and the neuropil mean must be zero.
@@ -43,7 +43,7 @@ classdef SignalExtractionTest < matlab.unittest.TestCase
         end
 
         function signalArray = extract(~, imageData, rois, varargin)
-            signalArray = nansen.twophoton.roisignals.extractF(imageData, rois, varargin{:});
+            signalArray = nansen.module.twophoton.roisignals.extractF(imageData, rois, varargin{:});
         end
     end
 

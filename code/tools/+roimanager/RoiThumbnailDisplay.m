@@ -391,9 +391,9 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
         function im = createRoiImage(obj, roiObj)
         %createRoiImage Create a roi image from an ImageStack
 
-            import nansen.twophoton.roi.compute.computeRoiImages
-            import nansen.twophoton.roisignals.extractF
-            import nansen.twophoton.roisignals.computeDff
+            import nansen.module.twophoton.roi.compute.computeRoiImages
+            import nansen.module.twophoton.roisignals.extractF
+            import nansen.module.twophoton.roisignals.computeDff
 
             im = [];
             if isempty(obj.ImageStack); return; end

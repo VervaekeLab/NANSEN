@@ -1,10 +1,10 @@
 function [P, V] = getDffParameters()
 %getDffParameters Get parameters for signal deconvolution
 %
-%   P = nansen.twophoton.roisignals.getDffParameters() returns
+%   P = nansen.module.twophoton.roisignals.getDffParameters() returns
 %       a struct (P) with default parameters for computation of DFF
 %
-%   [P, V] = nansen.twophoton.roisignals.getDffParameters()
+%   [P, V] = nansen.module.twophoton.roisignals.getDffParameters()
 %       returns an additional struct (V) containing assertions for each
 %       parameter, for use with an input parser etc.
 %
@@ -13,7 +13,7 @@ function [P, V] = getDffParameters()
 %
 %
 %   Note: for full list of parameters, run function without output, i.e
-%       nansen.twophoton.roisignals.getDffParameters()
+%       nansen.module.twophoton.roisignals.getDffParameters()
 
 % DESCRIPTION:
 %   Change these parameters to change the behavior of the deconvolution
@@ -70,7 +70,7 @@ function choices = getDffMethodChoices()
 
     if isempty(fileNames)
 
-        s = what(fullfile('+nansen', '+twophoton', '+roisignals', '+process', '+dff'));
+        s = what(fullfile('+nansen', '+module', '+twophoton', '+roisignals', '+process', '+dff'));
         dirPath = s.path;
 
         L = dir(fullfile(dirPath, '*.m'));

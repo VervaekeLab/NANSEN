@@ -27,7 +27,7 @@ function [signalArray, P] = extractF(imageData, roiData, varargin)
 %   excludeRoiFromNeuropil : logical scalar
 %       Exclude rois from neuropil regions. Default = true
 %
-%   See also nansen.twophoton.roisignals.extract.getDefaultParameters
+%   See also nansen.module.twophoton.roisignals.extract.getDefaultParameters
 
     % Todo:
     %   [x] Implement a standard set of options across signal extraction
@@ -52,7 +52,7 @@ function [signalArray, P] = extractF(imageData, roiData, varargin)
 
     % Get default parameters and assertion functions.
 
-    [P, V] = nansen.twophoton.roisignals.extract.getDefaultParameters();
+    [P, V] = nansen.module.twophoton.roisignals.extract.getDefaultParameters();
     P.showTimer      = false;    V.showTimer = @(x) assert(islogical(x), 'Value must be logical');
     P.verbose        = false;    V.verbose = @(x) assert(islogical(x), 'Value must be logical');
     P.signalDataType = 'single'; V.signalDataType = @(x) assert(any(strcmp(x, {'single', 'double'})), 'Value must be ''single'' or ''double''');
@@ -184,7 +184,7 @@ function params = updateParameters(params, imageStack, roiArray)
 
     % Only serial extract supports median/percentile methods.
     if ~strcmp( params.pixelComputationMethod, 'mean' )
-        params.extractFcn = @nansen.twophoton.roisignals.extract.serialExtract;
+        params.extractFcn = @nansen.module.twophoton.roisignals.extract.serialExtract;
     end
 
     % Count number of rois to extract signals for.
@@ -194,14 +194,14 @@ function params = updateParameters(params, imageStack, roiArray)
     % for fewer rois and batchExtract is faster for more rois.
     % Todo: Find out if the 200 threshold depends on memory/cpu
     if numRois < 200 && isempty(params.extractFcn)
-        params.extractFcn = @nansen.twophoton.roisignals.extract.serialExtract;
+        params.extractFcn = @nansen.module.twophoton.roisignals.extract.serialExtract;
         params.roiMaskFormat = 'struct';
 
     elseif numRois >= 200 && isempty(params.extractFcn)
-        params.extractFcn = @nansen.twophoton.roisignals.extract.batchExtract;
+        params.extractFcn = @nansen.module.twophoton.roisignals.extract.batchExtract;
         params.roiMaskFormat = 'sparse';
 
-    elseif isequal(params.extractFcn, @nansen.twophoton.roisignals.extract.serialExtract)
+    elseif isequal(params.extractFcn, @nansen.module.twophoton.roisignals.extract.serialExtract)
         if ~strcmp(params.roiMaskFormat, 'struct')
             params.roiMaskFormat = 'struct';
             msg = ['Roi mask format was changed to ''struct'' because ', ...
@@ -209,7 +209,7 @@ function params = updateParameters(params, imageStack, roiArray)
             warning(msg);
         end
 
-    elseif isequal(params.extractFcn, @nansen.twophoton.roisignals.extract.batchExtract)
+    elseif isequal(params.extractFcn, @nansen.module.twophoton.roisignals.extract.batchExtract)
         if ~strcmp(params.roiMaskFormat, 'sparse')
             params.roiMaskFormat = 'sparse';
             msg = ['Roi mask format was changed to ''sparse'' because ', ...
@@ -233,7 +233,7 @@ function signalArray = extractFromMultipleChannels(imageStack, roiData, varargin
         else
             error('Unknown roi format for multichannel signal extraction. Please contact support.')
         end
-        signalArray{i} = nansen.twophoton.roisignals.extractF(imageStack, iRoiData, varargin{:});
+        signalArray{i} = nansen.module.twophoton.roisignals.extractF(imageStack, iRoiData, varargin{:});
     end
     %signalArray = cellfun(@(c) reshape(c, [1, size(c)]), signalArray, 'UniformOutput', false);
     signalArray = cat(ndims(signalArray)+1, signalArray{:});

@@ -1,7 +1,7 @@
-function [cia_dec, cia_den, cia_opt] = caiman(dff, varargin)
-%getCaImAnDeconvolvedDff Use CaImAn to deconvolve dff signal.
+function [cia_dec, cia_den, cia_opt] = deconvolve(dff, varargin)
+%deconvolve Use CaImAn to deconvolve dff signal.
 %
-%   [cia_dec, cia_den, cia_opt] = caiman(dff, opt)
+%   [cia_dec, cia_den, cia_opt] = deconvolve(dff, opt)
 %
 %   INPUTS:
 %       dff : matrix (nRois x nTimePoints/nSamples)
@@ -9,14 +9,14 @@ function [cia_dec, cia_den, cia_opt] = caiman(dff, varargin)
 %       opt : struct
 %           struct with parameters for deconvolution
 %
-%   See also nansen.twophoton.roisignals.getDeconvolutionParameters
+%   See also nansen.module.twophoton.roisignals.getDeconvolutionParameters
 
 %TODO:
     % [ ] Use hardcoded timeconstants or optimize?
     % [ ] Individual time constants per roi
     % [ ] CVX dependency?
 
-    [P, V] = nansen.twophoton.roisignals.getDeconvolutionParameters();
+    [P, V] = nansen.module.twophoton.roisignals.getDeconvolutionParameters();
 
     % Parse potential parameters from input arguments
     opt = utility.parsenvpairs(P, V, varargin{:});

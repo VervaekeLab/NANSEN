@@ -3,7 +3,7 @@ function roiArray = finalizeRoiSegmentation(imArray, avgIm, roiArrayT, varargin)
 
     % Todo: extract dff
 
-    import nansen.twophoton.roi.compute.computeRoiImages
+    import nansen.module.twophoton.roi.compute.computeRoiImages
 
     % Calculate average projection here if not given
     if nargin < 2; avgIm = mean(imArray, 3); end
@@ -40,7 +40,7 @@ function roiArray = finalizeRoiSegmentation(imArray, avgIm, roiArrayT, varargin)
             % Todo: Use temporally downsampled stack for extracting signals
             % and roi images for improving estimates
             signalOpts = struct('createNeuropilMask', true);
-            signalArrayS = nansen.twophoton.roisignals.extractF(imArray, roiArrayS, signalOpts);
+            signalArrayS = nansen.module.twophoton.roisignals.extractF(imArray, roiArrayS, signalOpts);
 
             % Add roi images to rois. Use to improve roi boundary estimate
             roiImageArray = computeRoiImages(imArray, roiArrayS, signalArrayS);
@@ -51,8 +51,8 @@ function roiArray = finalizeRoiSegmentation(imArray, avgIm, roiArrayT, varargin)
     fprintf('Extracting signals for temporally active cells...\n')
 
     signalOpts = struct('createNeuropilMask', true);
-    signalArray = nansen.twophoton.roisignals.extractF(imArray, roiArrayT, signalOpts);
-    dffT = nansen.twophoton.roisignals.computeDff(signalArray);
+    signalArray = nansen.module.twophoton.roisignals.extractF(imArray, roiArrayT, signalOpts);
+    dffT = nansen.module.twophoton.roisignals.computeDff(signalArray);
     %dffT = autosegment.extractDff(imArray, roiArrayT, 'unique roi');
 
     % Remove rois that dont have a signal. Due to being covered by other
