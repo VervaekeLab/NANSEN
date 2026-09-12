@@ -52,13 +52,10 @@ classdef ProjectFixture < matlab.unittest.fixtures.Fixture
         function deleteUserProfile(fixture, profileName)
         %deleteUserProfile Remove the mock project and the test profile
         %
-        %   The test profile is made the active session first. Teardown
-        %   can run while another profile is active, for instance when a
-        %   fixture object is destroyed from the base workspace, and the
-        %   project manager always belongs to the active session. Removing
-        %   the current project of whatever session happened to be active
-        %   would reach into that user's real project catalog, so only the
-        %   mock project is removed, by name, from the test profile.
+        %   The project manager belongs to the active user session, and
+        %   another profile may be active by the time teardown runs. The
+        %   test profile is therefore activated first, and only the mock
+        %   project is removed from it, by name.
             warnState = warning('off', 'NANSEN:UserSession:UserSessionActive');
             warningCleanup = onCleanup(@() warning(warnState));
 

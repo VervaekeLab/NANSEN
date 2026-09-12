@@ -122,10 +122,9 @@ classdef StorableCatalog < handle
         %validateFieldOrder Enforce Uuid as the first field of item struct
             itemFields = fieldnames(item);
 
-            % Make sure uuid is the first field. Note that this asks
-            % whether Uuid is one of the fields; contains() would ask
-            % whether any field name is a substring of "Uuid", which is
-            % true for an unrelated field named id, ui or uid.
+            % Make sure uuid is the first field. The membership test must
+            % be exact: field names such as id, ui or uid are substrings of
+            % "Uuid" and must not count as a Uuid field.
             if ismember('Uuid', itemFields) && ~strcmp(itemFields{1}, 'Uuid')
                 fieldOrder = ['Uuid'; setdiff(itemFields, 'Uuid', 'stable') ];
                 item = orderfields(item, fieldOrder);
