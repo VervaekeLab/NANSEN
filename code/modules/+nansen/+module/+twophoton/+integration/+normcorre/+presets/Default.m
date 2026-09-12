@@ -1,4 +1,4 @@
-classdef Default < nansen.wrapper.normcorre.Options
+classdef Default < nansen.module.twophoton.integration.normcorre.Options
 
     properties (Constant)
         Name = 'Nonrigid (4x4)'
@@ -8,7 +8,7 @@ classdef Default < nansen.wrapper.normcorre.Options
     methods (Static)
 
         function S = getOptions()
-            S = getOptions@nansen.wrapper.normcorre.Options();
+            S = getOptions@nansen.module.twophoton.integration.normcorre.Options();
         end
     end
 end

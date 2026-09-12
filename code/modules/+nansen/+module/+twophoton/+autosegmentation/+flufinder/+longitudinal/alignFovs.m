@@ -12,8 +12,8 @@ function [fovShifts, imArrayNR] = alignFovs(imArray)
 % Load images. Assume they are all the same size. Can implement crop/pad
 % later if necessary.
 
-    import nansen.wrapper.normcorre.utility.rigid
-    import nansen.wrapper.normcorre.utility.nonrigid
+    import nansen.module.twophoton.integration.normcorre.utility.rigid
+    import nansen.module.twophoton.integration.normcorre.utility.nonrigid
     import nansen.tools.image.resize.imcropcenter
     import nansen.tools.image.registration.findRotationOffsetsFFT
     import nansen.tools.image.transform.rotateStack

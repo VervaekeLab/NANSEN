@@ -7,7 +7,7 @@ function [f, results] = visualizeDrift(data)
 %           average)
 %
 %    -or:
-%       driftSummary : struct outputted by ophys.twophoton.analysis.computeDriftSummary
+%       driftSummary : struct outputted by nansen.module.twophoton.motioncorrection.analysis.computeDriftSummary
 %
 %   This function displays two different images and two timeseries signals
 %       1) Image where first and last image of a stack is merged using two
@@ -19,10 +19,10 @@ function [f, results] = visualizeDrift(data)
 %       4) Mean fluorescence: The mean fluorescence level in each image of
 %          the stack.
 %
-%   See also ophys.twophoton.analysis.computeDriftSummary
+%   See also nansen.module.twophoton.motioncorrection.analysis.computeDriftSummary
 
     if isnumeric(data)
-        results = ophys.twophoton.analysis.computeDriftSummary(data);
+        results = nansen.module.twophoton.motioncorrection.analysis.computeDriftSummary(data);
     elseif isstruct(data)
         results = data;
     end

@@ -20,7 +20,7 @@ function dtheta = findRotationOffsetsFFT(IM, rotating, refIm)
 %
 % Written by Eivind Hennestad, 2018 | Vervake Lab
 
-import nansen.wrapper.normcorre.utility.rigid
+import nansen.module.twophoton.integration.normcorre.utility.rigid
 
 assert(ndims(IM) == 3, 'First input must be a 3D array.')
 

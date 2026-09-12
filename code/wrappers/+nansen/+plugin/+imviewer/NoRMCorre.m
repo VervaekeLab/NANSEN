@@ -1,4 +1,4 @@
-classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewController & nansen.processing.MotionCorrectionPreview
+classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewController & nansen.module.twophoton.motioncorrection.MotionCorrectionPreview
 %NoRMCorre Preview NoRMCorre motion correction in imviewer.
 %
 %   NoRMCorre is an imviewer plugin for adjusting NoRMCorre parameters,
@@ -17,7 +17,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewC
 %               |-  uiw.mixin.AssignPVPairs
 %       |- applify.mixin.ModalMethodPreviewController
 %           |- applify.mixin.HasOptionsManager
-%       |- nansen.processing.MotionCorrectionPreview
+%       |- nansen.module.twophoton.motioncorrection.MotionCorrectionPreview
 
 %   TODO:
 %       [ ] migrate plugin to new instance if results open in new window
@@ -109,7 +109,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewC
         end
 
         function assignDefaultOptions(obj)
-            functionName = 'nansen.wrapper.normcorre.Processor';
+            functionName = 'nansen.module.twophoton.integration.normcorre.Processor';
             obj.OptionsManager = nansen.manage.OptionsManager(functionName);
             obj.Options = obj.OptionsManager.getOptions;
         end
@@ -172,14 +172,14 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewC
             imClass = class(Y);
             stackSize = size(Y);
 
-            import nansen.wrapper.normcorre.*
+            import nansen.module.twophoton.integration.normcorre.*
             ncOptions = Options.convert(obj.Options, stackSize);
 
             if ~isa(Y, 'single') || ~isa(Y, 'double')
                 Y = single(Y);
             end
 
-            [Y, ~, ~] = nansen.wrapper.normcorre.utility.correctLineOffsets(Y, 100);
+            [Y, ~, ~] = nansen.module.twophoton.integration.normcorre.utility.correctLineOffsets(Y, 100);
 
             obj.ImviewerObj.displayMessage('Running NoRMCorre...')
 
@@ -224,7 +224,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewC
             drawnow
             cleanupObj = onCleanup(@() obj.ImviewerObj.clearMessage());
 
-            nansen.wrapper.normcorre.Processor(obj.ImviewerObj.ImageStack,...
+            nansen.module.twophoton.integration.normcorre.Processor(obj.ImviewerObj.ImageStack,...
                 obj.Options, 'DataIoModel', dataSet)
         end
     end
@@ -235,7 +235,7 @@ classdef NoRMCorre < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewC
 
             % Call superclass method to deal with options that are
             % general motion correction options.
-            onOptionsChanged@nansen.processing.MotionCorrectionPreview(obj, name, value)
+            onOptionsChanged@nansen.module.twophoton.motioncorrection.MotionCorrectionPreview(obj, name, value)
 
             patchesFields = fieldnames(obj.Options.Configuration);
             templateFields = fieldnames(obj.Options.Template);

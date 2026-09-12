@@ -1,8 +1,8 @@
-classdef Processor < nansen.processing.MotionCorrection & ...
+classdef Processor < nansen.module.twophoton.motioncorrection.MotionCorrection & ...
                         nansen.wrapper.abstract.ToolboxWrapper
-%nansen.wrapper.flowreg.Processor Wrapper for running flowregistration on nansen
+%nansen.module.twophoton.integration.flowreg.Processor Wrapper for running flowregistration on nansen
 %
-%   h = nansen.wrapper.flowreg.Processor(imageStackReference)
+%   h = nansen.module.twophoton.integration.flowreg.Processor(imageStackReference)
 %
 %   This class provides functionality for running flowreg within
 %   the nansen package.
@@ -32,7 +32,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
     properties (Constant) % Attributes inherited from nansen.processing.DataMethod
         MethodName = 'Motion Correction (FlowRegistration)'
         OptionsManager nansen.manage.OptionsManager = ...
-            nansen.OptionsManager('nansen.wrapper.flowreg.Processor')
+            nansen.OptionsManager('nansen.module.twophoton.integration.flowreg.Processor')
     end
 
     properties (Constant, Hidden)
@@ -45,7 +45,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
     end
 
     properties (Constant, Access = protected)
-        %DependentPaths = nansen.wrapper.flowreg.getDependentPaths()
+        %DependentPaths = nansen.module.twophoton.integration.flowreg.getDependentPaths()
     end
 
     properties (Access = private)
@@ -56,11 +56,11 @@ classdef Processor < nansen.processing.MotionCorrection & ...
     methods % Constructor
 
         function obj = Processor(varargin)
-        %nansen.wrapper.flowreg.Processor Construct flowreg processor
+        %nansen.module.twophoton.integration.flowreg.Processor Construct flowreg processor
         %
-        %   h = nansen.wrapper.flowreg.Processor(imageStackReference)
+        %   h = nansen.module.twophoton.integration.flowreg.Processor(imageStackReference)
 
-            obj@nansen.processing.MotionCorrection(varargin{:})
+            obj@nansen.module.twophoton.motioncorrection.MotionCorrection(varargin{:})
 
             obj.assertAddonInstalled()
 
@@ -93,7 +93,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
 
             % Get the flowregistration options struct based on the parameter
             % selection and the size of the image stack to be corrected.
-            import nansen.wrapper.flowreg.Options
+            import nansen.module.twophoton.integration.flowreg.Options
             opts = Options.convert(obj.Options);
 
             optionsVarname = 'FlowregOptions';
@@ -158,7 +158,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
 
         function updateCorrectionStats(obj, IND)
 
-            import nansen.wrapper.flowreg.utility.*
+            import nansen.module.twophoton.integration.flowreg.utility.*
 
             if nargin < 2
                 IND = obj.CurrentFrameIndices;
@@ -204,7 +204,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
 
             % Todo: get frames based on options.frameNumForInitialTemplate
 
-            import nansen.wrapper.flowreg.utility.*
+            import nansen.module.twophoton.integration.flowreg.utility.*
 
             options = obj.ToolboxOptions;
 
@@ -250,7 +250,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
 
         function initializeParameters(obj, imArray)
 
-            import nansen.wrapper.flowreg.utility.*
+            import nansen.module.twophoton.integration.flowreg.utility.*
 
             options = obj.ToolboxOptions;
             initTemplate = obj.CurrentRefImage;
@@ -284,13 +284,13 @@ classdef Processor < nansen.processing.MotionCorrection & ...
     methods (Access = protected) % Run the motion correction / image registration
 
         function onInitialization(obj)
-            onInitialization@nansen.processing.MotionCorrection(obj)
+            onInitialization@nansen.module.twophoton.motioncorrection.MotionCorrection(obj)
             obj.CorrectionParams = cell(1, obj.StackIterator.NumIterationsZ);
         end
 
         function [M, results] = registerImageData(obj, Y)
 
-            import nansen.wrapper.flowreg.utility.*
+            import nansen.module.twophoton.integration.flowreg.utility.*
 
             results = true;
 

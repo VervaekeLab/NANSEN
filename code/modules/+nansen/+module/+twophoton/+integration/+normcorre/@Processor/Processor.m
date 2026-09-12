@@ -1,8 +1,8 @@
-classdef Processor < nansen.processing.MotionCorrection & ...
+classdef Processor < nansen.module.twophoton.motioncorrection.MotionCorrection & ...
                         nansen.wrapper.abstract.ToolboxWrapper
-%nansen.wrapper.normcorre.Processor Wrapper for running normcorre on nansen
+%nansen.module.twophoton.integration.normcorre.Processor Wrapper for running normcorre on nansen
 %
-%   h = nansen.wrapper.normcorre.Processor(imageStackReference)
+%   h = nansen.module.twophoton.integration.normcorre.Processor(imageStackReference)
 %
 %   This class provides functionality for running normcorre within
 %   the nansen package.
@@ -28,7 +28,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
     properties (Constant) % Attributes inherited from nansen.processing.DataMethod
         MethodName = 'Motion Correction (NoRMCorre)'
         OptionsManager nansen.manage.OptionsManager = ...
-            nansen.OptionsManager('nansen.wrapper.normcorre.Processor')
+            nansen.OptionsManager('nansen.module.twophoton.integration.normcorre.Processor')
     end
 
     properties (Constant, Hidden)
@@ -46,17 +46,17 @@ classdef Processor < nansen.processing.MotionCorrection & ...
     end
 
 % % %     properties (Constant, Access = protected)
-% % %         DependentPaths = nansen.wrapper.normcorre.getDependentPaths()
+% % %         DependentPaths = nansen.module.twophoton.integration.normcorre.getDependentPaths()
 % % %     end
 
     methods % Constructor
 
         function obj = Processor(varargin)
-        %nansen.wrapper.normcorre.Processor Construct normcorre processor
+        %nansen.module.twophoton.integration.normcorre.Processor Construct normcorre processor
         %
-        %   h = nansen.wrapper.normcorre.Processor(imageStackReference)
+        %   h = nansen.module.twophoton.integration.normcorre.Processor(imageStackReference)
 
-            obj@nansen.processing.MotionCorrection(varargin{:})
+            obj@nansen.module.twophoton.motioncorrection.MotionCorrection(varargin{:})
 
             % Check that normcorre is on path...
             obj.assertAddonInstalled()
@@ -104,7 +104,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             % validate/assert that arg is good
             stackSize = varargin{1};
 
-            import nansen.wrapper.normcorre.Options
+            import nansen.module.twophoton.integration.normcorre.Options
             opts = Options.convert(obj.Options, stackSize);
 
             optionsVarname = 'NormcorreOptions';
@@ -207,7 +207,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
 
             % Todo: Select number of frames (and iterations) to use based
             % on options...
-            M = nansen.wrapper.normcorre.utility.rigid(imArray);
+            M = nansen.module.twophoton.integration.normcorre.utility.rigid(imArray);
 
             % Todo: Find correct dimension to average...?
             template = mean(M, 3);
@@ -219,7 +219,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
     methods (Access = protected) % Run the motion correction / image registration
 
         function onInitialization(obj)
-            onInitialization@nansen.processing.MotionCorrection(obj)
+            onInitialization@nansen.module.twophoton.motioncorrection.MotionCorrection(obj)
             warnID = 'MATLAB:mir_warning_maybe_uninitialized_temporary';
             warning('off', warnID)
 
@@ -277,7 +277,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         end
 
         function onCompletion(obj)
-            onCompletion@nansen.processing.MotionCorrection(obj)
+            onCompletion@nansen.module.twophoton.motioncorrection.MotionCorrection(obj)
             warnID = 'MATLAB:mir_warning_maybe_uninitialized_temporary';
             warning('on', warnID)
         end

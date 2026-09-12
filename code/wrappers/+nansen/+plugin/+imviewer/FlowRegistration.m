@@ -1,4 +1,4 @@
-classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewController & nansen.processing.MotionCorrectionPreview
+classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewController & nansen.module.twophoton.motioncorrection.MotionCorrectionPreview
 %FlowRegistration Preview Flow Registration motion correction in imviewer.
 %
 %   FlowRegistration is an imviewer plugin for adjusting Flow Registration
@@ -119,14 +119,14 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodP
             imClass = class(Y);
             %stackSize = size(Y);
 
-            import nansen.wrapper.flowreg.*
+            import nansen.module.twophoton.integration.flowreg.*
             options = Options.convert(obj.Options);
 
             if ~isa(Y, 'single') || ~isa(Y, 'double')
                 Y = single(Y);
             end
 
-            Y = nansen.wrapper.normcorre.utility.correctLineOffsets(Y, 100);
+            Y = nansen.module.twophoton.integration.normcorre.utility.correctLineOffsets(Y, 100);
 
             obj.ImviewerObj.displayMessage('Running FlowRegistration...')
 
@@ -168,7 +168,7 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodP
             drawnow
             cleanupObj = onCleanup(@() obj.ImviewerObj.clearMessage());
 
-            nansen.wrapper.flowreg.Processor(obj.ImviewerObj.ImageStack, ...
+            nansen.module.twophoton.integration.flowreg.Processor(obj.ImviewerObj.ImageStack, ...
                 obj.Options, 'DataIoModel', dataSet)
         end
     end
@@ -186,7 +186,7 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodP
         end
 
         function assignDefaultOptions(obj)
-            functionName = 'nansen.wrapper.flowreg.Processor';
+            functionName = 'nansen.module.twophoton.integration.flowreg.Processor';
             obj.OptionsManager = nansen.manage.OptionsManager(functionName);
 
             obj.Options = obj.OptionsManager.getOptions;
@@ -314,7 +314,7 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodP
 
             % Call superclass method to deal with options that are
             % general motion correction options.
-            onOptionsChanged@nansen.processing.MotionCorrectionPreview(obj, name, value)
+            onOptionsChanged@nansen.module.twophoton.motioncorrection.MotionCorrectionPreview(obj, name, value)
 
             switch name
 

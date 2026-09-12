@@ -1,4 +1,4 @@
-classdef Default < nansen.wrapper.flowreg.Options
+classdef Default < nansen.module.twophoton.integration.flowreg.Options
 
     properties (Constant)
         Name = 'Flowreg Preset'
@@ -8,7 +8,7 @@ classdef Default < nansen.wrapper.flowreg.Options
     methods (Static)
 
         function S = getOptions()
-            S = getOptions@nansen.wrapper.flowreg.Options();
+            S = getOptions@nansen.module.twophoton.integration.flowreg.Options();
         end
     end
 end
