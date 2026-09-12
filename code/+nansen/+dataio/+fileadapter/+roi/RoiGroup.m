@@ -152,7 +152,7 @@ classdef RoiGroup < nansen.dataio.FileAdapter
         end
 
         function set.RoiFormat(obj, newValue)
-            VALID_FORMATS = {'Nansen', 'Suite2p', 'CaImAn', 'Extract'};
+            VALID_FORMATS = {'Nansen', 'Suite2p', 'CaImAn', 'Extract', 'VHLab'};
             newValue = validatestring(newValue, VALID_FORMATS);
             obj.RoiFormat_ = newValue;
         end
