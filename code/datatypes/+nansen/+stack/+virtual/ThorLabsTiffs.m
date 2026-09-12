@@ -350,7 +350,7 @@ methods (Access = protected)
 
     function metadata = getThorlabsRecordingInfo(obj)
         dataFolderPath = fileparts(obj.FilePath);
-        metadata = nansen.module.ophys.twophoton.utility.thorlabs.getScanParameters( dataFolderPath );
+        metadata = nansen.module.twophoton.utility.thorlabs.getScanParameters( dataFolderPath );
     end
 
     function numChannels = detectNumberOfChannels(obj)

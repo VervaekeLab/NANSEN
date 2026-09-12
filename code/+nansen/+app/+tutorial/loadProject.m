@@ -20,7 +20,7 @@ function loadProject(tutorial)
     if startsWith(tutorial.Title, 'Allen Brain Observatory')
 
         addonManager.refreshManagedAddons( ...
-            "SelectedModules", "nansen.module.ophys.twophoton")
+            "SelectedModules", "nansen.module.twophoton")
         names = {addonManager.AddonList.Name};
         addonEntry = addonManager.AddonList(strcmp(names, "Brain Observatory Toolbox"));
 
@@ -40,7 +40,7 @@ function loadProject(tutorial)
 
         disp('Installing two-photon addons...')
         addonManager.installMissingAddons( ...
-            'nansen.module.ophys.twophoton', "ShowSummary", true)
+            'nansen.module.twophoton', "ShowSummary", true)
 
         % Some users had problems where Yaml was not added to java path
         nansen.internal.setup.addYamlJarToJavaClassPath()

@@ -4,6 +4,7 @@
   "_version": "1.0.0",
   "Properties": {
     "Name": "Two Photon Imaging",
+    "Category": "ophys",
     "Description": "A module for processing two-photon imaging data"
   }
 }

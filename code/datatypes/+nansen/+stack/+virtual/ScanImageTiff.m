@@ -334,7 +334,7 @@ methods (Access = protected) % Todo: Scan image and subclass
 
     function sIParams = getScanParameters(obj)
 
-        import nansen.module.ophys.twophoton.utility.scanimage.getScanParameters
+        import nansen.module.twophoton.utility.scanimage.getScanParameters
 
         % Todo:
         %       Read info about channel colors...
@@ -552,7 +552,7 @@ methods (Static)
     %   The input, tiffRef can be the absolute file path to a tiff file or
     %   a Tiff object.
 
-        import nansen.module.ophys.twophoton.utility.scanimage.getScanParameters
+        import nansen.module.twophoton.utility.scanimage.getScanParameters
 
         tiffObject = nansen.stack.utility.getTiffObject(tiffRef);
 
