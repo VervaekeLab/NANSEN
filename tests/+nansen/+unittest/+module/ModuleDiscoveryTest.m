@@ -24,12 +24,44 @@ classdef ModuleDiscoveryTest < matlab.unittest.TestCase
     end
 
     methods (Access = private)
-        function entry = getEntry(testCase, packageName)
-            packageNames = string({testCase.ModuleList.PackageName});
+        function entry = getEntry(testCase, packageName, moduleList)
+            arguments
+                testCase
+                packageName (1,1) string
+                moduleList struct = testCase.ModuleList
+            end
+            packageNames = string({moduleList.PackageName});
             isMatch = packageNames == packageName;
             testCase.assertEqual(nnz(isMatch), 1, ...
                 sprintf('Expected exactly one module named "%s"', packageName))
-            entry = testCase.ModuleList(isMatch);
+            entry = moduleList(isMatch);
+        end
+
+        function rootFolder = createModuleRoot(testCase, shortName, category)
+        %createModuleRoot Make a path root holding one flat module folder
+        %
+        %   Writes <root>/+nansen/+module/+<shortName>/module.nansen.json
+        %   with the given category and returns <root>, which the caller
+        %   puts on the path. Discovery keys off the specification file, so
+        %   no code files are needed.
+            import matlab.unittest.fixtures.TemporaryFolderFixture
+
+            fixture = testCase.applyFixture(TemporaryFolderFixture);
+            rootFolder = char(fixture.Folder);
+            moduleFolder = fullfile(rootFolder, '+nansen', '+module', ['+', char(shortName)]);
+            mkdir(moduleFolder)
+
+            % Only the Properties block is read by discovery.
+            specification = struct( ...
+                'Properties', struct( ...
+                    'Name', sprintf('Test module %s', shortName), ...
+                    'Category', char(category), ...
+                    'Description', 'Created by ModuleDiscoveryTest'));
+
+            fileId = fopen(fullfile(moduleFolder, 'module.nansen.json'), 'w');
+            testCase.assertNotEqual(fileId, -1, 'Could not write the module specification')
+            fprintf(fileId, '%s', jsonencode(specification));
+            fclose(fileId);
         end
     end
 
@@ -71,6 +103,37 @@ classdef ModuleDiscoveryTest < matlab.unittest.TestCase
             isCore = [testCase.ModuleList.isCoreModule];
             packageNames = string({testCase.ModuleList.PackageName});
             testCase.verifyEqual(packageNames(isCore), "nansen.module.general.core")
+        end
+
+        function testCategoryIsReadFromTheSpecification(testCase)
+            % A module folder directly under +module has no category folder
+            % to derive the category from; it must come from the
+            % specification file instead.
+            import matlab.unittest.fixtures.PathFixture
+
+            rootFolder = testCase.createModuleRoot("discoverytestmod", "testcategory");
+            testCase.applyFixture(PathFixture(rootFolder))
+
+            moduleManager = nansen.config.module.ModuleManager();
+            entry = testCase.getEntry("nansen.module.discoverytestmod", moduleManager.ModuleList);
+
+            testCase.verifyEqual(string(entry.ModuleCategory), "testcategory")
+            testCase.verifyEqual(string(entry.ShortName), "discoverytestmod")
+            testCase.verifyFalse(entry.isCoreModule)
+            testCase.verifyFalse(isfield(entry, 'Category'), ...
+                'Category is exposed as ModuleCategory, not as a raw manifest field')
+        end
+
+        function testDuplicateShortNamesAreRejected(testCase)
+            import matlab.unittest.fixtures.PathFixture
+
+            firstRoot = testCase.createModuleRoot("discoverydupmod", "alpha");
+            secondRoot = testCase.createModuleRoot("discoverydupmod", "beta");
+            testCase.applyFixture(PathFixture(firstRoot))
+            testCase.applyFixture(PathFixture(secondRoot))
+
+            testCase.verifyError(@() nansen.config.module.ModuleManager(), ...
+                'NANSEN:ModuleManager:DuplicateModuleName')
         end
     end
 end

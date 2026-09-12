@@ -94,16 +94,26 @@ classdef ModuleManager < handle
             % Get module attributes for each module.
             for i = 1:numModules
                 str = fileread(moduleSpecFiles{i});
-                modules{i} = jsondecode(str).Properties;
+                moduleProperties = jsondecode(str).Properties;
 
                 modulePackageName = utility.path.pathstr2packagename(fileparts( moduleSpecFiles{i}) );
                 splitPackage = strsplit(modulePackageName, '.');
 
-                if strcmp( splitPackage{end-1}, 'module' )
-                    modules{i}.ModuleCategory = string(missing);
+                % The category is module metadata. Modules that still live
+                % in a category folder (+ophys, +general) fall back to the
+                % folder name; modules directly under +module must declare
+                % it in their specification file.
+                if isfield(moduleProperties, 'Category')
+                    moduleCategory = string(moduleProperties.Category);
+                    moduleProperties = rmfield(moduleProperties, 'Category');
+                elseif strcmp( splitPackage{end-1}, 'module' )
+                    moduleCategory = string(missing);
                 else
-                    modules{i}.ModuleCategory = string(splitPackage{end-1});
+                    moduleCategory = string(splitPackage{end-1});
                 end
+
+                modules{i} = moduleProperties;
+                modules{i}.ModuleCategory = moduleCategory;
                 modules{i}.ShortName = splitPackage{end};
                 modules{i}.PackageName = modulePackageName;
                 modules{i}.isCoreModule = strcmp(modules{i}.ModuleCategory, 'general');
@@ -117,6 +127,28 @@ classdef ModuleManager < handle
             end
 
             obj.ModuleList = cat(1, modules{:});
+            obj.assertUniqueShortNames()
+        end
+
+        function assertUniqueShortNames(obj)
+        %assertUniqueShortNames Error if two modules share a short name
+        %
+        %   Modules are keyed by their short name once category folders are
+        %   optional, so a collision would make one module unreachable.
+            if isempty(obj.ModuleList); return; end
+            shortNames = string({obj.ModuleList.ShortName});
+            [uniqueNames, ~, groupIndex] = unique(shortNames);
+            isDuplicated = accumarray(groupIndex(:), 1) > 1;
+            if any(isDuplicated)
+                duplicatedNames = uniqueNames(isDuplicated);
+                packageNames = string({obj.ModuleList.PackageName});
+                clashingPackages = packageNames(ismember(shortNames, duplicatedNames));
+                error('NANSEN:ModuleManager:DuplicateModuleName', ...
+                    ['Module short names must be unique. The name(s) "%s" ', ...
+                     'are used by more than one module: %s. Rename or remove ', ...
+                     'one of them from the MATLAB path.'], ...
+                    strjoin(duplicatedNames, '", "'), strjoin(clashingPackages, ', '))
+            end
         end
 
         function markDirty(obj)

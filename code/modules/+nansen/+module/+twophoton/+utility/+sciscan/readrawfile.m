@@ -33,7 +33,7 @@ function data=readrawfile(filename,skipframes,channel,frames)
 %                   channel 2 of the selected raw file
 %
 
-import nansen.module.ophys.twophoton.utility.sciscan.readinivar
+import nansen.module.twophoton.utility.sciscan.readinivar
 
 prevstr=[];
 if ~exist('filename') || ~ischar(filename)
