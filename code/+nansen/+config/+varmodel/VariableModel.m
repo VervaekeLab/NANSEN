@@ -108,7 +108,11 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
 
         function [S, isExistingEntry] = getVariableStructure(obj, varName)
 
-            S = obj.getItem(varName);
+            % An unknown name is expected here: it may be an alias, a file
+            % name expression, or a variable that does not exist yet, so the
+            % lookup must give an empty result instead of raising.
+            idx = obj.getItemIndex(varName);
+            S = obj.Data(idx);
 
             % Check if varname exists as alias:
             if isempty(S)
