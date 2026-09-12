@@ -1,8 +1,8 @@
-function S = conformStructToTemplate(S, template)
-%conformStructToTemplate Restore struct array shapes lost in a json round trip
+function S = conformToTemplate(S, template)
+%conformToTemplate Restore struct array shapes lost in a json round trip
 %
 %   Syntax:
-%       S = utility.data.conformStructToTemplate(S, template) returns the
+%       S = nansen.util.struct.conformToTemplate(S, template) returns the
 %       struct array S with the class, orientation and emptiness of every
 %       field restored to match the corresponding field of template.
 %
@@ -102,7 +102,7 @@ function value = conformValue(value, templateValue)
         end
 
     elseif isstruct(templateValue)
-        value = utility.data.conformStructToTemplate(value, scalarTemplate(templateValue));
+        value = nansen.util.struct.conformToTemplate(value, scalarTemplate(templateValue));
 
     elseif ischar(templateValue)
         if isempty(value)
