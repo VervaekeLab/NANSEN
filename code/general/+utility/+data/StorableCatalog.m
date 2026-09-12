@@ -249,16 +249,15 @@ classdef StorableCatalog < handle
         %resolveFilePath Point at the catalog file to use and adopt its format
         %
         %   A catalog is stored either as a json file or as a mat file, and
-        %   the format follows the file extension. Whenever FilePath is
-        %   assigned this runs so that the two can not disagree.
+        %   SaveFormat follows the extension of FilePath. Every method that
+        %   assigns FilePath must call this afterwards to keep the two in
+        %   step.
         %
         %   The json file is used whenever it exists, whichever extension
-        %   was asked for. Converting a catalog leaves the mat file behind
-        %   as a backup, and a backup must not be loaded as if it were
-        %   current. When neither the requested file nor a json sibling
-        %   exists but a mat sibling does, the mat file is used, so that a
-        %   project written before json storage keeps loading with no
-        %   change to any caller.
+        %   was asked for: after a conversion the mat file beside it is a
+        %   backup, not the current catalog. When neither the requested
+        %   file nor a json sibling exists but a mat sibling does, the mat
+        %   file is used, so a project stored as mat loads from a json path.
             import nansen.util.path.changeFilenameExtension
 
             jsonPath = changeFilenameExtension(obj.FilePath, 'json');
@@ -332,10 +331,8 @@ classdef StorableCatalog < handle
         %   arrays as cell arrays makes every list a json array. Reading
         %   accepts either shape, so files written before this still load.
         %
-        %   The rule is applied to every struct, so a scalar struct meant
-        %   as a single object is written as a list of one as well. No
-        %   catalog item declares such a field; if one ever does, the
-        %   template in getBlankItem is where to tell the two apart.
+        %   The rule is applied to every struct, so a scalar struct is
+        %   written as a list of one as well.
 
             if isstruct(value)
                 items = num2cell(reshape(value, 1, []));
