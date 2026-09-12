@@ -1133,7 +1133,7 @@ classdef roiMap < roimanager.roiDisplay
             signal = mask_ * imChunk_;
 
             % Get samples where activity is highest
-            IND = nansen.twophoton.roisignals.analyze.findActiveSamplePoints(signal);
+            IND = nansen.module.twophoton.roisignals.analyze.findActiveSamplePoints(signal);
             if isempty(IND)
                 [~, IND] = max(signal);
             end
@@ -1274,16 +1274,16 @@ classdef roiMap < roimanager.roiDisplay
             y_ = y - S(2)+1;
             tmpRoiSmall = RoI('Circle', [x_, y_, r], imSizeSmall);
 
-            %roiSignals2 = nansen.twophoton.roisignals.extractF(imChunk, tmpRoiSmall);
+            %roiSignals2 = nansen.module.twophoton.roisignals.extractF(imChunk, tmpRoiSmall);
             % Get signal from pixel chunk
             mask = roimanager.roitools.getCircularMask(size(imChunk), x_, y_, r);
             roiData.Masks = mask;
             roiData.xInd = 1:size(imChunk,2);
             roiData.yInd = 1:size(imChunk,1);
 
-            roiSignals = nansen.twophoton.roisignals.extract.extractSingleRoi(imChunk, roiData);
+            roiSignals = nansen.module.twophoton.roisignals.extract.extractSingleRoi(imChunk, roiData);
 
-            roiImage = nansen.twophoton.roi.compute.computeRoiImages(imChunk, tmpRoiSmall, roiSignals, ...
+            roiImage = nansen.module.twophoton.roi.compute.computeRoiImages(imChunk, tmpRoiSmall, roiSignals, ...
                 'ImageType', 'Activity Weighted Mean', 'BoxSize', imSizeSmall);
 
             roiMask_ = flufinder.binarize.findSomaMaskByEdgeDetection(roiImage);

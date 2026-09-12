@@ -689,12 +689,12 @@ classdef RoiManager < imviewer.ImviewerPlugin & applify.mixin.UserSettings & roi
             end
 
             % % Import functions for extracting/processing signals
-            import nansen.twophoton.roisignals.extractF
-            import nansen.twophoton.roisignals.computeDff
-            import nansen.twophoton.roisignals.deconvolveDff
+            import nansen.module.twophoton.roisignals.extractF
+            import nansen.module.twophoton.roisignals.computeDff
+            import nansen.module.twophoton.roisignals.deconvolveDff
 
             if isempty(obj.dffOptions)
-                obj.dffOptions = nansen.twophoton.roisignals.computeDff();
+                obj.dffOptions = nansen.module.twophoton.roisignals.computeDff();
             end
 
             % % Define options for what to save
@@ -717,7 +717,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & applify.mixin.UserSettings & roi
 
             % % Get signal extraction options
             if isempty(obj.signalOptions)
-                obj.signalOptions = nansen.twophoton.roisignals.extract.getDefaultParameters();
+                obj.signalOptions = nansen.module.twophoton.roisignals.extract.getDefaultParameters();
             end
 
             obj.ImviewerObj.displayMessage('Extracting signals...')
@@ -755,7 +755,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & applify.mixin.UserSettings & roi
 
             if options.deconvolveSignals
                 if isempty(obj.deconvolutionOptions)
-                    obj.deconvolutionOptions = nansen.twophoton.roisignals.getDeconvolutionParameters();
+                    obj.deconvolutionOptions = nansen.module.twophoton.roisignals.getDeconvolutionParameters();
                 end
                 obj.ImviewerObj.displayMessage('Deconvolving DFF...')
 
@@ -772,7 +772,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & applify.mixin.UserSettings & roi
         function editSignalExtractionSettings(obj)
 
             if isempty(obj.signalOptions)
-                obj.signalOptions = nansen.twophoton.roisignals.extract.getDefaultParameters();
+                obj.signalOptions = nansen.module.twophoton.roisignals.extract.getDefaultParameters();
             end
 
             obj.signalOptions = tools.editStruct(obj.signalOptions);
@@ -781,7 +781,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & applify.mixin.UserSettings & roi
 
         function editDeconvolutionSettings(obj)
             if isempty(obj.deconvolutionOptions)
-                obj.deconvolutionOptions = nansen.twophoton.roisignals.getDeconvolutionParameters();
+                obj.deconvolutionOptions = nansen.module.twophoton.roisignals.getDeconvolutionParameters();
             end
             obj.deconvolutionOptions = tools.editStruct(obj.deconvolutionOptions);
         end %?
@@ -907,7 +907,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & applify.mixin.UserSettings & roi
 
         function initializeSignalArray(obj)
 
-            import nansen.roisignals.RoiSignalArray
+            import nansen.module.twophoton.roisignals.RoiSignalArray
 
             imageStack = obj.ImviewerObj.ImageStack;
 

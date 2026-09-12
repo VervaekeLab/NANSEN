@@ -38,7 +38,7 @@ classdef extractSignals < nansen.session.SessionMethod
 
     methods (Static)
         function S = getDefaultOptions()
-            S = nansen.twophoton.roisignals.extract.getDefaultParameters();
+            S = nansen.module.twophoton.roisignals.extract.getDefaultParameters();
         end
     end
 
@@ -66,7 +66,7 @@ classdef extractSignals < nansen.session.SessionMethod
 
             roiArray = sessionData.RoiArray;
 
-            extractF = @nansen.twophoton.roisignals.extractF;
+            extractF = @nansen.module.twophoton.roisignals.extractF;
             [signalArray, P] = extractF(imageStack, roiArray, 'verbose', true, obj.Options);
 
             % Todo: Save results...

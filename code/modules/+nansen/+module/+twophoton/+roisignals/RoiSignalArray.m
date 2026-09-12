@@ -76,9 +76,9 @@ classdef RoiSignalArray < handle
 
         % Todo: All of these should be outsourced to different methods /
         % Calculators.
-        SignalExtractionOptions = nansen.twophoton.roisignals.extract.getDefaultParameters();
-        DffOptions = nansen.twophoton.roisignals.computeDff();
-        DeconvolutionOptions = nansen.twophoton.roisignals.getDeconvolutionParameters();
+        SignalExtractionOptions = nansen.module.twophoton.roisignals.extract.getDefaultParameters();
+        DffOptions = nansen.module.twophoton.roisignals.computeDff();
+        DeconvolutionOptions = nansen.module.twophoton.roisignals.getDeconvolutionParameters();
     end
 
     properties
@@ -596,7 +596,7 @@ classdef RoiSignalArray < handle
 
             options = obj.SignalExtractionOptions;
 
-            import nansen.twophoton.roisignals.extractF
+            import nansen.module.twophoton.roisignals.extractF
 
             imageStack = obj.ImageStack;
             roiArray = obj.RoiGroup(channelNum).roiArray;
@@ -618,7 +618,7 @@ classdef RoiSignalArray < handle
         function signalData = getDeltaFOverF(obj, roiInd, channelNum)
             % Todo: get options from somewhere!
 
-            %import nansen.twophoton.roisignals.process.dff.*
+            %import nansen.module.twophoton.roisignals.process.dff.*
 
             signalDataRoi = obj.getSignals(roiInd, 'roiMeanF');
             signalDataNpil = obj.getSignals(roiInd, 'npilMediF');
@@ -626,7 +626,7 @@ classdef RoiSignalArray < handle
             signalData = cat(3, signalDataRoi, signalDataNpil);
             signalData = permute(signalData, [1,3,2]);
 
-            dff = nansen.twophoton.roisignals.computeDff(signalData, obj.DffOptions);
+            dff = nansen.module.twophoton.roisignals.computeDff(signalData, obj.DffOptions);
 
             obj.Data(channelNum).dff(:, roiInd) = dff;
         end
@@ -634,7 +634,7 @@ classdef RoiSignalArray < handle
         function getDeconvolved(obj, roiInd, channelNum, options)
             % Todo: get options from somewhere!
 
-            import nansen.twophoton.roisignals.deconvolveDff
+            import nansen.module.twophoton.roisignals.deconvolveDff
 
             global fprintf; if isempty(fprintf); fprintf = str2func('fprintf'); end
             fprintf('Deconvolving signal...\n')

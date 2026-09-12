@@ -44,9 +44,9 @@ function [roiArray, summary] = runAutoSegmentation(imArray, varargin)
 
     % % Improve estimates of rois which were detected based on activity
     % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    import nansen.twophoton.roi.compute.computeRoiImages
+    import nansen.module.twophoton.roi.compute.computeRoiImages
 
-% % %     fMean = nansen.twophoton.roisignals.extractF(imArray, roiArrayT);
+% % %     fMean = nansen.module.twophoton.roisignals.extractF(imArray, roiArrayT);
 % % %     [fMean, roiArrayT] = flufinder.utility.removeIsNanDff(fMean, roiArrayT);
 % % %
 % % %     % get images:

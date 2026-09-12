@@ -5,7 +5,7 @@ function [signalArray, roiArray] = removeIsNanDff(signalArray, roiArray)
         'Third dimension of signal array must match number of rois')
 
     dffOpts = {'dffFcn', 'dffRoiMinusDffNpil'};
-    dff = nansen.twophoton.roisignals.computeDff(signalArray, dffOpts{:});
+    dff = nansen.module.twophoton.roisignals.computeDff(signalArray, dffOpts{:});
 
     discard = isnan(sum(dff, 1));
 

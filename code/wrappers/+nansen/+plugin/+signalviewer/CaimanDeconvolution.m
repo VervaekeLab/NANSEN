@@ -77,7 +77,7 @@ classdef CaimanDeconvolution < applify.mixin.AppPlugin & applify.mixin.HasOption
         end
 
         function assignDefaultOptions(obj)
-            functionName = 'nansen.twophoton.roisignals.deconvolveDff';
+            functionName = 'nansen.module.twophoton.roisignals.deconvolveDff';
             obj.OptionsManager = nansen.manage.OptionsManager(functionName);
         end
     end
@@ -108,7 +108,7 @@ classdef CaimanDeconvolution < applify.mixin.AppPlugin & applify.mixin.HasOption
 
         function updateInternal(obj)
 
-            import nansen.twophoton.roisignals.deconvolveDff
+            import nansen.module.twophoton.roisignals.deconvolveDff
 
             % Get visible dff...
             roiInd = obj.PrimaryApp.DisplayedRoiIndices;

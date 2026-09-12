@@ -46,7 +46,7 @@ classdef computeDff < nansen.session.SessionMethod
     methods (Static)
         function options = getDefaultOptions()
         %GETDEFAULTOPTIONS Return default delta-F-over-F options.
-            options = nansen.twophoton.roisignals.getDffParameters();
+            options = nansen.module.twophoton.roisignals.getDffParameters();
         end
     end
 
@@ -54,7 +54,7 @@ classdef computeDff < nansen.session.SessionMethod
 
         function runMethod(obj)
 
-            import nansen.twophoton.roisignals.computeDff
+            import nansen.module.twophoton.roisignals.computeDff
 
             obj.SessionObjects.validateVariable('RoiSignals_MeanF')
             signalArray = obj.loadData('RoiSignals_MeanF');
@@ -128,7 +128,7 @@ function hDffPlugin = openDffExplorer(sessionObj)
     hTableViewer = roimanager.RoiTable(roiGroup);
 
     % Create a roi signal array....
-    rs = nansen.roisignals.RoiSignalArrayExtracted(roiSignalTable, roiGroup);
+    rs = nansen.module.twophoton.roisignals.RoiSignalArrayExtracted(roiSignalTable, roiGroup);
 
     % Open roi signalviewer app
     hSignalviewer = roisignalviewer.App(rs);

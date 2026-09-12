@@ -65,7 +65,7 @@ classdef DffExplorer < applify.mixin.AppPlugin & applify.mixin.HasOptionsManager
         end
 
         function assignDefaultOptions(obj)
-            functionName = 'nansen.twophoton.roisignals.computeDff';
+            functionName = 'nansen.module.twophoton.roisignals.computeDff';
             obj.OptionsManager = nansen.manage.OptionsManager(functionName);
         end
     end

@@ -1,8 +1,8 @@
 function dff = getDff(imArray, roiArray)
 %getDff Get dff using methods from nansen with custom settings
 
-    import nansen.twophoton.roisignals.extractF
-    import nansen.twophoton.roisignals.computeDff
+    import nansen.module.twophoton.roisignals.extractF
+    import nansen.module.twophoton.roisignals.computeDff
 
     signalOpts = struct('createNeuropilMask', true);
     signalArray = extractF(imArray, roiArray, signalOpts);
