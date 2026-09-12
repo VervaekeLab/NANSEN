@@ -68,18 +68,6 @@ classdef ProjectCatalogTest < matlab.unittest.TestCase
             testCase.verifyClass(entry.Path, 'char')
         end
 
-        function testAnInfoStructIsAccepted(testCase)
-            projectInfo = struct(...
-                'Name', 'alpha', ...
-                'ShortName', 'alpha', ...
-                'Description', 'A project', ...
-                'Path', '/tmp/alpha');
-
-            testCase.ProjectManager.addProject(projectInfo)
-
-            testCase.verifyEqual(testCase.ProjectManager.ProjectNames, "alpha")
-        end
-
         function testANameContainedInAnExistingNameIsAccepted(testCase)
         %testANameContainedInAnExistingNameIsAccepted Names match in full
         %
@@ -100,18 +88,6 @@ classdef ProjectCatalogTest < matlab.unittest.TestCase
             testCase.verifyError( ...
                 @() testCase.ProjectManager.addProject('alpha', 'Second', '/tmp/two'), ...
                 'Nansen:ProjectExists')
-        end
-
-        function testAnIncompleteArgumentListIsRefused(testCase)
-            testCase.verifyError( ...
-                @() testCase.ProjectManager.addProject('alpha', 'Only a description'), ...
-                'Nansen:ProjectManager:InvalidInput')
-        end
-
-        function testAnUnsupportedArgumentIsRefused(testCase)
-            testCase.verifyError( ...
-                @() testCase.ProjectManager.addProject(42), ...
-                'Nansen:ProjectManager:InvalidInput')
         end
 
         function testContainsProjectMatchesNamesInFull(testCase)

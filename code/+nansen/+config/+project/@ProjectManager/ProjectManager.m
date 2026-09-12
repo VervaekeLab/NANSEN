@@ -96,21 +96,6 @@ classdef ProjectManager < handle
         end
     end
 
-    methods (Static, Access = private)
-
-        function pStruct = castTextFieldsToChar(pStruct)
-        %castTextFieldsToChar Store the text of a project entry as char
-
-            textFieldNames = ["Name", "ShortName", "Description", "Path"];
-
-            for fieldName = textFieldNames
-                if isfield(pStruct, fieldName)
-                    pStruct.(fieldName) = char(pStruct.(fieldName));
-                end
-            end
-        end
-    end
-
     methods % Set/get methods
 
         function numProjects = get.NumProjects(obj)
@@ -236,7 +221,7 @@ classdef ProjectManager < handle
             projectInfo.Path = projectDirectory;
             nansen.config.project.Project.updateProjectConfiguration(projectDirectory, projectInfo)
 
-            obj.addProject(projectInfo)
+            obj.addProject(projectInfo.Name, projectInfo.Description, projectInfo.Path)
 
             projectName = projectInfo.Name;
             if ~nargout; clear projectName; end
@@ -357,43 +342,36 @@ classdef ProjectManager < handle
             obj.saveCatalog()
         end
 
-        function addProject(obj, varargin)
-        %addProject Add project to the project catalog.
+        function addProject(obj, name, description, projectPath)
+        %addProject Add a project to the project catalog.
+        %
+        %   addProject(obj, name, description, projectPath) records a project
+        %   in the catalog. The name must not be in use already.
         %
         %   Input:
-        %       obj      : An instance of this class.
-        %
-        %       varargin : Either a single struct holding the project
-        %                  information, or the name, the description and the
-        %                  path of the project as three separate arguments.
-        %                  Text may be given as character vectors or as
-        %                  strings.
+        %       obj         : An instance of this class.
+        %       name        : Name of the project.
+        %       description : Description of the project.
+        %       projectPath : Path to the project folder.
         %
         %   Example usage:
         %       pm = nansen.ProjectManager();
-        %       projectInfo = struct('Name', 'Project 1', 'Description', 'This is a test project', 'Path', 'C:\Users\Documents\myNewProject');
-        %       pm.addProject(projectInfo);
-        %
         %       pm.addProject("Project 2", "Another project", "C:\Users\Documents\myOtherProject");
 
         %   Todo : catalog method
 
-            if isscalar(varargin) && isstruct(varargin{1})
-                pStruct = varargin{1};
-            elseif numel(varargin) == 3 && (ischar(varargin{1}) || isstring(varargin{1}))
-                pStruct = obj.createProjectInfo(varargin{:});
-            else
-                error('Nansen:ProjectManager:InvalidInput', ...
-                    ['Invalid input for addProject. Provide either a project ', ...
-                    'info struct or the name, description and path of the project.'])
+            arguments
+                obj (1,1) nansen.config.project.ProjectManager
+                name (1,1) string {mustBeNonzeroLengthText}
+                description (1,1) string
+                projectPath (1,1) string {mustBeNonzeroLengthText}
             end
 
             % The catalog holds its text fields as character vectors, which
             % is also what loading it back produces. Convert here so that an
             % entry does not change type the first time it is loaded.
-            pStruct = obj.castTextFieldsToChar(pStruct);
+            pStruct = obj.createProjectInfo(char(name), char(description), char(projectPath));
 
-            % Check that project with given name does not already exist.
             % Names must match in full: a project may be named "alpha" while
             % an unrelated "alpha_recordings" is already in the catalog.
             if obj.containsProject(pStruct.Name)
