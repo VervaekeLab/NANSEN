@@ -179,11 +179,9 @@ classdef MetaTableDataLocationStorageTest < matlab.unittest.TestCase
 
         function testSavingADummyKeepsTheMasterExpanded(testCase)
             % A dummy hands its entries to the master when it is saved. The
-            % master is opened through load, so its entries are expanded
-            % and stay cached that way. The dummy's entries must arrive in
-            % the same form. Otherwise identical entries look changed, the
-            % master is rewritten, and the cached master is left holding
-            % the reduced form.
+            % master holds expanded entries, so the dummy's must arrive
+            % expanded: identical entries then compare equal, the master is
+            % not rewritten, and it keeps the expanded form in memory.
             model = nansen.DataLocationModel();
             stored = testCase.makeStoredDataLocation(model);
             expanded = model.expandDataLocationInfo(stored);

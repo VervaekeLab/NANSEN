@@ -716,9 +716,8 @@ classdef DataLocationModel < utility.data.StorableCatalog
         %   the Uuid of the data location, the uid of its root path and the
         %   subfolders below that root. That is the part which identifies
         %   where data is without naming a path on any particular computer.
-        %
-        %   Static because the fields to remove are the same for every
-        %   model, so a metatable can reduce its column without one at hand.
+        %   The fields to remove are the same for every model, so no model
+        %   instance is needed.
 
             fieldsToRemove = nansen.config.dloc.DataLocationModel.getDerivedFieldNames();
             for i = 1:numel(fieldsToRemove)
