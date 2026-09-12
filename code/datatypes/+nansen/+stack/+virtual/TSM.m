@@ -4,6 +4,10 @@
 classdef TSM < nansen.stack.data.VirtualArray
 %Binary Create a virtual data adapter for a tsm file.
 %
+% NOTE: TSM is a macroscope-style format. It stays in NANSEN core for now
+% and is a candidate for a future macroscope module (two-photon module
+% migration, decision D7).
+%
 % NOTE: Currently assumes that data in tsm file is a 3D stack. This
 % should(?) be changed to full support for 5D stacks
 

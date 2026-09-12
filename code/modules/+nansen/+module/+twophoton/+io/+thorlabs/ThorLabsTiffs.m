@@ -1,5 +1,5 @@
 classdef ThorLabsTiffs < nansen.stack.data.VirtualArray
-%nansen.stack.virtual.ThorLabsTiffs Create virtual array for Thorlabs data
+%nansen.module.twophoton.io.thorlabs.ThorLabsTiffs Create virtual array for Thorlabs data
 %
 
     % Todo:
@@ -43,7 +43,7 @@ end
 methods % Structors
 
     function obj = ThorLabsTiffs(filePath, varargin)
-        import('nansen.stack.virtual.ThorLabsTiffs')
+        import('nansen.module.twophoton.io.thorlabs.ThorLabsTiffs')
 
         filePath = ThorLabsTiffs.lookForMultipartFiles(filePath);
 
@@ -350,7 +350,7 @@ methods (Access = protected)
 
     function metadata = getThorlabsRecordingInfo(obj)
         dataFolderPath = fileparts(obj.FilePath);
-        metadata = nansen.module.twophoton.utility.thorlabs.getScanParameters( dataFolderPath );
+        metadata = nansen.module.twophoton.io.thorlabs.getScanParameters( dataFolderPath );
     end
 
     function numChannels = detectNumberOfChannels(obj)
@@ -407,7 +407,7 @@ methods (Static)
 
             % If many files are found and all filenames are same length
             if numel(L) > 1
-                filenameExpression = nansen.stack.virtual.ThorLabsTiffs.FilenameExpression;
+                filenameExpression = nansen.module.twophoton.io.thorlabs.ThorLabsTiffs.FilenameExpression;
 
                 fileNames = {L.name};
 

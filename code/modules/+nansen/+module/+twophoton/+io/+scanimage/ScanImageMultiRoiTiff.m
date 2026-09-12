@@ -1,4 +1,4 @@
-classdef ScanImageMultiRoiTiff < nansen.stack.virtual.ScanImageTiff
+classdef ScanImageMultiRoiTiff < nansen.module.twophoton.io.scanimage.ScanImageTiff
 %ScanImageTiff Virtual data adapter for a scanimage tiff file
 
 % Note: Multi plane stacks are not supported.
@@ -47,15 +47,15 @@ methods % Structors
             filePath = '';
         end
 
-        obj@nansen.stack.virtual.ScanImageTiff(filePath, varargin{:})
+        obj@nansen.module.twophoton.io.scanimage.ScanImageTiff(filePath, varargin{:})
         obj.Description = sprintf('Fov%d', obj.FovId);
 
         if obj.FovId == 1 && ~isempty(obj.FilePath)
-            [~, obj.NumFovs] = nansen.stack.virtual.ScanImageTiff.checkIfMultiRoi(obj.tiffInfo);
+            [~, obj.NumFovs] = nansen.module.twophoton.io.scanimage.ScanImageTiff.checkIfMultiRoi(obj.tiffInfo);
             if obj.NumFovs > 1
-                obj(obj.NumFovs) = nansen.stack.virtual.ScanImageMultiRoiTiff();
+                obj(obj.NumFovs) = nansen.module.twophoton.io.scanimage.ScanImageMultiRoiTiff();
                 for iFov = 2:obj(1).NumFovs
-                    obj(iFov) = nansen.stack.virtual.ScanImageMultiRoiTiff(filePath, varargin{:}, 'FovId', iFov, 'NumFovs', obj(1).NumFovs);
+                    obj(iFov) = nansen.module.twophoton.io.scanimage.ScanImageMultiRoiTiff(filePath, varargin{:}, 'FovId', iFov, 'NumFovs', obj(1).NumFovs);
                 end
             end
         end
