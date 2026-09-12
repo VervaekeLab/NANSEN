@@ -47,17 +47,17 @@ function virtualData = open(pathStr, varargin)
             try
                 softwareName = imInfo.getTag('Software');
                 if strcmp(softwareName(1:2), 'SI')
-                    isMultiFov = nansen.stack.virtual.ScanImageTiff.checkIfMultiRoi(imInfo);
+                    isMultiFov = nansen.module.twophoton.io.scanimage.ScanImageTiff.checkIfMultiRoi(imInfo);
                     % Multi-ROI (multi-FOV) ScanImage recordings have no
                     % dedicated reader here and fall through to the generic
                     % TIFF reader below. Dedicated multi-ROI dispatch belongs
                     % to the reader-discovery follow-up of the two-photon
                     % module migration.
                     if ~isMultiFov
-                        virtualData = nansen.stack.virtual.ScanImageTiff(pathStr, varargin{:}, nvPairs{:});
+                        virtualData = nansen.module.twophoton.io.scanimage.ScanImageTiff(pathStr, varargin{:}, nvPairs{:});
                     end
                 elseif contains(softwareName, 'Prairie View')
-                    virtualData = nansen.stack.virtual.PrairieViewTiffs(pathStr, varargin{:}, nvPairs{:});
+                    virtualData = nansen.module.twophoton.io.prairieview.PrairieViewTiffs(pathStr, varargin{:}, nvPairs{:});
                 end
             catch
                 % Do nothing.
@@ -81,7 +81,7 @@ function virtualData = open(pathStr, varargin)
             virtualData = nansen.stack.virtual.HDF5(pathStr, '', varargin{:}, nvPairs{:});
 
         case '.mdf'
-            virtualData = nansen.stack.virtual.MDF(pathStr, nvPairs{:});
+            virtualData = nansen.module.twophoton.io.mscan.MDF(pathStr, nvPairs{:});
 
         case {'.jpg', '.png', '.bmp'}
 %             tic
@@ -107,8 +107,8 @@ function virtualData = open(pathStr, varargin)
 
         case {'.raw','.ini'}
 
-            if nansen.stack.virtual.SciScanRaw.fileCheck(pathStr)
-                virtualData = nansen.stack.virtual.SciScanRaw(pathStr, nvPairs{:});
+            if nansen.module.twophoton.io.sciscan.SciScanRaw.fileCheck(pathStr)
+                virtualData = nansen.module.twophoton.io.sciscan.SciScanRaw(pathStr, nvPairs{:});
             else
                 virtualData = nansen.stack.virtual.Binary(pathStr, varargin{:}, nvPairs{:});
             end

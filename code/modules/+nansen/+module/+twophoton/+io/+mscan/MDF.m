@@ -153,7 +153,7 @@ classdef MDF < nansen.stack.data.VirtualArray
         end
 
         function mdfParams = getScanParameters(obj)
-            import nansen.module.twophoton.utility.mscan.getScanParameters
+            import nansen.module.twophoton.io.mscan.getScanParameters
             mdfParams = getScanParameters(obj.mfile);
         end
 
