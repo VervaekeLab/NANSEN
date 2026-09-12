@@ -40,8 +40,8 @@ classdef StorableCatalogJsonTest < matlab.unittest.TestCase
         % ----------------------------------------------------------------
 
         function testJsonIsWrittenBesideCatalogWhenFolderNameContainsMat(testCase)
-            % Regression: a folder named "matlab_configs" contains the
-            % letters "mat", which a substring replacement rewrote.
+            % A folder named "matlab_configs" contains the letters "mat".
+            % Only the file name may change, not the folder.
             folderPath = testCase.createCatalogFolder('matlab_configs');
             catalogPath = fullfile(folderPath, 'test_catalog.mat');
             catalog = testCase.createCatalog(catalogPath);
@@ -54,8 +54,8 @@ classdef StorableCatalogJsonTest < matlab.unittest.TestCase
         end
 
         function testJsonIsWrittenBesideCatalogWhenFolderContainsDottedExtension(testCase)
-            % Regression: a folder named "archive.mat.backup" contains the
-            % dotted extension, which the shared helper also used to rewrite.
+            % A folder named "archive.mat.backup" contains the dotted
+            % extension. Only the file name may change, not the folder.
             folderPath = testCase.createCatalogFolder('archive.mat.backup');
             catalogPath = fullfile(folderPath, 'test_catalog.mat');
             catalog = testCase.createCatalog(catalogPath);
@@ -68,8 +68,9 @@ classdef StorableCatalogJsonTest < matlab.unittest.TestCase
         end
 
         function testNoStrayFolderIsCreated(testCase)
-            % The original defect created a whole parallel folder tree
-            % rather than failing, so assert the parent gains nothing.
+            % A wrong extension change lands in a fabricated sibling folder,
+            % which the writer would create silently, so assert the parent
+            % gains nothing.
             folderPath = testCase.createCatalogFolder('matlab_configs');
             parentPath = fileparts(folderPath);
             catalogPath = fullfile(folderPath, 'test_catalog.mat');
