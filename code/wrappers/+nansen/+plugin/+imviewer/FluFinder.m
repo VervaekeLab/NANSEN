@@ -206,7 +206,7 @@ classdef FluFinder < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewC
             opts = OptionsAdapter.ungroupOptions(obj.Options);
 
             if isempty(obj.CachePreprocessed)
-                imArray = flufinder.module.preprocessImages(imArray, opts);
+                imArray = nansen.module.twophoton.autosegmentation.flufinder.module.preprocessImages(imArray, opts);
                 obj.CachePreprocessed = imArray;
             else
                 imArray = obj.CachePreprocessed;
@@ -220,7 +220,7 @@ classdef FluFinder < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewC
 
             if isempty(obj.CacheBinarized)
                 imArray = obj.getPreprocessedImageArray(imArray);
-                imArray = flufinder.module.binarizeImages(imArray, opts);
+                imArray = nansen.module.twophoton.autosegmentation.flufinder.module.binarizeImages(imArray, opts);
                 obj.CacheBinarized = imArray;
 
             else
@@ -241,7 +241,7 @@ classdef FluFinder < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewC
             minValue = min(image(:));
             maxValue = max(image(:));
 
-            image = flufinder.preprocess.removeBackground(image, optsTmp);
+            image = nansen.module.twophoton.autosegmentation.flufinder.preprocess.removeBackground(image, optsTmp);
 
             % "Remove" the background
             image = image - obj.getBackgroundImage();
@@ -259,7 +259,7 @@ classdef FluFinder < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewC
 
             image = obj.getPreprocessedImage(image);
             image = single(image);
-            image = flufinder.module.binarizeImages(image, opts);
+            image = nansen.module.twophoton.autosegmentation.flufinder.module.binarizeImages(image, opts);
 
             image = image .* 255;
             image = cast(image, imageType);
@@ -274,7 +274,7 @@ classdef FluFinder < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewC
 
         function updateBackgroundImage(obj)
 
-            import flufinder.preprocess.computeStaticBackgroundImage
+            import nansen.module.twophoton.autosegmentation.flufinder.preprocess.computeStaticBackgroundImage
 
             imageArray = obj.getImageArray();
             opts = obj.getUngroupedOptions();

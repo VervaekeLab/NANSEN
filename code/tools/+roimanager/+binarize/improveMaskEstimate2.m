@@ -28,10 +28,10 @@ function [roiArrayOut, statOut] = improveMaskEstimate2(roiArrayIn, roiType)
             case 'axon'
                 im = roiArrayIn(i).enhancedImage;
                 roiDiameter = 2; %Todo: add roi diameter from options
-                [mask, s] = flufinder.binarize.getRoiMaskFromImage(im, roiType, roiDiameter);
+                [mask, s] = nansen.module.twophoton.autosegmentation.flufinder.binarize.getRoiMaskFromImage(im, roiType, roiDiameter);
 
             case 'soma'
-                [mask, s] = flufinder.binarize.findSomaMaskByThresholding(roiImages(:, :, i));
+                [mask, s] = nansen.module.twophoton.autosegmentation.flufinder.binarize.findSomaMaskByThresholding(roiImages(:, :, i));
         end
 
         statOut(i).RoiContrast = s.dff;

@@ -1,4 +1,4 @@
-classdef EXTRACT < nansen.session.SessionMethod & nansen.wrapper.extract.Processor
+classdef EXTRACT < nansen.session.SessionMethod & nansen.module.twophoton.integration.extract.Processor
 %Detect ROIs automatically with EXTRACT.
 %
 %Use this when:
@@ -30,7 +30,7 @@ classdef EXTRACT < nansen.session.SessionMethod & nansen.wrapper.extract.Process
         function obj = EXTRACT(varargin)
 
             % Dont want this to be in charge, use session task/method instead.
-            obj@nansen.wrapper.extract.Processor()
+            obj@nansen.module.twophoton.integration.extract.Processor()
 
             % Call the SessionTask constructor last to make sure the
             % session's data I/O model is used.
