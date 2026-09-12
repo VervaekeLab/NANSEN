@@ -1052,10 +1052,10 @@ methods % App initialization & creation
             % Todo: Create as separate contextmenu on plugin button...
             mitem = uimenu(m, 'Label', 'Align Images', 'Separator', 'on');
             tmpItem = uimenu(mitem, 'Label', 'NoRMCorre', 'Enable', 'on');
-            tmpItem.Callback = @(s,e) imviewer.plugin.NoRMCorre(obj, 'Modal', false);
+            tmpItem.Callback = @(s,e) nansen.module.twophoton.ui.imviewer.NoRMCorre(obj, 'Modal', false);
 
             tmpItem = uimenu(mitem, 'Label', 'FlowReg', 'Enable', 'on');
-            tmpItem.Callback = @(s,e) imviewer.plugin.FlowRegistration(obj, 'Modal', false);
+            tmpItem.Callback = @(s,e) nansen.module.twophoton.ui.imviewer.FlowRegistration(obj, 'Modal', false);
 
             mitem = uimenu(m, 'Label', 'Open Roimanager');
             mitem.Callback = @(s, e, h) imviewer.plugin.RoiManager(obj);
@@ -5964,7 +5964,7 @@ methods (Static)
     end
 
     function pluginFcn = getPluginFcnFromName(pluginName)
-        pluginPackage = {'imviewer.plugin', 'nansen.plugin.imviewer'};
+        pluginPackage = {'imviewer.plugin', 'nansen.module.twophoton.ui.imviewer'};
 
         pluginFcn = [];
         for i = 1:2

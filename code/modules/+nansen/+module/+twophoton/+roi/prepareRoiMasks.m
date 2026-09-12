@@ -24,7 +24,7 @@ function sOut = prepareRoiMasks(roiArray, varargin)
     %  [x] Function for creating sparse roi array
 
     %import roimanager.signalExtraction.prepareMasks
-    import nansen.processing.roi.createMasks
+    import nansen.module.twophoton.roi.createMasks
 
     % Get default parameters and assertion functions.
     [P, V] = nansen.module.twophoton.roisignals.extract.getDefaultParameters();

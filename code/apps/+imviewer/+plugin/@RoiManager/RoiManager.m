@@ -641,7 +641,7 @@ classdef RoiManager < imviewer.ImviewerPlugin & applify.mixin.UserSettings & roi
             Y = cast(mask, 'like', Y) .* Y; % Adapt this to virtual stack
 
             % NB: Function is missing.
-            [foundRois, im, stat] = roimanager.autosegment.autosegmentSoma(Y, mean(Y, 3));
+            [foundRois, im, stat] = nansen.module.twophoton.roi.autosegmentSoma(Y, mean(Y, 3));
 
             mask = hImageStack.getProjection('mean') == 0;
             mask = imdilate(mask, strel('disk', 5));

@@ -6,9 +6,9 @@ classdef FlowRegistration < imviewer.ImviewerPlugin & applify.mixin.ModalMethodP
 %   correction for the current image stack.
 %
 %   SYNTAX:
-%       flowregPlugin = nansen.plugin.imviewer.FlowRegistration(imviewerHandle)
-%       flowregPlugin = nansen.plugin.imviewer.FlowRegistration(imviewerHandle, options)
-%       flowregPlugin = nansen.plugin.imviewer.FlowRegistration(imviewerHandle, options, Name, Value, ...)
+%       flowregPlugin = nansen.module.twophoton.ui.imviewer.FlowRegistration(imviewerHandle)
+%       flowregPlugin = nansen.module.twophoton.ui.imviewer.FlowRegistration(imviewerHandle, options)
+%       flowregPlugin = nansen.module.twophoton.ui.imviewer.FlowRegistration(imviewerHandle, options, Name, Value, ...)
 
 % Todo: Use methods of flowreg processor to run prealigning?
 

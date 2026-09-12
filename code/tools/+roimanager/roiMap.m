@@ -1545,7 +1545,7 @@ classdef roiMap < roimanager.roiDisplay
 
                 % Todo: Get roi settings from somewhere...
 
-                roiData = nansen.processing.roi.prepareRoiMasks(obj.RoiGroup.roiArray, 'roiInd', i);
+                roiData = nansen.module.twophoton.roi.prepareRoiMasks(obj.RoiGroup.roiArray, 'roiInd', i);
                 npMask = roiData.Masks(:,:,2:end);
 
 % %                 % Find neuropil mask

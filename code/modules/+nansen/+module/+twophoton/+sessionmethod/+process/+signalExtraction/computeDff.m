@@ -137,7 +137,7 @@ function hDffPlugin = openDffExplorer(sessionObj)
     hSignalviewer.showLegend()
 
     % Open the dff options
-    hDffPlugin = nansen.plugin.signalviewer.DffExplorer(hSignalviewer, struct.empty, 'Modal', false);
+    hDffPlugin = nansen.module.twophoton.ui.signalviewer.DffExplorer(hSignalviewer, struct.empty, 'Modal', false);
 
     % Position apps on screen
     hSignalviewer.place('bottom')

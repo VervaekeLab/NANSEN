@@ -131,7 +131,7 @@ function hDffPlugin = openDeconvolutionExplorer(sessionObj)
     hSignalviewer.showLegend()
 
     % Open the dff options
-    hDffPlugin = nansen.plugin.signalviewer.CaimanDeconvolution(hSignalviewer, struct.empty, 'Modal', false);
+    hDffPlugin = nansen.module.twophoton.ui.signalviewer.CaimanDeconvolution(hSignalviewer, struct.empty, 'Modal', false);
 
     % Position apps on screen
     hSignalviewer.place('bottom')

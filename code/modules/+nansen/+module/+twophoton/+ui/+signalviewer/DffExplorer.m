@@ -5,9 +5,9 @@ classdef DffExplorer < applify.mixin.AppPlugin & applify.mixin.HasOptionsManager
 %   applying them to ROI fluorescence signals.
 %
 %   SYNTAX:
-%       dffExplorerPlugin = nansen.plugin.signalviewer.DffExplorer(signalViewerHandle)
-%       dffExplorerPlugin = nansen.plugin.signalviewer.DffExplorer(signalViewerHandle, options)
-%       dffExplorerPlugin = nansen.plugin.signalviewer.DffExplorer(signalViewerHandle, options, Name, Value, ...)
+%       dffExplorerPlugin = nansen.module.twophoton.ui.signalviewer.DffExplorer(signalViewerHandle)
+%       dffExplorerPlugin = nansen.module.twophoton.ui.signalviewer.DffExplorer(signalViewerHandle, options)
+%       dffExplorerPlugin = nansen.module.twophoton.ui.signalviewer.DffExplorer(signalViewerHandle, options, Name, Value, ...)
 
     properties (Constant) % Implementation of AppPlugin property
         Name = 'DFF Explorer'

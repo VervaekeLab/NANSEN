@@ -651,10 +651,10 @@ classdef RoimanagerDashboard < applify.DashBoard & imviewer.plugin.RoiManager
 
                     switch lower(methodName)
                         case 'extract'
-                            hPlugin = nansen.plugin.imviewer.EXTRACT(obj.Imviewer, S, '-p');
+                            hPlugin = nansen.module.twophoton.ui.imviewer.EXTRACT(obj.Imviewer, S, '-p');
                             callbackFcn = @hPlugin.changeOption;
                         case {'flufinder', 'quicky'}
-                            hPlugin = nansen.plugin.imviewer.FluFinder(obj.Imviewer, S, '-p');
+                            hPlugin = nansen.module.twophoton.ui.imviewer.FluFinder(obj.Imviewer, S, '-p');
                             callbackFcn = @hPlugin.changeOption;
                         otherwise
                             hPlugin = [];
