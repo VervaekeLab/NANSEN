@@ -1144,13 +1144,13 @@ classdef roiMap < roimanager.roiDisplay
 
                     IM = mean(imChunk(:, :, IND), 3);
 
-                    [roiMaskSmall, ~] = flufinder.binarize.findSomaMaskByEdgeDetection(IM);
+                    [roiMaskSmall, ~] = nansen.module.twophoton.autosegmentation.flufinder.binarize.findSomaMaskByEdgeDetection(IM);
                     roiMask = false(imSize);
                     roiMask(S(2):L(2), S(1):L(1)) = roiMaskSmall;
 
                 case 2
                     IM = max(imChunk(:, :, IND), [], 3);
-                    roiMask_ = flufinder.binarize.findSomaMaskByThresholding(IM, 'InnerDiameter', 0, 'OuterDiameter', r*2);
+                    roiMask_ = nansen.module.twophoton.autosegmentation.flufinder.binarize.findSomaMaskByThresholding(IM, 'InnerDiameter', 0, 'OuterDiameter', r*2);
                     roiMask = false(imSize);
                     roiMask(S(2):L(2), S(1):L(1)) = roiMask_;
 
@@ -1159,7 +1159,7 @@ classdef roiMap < roimanager.roiDisplay
 %                     IM = imChunk(:, :, IND);
                     IM = roimanager.imtools.getPixelChunk(obj.displayApp.image, S, L);
                     IM = stack.makeuint8(single(IM));
-                    roiMask_ = flufinder.binarize.findSomaMaskByThresholding(IM, 'InnerDiameter', 0, 'OuterDiameter', r*2, 'ExtentedRadius', r*4);
+                    roiMask_ = nansen.module.twophoton.autosegmentation.flufinder.binarize.findSomaMaskByThresholding(IM, 'InnerDiameter', 0, 'OuterDiameter', r*2, 'ExtentedRadius', r*4);
                     roiMask = false(imSize);
                     roiMask(S(2):L(2), S(1):L(1)) = roiMask_;
 
@@ -1167,7 +1167,7 @@ classdef roiMap < roimanager.roiDisplay
                     [S, L] = roimanager.imtools.getImageSubsetBounds(imSize, x, y, r, rExtended);
                     IM = roimanager.imtools.getPixelChunk(obj.displayApp.image, S, L);
                     IM = stack.makeuint8(single(IM));
-                    roiMask_ = flufinder.binarize.findSomaMaskByThresholding(IM, 'InnerDiameter', 0, 'OuterDiameter', r*2);
+                    roiMask_ = nansen.module.twophoton.autosegmentation.flufinder.binarize.findSomaMaskByThresholding(IM, 'InnerDiameter', 0, 'OuterDiameter', r*2);
                     roiMask = false(imSize);
                     roiMask(S(2):L(2), S(1):L(1)) = roiMask_;
 
@@ -1176,14 +1176,14 @@ classdef roiMap < roimanager.roiDisplay
                     % IM = mean(imChunk(:, :, IND), 3);
                     IM = roimanager.imtools.getPixelChunk(obj.displayApp.image, S, L);
 
-                    roiMaskSmall = flufinder.binarize.findSomaMaskByEdgeDetection(IM);
+                    roiMaskSmall = nansen.module.twophoton.autosegmentation.flufinder.binarize.findSomaMaskByEdgeDetection(IM);
                     roiMask = false(imSize);
                     roiMask(S(2):L(2), S(1):L(1)) = roiMaskSmall;
             end
 
             % Get roi settings from flufinder
             % run autodetect method from roi autodetection toolbox
-            % roiMask = flufinder.autodetect(pixelChunk, refPoint, imSize, autodetectionMethod);
+            % roiMask = nansen.module.twophoton.autosegmentation.flufinder.autodetect(pixelChunk, refPoint, imSize, autodetectionMethod);
 
             if obj.debug
                 obj.displayRoiImageForAutoDetection(IM)
@@ -1286,10 +1286,10 @@ classdef roiMap < roimanager.roiDisplay
             roiImage = nansen.module.twophoton.roi.compute.computeRoiImages(imChunk, tmpRoiSmall, roiSignals, ...
                 'ImageType', 'Activity Weighted Mean', 'BoxSize', imSizeSmall);
 
-            roiMask_ = flufinder.binarize.findSomaMaskByEdgeDetection(roiImage);
+            roiMask_ = nansen.module.twophoton.autosegmentation.flufinder.binarize.findSomaMaskByEdgeDetection(roiImage);
 
             roiMask = false(imSize);
-            roiMask = flufinder.utility.placeLocalRoiMaskInFovMask(roiMask_, [x,y], roiMask);
+            roiMask = nansen.module.twophoton.autosegmentation.flufinder.utility.placeLocalRoiMaskInFovMask(roiMask_, [x,y], roiMask);
 
             if obj.debug
                 obj.displayRoiImageForAutoDetection(roiImage)

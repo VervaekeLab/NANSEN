@@ -20,7 +20,7 @@ classdef Suite2p < nansen.dataio.dataconverter.roi.RoiAdapter
                 data = obj.collectSuite2pVariables(data);
             end
 
-            [roiArray, classification, stats, images] = nansen.wrapper.suite2p.convertRois(data);
+            [roiArray, classification, stats, images] = nansen.module.twophoton.integration.suite2p.convertRois(data);
             roiData = struct(roiArray,classification,stats,images);
         end
     end

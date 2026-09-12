@@ -1,0 +1,9 @@
+function pathList = getDependentPaths()
+%getDependentPaths Get paths that are needed for running normcorre
+
+    toolboxInfo.ToolboxName = 'Quicky';
+    toolboxInfo.FunctionName = 'nansen.module.twophoton.autosegmentation.flufinder.runAutosegmentation';
+    toolboxInfo.FolderExcludeTokens = {'.git', 'tutorials'};
+
+    pathList = nansen.toolbox.getToolboxDependencyList(toolboxInfo);
+end
