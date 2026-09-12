@@ -1,4 +1,4 @@
-classdef normcorre < nansen.session.SessionMethod & nansen.wrapper.normcorre.Processor
+classdef normcorre < nansen.session.SessionMethod & nansen.module.twophoton.integration.normcorre.Processor
 %Motion-correct the raw two-photon recording with NoRMCorre.
 %
 %Use this when:
@@ -31,7 +31,7 @@ classdef normcorre < nansen.session.SessionMethod & nansen.wrapper.normcorre.Pro
         function obj = normcorre(varargin)
 
             % Dont want this to be in charge, use session task instead.
-            obj@nansen.wrapper.normcorre.Processor()
+            obj@nansen.module.twophoton.integration.normcorre.Processor()
 
             % Call the SessionTask constructor last to make sure the
             % session's data I/O model is used.

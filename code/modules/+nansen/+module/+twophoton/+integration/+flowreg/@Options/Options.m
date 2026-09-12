@@ -16,10 +16,10 @@ classdef Options < nansen.wrapper.abstract.OptionsAdapter
     methods (Static)
 
         function S = getOptions()
-            S = nansen.wrapper.flowreg.Options.getDefaults();
+            S = nansen.module.twophoton.integration.flowreg.Options.getDefaults();
 
             % Temp fix???
-            className = 'nansen.wrapper.flowreg.Processor';
+            className = 'nansen.module.twophoton.integration.flowreg.Processor';
             superOptions = nansen.mixin.HasOptions.getSuperClassOptions(className);
             S = nansen.mixin.HasOptions.combineOptions(S, superOptions{:});
 
@@ -35,9 +35,9 @@ classdef Options < nansen.wrapper.abstract.OptionsAdapter
         %   will convert to a struct which is used in the flowregistration
         %   pipeline.
 
-            import nansen.wrapper.flowreg.*
+            import nansen.module.twophoton.integration.flowreg.*
 
-            nameMap = nansen.wrapper.flowreg.Options.getAdapter();
+            nameMap = nansen.module.twophoton.integration.flowreg.Options.getAdapter();
             nvPairs = nansen.wrapper.abstract.OptionsAdapter.rename(S, nameMap, 'nvPairs');
 
             %nvPairs = Options.getToolboxNvPairs(S);

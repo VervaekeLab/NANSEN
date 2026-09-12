@@ -117,7 +117,7 @@
       "source": "https://github.com/phflot/flow_registration",
       "docsSource": "https://github.com/phflot/flow_registration",
       "description": "Optical flow based motion correction for calcium imaging data",
-      "setupHook": "nansen.wrapper.flowreg.install",
+      "setupHook": "nansen.module.twophoton.integration.flowreg.install",
       "installCheck": "OF_Options"
     },
     {
