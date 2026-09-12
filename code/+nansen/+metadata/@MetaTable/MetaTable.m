@@ -1253,12 +1253,10 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         function S = processFileStruct(obj, S)
         %processFileStruct Synchronize to master, then reduce data locations, before saving
 
-            % Synchronize before reducing. The master is opened through
-            % load, so the entries it holds in memory are expanded, and it
-            % compares the incoming entries against them to decide whether
-            % anything changed. Handing over reduced entries would make
-            % every save look like a change. The master reduces the column
-            % itself when it writes its own file.
+            % The master holds expanded entries in memory and compares the
+            % incoming entries against them to decide what changed, so it
+            % receives them expanded. Reducing happens after, for this
+            % table's own file; the master reduces when it writes its own.
             if ~obj.IsMaster && ~isempty(S.MetaTableEntries)
                 catalog = nansen.metadata.MetaTableCatalog();
                 catalog.synchronizeToMaster(obj, S)
