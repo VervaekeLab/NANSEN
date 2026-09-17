@@ -41,6 +41,7 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
 
     properties
         DataLocationModel
+        CommitValidator = []
     end
 
     properties (Access = private)
@@ -228,17 +229,31 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
 
                 switch selection
                     case 'Yes'
+                        updatedModuleIdx = [];
                         for i = 2:3
                             if ~isempty(obj.UIModule{i})
-                                d = uiprogressdlg(obj.Figure, 'Title','Updading Model',...
+                                d = uiprogressdlg(obj.Figure, 'Title','Updating Model',...
                                     'Message', 'Updating paths for session folders of Datalocations...', ...
                                     'Indeterminate','on');
+                                closeDialog = onCleanup(@() close(d));
                                 obj.UIModule{i}.updateDataLocationModel()
-                                close(d)
-                                obj.UIModule{i}.markClean()
+                                updatedModuleIdx = [updatedModuleIdx, i]; %#ok<AGROW>
+                                clear closeDialog
                             end
                         end
+
+                        try
+                            obj.runCommitValidator()
+                        catch exception
+                            obj.alertCommitValidationFailed(exception)
+                            doAbort = true;
+                            return
+                        end
+
                         obj.DataLocationModel.save()
+                        for i = updatedModuleIdx
+                            obj.UIModule{i}.markClean()
+                        end
                         obj.UIModule{1}.markClean()
                         evtData = event.EventData;
                         obj.notify('DataLocationModelChanged', evtData)
@@ -250,6 +265,22 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
                         doAbort = true; % User decided to abort.
                         return
                 end
+            end
+        end
+
+        function runCommitValidator(obj)
+            if isempty(obj.CommitValidator)
+                return
+            end
+            obj.CommitValidator(obj.DataLocationModel);
+        end
+
+        function alertCommitValidationFailed(obj, exception)
+            title = 'Data Location Update Aborted';
+            if ~isempty(obj.Figure) && isvalid(obj.Figure)
+                uialert(obj.Figure, exception.message, title, 'Icon', 'warning')
+            else
+                warning(exception.identifier, '%s', exception.message)
             end
         end
     end
