@@ -129,7 +129,7 @@ methods % Implementation of abstract methods
         if isempty(obj.DarkFrame)
             obj.DarkFrame = obj.MemMap.Data.DarkFrame;
         end
-        data = data - obj.DarkFrame;
+        data = data - obj.DarkFrame(subs{1:2});
     end
 
     function writeData(~, ~, ~)
