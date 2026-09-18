@@ -151,9 +151,8 @@ function [item, sessionLevel, usedFields] = convertLocation(location, where, def
     item.RootPath = convertRootPaths(asList(source, 'rootStoragePaths'), where, report);
     item.SubfolderStructure = convertLayout(layout, where, definitions, sessionEntity, subjectEntity, report);
 
-    levelNames = fieldValues(asList(source, 'entityLayout'), 'name');
     [item.MetaDataDef, usedFields] = convertMetadata(asList(source, 'metadataMapping'), ...
-        definitions, levelNames, sessionIndex, where, sessionEntity, subjectEntity, ...
+        definitions, asList(source, 'entityLayout'), sessionIndex, where, sessionEntity, subjectEntity, ...
         sessionKeys, subjectKeys, report);
 end
 
@@ -239,18 +238,32 @@ function structure = convertLayout(layout, where, definitions, sessionEntity, su
     end
 end
 
-function [metaDataDef, usedFields] = convertMetadata(mapping, definitions, levelNames, sessionIndex, ...
+function [metaDataDef, usedFields] = convertMetadata(mapping, definitions, layout, sessionIndex, ...
         where, sessionEntity, subjectEntity, sessionKeys, subjectKeys, report)
 %convertMetadata Map extraction rules onto NANSEN's four metadata variables
     import nansen.config.dloc.dsmconversion.*
 
     metaDataDef = nansen.config.dloc.DataLocationModel.getDefaultMetadataStructure();
     usedFields = string.empty(1, 0);
+    levelNames = fieldValues(layout, 'name');
+
+    % A composite session identity becomes a Session ID read from the
+    % joined names of several levels; a single identity field is mapped
+    % by the loop below like the other variables.
+    % compositeIdentityLevels reports why when the parts cannot be joined.
+    compositeLevels = [];
+    sessionField = "";
+    if numel(sessionKeys) > 1
+        compositeLevels = compositeIdentityLevels(mapping, sessionKeys, layout, sessionIndex, ...
+            sessionEntity, where, report);
+    else
+        sessionField = identityField(sessionKeys, "session", where, report);
+    end
 
     targets = struct( ...
         'Variable', {'Subject ID', 'Session ID', 'Experiment Date', 'Experiment Time'}, ...
         'Field', {identityField(subjectKeys, "subject", where, report), ...
-                  identityField(sessionKeys, "session", where, report), ...
+                  sessionField, ...
                   temporalField(definitions, ["date", "datetime"], sessionEntity, subjectEntity), ...
                   temporalField(definitions, "time", sessionEntity, subjectEntity)});
 
@@ -267,14 +280,7 @@ function [metaDataDef, usedFields] = convertMetadata(mapping, definitions, level
         end
         extraction = rule.extraction;
 
-        levelRef = getOr(extraction, 'entityLayoutLevel', []);
-        if isnumeric(levelRef) && ~isempty(levelRef)
-            levelIndex = levelRef + 1;
-        elseif ~isempty(levelRef)
-            levelIndex = find(levelNames == string(levelRef), 1);
-        else
-            levelIndex = [];
-        end
+        levelIndex = levelIndexOf(extraction, levelNames);
         if isempty(levelIndex) || levelIndex > sessionIndex
             report.add(here, "The rule does not read a single level at or above the session level; " + targets(k).Variable + " is left unset.")
             continue
@@ -301,6 +307,79 @@ function [metaDataDef, usedFields] = convertMetadata(mapping, definitions, level
         metaDataDef(idx).StringDetectMode = char(mode);
         metaDataDef(idx).StringDetectInput = char(input);
         metaDataDef(idx).StringFormat = char(getOr(extraction, 'valueFormat', ''));
+    end
+
+    if ~isempty(compositeLevels)
+        idx = strcmp({metaDataDef.VariableName}, 'Session ID');
+        metaDataDef(idx).SubfolderLevel = compositeLevels;
+        metaDataDef(idx).StringDetectMode = 'expr';
+        metaDataDef(idx).StringDetectInput = '.+';
+        metaDataDef(idx).Separator = '_';
+        usedFields = [usedFields, sessionKeys];
+        report.add(where + ".metadataMapping[" + strjoin(sessionKeys, ", ") + "]", ...
+            "The session identity is composite; the Session ID joins the names of levels " + ...
+            strjoin(levelNames(compositeLevels), ", ") + " with '_', so it holds whole folder names rather than the extracted values.")
+    end
+end
+
+function levels = compositeIdentityLevels(mapping, keys, layout, sessionIndex, sessionEntity, where, report)
+%compositeIdentityLevels Levels whose joined names identify a session with a composite identity
+%
+%   NANSEN reads a Session ID from one string. It can join the names of
+%   several levels into that string, but it applies one rule to the joined
+%   string, so the parts of a composite identity cannot each be extracted.
+%   The whole names of the levels the parts are read from are used
+%   instead: every part is read from the name of its level, so sessions
+%   with the same level names have the same identity.
+%
+%   The levels of the session's ancestor entities are joined too. A model's
+%   identity is unique within its parent entities, while a NANSEN Session ID
+%   is unique within the project; without the ancestors, day 1 of two
+%   subjects would be one session.
+%
+%   A part given by a fixed rule is not in the path and is left out.
+%   Returns empty, with a report, when a part is read otherwise than from
+%   one level at or above the session level.
+
+    levels = [];
+    levelNames = fieldValues(layout, 'name');
+    levelTypes = fieldValues(layout, 'entityType');
+
+    for key = keys
+        here = where + ".metadataMapping[" + key + "]";
+        rule = findRule(mapping, key);
+        if isempty(rule)
+            report.add(here, "No extraction rule for this part of the composite session identity; the Session ID is left unset.")
+            levels = [];
+            return
+        end
+        method = string(rule.extraction.method);
+        if method == "fixed"
+            report.add(here, "A fixed part of the session identity is not in the path; the Session ID leaves it out.")
+            continue
+        end
+        levelIndex = levelIndexOf(rule.extraction, levelNames);
+        if ~ismember(method, ["substring", "regex"]) || isempty(levelIndex) || levelIndex > sessionIndex
+            report.add(here, "This part of the composite session identity is not read from one level at or above the session level; the Session ID is left unset.")
+            levels = [];
+            return
+        end
+        levels(end+1) = levelIndex; %#ok<AGROW>
+    end
+
+    ancestorLevels = find(levelTypes(1:sessionIndex-1) ~= "" & levelTypes(1:sessionIndex-1) ~= sessionEntity);
+    levels = unique([levels, ancestorLevels]);
+end
+
+function levelIndex = levelIndexOf(extraction, levelNames)
+%levelIndexOf 1-based index of the level an extraction reads, or [] for the whole path
+    levelRef = getOr(extraction, 'entityLayoutLevel', []);
+    if isnumeric(levelRef) && ~isempty(levelRef)
+        levelIndex = levelRef + 1;
+    elseif ~isempty(levelRef)
+        levelIndex = find(levelNames == string(levelRef), 1);
+    else
+        levelIndex = [];
     end
 end
 

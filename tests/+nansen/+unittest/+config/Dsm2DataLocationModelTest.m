@@ -58,6 +58,14 @@ classdef Dsm2DataLocationModelTest < matlab.unittest.TestCase
                 sprintf('Expected the report to mention %s.', elementPart))
         end
 
+        function sessionId = sessionIdOf(~, rule, sessionFolder, numLevels)
+        %sessionIdOf Run a converted Session ID rule the way NANSEN does
+            joinedNames = nansen.config.dloc.DataLocationModel.combineFolderNamesFromPath( ...
+                sessionFolder, rule.SubfolderLevel, numLevels, rule.Separator);
+            sessionId = nansen.config.dloc.DataLocationModel.applyExtractionPattern( ...
+                joinedNames, rule.StringDetectMode, rule.StringDetectInput);
+        end
+
         function verifyNotReported(testCase, elementPart)
             testCase.verifyFalse(any(contains(testCase.Report.Element, elementPart)), ...
                 sprintf('%s was mapped and should not be in the report.', elementPart))
@@ -210,7 +218,82 @@ classdef Dsm2DataLocationModelTest < matlab.unittest.TestCase
             testCase.verifyFalse(any(contains(report.Element, "variables[notes]")), ...
                 'A name used in one location keeps its name.')
         end
+
+        function testCompositeSessionIdJoinsLevelNames(testCase)
+            % Day numbers restart in each experiment, so a scanning day is
+            % identified by the experiment and the day, within its monkey.
+            [dataLocations, ~, report] = nansen.config.dloc.dsm2DataLocationModel( ...
+                jsondecode(scanningDayModel()), SessionEntity="scanning_day");
+            association = dataLocations(strcmp({dataLocations.Name}, 'association'));
+
+            rule = association.MetaDataDef(strcmp({association.MetaDataDef.VariableName}, 'Session ID'));
+            testCase.verifyEqual(rule.SubfolderLevel, [1 2 3], ...
+                'The experiment level, the monkey level (an ancestor) and the day level.')
+            testCase.verifyEqual(rule.Separator, '_')
+
+            sessionId = testCase.sessionIdOf(rule, '/data/association/PRE_stim/m1/d1', 3);
+            testCase.verifyEqual(sessionId, 'PRE_stim_m1_d1')
+            testCase.verifyTrue(any(contains(report.Reason, "the Session ID joins the names of levels")))
+            testCase.verifyFalse(any(contains(report.Reason, "NANSEN needs a single id field")))
+        end
+
+        function testFixedPartOfCompositeIdentityIsLeftOut(testCase)
+            % The localizer has no experiment level; a fixed rule gives the
+            % experiment, and the Session ID is made of the other levels.
+            [dataLocations, ~, report] = nansen.config.dloc.dsm2DataLocationModel( ...
+                jsondecode(scanningDayModel()), SessionEntity="scanning_day");
+            localizer = dataLocations(strcmp({dataLocations.Name}, 'localizer'));
+
+            rule = localizer.MetaDataDef(strcmp({localizer.MetaDataDef.VariableName}, 'Session ID'));
+            testCase.verifyEqual(rule.SubfolderLevel, [1 2])
+            testCase.verifyEqual(testCase.sessionIdOf(rule, '/data/localizer/m2/d1', 2), 'm2_d1')
+            testCase.verifyTrue(any(contains(report.Element, "dataLocations[localizer].metadataMapping[experiment]")))
+        end
+
+        function testUnreadablePartOfCompositeIdentityIsReportedOnce(testCase)
+            % Without a rule for the experiment, the Session ID is left
+            % unset, and the report gives that reason only
+            model = replace(scanningDayModel(), '"metadataRef":"experiment"', '"metadataRef":"protocol"');
+
+            [~, ~, report] = nansen.config.dloc.dsm2DataLocationModel(jsondecode(model), ...
+                SessionEntity="scanning_day");
+
+            isAssociation = startsWith(report.Element, "dataLocations[association]");
+            testCase.verifyTrue(any(isAssociation & contains(report.Reason, "No extraction rule for this part")))
+            testCase.verifyFalse(any(contains(report.Reason, "NANSEN needs a single id field")))
+        end
     end
+end
+
+function text = scanningDayModel()
+%scanningDayModel Scanning days of monkeys in two experiments, numbered from 1 in each
+    mapping = @(key, extraction) struct('metadataRef', key, 'extraction', extraction);
+    fromLevel = @(method, pattern, level) struct('method', method, 'pattern', pattern, 'entityLayoutLevel', level);
+    level = @(name, entityType, pattern) struct('name', name, 'entityType', entityType, 'matchPattern', pattern);
+    location = @(name, layout, rules) struct( ...
+        'identifier', name, 'displayName', name, 'dataCategory', 'raw', 'sourceType', 'filesystem', ...
+        'filesystemSource', struct( ...
+            'rootStoragePaths', {{struct('identifier', 'main', 'path', ['/data/' name])}}, ...
+            'entityLayout', {layout}, 'metadataMapping', {rules}));
+    dayRules = {mapping('subject_id', fromLevel('substring', ':', 'monkeys')), ...
+                mapping('day_number', fromLevel('regex', '^d(\d+)$', 'days'))};
+    association = location('association', ...
+        {struct('name', 'experiments', 'matchPattern', '^(PRE|POST)_stim$'), ...
+         level('monkeys', 'subject', '^m\d+$'), level('days', 'scanning_day', '^d\d+$')}, ...
+        [{mapping('experiment', fromLevel('substring', ':', 'experiments'))}, dayRules]);
+    localizer = location('localizer', ...
+        {level('monkeys', 'subject', '^m\d+$'), level('days', 'scanning_day', '^d\d+$')}, ...
+        [{mapping('experiment', struct('method', 'fixed', 'value', 'localizer'))}, dayRules]);
+    model = struct( ...
+        'schemaVersion', '0.1.0', ...
+        'entityTypes', {{struct('name', 'subject', 'identifierRef', 'subject_id'), ...
+                         struct('name', 'scanning_day', 'identifierRefs', {{'experiment'; 'day_number'}})}}, ...
+        'metadataDefinitions', struct( ...
+            'subject_id', struct('name', 'subject_id', 'dataType', 'string', 'ofEntity', 'subject'), ...
+            'experiment', struct('name', 'experiment', 'dataType', 'string', 'ofEntity', 'scanning_day'), ...
+            'day_number', struct('name', 'day_number', 'dataType', 'integer', 'ofEntity', 'scanning_day')), ...
+        'dataLocations', {{association, localizer}});
+    text = jsonencode(model);
 end
 
 function text = twoFormatModel()
