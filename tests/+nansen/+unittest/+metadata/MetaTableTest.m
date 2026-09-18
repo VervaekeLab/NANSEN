@@ -419,6 +419,21 @@ classdef MetaTableTest < matlab.unittest.TestCase
             testCase.verifyEqual(mt2.members, testCase.TestMetaTable.members);
         end
 
+        function testOpenErrorsWhenClassIsNotOnPath(testCase)
+            testFilePath = testCase.saveTableWithClass('myproject.metadata.type.Session', '');
+
+            testCase.verifyError(@() nansen.metadata.MetaTable.open(testFilePath), ...
+                'NANSEN:MetaTable:ClassNotFound')
+        end
+
+        function testOpenWithIdVarnameNeedsNoClassOnPath(testCase)
+            testFilePath = testCase.saveTableWithClass('myproject.metadata.type.Session', 'sessionID');
+
+            metaTable = nansen.metadata.MetaTable.open(testFilePath);
+
+            testCase.verifyEqual(height(metaTable.entries), height(testCase.TestEntries))
+        end
+
         function testOpenLoadsMetaTableFromFile(testCase)
             testCase.createTestMetaTable();
 
@@ -1288,6 +1303,24 @@ classdef MetaTableTest < matlab.unittest.TestCase
                 'MetaTableIdVarname', 'sessionID');
 
             testCase.verifyEqual(height(mt.entries), testCase.NUM_TEST_ENTRIES);
+        end
+    end
+
+    methods (Access = private)
+        function testFilePath = saveTableWithClass(testCase, className, idVarname)
+            % Save the test table, then set the class and ID column name
+            % stored in its file
+            testCase.createTestMetaTable();
+            testFilePath = fullfile(testCase.TestDir, 'class_metatable.mat');
+            testCase.TestMetaTable.setFilepath(testFilePath);
+            testCase.TempFiles{end+1} = testFilePath;
+            testCase.TestMetaTable.save(true);
+
+            S = load(testFilePath);
+            S.MetaTableClass = className;
+            S.MetaTableIdVarname = idVarname;
+            save(testFilePath, '-struct', 'S');
+            nansen.metadata.MetaTableCache.instance("reset");
         end
     end
 end
