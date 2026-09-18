@@ -98,7 +98,8 @@ function [dataLocations, variables, report] = dsm2DataLocationModel(dsmConfig, o
         usedFields = [usedFields, usedHere]; %#ok<AGROW>
 
         dataLocations = appendItems(dataLocations, item);
-        variables = appendItems(variables, convertFilePatterns(sessionLevel, item, where, sessionKeys, report));
+        variables = appendItems(variables, convertFilePatterns(sessionLevel, item, where, ...
+            [sessionKeys, subjectKeys], report));
     end
     variables = qualifyRepeatedVariableNames(variables, report);
 
@@ -383,8 +384,11 @@ function levelIndex = levelIndexOf(extraction, levelNames)
     end
 end
 
-function variables = convertFilePatterns(sessionLevel, item, where, sessionKeys, report)
+function variables = convertFilePatterns(sessionLevel, item, where, identityKeys, report)
 %convertFilePatterns Map the session level's file patterns to variable model items
+%
+%   identityKeys are the identity fields of the session and the subject,
+%   the {tokens} a file pattern may use in place of a wildcard.
     import nansen.config.dloc.dsmconversion.*
 
     variables = struct.empty;
@@ -399,11 +403,16 @@ function variables = convertFilePatterns(sessionLevel, item, where, sessionKeys,
         end
         patternWhere = here + "[" + string(filePattern.name) + "]";
 
-        [expression, fileType, isConverted] = convertFilePatternToWildcard(string(filePattern.pattern), sessionKeys);
+        [expression, fileType, isConverted, isApproximate] = ...
+            convertFilePatternToWildcard(string(filePattern.pattern), identityKeys);
         if ~isConverted
             report.add(patternWhere, "The pattern has no wildcard equivalent.")
             continue
         end
+        report.add(patternWhere, "Approximated as '" + expression + "': a character class became *, " + ...
+            "so NANSEN may find files the pattern does not match.", isApproximate)
+        report.add(patternWhere + ".cardinality", "A NANSEN variable is one file per session; " + ...
+            "where several files match, NANSEN uses the first.", string(getOr(filePattern, 'cardinality', 'one')) == "many")
 
         variable = nansen.config.varmodel.VariableModel.getBlankItem();
         variable.VariableName = char(matlab.lang.makeValidName(string(filePattern.name)));

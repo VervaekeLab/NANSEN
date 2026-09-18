@@ -188,18 +188,49 @@ classdef Dsm2DataLocationModelTest < matlab.unittest.TestCase
         end
 
         function testFilePatternsBecomeWildcards(testCase)
-            convert = @(p) nansen.config.dloc.dsmconversion.convertFilePatternToWildcard(p, "recording_id");
+            convert = @(p) nansen.config.dloc.dsmconversion.convertFilePatternToWildcard( ...
+                p, ["recording_id", "cell_id"]);
 
-            [expression, fileType, isConverted] = convert("^{recording_id}_meta\.json$");
+            [expression, fileType, isConverted, isApproximate] = convert("^{recording_id}_meta\.json$");
             testCase.verifyTrue(isConverted)
+            testCase.verifyFalse(isApproximate)
             testCase.verifyEqual(expression, "^*_meta.json$")
             testCase.verifyEqual(fileType, ".json")
 
-            [~, ~, isConverted] = convert("^{other_id}\.ABF$");
-            testCase.verifyFalse(isConverted, 'Only tokens naming the session identity become *.')
+            [expression, ~, isConverted] = convert("^{cell_id}_{recording_id}\.ABF$");
+            testCase.verifyTrue(isConverted, 'A token naming an ancestor identity becomes * too.')
+            testCase.verifyEqual(expression, "^*_*.ABF$")
 
-            [~, ~, isConverted] = convert("^\d+\.ABF$");
-            testCase.verifyFalse(isConverted, '\d has no wildcard equivalent.')
+            [~, ~, isConverted] = convert("^{other_id}\.ABF$");
+            testCase.verifyFalse(isConverted, 'Tokens naming other fields have no wildcard equivalent.')
+
+            [expression, ~, ~, isApproximate] = convert("^.*\.ABF$");
+            testCase.verifyEqual(expression, "^*.ABF$")
+            testCase.verifyFalse(isApproximate, '.* is any text, as * is.')
+        end
+
+        function testCharacterClassesAreApproximated(testCase)
+            % NANSEN passes the expression to dir, whose only wildcard is *.
+            convert = @(p) nansen.config.dloc.dsmconversion.convertFilePatternToWildcard(p, "session_id");
+            cases = { ...
+                "^TT\d+\.ntt$", "^TT*.ntt$"; ...
+                "_ch\d+_\d+\.dat$", "_ch*_*.dat$"; ...
+                "_feature_[A-Za-z0-9]+\.fd$", "_feature_*.fd$"; ...
+                "_{session_id}__\d{4}-\d{2}-\d{2}\.pkl$", "_*__*-*-*.pkl$"; ...
+                "^{session_id}\.eeg\d?$", "^*.eeg*$"};
+            for i = 1:height(cases)
+                [expression, ~, isConverted, isApproximate] = convert(cases{i, 1});
+                testCase.verifyTrue(isConverted, cases{i, 1})
+                testCase.verifyTrue(isApproximate, cases{i, 1})
+                testCase.verifyEqual(expression, cases{i, 2}, cases{i, 1})
+            end
+        end
+
+        function testApproximationMatchingEveryFileIsRefused(testCase)
+            [expression, ~, isConverted] = nansen.config.dloc.dsmconversion.convertFilePatternToWildcard( ...
+                "^{session_id}\.\d$", "session_id");
+            testCase.verifyFalse(isConverted, '^*.*$ would match every file in the folder.')
+            testCase.verifyEqual(expression, "")
         end
 
         function testRepeatedPatternNamesAreQualifiedByLocation(testCase)
