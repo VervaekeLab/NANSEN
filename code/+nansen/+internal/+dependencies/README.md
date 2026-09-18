@@ -14,3 +14,7 @@ Functions:
 - `checkInstallationStatus` — check installed / on-path state
 - `getRequiredMathworksProducts` — list required MathWorks products
 - `checkRequiredMathworksProducts` — warn or error on missing required products
+- `listModules` — list the modules on the MATLAB search path
+- `resolveModuleNames` — convert package, display or short module names to package names
+- `resolveDependencyIds` — find community toolboxes by the `id` in their manifest entry
+- `assertInstalled` — error with a `nansen_install("<id>")` instruction if a dependency is missing

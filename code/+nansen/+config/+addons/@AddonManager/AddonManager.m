@@ -128,14 +128,21 @@ classdef AddonManager < handle
 
         function [numAddonsInstalled, installationReport] = installMissingAddons(obj, modules, options)
         % installMissingAddons - Install add-ons that are not installed.
+        %
+        %   Name-Value Arguments:
+        %       AddonNames (string array) - Install only the add-ons with
+        %           these names. Default: all add-ons of core NANSEN and
+        %           the given modules.
             arguments
                 obj (1,1) nansen.config.addons.AddonManager
                 modules (1,:) string = string.empty
                 options.ShowSummary (1,1) logical = false
+                options.AddonNames (1,:) string = string.empty
             end
 
             obj.refreshManagedAddons("SelectedModules", modules);
-            addonEntries = obj.getManagedAddonsForModules(modules);
+            addonEntries = obj.getManagedAddonsForModules(modules, ...
+                "AddonNames", options.AddonNames);
 
             numAddonsInstalled = 0;
             installationResultCells = cell(1, numel(addonEntries));
@@ -176,15 +183,22 @@ classdef AddonManager < handle
             end
         end
 
-        function updateAddons(obj, modules)
+        function updateAddons(obj, modules, options)
         % updateAddons - Update tracked installed addons.
+        %
+        %   Name-Value Arguments:
+        %       AddonNames (string array) - Update only the add-ons with
+        %           these names. Default: all add-ons of core NANSEN and
+        %           the given modules.
             arguments
                 obj (1,1) nansen.config.addons.AddonManager
                 modules (1,:) string = string.empty
+                options.AddonNames (1,:) string = string.empty
             end
 
             obj.refreshManagedAddons("SelectedModules", modules);
-            addonEntries = obj.getManagedAddonsForModules(modules);
+            addonEntries = obj.getManagedAddonsForModules(modules, ...
+                "AddonNames", options.AddonNames);
 
             for i = 1:numel(addonEntries)
                 addonEntry = addonEntries(i);
@@ -422,11 +436,16 @@ classdef AddonManager < handle
             managedAddons = movevars(managedAddons, "Description", "After", "IsOnPath");
         end
 
-        function addonEntries = getManagedAddonsForModules(obj, modules)
+        function addonEntries = getManagedAddonsForModules(obj, modules, options)
         %getManagedAddonsForModules Return managed addons relevant for selected modules.
+        %
+        %   Name-Value Arguments:
+        %       AddonNames (string array) - Return only the add-ons with
+        %           these names. Default: all relevant add-ons.
             arguments
                 obj (1,1) nansen.config.addons.AddonManager
                 modules (1,:) string = string.empty
+                options.AddonNames (1,:) string = string.empty
             end
 
             resolvedRequirements = nansen.internal.dependencies.resolveRequirements( ...
@@ -434,6 +453,9 @@ classdef AddonManager < handle
                 "SelectedModules", modules, ...
                 "TrackedAddons", obj.AddonList);
             addonNames = string({resolvedRequirements.Name});
+            if ~isempty(options.AddonNames)
+                addonNames = intersect(addonNames, options.AddonNames, "stable");
+            end
             isMatch = ismember(string({obj.AddonList.Name}), addonNames);
             addonEntries = obj.AddonList(isMatch);
         end

@@ -47,6 +47,11 @@
           "type": "string",
           "description": "Display name of the dependency."
         },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "description": "Short lowercase identifier for a community toolbox, unique across all manifests. Used to install the dependency with nansen_install(\"<id>\") and to check for it with nansen.internal.dependencies.assertInstalled(\"<id>\")."
+        },
         "dependencyType": {
           "type": "string",
           "enum": ["mathworks-product", "community-toolbox"],
