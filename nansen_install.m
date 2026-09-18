@@ -51,8 +51,11 @@ function nansen_install(options)
     if options.Update
         addonManager.updateAddons(options.Modules);
     else
-        numAddonsInstalled = addonManager.installMissingAddons(options.Modules);
-        if numAddonsInstalled == 0
+        % installMissingAddons prints its failure summary on its own only
+        % when no output is requested, so ask for the summary explicitly
+        [~, installationReport] = addonManager.installMissingAddons( ...
+            options.Modules, "ShowSummary", true);
+        if installationReport.NumAttempted == 0
             disp([ ...
                 'All dependencies are installed. ', ...
                 'Use nansen_install(Update=true) to update dependencies.'])
