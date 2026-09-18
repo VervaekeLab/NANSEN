@@ -286,12 +286,17 @@ classdef Processor < nansen.processing.MotionCorrection & ...
     methods (Static)
 
         function ncShifts = addShifts(ncShifts, offset)
-            % Add rigid shifts to struct of normcorre nonrigid shifts.
+            % Add a rigid offset to a struct of normcorre shifts.
+            %
+            % The offset is [dx, dy], as it comes from correctDrift, while
+            % normcorre follows the MATLAB array convention and holds the
+            % shift in y in the first plane of its shifts and the shift in
+            % x in the second, so the two are in opposite order.
             for k = 1:numel(ncShifts)
-                ncShifts(k).shifts(:,:,:,1) = ncShifts(k).shifts(:,:,:,1) + offset(1);
-                ncShifts(k).shifts(:,:,:,2) = ncShifts(k).shifts(:,:,:,2) + offset(2);
-                ncShifts(k).shifts_up(:,:,:,1) = ncShifts(k).shifts_up(:,:,:,1) + offset(1);
-                ncShifts(k).shifts_up(:,:,:,2) = ncShifts(k).shifts_up(:,:,:,2) + offset(2);
+                ncShifts(k).shifts(:,:,:,1) = ncShifts(k).shifts(:,:,:,1) + offset(2);
+                ncShifts(k).shifts(:,:,:,2) = ncShifts(k).shifts(:,:,:,2) + offset(1);
+                ncShifts(k).shifts_up(:,:,:,1) = ncShifts(k).shifts_up(:,:,:,1) + offset(2);
+                ncShifts(k).shifts_up(:,:,:,2) = ncShifts(k).shifts_up(:,:,:,2) + offset(1);
             end
         end
     end
