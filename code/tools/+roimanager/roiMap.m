@@ -1042,6 +1042,38 @@ classdef roiMap < roimanager.roiDisplay
             obj.addRois(newRoi)
         end
 
+        % Todo: move to roi editor
+        function createRectangularRoi(obj, x, y, width, height)
+        %createRectangularRoi Create a rectangular roi centered on a point
+        %
+        %   createRectangularRoi(obj, x, y, width, height) creates an
+        %   axis-aligned rectangular roi of the given width and height,
+        %   centered on the point (x, y). The rectangle is created as a
+        %   polygon roi with integer pixel corners. A rectangle that
+        %   extends outside the image is moved inside it, and keeps the
+        %   requested size unless the size exceeds the image.
+
+            imageHeight = obj.displayApp.imHeight;
+            imageWidth = obj.displayApp.imWidth;
+
+            width = min(round(width), imageWidth);
+            height = min(round(height), imageHeight);
+
+            xMin = min( max(round(x - width/2), 1), imageWidth - width + 1 );
+            yMin = min( max(round(y - height/2), 1), imageHeight - height + 1 );
+            xMax = xMin + width - 1;
+            yMax = yMin + height - 1;
+
+            % Polygon corners are ordered counterclockwise, starting at the
+            % upper left corner of the rectangle.
+            xCorners = [xMin, xMax, xMax, xMin];
+            yCorners = [yMin, yMin, yMax, yMax];
+
+            newRoi = RoI('Polygon', [xCorners; yCorners], ...
+                [imageHeight, imageWidth]);
+            obj.addRois(newRoi)
+        end
+
         function createFreehandRoi(obj, x, y, thickness)
 
             if nargin < 4
