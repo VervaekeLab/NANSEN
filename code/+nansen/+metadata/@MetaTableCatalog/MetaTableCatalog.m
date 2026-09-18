@@ -342,6 +342,12 @@ classdef MetaTableCatalog < uim.handle
             end
 
             metaTable.save(true)
+
+            % A table opened earlier from the same file may still be in the
+            % cache, and version numbers count saves of one file, so its
+            % number can equal the new file's and open would return it.
+            % The registered table replaces it.
+            nansen.metadata.MetaTableCache.instance().add(metaTable.filepath, metaTable)
         end
 
         function setDefaultMetaTable(obj, metaTable)

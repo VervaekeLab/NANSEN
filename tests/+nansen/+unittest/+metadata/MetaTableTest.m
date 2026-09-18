@@ -714,6 +714,35 @@ classdef MetaTableTest < matlab.unittest.TestCase
             testCase.verifyTrue(isfile(expectedFilePath));
         end
 
+        function testRegisterMetaTableReplacesCachedTableAtSamePath(testCase)
+            % Removing a master table and registering a new one under the
+            % same name writes the same file. The table opened before is
+            % still in the cache, and its version number can equal the
+            % new file's, so opening the file must return the new table.
+            catalogPath = fullfile(testCase.TestDir, 'metatable_catalog.mat');
+            catalog = nansen.metadata.MetaTableCatalog(catalogPath);
+            options = struct('MetaTableName', 'ReplacedTable', 'IsDefault', false, 'IsMaster', true);
+
+            firstTable = nansen.metadata.MetaTable(testCase.TestEntries, ...
+                'MetaTableClass', 'table', 'MetaTableIdVarname', 'sessionID');
+            catalog.registerMetaTable(firstTable, options);
+            filePath = catalog.getMetaTableFilePath('ReplacedTable');
+            nansen.metadata.MetaTable.open(filePath);
+
+            catalog.removeEntry('ReplacedTable');
+            delete(filePath)
+
+            newEntries = testCase.TestEntries;
+            newEntries.Value(:) = 777;
+            secondTable = nansen.metadata.MetaTable(newEntries, ...
+                'MetaTableClass', 'table', 'MetaTableIdVarname', 'sessionID');
+            catalog.registerMetaTable(secondTable, options);
+
+            testCase.assertEqual(catalog.getMetaTableFilePath('ReplacedTable'), filePath)
+            reopened = nansen.metadata.MetaTable.open(filePath);
+            testCase.verifyEqual(reopened.entries.Value, newEntries.Value)
+        end
+
         function testMetaTableCatalogIgnoresLegacySavePathOnLoad(testCase)
             catalogPath = fullfile(testCase.TestDir, 'metatable_catalog.mat');
             catalog = nansen.metadata.MetaTableCatalog(catalogPath);
