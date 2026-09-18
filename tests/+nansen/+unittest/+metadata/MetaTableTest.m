@@ -714,6 +714,27 @@ classdef MetaTableTest < matlab.unittest.TestCase
             testCase.verifyTrue(isfile(expectedFilePath));
         end
 
+        function testHasMasterMetaTableIsFalseForEmptyCatalog(testCase)
+            catalogPath = fullfile(testCase.TestDir, 'metatable_catalog.mat');
+            catalog = nansen.metadata.MetaTableCatalog(catalogPath);
+
+            testCase.verifyFalse(catalog.hasMasterMetaTable('subject'))
+        end
+
+        function testHasMasterMetaTableMatchesProjectSubjectClass(testCase)
+            % The class is only a name to the catalog, so it need not exist
+            catalogPath = fullfile(testCase.TestDir, 'metatable_catalog.mat');
+            catalog = nansen.metadata.MetaTableCatalog(catalogPath);
+            metaTable = nansen.metadata.MetaTable(testCase.TestEntries, ...
+                'MetaTableClass', 'myproject.metadata.type.Subject', ...
+                'MetaTableIdVarname', 'sessionID');
+            options = struct('MetaTableName', 'Subject', 'IsDefault', false, 'IsMaster', true);
+            catalog.registerMetaTable(metaTable, options);
+
+            testCase.verifyTrue(catalog.hasMasterMetaTable('subject'))
+            testCase.verifyFalse(catalog.hasMasterMetaTable('session'))
+        end
+
         function testRegisterMetaTableReplacesCachedTableAtSamePath(testCase)
             % Removing a master table and registering a new one under the
             % same name writes the same file. The table opened before is
