@@ -360,16 +360,25 @@ classdef Binary < nansen.stack.data.VirtualArray
                 numBytes = nansen.stack.ImageStack.getImageDataByteSize(...
                     arraySize, arrayClass);
 
+                % On Windows, fsutil preallocates the file without writing
+                % its contents. Every other platform, and a failed fsutil
+                % call, falls back to writing a sparse file with fwrite.
+                status = 1;
                 if ispc
                     [status, ~] = system(sprintf('cmd /C fsutil file createnew %s %i', filePath, numBytes));
-                elseif ismac
-                    status = 1;
                 end
 
                 if status % Backup solution
-                    fileId = fopen(filePath, 'w');
+                    [fileId, errorMessage] = fopen(filePath, 'w');
+                    if fileId == -1
+                        error('NANSEN:Stack:Binary:FileNotCreated', ...
+                            ['Could not create the binary file "%s": %s. ', ...
+                            'Check that the folder exists and is writable.'], ...
+                            filePath, errorMessage)
+                    end
+                    fileCleanup = onCleanup(@() fclose(fileId));
                     fwrite(fileId, 0, 'uint8', numBytes-1); % 4th arg: skip
-                    fclose(fileId);
+                    clear fileCleanup % Close the file before it is mapped
                 end
 
             else
