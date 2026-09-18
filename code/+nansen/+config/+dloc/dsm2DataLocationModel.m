@@ -100,6 +100,7 @@ function [dataLocations, variables, report] = dsm2DataLocationModel(dsmConfig, o
         dataLocations = appendItems(dataLocations, item);
         variables = appendItems(variables, convertFilePatterns(sessionLevel, item, where, sessionKeys, report));
     end
+    variables = qualifyRepeatedVariableNames(variables, report);
 
     for fieldName = string(fieldnames(definitions))'
         if ~ismember(fieldName, usedFields)
@@ -337,6 +338,31 @@ function variables = convertFilePatterns(sessionLevel, item, where, sessionKeys,
         report.add(patternWhere + ".isRequired", "NANSEN does not check that required files are present.", ...
             isfield(filePattern, 'isRequired'))
         variables = appendItems(variables, variable);
+    end
+end
+
+function variables = qualifyRepeatedVariableNames(variables, report)
+%qualifyRepeatedVariableNames Prefix a name used in several data locations with the location
+%
+%   A file pattern name is unique within one layout level, but a NANSEN
+%   variable name is unique within a project, and adding a second variable
+%   with the same name fails. Every variable whose name occurs in more than
+%   one data location is renamed to <data location>_<name>, so no location
+%   keeps the bare name only because it was converted first.
+
+    if isempty(variables)
+        return
+    end
+
+    names = string({variables.VariableName});
+    [~, ~, groupIndex] = unique(names);
+    occurrences = accumarray(groupIndex(:), 1);
+
+    for i = find(occurrences(groupIndex)' > 1)
+        newName = matlab.lang.makeValidName(string(variables(i).DataLocation) + "_" + names(i));
+        report.add("variables[" + names(i) + "]", "The file pattern name is used in several data locations; " + ...
+            "renamed to '" + newName + "' in data location " + string(variables(i).DataLocation) + ".")
+        variables(i).VariableName = char(newName);
     end
 end
 
