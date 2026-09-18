@@ -178,9 +178,12 @@ classdef Processor < nansen.processing.MotionCorrection & ...
             meanDivergence = get_mean_divergence(W);
             meanTranslation = get_mean_translation(W);
 
-            % Compute quantities
-            xOffset = squeeze(mean(mean(W(:,:,2,:), 1), 2)); %Todo: Is 2nd x-offsets?
-            yOffset = squeeze(mean(mean(W(:,:,1,:), 1), 2)); %Todo: Is 1st y-offsets?
+            % Compute quantities. The displacement field of flowreg holds
+            % the displacement in x in its first channel and the
+            % displacement in y in its second, which is the order that
+            % imwarp takes a displacement field in.
+            xOffset = squeeze(mean(mean(W(:,:,1,:), 1), 2));
+            yOffset = squeeze(mean(mean(W(:,:,2,:), 1), 2));
             rmsmov = sqrt(mean( W(:).^2) );
 
             % Add results to struct
@@ -375,7 +378,12 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         end
 
         function shifts = addShifts(shifts, offset)
-            % Add rigid shifts to struct of normcorre nonrigid shifts.
+            % Add a rigid offset to the displacement fields of flowreg.
+            %
+            % The offset is [dx, dy], as it comes from correctDrift, and
+            % the field holds the displacement in x in its first channel
+            % and the displacement in y in its second, so the two are in
+            % the same order.
             for k = 1:numel(shifts)
                 shifts{k}(:, :, 1, :) = shifts{k}(:, :, 1, :) + offset(1);
                 shifts{k}(:, :, 2, :) = shifts{k}(:, :, 2, :) + offset(2);
