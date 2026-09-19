@@ -1,12 +1,21 @@
 function updateSubjectTable(metatableCatalog, subjectSchema)
-
-    if nargin < 2
-        subjectSchema = 'nansen.metadata.type.Subject';
-    end
+%updateSubjectTable Add the subjects of the session table that the subject table lacks
+%
+%   updateSubjectTable(metatableCatalog) adds a row to the master subject
+%   table for each subject ID in the master session table that the subject
+%   table does not have. The new subjects are of the subject table's class,
+%   so that their columns match the existing rows.
+%
+%   updateSubjectTable(metatableCatalog, subjectSchema) creates the new
+%   subjects with the class named by subjectSchema.
 
     % Find master session table from metatable catalog
     sessionTable = metatableCatalog.getMasterMetaTable('session');
     subjectTable = metatableCatalog.getMasterMetaTable('subject');
+
+    if nargin < 2
+        subjectSchema = subjectTable.MetaTableClass;
+    end
 
     try
         uniqueSubjectIds = unique( sessionTable.entries.subjectID );
@@ -20,8 +29,8 @@ function updateSubjectTable(metatableCatalog, subjectSchema)
 
         % Create subjects.
         subjectArray(numSubjects) = feval(subjectSchema); %#ok<FVAL>
-        for i = 1:numel(uniqueSubjectIds)
-            subjectArray(i).SubjectID = uniqueSubjectIds{i};
+        for i = 1:numSubjects
+            subjectArray(i).SubjectID = newSubjectIds{i};
         end
     catch
         return
