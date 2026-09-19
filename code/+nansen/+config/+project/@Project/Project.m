@@ -227,6 +227,22 @@ classdef Project < nansen.module.Module
             obj.Preferences.AutoDownloadRemoteFiles = isAutoDownload;
         end
 
+        function setWriteMetaTableCsvCopies(obj, isEnabled)
+        %setWriteMetaTableCsvCopies Set whether saving a metatable also writes a CSV copy
+        %
+        %   project.setWriteMetaTableCsvCopies(true) makes MetaTable.save
+        %   write a CSV copy of each of the project's tables next to its
+        %   .mat file, so that the tables can be read without MATLAB. The
+        %   default is false.
+        %
+        %   See also nansen.metadata.MetaTable/writeCsvCopy
+            arguments
+                obj (1,1) nansen.config.project.Project
+                isEnabled (1,1) logical
+            end
+            obj.Preferences.WriteMetaTableCsvCopies = isEnabled;
+        end
+
         function initializeProjectFolder(obj)
             % Todo: implement? I.e if a project object is created
             % programmatically

@@ -236,9 +236,43 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             wasSaved = save@nansen.metadata.mixin.VersionedFile(obj, force);
             if wasSaved
                 fprintf('MetaTable saved to %s\n', obj.filepath)
+                if obj.isCsvCopyEnabled()
+                    % The table is saved; a copy that cannot be written
+                    % is reported without failing the save
+                    try
+                        obj.writeCsvCopy()
+                    catch exception
+                        warning('NANSEN:MetaTable:CsvCopyFailed', ...
+                            'The table was saved, but its CSV copy could not be written: %s', ...
+                            exception.message)
+                    end
+                end
             end
 
             if ~nargout; clear wasSaved; end
+        end
+
+        function csvFilePath = writeCsvCopy(obj)
+        %writeCsvCopy Write the table's entries to a CSV file next to its .mat file
+        %
+        %   csvFilePath = metaTable.writeCsvCopy() writes the entries to a
+        %   CSV file with the name of the table's file, for reading the
+        %   table without MATLAB. Columns of text, numbers, logical values
+        %   and dates are copied. The DataLocation column becomes one column
+        %   per data location, DataLocation_<name>, with the path of the
+        %   row's folder or file there, empty where the row has none.
+        %   Columns of other values, such as Progress and Notebook, are left
+        %   out.
+        %
+        %   save writes the copy after each save when the table belongs to
+        %   the current project and its preference WriteMetaTableCsvCopies
+        %   is true (Project.setWriteMetaTableCsvCopies).
+
+            [folderPath, fileName] = fileparts(obj.filepath);
+            csvFilePath = fullfile(folderPath, fileName + ".csv");
+            writetable(tableForCsv(obj.entries), csvFilePath)
+
+            if ~nargout; clear csvFilePath; end
         end
 
         function load(obj)
@@ -1161,6 +1195,34 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         end
     end
 
+    methods (Access = private) % CSV copy
+
+        function tf = isCsvCopyEnabled(obj)
+        %isCsvCopyEnabled Whether the table's project asks for a CSV copy
+        %
+        %   The preference belongs to a project, and a table can be saved
+        %   while another project is current, so only a table in the folder
+        %   of the current project uses the current project's preference.
+            tf = false;
+            try
+                project = nansen.getCurrentProject();
+            catch exception
+                % Without a user session there is no project to ask
+                if strcmp(exception.identifier, 'NANSEN:NoActiveUserSession')
+                    return
+                end
+                rethrow(exception)
+            end
+            if isempty(project) || ~startsWith(string(obj.filepath), string(project.FolderPath))
+                return
+            end
+
+            preferences = project.Preferences;
+            tf = isfield(preferences, 'WriteMetaTableCsvCopies') ...
+                && preferences.WriteMetaTableCsvCopies;
+        end
+    end
+
     methods (Access = protected) % Data location column
 
         function tableEntries = reduceDataLocationColumn(obj, tableEntries)
@@ -1852,4 +1914,68 @@ function value = applyIfDataLocationStruct(fcn, value)
     if ~isstruct(value) || isempty(value) || ~isfield(value, 'Uuid'); return; end
 
     value = fcn(value);
+end
+
+function csvTable = tableForCsv(entries)
+%tableForCsv The columns of a metatable that a CSV file can hold
+%   Columns of text, numbers, logical values and dates are kept. The
+%   DataLocation column becomes one text column per data location with the
+%   path of each row's folder or file there. Other columns are left out.
+
+    csvTable = table('Size', [height(entries), 0]);
+    for variableName = string(entries.Properties.VariableNames)
+        values = entries.(variableName);
+        if variableName == "DataLocation" && (isstruct(values) || iscell(values))
+            csvTable = [csvTable, dataLocationPaths(values)]; %#ok<AGROW>
+        elseif isnumeric(values) || islogical(values) || isdatetime(values) ...
+                || isstring(values) || iscategorical(values)
+            csvTable.(variableName) = values;
+        elseif iscell(values) && all(cellfun(@isScalarValue, values))
+            % Empty values are written as empty text, so that the column
+            % keeps one type
+            values(cellfun(@isempty, values)) = {''};
+            csvTable.(variableName) = values;
+        end
+    end
+end
+
+function pathTable = dataLocationPaths(dataLocations)
+%dataLocationPaths One column per data location with the path of each row there
+%   dataLocations is a struct array with one row per table row, or a cell
+%   array with one struct array per table row when rows have different
+%   numbers of data locations. The columns are named by the data
+%   locations' Name, in the order they first occur; a row without a data
+%   location of that name has an empty path.
+    numRows = size(dataLocations, 1);
+    if isstruct(dataLocations)
+        rows = num2cell(dataLocations, 2);
+    else
+        rows = dataLocations(:);
+    end
+
+    names = strings(1, 0);
+    paths = strings(numRows, 0);
+    for i = 1:numRows
+        for location = reshape(rows{i}, 1, [])
+            columnIndex = find(names == string(location.Name), 1);
+            if isempty(columnIndex)
+                names(end+1) = string(location.Name); %#ok<AGROW>
+                paths(:, end+1) = ""; %#ok<AGROW>
+                columnIndex = numel(names);
+            end
+            if isfield(location, 'RootPath') && ~isempty(location.Subfolders)
+                paths(i, columnIndex) = fullfile(location.RootPath, location.Subfolders);
+            end
+        end
+    end
+    pathTable = array2table(paths, 'VariableNames', "DataLocation_" + names);
+end
+
+function tf = isScalarValue(value)
+%isScalarValue Whether a cell of a table column holds one text, number, logical value or date, or nothing
+%   An empty struct, as in Progress and Notebook, is still a structure and
+%   does not count as nothing.
+    isEmptyTextOrNumber = isempty(value) && (isnumeric(value) || isstring(value));
+    tf = ischar(value) || isEmptyTextOrNumber || (isscalar(value) && (isstring(value) ...
+        || isnumeric(value) || islogical(value) || isdatetime(value)));
 end
