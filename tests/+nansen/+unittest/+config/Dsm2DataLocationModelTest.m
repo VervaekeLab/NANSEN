@@ -124,6 +124,22 @@ classdef Dsm2DataLocationModelTest < matlab.unittest.TestCase
                 'NANSEN has no ABF file adapter.')
         end
 
+        function testVariableWithoutPatternDescriptionHasEmptyDescription(testCase)
+            testCase.verifyEqual(testCase.Variables.Description, '')
+        end
+
+        function testPatternDescriptionBecomesVariableDescription(testCase)
+            fixture = fullfile(fileparts(fileparts(fileparts(mfilename('fullpath')))), ...
+                '+fixture', 'datasetstructure', 'garad-2022.json');
+            dsm = jsondecode(fileread(fixture));
+            description = "One repetition of the excitability protocol, membrane potential in mV";
+            dsm.dataLocations.filesystemSource.entityLayout(1).filePatterns.description = description;
+
+            [~, variables] = nansen.config.dloc.dsm2DataLocationModel(dsm);
+
+            testCase.verifyEqual(variables.Description, char(description))
+        end
+
         function testReportListsWhatWasNotMapped(testCase)
             testCase.verifyReported("metadataDefinitions[slice_number]")
             testCase.verifyReported("metadataDefinitions[protocol_repeat]")

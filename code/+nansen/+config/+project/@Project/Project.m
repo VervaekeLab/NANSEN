@@ -227,6 +227,67 @@ classdef Project < nansen.module.Module
             obj.Preferences.AutoDownloadRemoteFiles = isAutoDownload;
         end
 
+        function sessions = getSessionObjects(obj, sessionIDs)
+        %getSessionObjects Session objects of the project that can load and save data
+        %
+        %   sessions = project.getSessionObjects() returns an object for
+        %   every session in the project's master session table.
+        %
+        %   sessions = project.getSessionObjects(sessionIDs) returns the
+        %   sessions with the given IDs, in the given order.
+        %
+        %   Each object has the project's data location and variable models,
+        %   which Session.loadData and Session.saveData need; the NANSEN app
+        %   gives them to the sessions it creates in the same way. The
+        %   project must be the current project, because the session table
+        %   completes its data location paths from the current project.
+            arguments
+                obj (1,1) nansen.config.project.Project
+                sessionIDs (1,:) string = string.empty(1, 0)
+            end
+
+            currentProject = nansen.getCurrentProject();
+            if isempty(currentProject) || ~strcmp(currentProject.Name, obj.Name)
+                error('NANSEN:Project:NotCurrentProject', ...
+                    ['Sessions can only be created for the current project. ', ...
+                     'Make "%s" the current project with nansen.ProjectManager().changeProject("%s").'], ...
+                    obj.Name, obj.Name)
+            end
+
+            sessionTable = obj.MetaTableCatalog.getMasterMetaTable('session');
+            tableSessionIDs = string(sessionTable.entries.(sessionTable.SchemaIdName));
+            if isempty(sessionIDs)
+                rowIndices = 1:numel(tableSessionIDs);
+            else
+                [isFound, rowIndices] = ismember(sessionIDs, tableSessionIDs);
+                if ~all(isFound)
+                    error('NANSEN:Project:SessionNotFound', ...
+                        'The session table of "%s" has no session with the ID: %s.', ...
+                        obj.Name, strjoin(sessionIDs(~isFound), ', '))
+                end
+            end
+
+            sessions = sessionTable.getMetaObjects(rowIndices, ...
+                'DataLocationModel', obj.DataLocationModel, ...
+                'VariableModel', obj.VariableModel);
+        end
+
+        function setWriteMetaTableCsvCopies(obj, isEnabled)
+        %setWriteMetaTableCsvCopies Set whether saving a metatable also writes a CSV copy
+        %
+        %   project.setWriteMetaTableCsvCopies(true) makes MetaTable.save
+        %   write a CSV copy of each of the project's tables next to its
+        %   .mat file, so that the tables can be read without MATLAB. The
+        %   default is false.
+        %
+        %   See also nansen.metadata.MetaTable/writeCsvCopy
+            arguments
+                obj (1,1) nansen.config.project.Project
+                isEnabled (1,1) logical
+            end
+            obj.Preferences.WriteMetaTableCsvCopies = isEnabled;
+        end
+
         function initializeProjectFolder(obj)
             % Todo: implement? I.e if a project object is created
             % programmatically
