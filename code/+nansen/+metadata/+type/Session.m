@@ -717,7 +717,17 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
                 error('NANSEN:Session:MultipleFileAdapters', 'This is a bug. Please report')
             end
 
-            fileAdapterFcn = str2func(fileAdapterList(isMatch).FunctionName);
+            fileAdapterInfo = fileAdapterList(isMatch);
+            if isfield(fileAdapterInfo, 'IsDynamic') && isequal(fileAdapterInfo.IsDynamic, true)
+                % A function-based file adapter is a folder with a
+                % fileadapter.json and read and write functions, not a
+                % class, and DynamicFileAdapter wraps it, as nansen.load does
+                functionName = fileAdapterInfo.FunctionName;
+                fileAdapterFcn = @(filePath, varargin) ...
+                    nansen.dataio.DynamicFileAdapter(functionName, filePath);
+            else
+                fileAdapterFcn = str2func(fileAdapterInfo.FunctionName);
+            end
         end
 
         function viewDataVariable(obj, varName)

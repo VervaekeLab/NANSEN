@@ -162,8 +162,6 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 dlModel = nansen.DataLocationModel();
             end
 
-            fileAdapterList = nansen.dataio.listFileAdapters();
-
             for i = 1:numel(obj.Data)
                 if isempty( obj.Data(i).FileAdapter ) || strcmp(obj.Data(i).FileAdapter, str)
                     obj.Data(i).FileAdapter = 'Default';
@@ -179,15 +177,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             if ~isfield(obj.Data, 'DataType') % Infer from file adapter
                 [obj.Data(:).DataType] = deal('');
                 for i = 1:numel(obj.Data)
-                    if ~strcmp(obj.Data(i).FileAdapter, 'Default')
-                        isMatch = strcmp({fileAdapterList.FileAdapterName}, obj.Data(i).FileAdapter);
-                        if any(isMatch)
-                            fileAdapterFcn = str2func(fileAdapterList(isMatch).FunctionName);
-                            obj.Data(i).DataType = fileAdapterFcn().DataType;
-                        else
-                            % pass
-                        end
-                    end
+                    obj.Data(i) = obj.updateVariableDataType(obj.Data(i));
                 end
             else
                 % Normalize existing DataType to char. Todo: support string
@@ -659,15 +649,16 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
 
     methods (Static) % Todo: Should be moved to a data variable class
         function variableItem = updateVariableDataType(variableItem)
+            % The list holds the data type of every file adapter, also of a
+            % function-based one, which is not a class that can be created
             fileAdapterList = nansen.dataio.listFileAdapters();
             if ~strcmp(variableItem.FileAdapter, 'Default')
                 isMatch = strcmp({fileAdapterList.FileAdapterName}, variableItem.FileAdapter);
                 if any(isMatch)
-                    fileAdapterFcn = str2func(fileAdapterList(isMatch).FunctionName);
-
-                    variableItem.DataType = fileAdapterFcn().DataType;
+                    variableItem.DataType = char(fileAdapterList(find(isMatch, 1)).DataType);
                 else
-                    % pass
+                    % An adapter that is not in the current project keeps
+                    % the data type the item has
                 end
             end
         end
