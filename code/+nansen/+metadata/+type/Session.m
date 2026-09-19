@@ -780,6 +780,8 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
             end
 
             if isfile(filePath)
+                obj.downloadIfOnlineOnly(filePath, variableInfo, varName)
+
                 L = dir(filePath);
                 if L.bytes==0
                     error('NANSEN:Session:EmptyFile', ...
@@ -817,6 +819,34 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
                 end
             else
                 error('NANSEN:Session:VariableNotFound', 'Variable ''%s'' was not found.', varName)
+            end
+        end
+
+        function downloadDataFile(obj, varName)
+        %downloadDataFile Download the file of a variable that is stored online
+        %
+        %   sessionObj.downloadDataFile(varName) downloads the file that holds
+        %   the variable varName when the file in the session folder is a
+        %   placeholder for a file stored online. A file that is already
+        %   local is left as it is. The project names the source of online
+        %   files in its preference RemoteFileSource.
+        %
+        %   See also nansen.dataio.RemoteFileSource
+
+            [filePath, variableInfo] = obj.getDataFilePath(varName, '-r');
+            if ~isfile(filePath)
+                error('NANSEN:Session:VariableNotFound', 'Variable ''%s'' was not found.', varName)
+            end
+
+            source = obj.getRemoteFileSource(variableInfo.DataLocation);
+            if isempty(source)
+                error('NANSEN:Session:NoRemoteFileSource', ...
+                    ['The current project has no source of online files. Name a subclass of ', ...
+                     'nansen.dataio.RemoteFileSource in the project preference RemoteFileSource.'])
+            end
+
+            if source.isOnlineOnly(filePath)
+                source.download(filePath)
             end
         end
 
@@ -1363,6 +1393,67 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
 
             % Remove spaces from foldername:
             folderName = strrep(folderName, ' ', '_');
+        end
+    end
+
+    methods (Access = private) % Files stored online
+        function downloadIfOnlineOnly(obj, filePath, variableInfo, varName)
+        %downloadIfOnlineOnly Make sure a file is local before it is loaded
+        %
+        %   A placeholder for an online file is downloaded when the project
+        %   preference AutoDownloadRemoteFiles is true. Otherwise loading
+        %   stops with an error that says how to download the file, since a
+        %   download can be large and take long.
+
+            source = obj.getRemoteFileSource(variableInfo.DataLocation);
+            if isempty(source) || ~source.isOnlineOnly(filePath)
+                return
+            end
+
+            preferences = nansen.getCurrentProject().Preferences;
+            isAutoDownload = isfield(preferences, 'AutoDownloadRemoteFiles') ...
+                && preferences.AutoDownloadRemoteFiles;
+
+            if isAutoDownload
+                source.download(filePath)
+            else
+                error('NANSEN:Session:FileIsOnlineOnly', ...
+                    ['The file of variable "%s" is stored online and has not been downloaded: %s\n', ...
+                     'Download it with sessionObject.downloadDataFile("%s"), or set the project ', ...
+                     'preference AutoDownloadRemoteFiles to true to download files when they are loaded.'], ...
+                    varName, filePath, varName)
+            end
+        end
+
+        function source = getRemoteFileSource(obj, dataLocationName)
+        %getRemoteFileSource The project's source of online files for a data location
+        %
+        %   Returns [] when no user session is active, when there is no
+        %   current project, or when the project names no source in its
+        %   preference RemoteFileSource.
+
+            source = [];
+            try
+                project = nansen.getCurrentProject();
+            catch exception
+                % A session object can load data without a user session,
+                % for example in a parallel worker; files are then local
+                if ~strcmp(exception.identifier, 'NANSEN:NoActiveUserSession')
+                    rethrow(exception)
+                end
+                project = [];
+            end
+            if isempty(project)
+                return
+            end
+
+            preferences = project.Preferences;
+            if ~isfield(preferences, 'RemoteFileSource') || isempty(preferences.RemoteFileSource)
+                return
+            end
+
+            sourceConstructor = str2func(preferences.RemoteFileSource);
+            source = sourceConstructor(obj.getDataLocationRootDir(dataLocationName));
         end
     end
 

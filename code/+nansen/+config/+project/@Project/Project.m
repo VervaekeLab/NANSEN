@@ -184,6 +184,49 @@ classdef Project < nansen.module.Module
             obj.updateModules()
         end
 
+        function setRemoteFileSource(obj, className)
+        %setRemoteFileSource Name the source of the project's files that are stored online
+        %
+        %   project.setRemoteFileSource(className) names a subclass of
+        %   nansen.dataio.RemoteFileSource. Session.loadData and
+        %   Session.downloadDataFile use it to find and download data files
+        %   that are placeholders for online files.
+        %
+        %   project.setRemoteFileSource("") removes the source.
+        %
+        %   See also nansen.dataio.RemoteFileSource, setAutoDownloadRemoteFiles
+            arguments
+                obj (1,1) nansen.config.project.Project
+                className (1,1) string
+            end
+
+            if strlength(className) > 0
+                sourceClass = meta.class.fromName(className);
+                if isempty(sourceClass) || ~(sourceClass <= ?nansen.dataio.RemoteFileSource)
+                    error('NANSEN:Project:InvalidRemoteFileSource', ...
+                        ['"%s" is not a subclass of nansen.dataio.RemoteFileSource on the MATLAB path. ', ...
+                         'Name a class that inherits from nansen.dataio.RemoteFileSource.'], className)
+                end
+            end
+            obj.Preferences.RemoteFileSource = char(className);
+        end
+
+        function setAutoDownloadRemoteFiles(obj, isAutoDownload)
+        %setAutoDownloadRemoteFiles Set whether loading data downloads files that are stored online
+        %
+        %   project.setAutoDownloadRemoteFiles(true) makes Session.loadData
+        %   download a placeholder file from the project's remote file source
+        %   before loading it. With false, the default, loadData raises an
+        %   error for such a file and Session.downloadDataFile downloads it.
+        %
+        %   See also setRemoteFileSource
+            arguments
+                obj (1,1) nansen.config.project.Project
+                isAutoDownload (1,1) logical
+            end
+            obj.Preferences.AutoDownloadRemoteFiles = isAutoDownload;
+        end
+
         function initializeProjectFolder(obj)
             % Todo: implement? I.e if a project object is created
             % programmatically
