@@ -15,6 +15,9 @@ function [fileNameExpression, fileType, isConverted, isApproximate] = convertFil
 %
 %       ^{recording_id}\.ABF$   ->   ^*.ABF$   with file type .ABF
 %
+%   An extension of several parts gives a file type of several parts:
+%   \.nii\.gz$ has the file type .nii.gz.
+%
 %   Escaped punctuation becomes literal and .* becomes *. A character class
 %   (\d, \w, \s, [...]) or a . with its quantifier also becomes *. The
 %   wildcard then matches more names than the pattern, and isApproximate
@@ -43,9 +46,12 @@ function [fileNameExpression, fileType, isConverted, isApproximate] = convertFil
     isConverted = false;
     isApproximate = false;
 
-    extension = regexp(dsmPattern, "\\\.([A-Za-z0-9]+)\$$", "tokens", "once");
+    % An extension may have several parts, as .nii.gz. Each part starts
+    % with a letter, so that a version number before the extension, as in
+    % v1\.2\.txt, is not taken for part of it.
+    extension = regexp(dsmPattern, "((?:\\\.[A-Za-z][A-Za-z0-9]*)+)\$$", "tokens", "once");
     if ~isempty(extension)
-        fileType = "." + extension{1};
+        fileType = string(erase(extension{1}, "\"));
     end
 
     tokens = regexp(dsmPattern, "\{([A-Za-z_][A-Za-z0-9_]*)\}", "tokens");

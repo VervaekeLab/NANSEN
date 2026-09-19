@@ -90,7 +90,7 @@ function [dataLocations, variables, report] = dsm2DataLocationModel(dsmConfig, o
             continue
         end
 
-        [item, sessionLevel, usedHere] = convertLocation(location, where, definitions, ...
+        [item, sessionLevel, usedHere, levelsBelowSession] = convertLocation(location, where, definitions, ...
             sessionEntity, subjectEntity, sessionKeys, subjectKeys, report);
         if isempty(item)
             continue
@@ -100,6 +100,8 @@ function [dataLocations, variables, report] = dsm2DataLocationModel(dsmConfig, o
         dataLocations = appendItems(dataLocations, item);
         variables = appendItems(variables, convertFilePatterns(sessionLevel, item, where, ...
             [sessionKeys, subjectKeys], report));
+        variables = appendItems(variables, convertFilePatternsBelowSession(levelsBelowSession, ...
+            item, where, [sessionKeys, subjectKeys], report));
     end
     variables = qualifyRepeatedVariableNames(variables, report);
 
@@ -115,13 +117,18 @@ end
 
 % -------------------------------------------------------------------------
 
-function [item, sessionLevel, usedFields] = convertLocation(location, where, definitions, ...
+function [item, sessionLevel, usedFields, levelsBelowSession] = convertLocation(location, where, definitions, ...
         sessionEntity, subjectEntity, sessionKeys, subjectKeys, report)
 %convertLocation Convert one filesystem data location
+%
+%   levelsBelowSession are the layout levels under the session level. NANSEN
+%   walks folders down to the session only; convertFilePatternsBelowSession
+%   finds the files below it that a variable can still point to.
 
     item = [];
     sessionLevel = [];
     usedFields = string.empty(1, 0);
+    levelsBelowSession = {};
     source = location.filesystemSource;
     layout = asList(source, 'entityLayout');
 
@@ -131,10 +138,7 @@ function [item, sessionLevel, usedFields] = convertLocation(location, where, def
         report.add(where, "No layout level holds the session entity '" + sessionEntity + "', so NANSEN could not find sessions here.")
         return
     end
-    for j = sessionIndex+1:numel(layout)
-        report.add(where + ".entityLayout[" + string(layout{j}.name) + "]", ...
-            "NANSEN treats the deepest level it walks as the session; levels below the session level are dropped.")
-    end
+    levelsBelowSession = layout(sessionIndex+1:end);
     layout = layout(1:sessionIndex);
     sessionLevel = layout{end};
 
@@ -384,13 +388,65 @@ function levelIndex = levelIndexOf(extraction, levelNames)
     end
 end
 
-function variables = convertFilePatterns(sessionLevel, item, where, identityKeys, report)
-%convertFilePatterns Map the session level's file patterns to variable model items
+function variables = convertFilePatternsBelowSession(levels, item, where, identityKeys, report)
+%convertFilePatternsBelowSession Map file patterns of levels below the session to variables
+%
+%   A NANSEN variable is a file in the session folder or in a subfolder of
+%   it with a fixed name. Folder levels with a fixed name therefore become
+%   the variable's Subfolder, and the file patterns of the levels reached
+%   through them become variables. The first level that is neither a
+%   fixed folder nor a level of files ends the walk; it and the levels
+%   below it are dropped.
+    variables = struct.empty;
+    subfolders = strings(1, 0);
+    for j = 1:numel(levels)
+        level = levels{j};
+        levelWhere = where + ".entityLayout[" + string(level.name) + "]";
+        isFile = string(getOr(level, 'fileSystemType', 'folder')) == "file";
+        isFixedFolder = ~isFile && isfield(level, 'fixedName') && ~getOr(level, 'isVariable', true);
+
+        if isFixedFolder
+            subfolders(end+1) = string(level.fixedName); %#ok<AGROW>
+            variables = appendItems(variables, convertFilePatterns(level, item, where, ...
+                identityKeys, report, strjoin(subfolders, "/")));
+        elseif isFile
+            variables = appendItems(variables, convertFilePatterns(level, item, where, ...
+                identityKeys, report, strjoin(subfolders, "/")));
+            report.add(levelWhere, "The files of this level are found in the session folder" + ...
+                subfolderText(subfolders) + ". Where a session has several of them, " + ...
+                "NANSEN uses the first.", isfield(level, 'entityType'))
+        else
+            for k = j:numel(levels)
+                report.add(where + ".entityLayout[" + string(levels{k}.name) + "]", ...
+                    "NANSEN finds files below the session only through folders with a fixed name; " + ...
+                    "this level and the levels below it are dropped.")
+            end
+            return
+        end
+    end
+end
+
+function text = subfolderText(subfolders)
+    if isempty(subfolders)
+        text = "";
+    else
+        text = "'s subfolder " + strjoin(subfolders, "/");
+    end
+end
+
+function variables = convertFilePatterns(level, item, where, identityKeys, report, subfolder)
+%convertFilePatterns Map a layout level's file patterns to variable model items
 %
 %   identityKeys are the identity fields of the session and the subject,
-%   the {tokens} a file pattern may use in place of a wildcard.
+%   the {tokens} a file pattern may use in place of a wildcard. subfolder
+%   is the folder below the session folder where the files are, "" for
+%   files in the session folder.
     import nansen.config.dloc.dsmconversion.*
 
+    if nargin < 6
+        subfolder = "";
+    end
+    sessionLevel = level;
     variables = struct.empty;
     here = where + ".entityLayout[" + string(sessionLevel.name) + "].filePatterns";
     patterns = asList(sessionLevel, 'filePatterns');
@@ -418,6 +474,7 @@ function variables = convertFilePatterns(sessionLevel, item, where, identityKeys
         variable.VariableName = char(matlab.lang.makeValidName(string(filePattern.name)));
         variable.DataLocation = item.Name;
         variable.DataLocationUuid = item.Uuid;
+        variable.Subfolder = char(subfolder);
         variable.FileNameExpression = char(expression);
         variable.FileType = char(fileType);
         variable.FileAdapter = findFileAdapter(fileType, patternWhere, report);
@@ -430,27 +487,54 @@ function variables = convertFilePatterns(sessionLevel, item, where, identityKeys
 end
 
 function variables = qualifyRepeatedVariableNames(variables, report)
-%qualifyRepeatedVariableNames Prefix a name used in several data locations with the location
+%qualifyRepeatedVariableNames Qualify a name that several file patterns share
 %
 %   A file pattern name is unique within one layout level, but a NANSEN
 %   variable name is unique within a project, and adding a second variable
-%   with the same name fails. Every variable whose name occurs in more than
-%   one data location is renamed to <data location>_<name>, so no location
-%   keeps the bare name only because it was converted first.
+%   with the same name fails. A name that occurs in more than one data
+%   location is prefixed with the data location, <data location>_<name>,
+%   so no location keeps the bare name only because it was converted
+%   first. A name that occurs more than once within one data location, on
+%   levels in different folders of the session, is also prefixed with the
+%   variable's subfolder, <subfolder>_<name>; the variable of the session
+%   folder itself has no subfolder to add. Names that are still equal
+%   after this, from two levels in the same folder, are numbered.
 
     if isempty(variables)
         return
     end
 
     names = string({variables.VariableName});
-    [~, ~, groupIndex] = unique(names);
-    occurrences = accumarray(groupIndex(:), 1);
+    locations = string({variables.DataLocation});
+    subfolders = string({variables.Subfolder});
 
-    for i = find(occurrences(groupIndex)' > 1)
-        newName = matlab.lang.makeValidName(string(variables(i).DataLocation) + "_" + names(i));
-        report.add("variables[" + names(i) + "]", "The file pattern name is used in several data locations; " + ...
-            "renamed to '" + newName + "' in data location " + string(variables(i).DataLocation) + ".")
-        variables(i).VariableName = char(newName);
+    newNames = names;
+    for i = 1:numel(variables)
+        isSameName = names == names(i);
+        parts = strings(1, 0);
+        if numel(unique(locations(isSameName))) > 1
+            parts(end+1) = locations(i); %#ok<AGROW>
+        end
+        if sum(isSameName & locations == locations(i)) > 1 && strlength(subfolders(i)) > 0
+            parts(end+1) = replace(subfolders(i), "/", "_"); %#ok<AGROW>
+        end
+        newNames(i) = matlab.lang.makeValidName(strjoin([parts, names(i)], "_"));
+    end
+    newNames = matlab.lang.makeUniqueStrings(newNames);
+
+    for i = find(newNames ~= names)
+        report.add("variables[" + names(i) + "]", "The file pattern name is used by several file patterns; " + ...
+            "renamed to '" + newNames(i) + "' in data location " + locations(i) + folderText(subfolders(i)) + ".")
+        variables(i).VariableName = char(newNames(i));
+    end
+end
+
+function text = folderText(subfolder)
+%folderText The subfolder of a variable for a report, "" for the session folder
+    if strlength(subfolder) == 0
+        text = "";
+    else
+        text = ", subfolder " + subfolder;
     end
 end
 
