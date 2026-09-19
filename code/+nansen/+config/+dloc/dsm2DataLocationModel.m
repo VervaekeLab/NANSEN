@@ -472,6 +472,7 @@ function variables = convertFilePatterns(level, item, where, identityKeys, repor
 
         variable = nansen.config.varmodel.VariableModel.getBlankItem();
         variable.VariableName = char(matlab.lang.makeValidName(string(filePattern.name)));
+        variable.Description = char(getOr(filePattern, 'description', ''));
         variable.DataLocation = item.Name;
         variable.DataLocationUuid = item.Uuid;
         variable.Subfolder = char(subfolder);

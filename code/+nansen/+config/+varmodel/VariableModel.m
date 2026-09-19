@@ -45,6 +45,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
 
             S = struct(...
                 'VariableName', '', ...         % Name of variable
+                'Description', '', ...          % What the file holds, e.g. its channels, columns or units (optional)
                 'DataLocation', '', ...         % todo: rename DataLocationName? Name of datalocation where variable is stored.
                 'DataLocationUuid', '', ...     % uuid of datalocation variable belongs to (internal)
                 'Subfolder', '', ...            % Subfolder within sessionfolder where variable is saved to file (optional)
@@ -219,6 +220,10 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
 
             if ~isfield(obj.Data, 'PathInFile')
                 [obj.Data(:).PathInFile] = deal('');
+            end
+
+            if ~isfield(obj.Data, 'Description')
+                [obj.Data(:).Description] = deal('');
             end
         end
 
@@ -499,6 +504,11 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
     methods % Override superclass methods
         function newItem = insertItem(obj, newItem)
             import nansen.config.varmodel.event.VariableAddedEventData
+
+            % An item made before a field was added to the blank item, such
+            % as a variable template of a module, gets the field with its
+            % blank value, because the catalog requires every field
+            newItem = addMissingFields(newItem);
             newItem = obj.updateVariableDataType(newItem);
             newItem = insertItem@utility.data.StorableCatalog(obj, newItem);
 
@@ -667,4 +677,13 @@ end
 % Local utility functions
 function tf = useDefaultDataLocation(dataLocationName)
     tf = strcmp(dataLocationName, 'DEFAULT') || isempty(dataLocationName);
+end
+
+function item = addMissingFields(item)
+%addMissingFields Give an item every field of the blank item that it lacks
+    blankItem = nansen.config.varmodel.VariableModel.getBlankItem();
+    missingFields = setdiff(fieldnames(blankItem), fieldnames(item));
+    for i = 1:numel(missingFields)
+        item.(missingFields{i}) = blankItem.(missingFields{i});
+    end
 end
