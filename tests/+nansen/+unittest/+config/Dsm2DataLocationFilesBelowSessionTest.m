@@ -33,6 +33,7 @@ classdef Dsm2DataLocationFilesBelowSessionTest < matlab.unittest.TestCase
 
             bold = variables(strcmp({variables.VariableName}, 'bold'));
             testCase.verifyEqual(bold.FileType, '.nii.gz')
+            testCase.verifyEqual(bold.Description, 'Functional run, NIfTI')
         end
 
         function testNameInSessionAndFixedFolderIsQualifiedBySubfolder(testCase)
