@@ -47,11 +47,15 @@ classdef DynamicFileAdapter < nansen.dataio.FileAdapter
     end
 
     methods (Access = protected)
-        function data = readData(obj)
+        function data = readData(obj, varargin)
+            % Session.loadData passes the variable name and name-value
+            % options to load; the read function takes the file only
             data = obj.ReadFunction(obj.Filename);
         end
 
-        function writeData(obj, data)
+        function writeData(obj, data, varargin)
+            % Session.saveData passes the variable name; the write
+            % function takes the file and the data only
             if ~isempty(obj.WriteFunction)
                 obj.WriteFunction(obj.Filename, data)
             else
