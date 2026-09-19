@@ -21,7 +21,9 @@ function fileAdapterList = listFileAdapters(fileExtension, refresh)
     fileAdapterList = table2struct(project.getTable('FileAdapter', refresh));
 
     if nargin < 1; fileExtension = ''; end
-    if ~isempty(fileExtension); fileExtension = strrep(fileExtension, '.', ''); end
+    % Only the leading dot is removed, so that an extension of several
+    % parts, such as .nii.gz, keeps its inner dot and matches nii.gz
+    if ~isempty(fileExtension); fileExtension = regexprep(fileExtension, '^\.', ''); end
 
     if ~isempty(fileExtension)
         validationFcn = @(extList) any(contains(extList, fileExtension, "IgnoreCase", true));
