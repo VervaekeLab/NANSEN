@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "0.1.0",
+  "entityTypes": [
+    {"name": "subject", "description": "One monkey.", "isPrimary": true, "identifierRef": "subject_id"},
+    {"name": "session", "description": "One scanning day of one monkey.", "identifierRef": "session_id"},
+    {"name": "run", "description": "One functional run of a scanning day, in the day's funct folder.", "identifierRef": "run_number"}
+  ],
+  "entityRelationships": [
+    {"sourceEntity": "subject", "targetEntity": "session", "relationType": "oneToMany", "relationName": "hasSessions"},
+    {"sourceEntity": "session", "targetEntity": "run", "relationType": "oneToMany", "relationName": "hasRuns"}
+  ],
+  "metadataDefinitions": {
+    "subject_id": {"name": "subject_id", "title": "Monkey", "dataType": "string", "ofEntity": "subject"},
+    "session_id": {"name": "session_id", "title": "Day", "dataType": "string", "ofEntity": "session"},
+    "run_number": {"name": "run_number", "title": "Run", "dataType": "integer", "ofEntity": "run"}
+  },
+  "dataLocations": [
+    {
+      "identifier": "fmri",
+      "displayName": "fMRI",
+      "dataCategory": "raw",
+      "access": "read",
+      "sourceType": "filesystem",
+      "filesystemSource": {
+        "rootStoragePaths": [{"identifier": "local-copy", "path": "/data/fmri"}],
+        "entityLayout": [
+          {"name": "monkeys", "entityType": "subject", "matchPattern": "^m\\d+$"},
+          {"name": "days", "entityType": "session", "matchPattern": "^d\\d+$"},
+          {"name": "funct-folder", "isVariable": false, "fixedName": "funct"},
+          {
+            "name": "run-files",
+            "entityType": "run",
+            "fileSystemType": "file",
+            "matchPattern": "_run_\\d+\\.(nii\\.gz|json)$",
+            "filePatterns": [
+              {"name": "bold", "pattern": "\\.nii\\.gz$", "isRequired": true, "cardinality": "one", "description": "Functional run, NIfTI"},
+              {"name": "sidecar", "pattern": "\\.json$", "cardinality": "one", "description": "Acquisition parameters of the run"}
+            ]
+          }
+        ],
+        "metadataMapping": [
+          {"metadataRef": "subject_id", "extraction": {"method": "substring", "pattern": ":", "entityLayoutLevel": "monkeys"}},
+          {"metadataRef": "session_id", "extraction": {"method": "substring", "pattern": ":", "entityLayoutLevel": "days"}},
+          {"metadataRef": "run_number", "extraction": {"method": "regex", "pattern": "_run_(\\d+)\\.(nii\\.gz|json)$", "entityLayoutLevel": "run-files"}}
+        ]
+      }
+    }
+  ]
+}

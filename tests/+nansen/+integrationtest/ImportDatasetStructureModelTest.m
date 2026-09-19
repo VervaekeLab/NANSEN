@@ -146,5 +146,39 @@ classdef ImportDatasetStructureModelTest < matlab.unittest.TestCase
             testCase.verifyClass(testCase.Report, 'table')
             testCase.verifyTrue(any(contains(testCase.Report.Element, "slice_number")))
         end
+
+        function testCompositeIdentityKeepsSessionsOfSubjectsApart(testCase)
+            % Day numbers restart in each experiment and each monkey has a
+            % day 1, so a Session ID made of the day alone would merge
+            % four scanning days into one session.
+            import matlab.unittest.fixtures.TemporaryFolderFixture
+            root = testCase.applyFixture(TemporaryFolderFixture).Folder;
+            dataFolder = fullfile(root, 'scanning');
+            for experiment = ["PRE_stim", "POST_stim"]
+                for monkey = ["m1", "m2"]
+                    dayFolder = fullfile(dataFolder, experiment, monkey, 'd1');
+                    mkdir(dayFolder)
+                    fclose(fopen(fullfile(dayFolder, 'run_1.nii'), 'w'));
+                end
+            end
+
+            dsm = jsondecode(fileread(fullfile(fileparts(fileparts(mfilename('fullpath'))), ...
+                '+fixture', 'datasetstructure', 'scanning-days.json')));
+            dsm.dataLocations.filesystemSource.rootStoragePaths.path = dataFolder;
+
+            configFolder = fullfile(root, 'configurations');
+            mkdir(configFolder)
+            dataLocationPath = fullfile(configFolder, 'datalocation_settings.json');
+            nansen.config.dloc.importDatasetStructureModel(dsm, ...
+                nansen.config.dloc.DataLocationModel(dataLocationPath), ...
+                nansen.config.varmodel.VariableModel(fullfile(configFolder, 'filepath_settings.json')));
+            model = nansen.config.dloc.DataLocationModel(dataLocationPath);
+
+            sessionFolders = nansen.dataio.session.listSessionFolders(model, 'all');
+            [~, sessionIds] = nansen.dataio.session.matchSessionFolders(model, sessionFolders);
+
+            testCase.verifyEqual(sort(string(sessionIds(:)')), ...
+                ["POST_stim_m1_d1", "POST_stim_m2_d1", "PRE_stim_m1_d1", "PRE_stim_m2_d1"])
+        end
     end
 end

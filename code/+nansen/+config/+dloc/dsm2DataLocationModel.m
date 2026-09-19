@@ -90,7 +90,7 @@ function [dataLocations, variables, report] = dsm2DataLocationModel(dsmConfig, o
             continue
         end
 
-        [item, sessionLevel, usedHere] = convertLocation(location, where, definitions, ...
+        [item, sessionLevel, usedHere, levelsBelowSession] = convertLocation(location, where, definitions, ...
             sessionEntity, subjectEntity, sessionKeys, subjectKeys, report);
         if isempty(item)
             continue
@@ -98,8 +98,12 @@ function [dataLocations, variables, report] = dsm2DataLocationModel(dsmConfig, o
         usedFields = [usedFields, usedHere]; %#ok<AGROW>
 
         dataLocations = appendItems(dataLocations, item);
-        variables = appendItems(variables, convertFilePatterns(sessionLevel, item, where, sessionKeys, report));
+        variables = appendItems(variables, convertFilePatterns(sessionLevel, item, where, ...
+            [sessionKeys, subjectKeys], report));
+        variables = appendItems(variables, convertFilePatternsBelowSession(levelsBelowSession, ...
+            item, where, [sessionKeys, subjectKeys], report));
     end
+    variables = qualifyRepeatedVariableNames(variables, report);
 
     for fieldName = string(fieldnames(definitions))'
         if ~ismember(fieldName, usedFields)
@@ -113,13 +117,18 @@ end
 
 % -------------------------------------------------------------------------
 
-function [item, sessionLevel, usedFields] = convertLocation(location, where, definitions, ...
+function [item, sessionLevel, usedFields, levelsBelowSession] = convertLocation(location, where, definitions, ...
         sessionEntity, subjectEntity, sessionKeys, subjectKeys, report)
 %convertLocation Convert one filesystem data location
+%
+%   levelsBelowSession are the layout levels under the session level. NANSEN
+%   walks folders down to the session only; convertFilePatternsBelowSession
+%   finds the files below it that a variable can still point to.
 
     item = [];
     sessionLevel = [];
     usedFields = string.empty(1, 0);
+    levelsBelowSession = {};
     source = location.filesystemSource;
     layout = asList(source, 'entityLayout');
 
@@ -129,10 +138,7 @@ function [item, sessionLevel, usedFields] = convertLocation(location, where, def
         report.add(where, "No layout level holds the session entity '" + sessionEntity + "', so NANSEN could not find sessions here.")
         return
     end
-    for j = sessionIndex+1:numel(layout)
-        report.add(where + ".entityLayout[" + string(layout{j}.name) + "]", ...
-            "NANSEN treats the deepest level it walks as the session; levels below the session level are dropped.")
-    end
+    levelsBelowSession = layout(sessionIndex+1:end);
     layout = layout(1:sessionIndex);
     sessionLevel = layout{end};
 
@@ -150,9 +156,8 @@ function [item, sessionLevel, usedFields] = convertLocation(location, where, def
     item.RootPath = convertRootPaths(asList(source, 'rootStoragePaths'), where, report);
     item.SubfolderStructure = convertLayout(layout, where, definitions, sessionEntity, subjectEntity, report);
 
-    levelNames = fieldValues(asList(source, 'entityLayout'), 'name');
     [item.MetaDataDef, usedFields] = convertMetadata(asList(source, 'metadataMapping'), ...
-        definitions, levelNames, sessionIndex, where, sessionEntity, subjectEntity, ...
+        definitions, asList(source, 'entityLayout'), sessionIndex, where, sessionEntity, subjectEntity, ...
         sessionKeys, subjectKeys, report);
 end
 
@@ -238,18 +243,32 @@ function structure = convertLayout(layout, where, definitions, sessionEntity, su
     end
 end
 
-function [metaDataDef, usedFields] = convertMetadata(mapping, definitions, levelNames, sessionIndex, ...
+function [metaDataDef, usedFields] = convertMetadata(mapping, definitions, layout, sessionIndex, ...
         where, sessionEntity, subjectEntity, sessionKeys, subjectKeys, report)
 %convertMetadata Map extraction rules onto NANSEN's four metadata variables
     import nansen.config.dloc.dsmconversion.*
 
     metaDataDef = nansen.config.dloc.DataLocationModel.getDefaultMetadataStructure();
     usedFields = string.empty(1, 0);
+    levelNames = fieldValues(layout, 'name');
+
+    % A composite session identity becomes a Session ID read from the
+    % joined names of several levels; a single identity field is mapped
+    % by the loop below like the other variables.
+    % compositeIdentityLevels reports why when the parts cannot be joined.
+    compositeLevels = [];
+    sessionField = "";
+    if numel(sessionKeys) > 1
+        compositeLevels = compositeIdentityLevels(mapping, sessionKeys, layout, sessionIndex, ...
+            sessionEntity, where, report);
+    else
+        sessionField = identityField(sessionKeys, "session", where, report);
+    end
 
     targets = struct( ...
         'Variable', {'Subject ID', 'Session ID', 'Experiment Date', 'Experiment Time'}, ...
         'Field', {identityField(subjectKeys, "subject", where, report), ...
-                  identityField(sessionKeys, "session", where, report), ...
+                  sessionField, ...
                   temporalField(definitions, ["date", "datetime"], sessionEntity, subjectEntity), ...
                   temporalField(definitions, "time", sessionEntity, subjectEntity)});
 
@@ -266,14 +285,7 @@ function [metaDataDef, usedFields] = convertMetadata(mapping, definitions, level
         end
         extraction = rule.extraction;
 
-        levelRef = getOr(extraction, 'entityLayoutLevel', []);
-        if isnumeric(levelRef) && ~isempty(levelRef)
-            levelIndex = levelRef + 1;
-        elseif ~isempty(levelRef)
-            levelIndex = find(levelNames == string(levelRef), 1);
-        else
-            levelIndex = [];
-        end
+        levelIndex = levelIndexOf(extraction, levelNames);
         if isempty(levelIndex) || levelIndex > sessionIndex
             report.add(here, "The rule does not read a single level at or above the session level; " + targets(k).Variable + " is left unset.")
             continue
@@ -301,12 +313,140 @@ function [metaDataDef, usedFields] = convertMetadata(mapping, definitions, level
         metaDataDef(idx).StringDetectInput = char(input);
         metaDataDef(idx).StringFormat = char(getOr(extraction, 'valueFormat', ''));
     end
+
+    if ~isempty(compositeLevels)
+        idx = strcmp({metaDataDef.VariableName}, 'Session ID');
+        metaDataDef(idx).SubfolderLevel = compositeLevels;
+        metaDataDef(idx).StringDetectMode = 'expr';
+        metaDataDef(idx).StringDetectInput = '.+';
+        metaDataDef(idx).Separator = '_';
+        usedFields = [usedFields, sessionKeys];
+        report.add(where + ".metadataMapping[" + strjoin(sessionKeys, ", ") + "]", ...
+            "The session identity is composite; the Session ID joins the names of levels " + ...
+            strjoin(levelNames(compositeLevels), ", ") + " with '_', so it holds whole folder names rather than the extracted values.")
+    end
 end
 
-function variables = convertFilePatterns(sessionLevel, item, where, sessionKeys, report)
-%convertFilePatterns Map the session level's file patterns to variable model items
+function levels = compositeIdentityLevels(mapping, keys, layout, sessionIndex, sessionEntity, where, report)
+%compositeIdentityLevels Levels whose joined names identify a session with a composite identity
+%
+%   NANSEN reads a Session ID from one string. It can join the names of
+%   several levels into that string, but it applies one rule to the joined
+%   string, so the parts of a composite identity cannot each be extracted.
+%   The whole names of the levels the parts are read from are used
+%   instead: every part is read from the name of its level, so sessions
+%   with the same level names have the same identity.
+%
+%   The levels of the session's ancestor entities are joined too. A model's
+%   identity is unique within its parent entities, while a NANSEN Session ID
+%   is unique within the project; without the ancestors, day 1 of two
+%   subjects would be one session.
+%
+%   A part given by a fixed rule is not in the path and is left out.
+%   Returns empty, with a report, when a part is read otherwise than from
+%   one level at or above the session level.
+
+    levels = [];
+    levelNames = fieldValues(layout, 'name');
+    levelTypes = fieldValues(layout, 'entityType');
+
+    for key = keys
+        here = where + ".metadataMapping[" + key + "]";
+        rule = findRule(mapping, key);
+        if isempty(rule)
+            report.add(here, "No extraction rule for this part of the composite session identity; the Session ID is left unset.")
+            levels = [];
+            return
+        end
+        method = string(rule.extraction.method);
+        if method == "fixed"
+            report.add(here, "A fixed part of the session identity is not in the path; the Session ID leaves it out.")
+            continue
+        end
+        levelIndex = levelIndexOf(rule.extraction, levelNames);
+        if ~ismember(method, ["substring", "regex"]) || isempty(levelIndex) || levelIndex > sessionIndex
+            report.add(here, "This part of the composite session identity is not read from one level at or above the session level; the Session ID is left unset.")
+            levels = [];
+            return
+        end
+        levels(end+1) = levelIndex; %#ok<AGROW>
+    end
+
+    ancestorLevels = find(levelTypes(1:sessionIndex-1) ~= "" & levelTypes(1:sessionIndex-1) ~= sessionEntity);
+    levels = unique([levels, ancestorLevels]);
+end
+
+function levelIndex = levelIndexOf(extraction, levelNames)
+%levelIndexOf 1-based index of the level an extraction reads, or [] for the whole path
+    levelRef = getOr(extraction, 'entityLayoutLevel', []);
+    if isnumeric(levelRef) && ~isempty(levelRef)
+        levelIndex = levelRef + 1;
+    elseif ~isempty(levelRef)
+        levelIndex = find(levelNames == string(levelRef), 1);
+    else
+        levelIndex = [];
+    end
+end
+
+function variables = convertFilePatternsBelowSession(levels, item, where, identityKeys, report)
+%convertFilePatternsBelowSession Map file patterns of levels below the session to variables
+%
+%   A NANSEN variable is a file in the session folder or in a subfolder of
+%   it with a fixed name. Folder levels with a fixed name therefore become
+%   the variable's Subfolder, and the file patterns of the levels reached
+%   through them become variables. The first level that is neither a
+%   fixed folder nor a level of files ends the walk; it and the levels
+%   below it are dropped.
+    variables = struct.empty;
+    subfolders = strings(1, 0);
+    for j = 1:numel(levels)
+        level = levels{j};
+        levelWhere = where + ".entityLayout[" + string(level.name) + "]";
+        isFile = string(getOr(level, 'fileSystemType', 'folder')) == "file";
+        isFixedFolder = ~isFile && isfield(level, 'fixedName') && ~getOr(level, 'isVariable', true);
+
+        if isFixedFolder
+            subfolders(end+1) = string(level.fixedName); %#ok<AGROW>
+            variables = appendItems(variables, convertFilePatterns(level, item, where, ...
+                identityKeys, report, strjoin(subfolders, "/")));
+        elseif isFile
+            variables = appendItems(variables, convertFilePatterns(level, item, where, ...
+                identityKeys, report, strjoin(subfolders, "/")));
+            report.add(levelWhere, "The files of this level are found in the session folder" + ...
+                subfolderText(subfolders) + ". Where a session has several of them, " + ...
+                "NANSEN uses the first.", isfield(level, 'entityType'))
+        else
+            for k = j:numel(levels)
+                report.add(where + ".entityLayout[" + string(levels{k}.name) + "]", ...
+                    "NANSEN finds files below the session only through folders with a fixed name; " + ...
+                    "this level and the levels below it are dropped.")
+            end
+            return
+        end
+    end
+end
+
+function text = subfolderText(subfolders)
+    if isempty(subfolders)
+        text = "";
+    else
+        text = "'s subfolder " + strjoin(subfolders, "/");
+    end
+end
+
+function variables = convertFilePatterns(level, item, where, identityKeys, report, subfolder)
+%convertFilePatterns Map a layout level's file patterns to variable model items
+%
+%   identityKeys are the identity fields of the session and the subject,
+%   the {tokens} a file pattern may use in place of a wildcard. subfolder
+%   is the folder below the session folder where the files are, "" for
+%   files in the session folder.
     import nansen.config.dloc.dsmconversion.*
 
+    if nargin < 6
+        subfolder = "";
+    end
+    sessionLevel = level;
     variables = struct.empty;
     here = where + ".entityLayout[" + string(sessionLevel.name) + "].filePatterns";
     patterns = asList(sessionLevel, 'filePatterns');
@@ -319,16 +459,22 @@ function variables = convertFilePatterns(sessionLevel, item, where, sessionKeys,
         end
         patternWhere = here + "[" + string(filePattern.name) + "]";
 
-        [expression, fileType, isConverted] = convertFilePatternToWildcard(string(filePattern.pattern), sessionKeys);
+        [expression, fileType, isConverted, isApproximate] = ...
+            convertFilePatternToWildcard(string(filePattern.pattern), identityKeys);
         if ~isConverted
             report.add(patternWhere, "The pattern has no wildcard equivalent.")
             continue
         end
+        report.add(patternWhere, "Approximated as '" + expression + "': a character class became *, " + ...
+            "so NANSEN may find files the pattern does not match.", isApproximate)
+        report.add(patternWhere + ".cardinality", "A NANSEN variable is one file per session; " + ...
+            "where several files match, NANSEN uses the first.", string(getOr(filePattern, 'cardinality', 'one')) == "many")
 
         variable = nansen.config.varmodel.VariableModel.getBlankItem();
         variable.VariableName = char(matlab.lang.makeValidName(string(filePattern.name)));
         variable.DataLocation = item.Name;
         variable.DataLocationUuid = item.Uuid;
+        variable.Subfolder = char(subfolder);
         variable.FileNameExpression = char(expression);
         variable.FileType = char(fileType);
         variable.FileAdapter = findFileAdapter(fileType, patternWhere, report);
@@ -337,6 +483,58 @@ function variables = convertFilePatterns(sessionLevel, item, where, sessionKeys,
         report.add(patternWhere + ".isRequired", "NANSEN does not check that required files are present.", ...
             isfield(filePattern, 'isRequired'))
         variables = appendItems(variables, variable);
+    end
+end
+
+function variables = qualifyRepeatedVariableNames(variables, report)
+%qualifyRepeatedVariableNames Qualify a name that several file patterns share
+%
+%   A file pattern name is unique within one layout level, but a NANSEN
+%   variable name is unique within a project, and adding a second variable
+%   with the same name fails. A name that occurs in more than one data
+%   location is prefixed with the data location, <data location>_<name>,
+%   so no location keeps the bare name only because it was converted
+%   first. A name that occurs more than once within one data location, on
+%   levels in different folders of the session, is also prefixed with the
+%   variable's subfolder, <subfolder>_<name>; the variable of the session
+%   folder itself has no subfolder to add. Names that are still equal
+%   after this, from two levels in the same folder, are numbered.
+
+    if isempty(variables)
+        return
+    end
+
+    names = string({variables.VariableName});
+    locations = string({variables.DataLocation});
+    subfolders = string({variables.Subfolder});
+
+    newNames = names;
+    for i = 1:numel(variables)
+        isSameName = names == names(i);
+        parts = strings(1, 0);
+        if numel(unique(locations(isSameName))) > 1
+            parts(end+1) = locations(i); %#ok<AGROW>
+        end
+        if sum(isSameName & locations == locations(i)) > 1 && strlength(subfolders(i)) > 0
+            parts(end+1) = replace(subfolders(i), "/", "_"); %#ok<AGROW>
+        end
+        newNames(i) = matlab.lang.makeValidName(strjoin([parts, names(i)], "_"));
+    end
+    newNames = matlab.lang.makeUniqueStrings(newNames);
+
+    for i = find(newNames ~= names)
+        report.add("variables[" + names(i) + "]", "The file pattern name is used by several file patterns; " + ...
+            "renamed to '" + newNames(i) + "' in data location " + locations(i) + folderText(subfolders(i)) + ".")
+        variables(i).VariableName = char(newNames(i));
+    end
+end
+
+function text = folderText(subfolder)
+%folderText The subfolder of a variable for a report, "" for the session folder
+    if strlength(subfolder) == 0
+        text = "";
+    else
+        text = ", subfolder " + subfolder;
     end
 end
 
