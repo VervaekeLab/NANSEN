@@ -25,7 +25,7 @@ function neuropilMasks = estimateNeuropilMasks(roiMasksIn, varargin)
         end
 
         if ~isempty(params.imageMask)
-            pixelsToIgnore = footprintAllRois & ~params.imageMask;
+            pixelsToIgnore = footprintAllRois | ~params.imageMask;
         else
             pixelsToIgnore = footprintAllRois;
         end
