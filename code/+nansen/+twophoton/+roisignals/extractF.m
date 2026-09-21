@@ -1,4 +1,4 @@
-function [signalArray, P] = extractF(imageData, roiData, varargin)
+function [signalArray, params] = extractF(imageData, roiData, varargin)
 %extractF Extract RoI signals from an image stack in chunkwise manner
 %
 %   signals = extractF(imageStack, roiArray) extracts signals for rois in
