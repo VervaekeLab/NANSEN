@@ -77,9 +77,9 @@ classdef HasOptions < handle
             if nargin < 1 || isempty(className)
                 options = struct.empty;
             else
-
-                S = nansen.wrapper.suite2p.Options.getDefaults();
-                options = S;
+                % A scalar struct rather than struct.empty, because
+                % combineOptions assigns fields into this base.
+                options = struct();
 
                 superOptions = nansen.mixin.HasOptions.getSuperClassOptions(className);
                 options = nansen.mixin.HasOptions.combineOptions(options, superOptions{:});

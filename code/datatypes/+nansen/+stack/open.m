@@ -48,9 +48,12 @@ function virtualData = open(pathStr, varargin)
                 softwareName = imInfo.getTag('Software');
                 if strcmp(softwareName(1:2), 'SI')
                     isMultiFov = nansen.stack.virtual.ScanImageTiff.checkIfMultiRoi(imInfo);
-                    if isMultiFov
-                        ophys.twophoton.ScanImageMultiRoi2PSeries(pathStr).view()
-                    else
+                    % Multi-ROI (multi-FOV) ScanImage recordings have no
+                    % dedicated reader here and fall through to the generic
+                    % TIFF reader below. Dedicated multi-ROI dispatch belongs
+                    % to the reader-discovery follow-up of the two-photon
+                    % module migration.
+                    if ~isMultiFov
                         virtualData = nansen.stack.virtual.ScanImageTiff(pathStr, varargin{:}, nvPairs{:});
                     end
                 elseif contains(softwareName, 'Prairie View')

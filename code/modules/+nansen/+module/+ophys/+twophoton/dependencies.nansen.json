@@ -121,18 +121,6 @@
       "installCheck": "OF_Options"
     },
     {
-      "name": "SEUDO",
-      "dependencyType": "community-toolbox",
-      "scope": "workflow",
-      "scopeId": "nansen.module.ophys.twophoton.workflow.seudo",
-      "requirementLevel": "optional",
-      "source": "https://github.com/adamshch/SEUDO",
-      "docsSource": "https://github.com/adamshch/SEUDO",
-      "description": "Calcium signal decontamination",
-      "workflowNotes": "Needed only for the SEUDO signal decontamination workflow",
-      "installCheck": "globalSEUDOWrapper"
-    },
-    {
       "name": "Neurodata Without Borders",
       "dependencyType": "community-toolbox",
       "requirementLevel": "optional",
