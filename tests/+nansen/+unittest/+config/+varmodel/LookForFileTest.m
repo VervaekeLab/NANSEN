@@ -3,7 +3,8 @@ classdef LookForFileTest < matlab.unittest.TestCase
     %
     %   lookForFile turns a variable's file name expression into a search
     %   for a file. An expression with placeholders names the whole file
-    %   once expanded; any other expression is a part of the file name.
+    %   once expanded; any other expression is a part of the file name. A
+    %   variable describes one file, so several matching files are an error.
     %
     %   Constructing a model looks up file adapters through the current
     %   project, so the tests run inside a temporary project. Each test
@@ -41,6 +42,42 @@ classdef LookForFileTest < matlab.unittest.TestCase
 
     methods (Test)
 
+        function testSingleMatchIsReturned(testCase)
+        %testSingleMatchIsReturned An expression is a part of the file name
+            model = testCase.createModel();
+            item = testCase.createItem('Rois', 'rois', '.mat');
+
+            testCase.verifyEqual(model.lookForFile(testCase.Folder, item), 'm001_rois.mat')
+        end
+
+        function testSeveralMatchesAreAnError(testCase)
+        %testSeveralMatchesAreAnError A star matching several files is refused
+            model = testCase.createModel();
+            item = testCase.createItem('AnyNwb', '*', '.nwb');
+
+            testCase.verifyError(@() model.lookForFile(testCase.Folder, item), ...
+                'NANSEN:VariableModel:AmbiguousFileMatch')
+        end
+
+        function testFilterNarrowsBeforeCounting(testCase)
+        %testFilterNarrowsBeforeCounting The session filter decides what counts as a match
+            model = testCase.createModel();
+            item = testCase.createItem('AnyNwb', '*', '.nwb');
+
+            fileName = model.lookForFile(testCase.Folder, item, ...
+                'FilterFcn', @(names) contains(names, 'm002'));
+
+            testCase.verifyEqual(fileName, 'm002.nwb')
+        end
+
+        function testNoMatchReturnsEmpty(testCase)
+        %testNoMatchReturnsEmpty A missing file is reported as an empty name
+            model = testCase.createModel();
+            item = testCase.createItem('Missing', 'missing', '.mat');
+
+            testCase.verifyEmpty(model.lookForFile(testCase.Folder, item))
+        end
+
         function testPlaceholderFindsExactFile(testCase)
         %testPlaceholderFindsExactFile An expanded placeholder expression names one file
             model = testCase.createModel();
@@ -71,14 +108,6 @@ classdef LookForFileTest < matlab.unittest.TestCase
                 'FilterFcn', @(names) contains(names, 'extra'));
 
             testCase.verifyEqual(fileName, 'm001_extra.nwb')
-        end
-
-        function testPlainExpressionMatchesPartOfName(testCase)
-        %testPlainExpressionMatchesPartOfName An expression without placeholders is a part of the name
-            model = testCase.createModel();
-            item = testCase.createItem('Rois', 'rois', '.mat');
-
-            testCase.verifyEqual(model.lookForFile(testCase.Folder, item), 'm001_rois.mat')
         end
     end
 

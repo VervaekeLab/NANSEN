@@ -1124,8 +1124,17 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
         %   fileName = getFileName(OBJ,S) returns the name of the file to
         %   create for the variable described by the struct S. An expression
         %   with placeholders names the whole file once expanded. Any other
-        %   expression is appended to the session ID.
+        %   expression is appended to the session ID. An expression with a
+        %   wildcard describes existing files only, so it cannot name a file.
             import nansen.config.varmodel.FileNamePattern
+
+            if contains(S.FileNameExpression, '*')
+                error('NANSEN:Session:WildcardInFileName', ...
+                    ['Cannot create a file for the variable "%s" because its file ', ...
+                    'name expression "%s" contains a wildcard. Give the variable an ', ...
+                    'expression without wildcards, or leave it empty to let NANSEN ', ...
+                    'name the file.'], S.VariableName, S.FileNameExpression)
+            end
 
             fileType = S.FileType;
 
@@ -1136,12 +1145,6 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
             if FileNamePattern.hasPlaceholder(S.FileNameExpression)
                 expression = FileNamePattern.expand(S.FileNameExpression, ...
                     obj.getFileNamePlaceholderValues());
-                if contains(expression, '*')
-                    error('NANSEN:Session:WildcardInFileName', ...
-                        ['Cannot create a file for variable "%s" because its file ', ...
-                        'name expression "%s" contains a wildcard.'], ...
-                        S.VariableName, S.FileNameExpression)
-                end
                 fileName = FileNamePattern.toFileName(expression, fileType);
             else
                 fileName = sprintf('%s_%s', obj.sessionID, S.FileNameExpression);
