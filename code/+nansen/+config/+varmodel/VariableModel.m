@@ -446,13 +446,15 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 L = L(options.FilterFcn({L.name}));
             end
 
-            if ~isempty(L) && numel(L)==1
+            % A variable describes one file, so several matches mean the
+            % expression is not specific enough.
+            if isscalar(L)
                 fileName = L.name;
-            elseif ~isempty(L) && numel(L)>1
-                fileName = L(1).name;
-                warning off backtrace
-                warning('Multiple files were found for variable "%s".\nSelected first file in list.', variableInfo.VariableName)
-                warning on backtrace
+            elseif numel(L) > 1
+                error('NANSEN:VariableModel:AmbiguousFileMatch', ...
+                    ['Several files match the variable "%s" in "%s": %s. Give the ', ...
+                    'variable a file name expression that matches only one of them.'], ...
+                    variableInfo.VariableName, folderPath, strjoin({L.name}, ', '))
             else
                 fileName = '';
             end
@@ -558,6 +560,89 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
     methods (Hidden, Access = {?nansen.config.varmodel.VariableModelApp, ?nansen.app.setup.SetupWizard})
         function setVariableList(obj, S)
             obj.Data = S;
+        end
+    end
+
+    methods (Static) % Validation of variable lists
+        function [isValid, message] = validateVariableNames(variableList)
+        %validateVariableNames Check that custom variables have valid, unique names
+        %
+        %   [isValid, message] = validateVariableNames(variableList) checks
+        %   the names of the custom variables in variableList, a struct array
+        %   of variable items. isValid is false if a custom variable has no
+        %   name, a name that is not a valid MATLAB identifier, or a name that
+        %   another variable in the list also has. message then describes
+        %   each problem on a line of its own and is empty otherwise.
+        %
+        %   Session objects expose each variable as a dynamic property, so a
+        %   name has to be a valid MATLAB identifier that no other variable
+        %   uses. Only custom variables are checked, because their names are
+        %   the ones users enter; preset variables are named in code. A
+        %   variable is referred to by its position among the preset, custom
+        %   or internal variables, which is how the variable model app lists
+        %   them.
+
+            arguments
+                variableList struct
+            end
+
+            isValid = true;
+            message = '';
+
+            if isempty(variableList); return; end
+
+            isCustom = logical([variableList.IsCustom]);
+            variableNames = cellfun(@char, {variableList.VariableName}, ...
+                'UniformOutput', false);
+
+            problems = {};
+
+            for i = find(isCustom)
+                thisName = variableNames{i};
+                if isempty(strtrim(thisName))
+                    problem = sprintf('%s has no name.', getVariableLabel(variableList, i));
+                elseif ~isvarname(thisName)
+                    problem = sprintf(['%s is named "%s", but a variable name must ', ...
+                        'start with a letter and contain only letters, numbers ', ...
+                        'and underscores.'], getVariableLabel(variableList, i), thisName);
+                else
+                    problem = '';
+                end
+
+                if ~isempty(problem)
+                    problems{end+1} = problem; %#ok<AGROW>
+                end
+            end
+
+            % A name shared by several variables is reported once. Blank
+            % names are left out because they are already reported above.
+            [uniqueNames, ~, nameIndex] = unique(variableNames);
+            for i = 1:numel(uniqueNames)
+                holders = find(nameIndex == i)';
+                isReportable = numel(holders) > 1 && ...
+                    ~isempty(strtrim(uniqueNames{i})) && any(isCustom(holders));
+
+                if isReportable
+                    labels = arrayfun(@(j) getVariableLabel(variableList, j), ...
+                        holders, 'UniformOutput', false);
+                    if numel(holders) == 2
+                        quantifier = 'both';
+                    else
+                        quantifier = 'all';
+                    end
+                    problem = sprintf(['%s and %s are %s named "%s", but variable ', ...
+                        'names must be unique.'], strjoin(labels(1:end-1), ', '), ...
+                        labels{end}, quantifier, uniqueNames{i});
+                    problems{end+1} = problem; %#ok<AGROW>
+                end
+            end
+
+            if ~isempty(problems)
+                isValid = false;
+                problems = cellfun(@(str) [upper(str(1)), str(2:end)], ...
+                    problems, 'UniformOutput', false);
+                message = strjoin(problems, newline);
+            end
         end
     end
 
@@ -705,4 +790,27 @@ end
 % Local utility functions
 function tf = useDefaultDataLocation(dataLocationName)
     tf = strcmp(dataLocationName, 'DEFAULT') || isempty(dataLocationName);
+end
+
+function label = getVariableLabel(variableList, index)
+%getVariableLabel Refer to a variable by its position among its own kind
+%
+%   Variables are either preset, custom or internal, and the variable model
+%   app lists each kind on a page of its own, so a variable is referred to
+%   by its position within its kind.
+    isInternal = logical([variableList(1:index).IsInternal]);
+    isCustom = logical([variableList(1:index).IsCustom]);
+
+    if isInternal(end)
+        kindName = 'internal';
+        isSameKind = isInternal;
+    elseif isCustom(end)
+        kindName = 'custom';
+        isSameKind = isCustom & ~isInternal;
+    else
+        kindName = 'preset';
+        isSameKind = ~isCustom & ~isInternal;
+    end
+
+    label = sprintf('%s variable %d', kindName, sum(isSameKind));
 end
