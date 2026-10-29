@@ -490,6 +490,42 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 wildCardExpression = strrep(wildCardExpression, '**', '*');
             end
         end
+
+        function tf = isFileNameMatch(obj, fileName, expression, fileType)
+        %isFileNameMatch - True when a file name expression finds a file
+        %   TF = isFileNameMatch(OBJ,fileName,EXPRESSION,fileType) is true
+        %   when the wildcard search that lookForFile runs for EXPRESSION
+        %   and fileType would match the whole of fileName.
+            fileType = char(fileType);
+            if ~isempty(fileType) && ~strncmp(fileType, '.', 1)
+                fileType = ['.', fileType];
+            end
+
+            wildcard = obj.patternToWildcardExpression(expression, fileType);
+            pattern = ['^', regexptranslate('wildcard', char(wildcard)), '$'];
+            tf = ~isempty( regexp(char(fileName), pattern, 'once') );
+        end
+    end
+
+    methods (Static)
+        function expression = suggestFileNameExpression(fileName, sessionID)
+        %suggestFileNameExpression - Propose an expression for a session's file
+        %   EXPRESSION = suggestFileNameExpression(fileName,sessionID)
+        %   returns fileName without its extension, with sessionID removed
+        %   and separators trimmed from both ends, or * when nothing is
+        %   left. The result finds the file again in any session folder
+        %   that holds one file of its type.
+            [~, expression] = fileparts(char(fileName));
+
+            if ~isempty(sessionID)
+                expression = strrep(expression, char(sessionID), '');
+            end
+            expression = regexprep(expression, '^[_-]+|[_-]+$', '');
+
+            if isempty(expression)
+                expression = '*';
+            end
+        end
     end
 
     methods % Override superclass methods
