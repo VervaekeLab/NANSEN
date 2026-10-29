@@ -3699,9 +3699,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
         function tf = checkIfSubjectTableExists(~, metaTableCatalog)
             % Todo: should not be a nansen.App method, project level...
-            existingClasses = unique( metaTableCatalog.Table.MetaTableClass );
-            % Todo: generalize, i.e are there subclasses (project specific subject definitions?)
-            tf = any(strcmp(existingClasses, 'nansen.metadata.type.Subject'));
+            % A project may define its own subject class. Such a table is
+            % the project's subject table, and creating another one would
+            % overwrite its file, which has the same default name.
+            tf = metaTableCatalog.hasMasterMetaTable('subject');
         end
     end
 

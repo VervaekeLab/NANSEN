@@ -5,7 +5,8 @@ function newSessionArray = detectNewSessions(metaTable, dataLocationName)
 %   look for session folders based on the current datalocation model
 %   (i.e current project) and make a list of session objects based on
 %   folders. Session objects for all sessions that are not present in the
-%   table is returned.
+%   table is returned. The session objects are of the class of the
+%   metatable (its MetaTableClass).
 %
 %   INPUTS:
 %       metaTable : a session metatable
@@ -36,8 +37,9 @@ function newSessionArray = detectNewSessions(metaTable, dataLocationName)
         return
     end
 
-    % Todo: Get schema based on selection
-    sessionSchema = @nansen.metadata.type.Session;
+    % New sessions are of the table's class, so that their columns match
+    % the rows of the table
+    sessionSchema = str2func(metaTable.MetaTableClass);
     args = {'DataLocationModel', dataLocationModel};
 
     % Create a list of session metadata objects

@@ -1170,6 +1170,19 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 error('NANSEN:MetaTable:InvalidFileType', ...
                     'The file "%s" does not contain a MetaTable', fileName)
             end
+
+            % A table saved without the name of its ID column takes it from
+            % its class (SchemaIdName), so the class must be on the path
+            className = char(S.MetaTableClass);
+            hasIdVarname = isfield(S, 'MetaTableIdVarname') && ~isempty(S.MetaTableIdVarname);
+            if ~hasIdVarname && ~isempty(className) && ~strcmp(className, 'table') ...
+                    && isempty(meta.class.fromName(className))
+                [~, fileName] = fileparts(obj.filepath);
+                error('NANSEN:MetaTable:ClassNotFound', ...
+                    ['The MetaTable "%s" holds entries of class %s, which is not on the MATLAB path. ', ...
+                     'Add the folder that defines %s to the path and open the table again.'], ...
+                    fileName, className, className)
+            end
             obj.fromStruct(S);
         end
 

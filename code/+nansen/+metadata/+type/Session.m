@@ -375,10 +375,12 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
                     end
 
                     rootUid = obj(iObj).DataLocation(jDl).RootUid;
-                    if isempty(rootUid)
+                    if isempty(rootUid) && ~isempty(S(jDl).RootPath)
                         % If the rootUid is empty, use the last available
                         % rootpath from the model, using this as the
-                        % automatic location.
+                        % automatic location. A data location that has no
+                        % root path yet (a new project's default location
+                        % before it is configured) leaves it empty.
                         rootUid = S(jDl).RootPath(end).Key;
                         obj(iObj).DataLocation(jDl).RootUid = rootUid;
                     end

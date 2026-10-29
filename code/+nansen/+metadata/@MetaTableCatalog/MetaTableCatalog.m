@@ -242,6 +242,22 @@ classdef MetaTableCatalog < uim.handle
             end
         end
 
+        function tf = hasMasterMetaTable(obj, typeName)
+        %hasMasterMetaTable Check if the catalog has a master MetaTable of a type
+        %
+        %   tf = hasMasterMetaTable(obj, typeName) is true when the class
+        %   name of a master MetaTable contains typeName, ignoring case.
+        %   This is the rule getMasterMetaTable uses to find the table, so
+        %   a table of a project's own class, such as
+        %   myproject.metadata.type.Subject, counts as a subject table.
+            if isempty(obj.Table)
+                tf = false;
+                return
+            end
+            tf = any(obj.Table.IsMaster & ...
+                contains(obj.Table.MetaTableClass, typeName, 'IgnoreCase', true));
+        end
+
         function metaTable = getMasterMetaTable(obj, typeName)
             % Todo: merge with method below (getMasterTable)
             isMatch = obj.Table.IsMaster & ...
@@ -342,6 +358,12 @@ classdef MetaTableCatalog < uim.handle
             end
 
             metaTable.save(true)
+
+            % A table opened earlier from the same file may still be in the
+            % cache, and version numbers count saves of one file, so its
+            % number can equal the new file's and open would return it.
+            % The registered table replaces it.
+            nansen.metadata.MetaTableCache.instance().add(metaTable.filepath, metaTable)
         end
 
         function setDefaultMetaTable(obj, metaTable)

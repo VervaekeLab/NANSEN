@@ -419,6 +419,21 @@ classdef MetaTableTest < matlab.unittest.TestCase
             testCase.verifyEqual(mt2.members, testCase.TestMetaTable.members);
         end
 
+        function testOpenErrorsWhenClassIsNotOnPath(testCase)
+            testFilePath = testCase.saveTableWithClass('myproject.metadata.type.Session', '');
+
+            testCase.verifyError(@() nansen.metadata.MetaTable.open(testFilePath), ...
+                'NANSEN:MetaTable:ClassNotFound')
+        end
+
+        function testOpenWithIdVarnameNeedsNoClassOnPath(testCase)
+            testFilePath = testCase.saveTableWithClass('myproject.metadata.type.Session', 'sessionID');
+
+            metaTable = nansen.metadata.MetaTable.open(testFilePath);
+
+            testCase.verifyEqual(height(metaTable.entries), height(testCase.TestEntries))
+        end
+
         function testOpenLoadsMetaTableFromFile(testCase)
             testCase.createTestMetaTable();
 
@@ -712,6 +727,56 @@ classdef MetaTableTest < matlab.unittest.TestCase
             testCase.verifyEqual(reloadedCatalog.getMetaTableFilePath( ...
                 'NonDefaultTestTable'), expectedFilePath);
             testCase.verifyTrue(isfile(expectedFilePath));
+        end
+
+        function testHasMasterMetaTableIsFalseForEmptyCatalog(testCase)
+            catalogPath = fullfile(testCase.TestDir, 'metatable_catalog.mat');
+            catalog = nansen.metadata.MetaTableCatalog(catalogPath);
+
+            testCase.verifyFalse(catalog.hasMasterMetaTable('subject'))
+        end
+
+        function testHasMasterMetaTableMatchesProjectSubjectClass(testCase)
+            % The class is only a name to the catalog, so it need not exist
+            catalogPath = fullfile(testCase.TestDir, 'metatable_catalog.mat');
+            catalog = nansen.metadata.MetaTableCatalog(catalogPath);
+            metaTable = nansen.metadata.MetaTable(testCase.TestEntries, ...
+                'MetaTableClass', 'myproject.metadata.type.Subject', ...
+                'MetaTableIdVarname', 'sessionID');
+            options = struct('MetaTableName', 'Subject', 'IsDefault', false, 'IsMaster', true);
+            catalog.registerMetaTable(metaTable, options);
+
+            testCase.verifyTrue(catalog.hasMasterMetaTable('subject'))
+            testCase.verifyFalse(catalog.hasMasterMetaTable('session'))
+        end
+
+        function testRegisterMetaTableReplacesCachedTableAtSamePath(testCase)
+            % Removing a master table and registering a new one under the
+            % same name writes the same file. The table opened before is
+            % still in the cache, and its version number can equal the
+            % new file's, so opening the file must return the new table.
+            catalogPath = fullfile(testCase.TestDir, 'metatable_catalog.mat');
+            catalog = nansen.metadata.MetaTableCatalog(catalogPath);
+            options = struct('MetaTableName', 'ReplacedTable', 'IsDefault', false, 'IsMaster', true);
+
+            firstTable = nansen.metadata.MetaTable(testCase.TestEntries, ...
+                'MetaTableClass', 'table', 'MetaTableIdVarname', 'sessionID');
+            catalog.registerMetaTable(firstTable, options);
+            filePath = catalog.getMetaTableFilePath('ReplacedTable');
+            nansen.metadata.MetaTable.open(filePath);
+
+            catalog.removeEntry('ReplacedTable');
+            delete(filePath)
+
+            newEntries = testCase.TestEntries;
+            newEntries.Value(:) = 777;
+            secondTable = nansen.metadata.MetaTable(newEntries, ...
+                'MetaTableClass', 'table', 'MetaTableIdVarname', 'sessionID');
+            catalog.registerMetaTable(secondTable, options);
+
+            testCase.assertEqual(catalog.getMetaTableFilePath('ReplacedTable'), filePath)
+            reopened = nansen.metadata.MetaTable.open(filePath);
+            testCase.verifyEqual(reopened.entries.Value, newEntries.Value)
         end
 
         function testMetaTableCatalogIgnoresLegacySavePathOnLoad(testCase)
@@ -1238,6 +1303,24 @@ classdef MetaTableTest < matlab.unittest.TestCase
                 'MetaTableIdVarname', 'sessionID');
 
             testCase.verifyEqual(height(mt.entries), testCase.NUM_TEST_ENTRIES);
+        end
+    end
+
+    methods (Access = private)
+        function testFilePath = saveTableWithClass(testCase, className, idVarname)
+            % Save the test table, then set the class and ID column name
+            % stored in its file
+            testCase.createTestMetaTable();
+            testFilePath = fullfile(testCase.TestDir, 'class_metatable.mat');
+            testCase.TestMetaTable.setFilepath(testFilePath);
+            testCase.TempFiles{end+1} = testFilePath;
+            testCase.TestMetaTable.save(true);
+
+            S = load(testFilePath);
+            S.MetaTableClass = className;
+            S.MetaTableIdVarname = idVarname;
+            save(testFilePath, '-struct', 'S');
+            nansen.metadata.MetaTableCache.instance("reset");
         end
     end
 end
