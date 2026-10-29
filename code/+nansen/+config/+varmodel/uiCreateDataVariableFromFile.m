@@ -11,7 +11,11 @@ function varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sess
 %                          belongs to
 %
 %   Output Arguments:
-%       varItem          : Structure with specifications for new data variable
+%       varItem          : Structure with specifications for new data variable.
+%                          Empty if the dialog was cancelled.
+%
+%   The variable name must be a valid MATLAB identifier. If it is not, an
+%   error dialog is shown and the form reopens with the entered values.
 
 %   Todo:
 %       [ ] Make dataLocationName and sessionObject optional inputs?
@@ -54,10 +58,23 @@ function varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sess
         nvPairs = {'Prompt', options.Prompt};
     end
 
-    % Open user dialog:
-    [S, wasAborted] = tools.editStruct(S, [], 'Create New Variable', nvPairs{:});
+    % Open user dialog. A name that is not a valid MATLAB identifier can
+    % not become a data variable, so the dialog reopens with the entered
+    % values until the name is valid or the dialog is cancelled.
+    isNameValid = false;
+    while ~isNameValid
+        [S, wasAborted] = tools.editStruct(S, [], 'Create New Variable', nvPairs{:});
+        if wasAborted; return; end
+
+        isNameValid = ~isfield(S, 'VariableName') || isvarname(S.VariableName);
+        if ~isNameValid
+            message = sprintf(['"%s" is not a valid data variable name. ', ...
+                'A name must start with a letter and contain only letters, ', ...
+                'numbers and underscores.'], S.VariableName);
+            uiwait( errordlg(message, 'Invalid Variable Name', 'modal') )
+        end
+    end
     S = rmfield(S, 'FileAdapter_');
-    if wasAborted; return; end
 
     % Add other fields that are required for the variable model.
 

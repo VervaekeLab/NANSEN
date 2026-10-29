@@ -612,6 +612,16 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
 
         function item = validateItem(obj, item)
             item = validateItem@utility.data.StorableCatalog(obj, item);
+
+            % Session objects expose each variable as a dynamic property, so
+            % the name has to be a valid MATLAB identifier.
+            if ~isvarname(item.VariableName)
+                error('NANSEN:VariableModel:InvalidVariableName', ...
+                    ['"%s" is not a valid data variable name. A name must ', ...
+                    'start with a letter and contain only letters, numbers ', ...
+                    'and underscores.'], item.VariableName)
+            end
+
             if isempty(item.FileAdapter)
                 % Todo: Have defaults for different filetypes...
                 item.FileAdapter = 'Default';
