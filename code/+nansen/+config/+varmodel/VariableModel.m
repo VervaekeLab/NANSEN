@@ -220,18 +220,53 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
 
         % % Variable interaction and utility methods
 
-        function varName = findVariableByFilename(obj, filePath, mode)
+        function varName = findVariableByFilename(obj, filePath, mode, options)
+        %findVariableByFilename - Find variables matching a file name
+        %   varName = findVariableByFilename(OBJ,filePath) returns the name
+        %   of the variable whose FileType equals the extension of filePath
+        %   and whose FileNameExpression occurs in the file name, or '' when
+        %   no variable matches. When the expressions of several variables
+        %   occur in the name, only the variables with the longest expression
+        %   match. When no expression occurs in the name, a variable matches
+        %   on FileType alone, provided it is the only one with that file
+        %   type among the variables considered.
+        %
+        %   varName = findVariableByFilename(OBJ,filePath,MODE) also
+        %   specifies what to return when several variables match. MODE
+        %   must be:
+        %       "first" - (default) Returns the first matching variable name
+        %                 and warns.
+        %       "all"   - Returns all matching names, as a cell array when
+        %                 there are several.
+        %
+        %   varName = findVariableByFilename(...,DataLocation=NAME) only
+        %   considers variables stored in the data location called NAME.
+        %
+        %   varName = findVariableByFilename(...,DefaultDataLocation=NAME)
+        %   also names the project's default data location. A variable with
+        %   an empty or 'DEFAULT' data location belongs to the default data
+        %   location. When this name is not given, such a variable is
+        %   considered whatever DataLocation is.
 
             arguments
                 obj
                 filePath
                 mode (1,1) string {mustBeMember(mode, ["first", "all"])} = "first"
+                options.DataLocation (1,1) string = missing
+                options.DefaultDataLocation (1,1) string = missing
+            end
+
+            variables = obj.Data;
+            if ~ismissing(options.DataLocation)
+                isInDataLocation = isVariableInDataLocation(variables, ...
+                    options.DataLocation, options.DefaultDataLocation); % Local function
+                variables = variables(isInDataLocation);
             end
 
             [~, ~, ext] = fileparts(filePath);
 
-            filenameExpressions = {obj.Data.FileNameExpression};
-            fileTypes = {obj.Data.FileType};
+            filenameExpressions = {variables.FileNameExpression};
+            fileTypes = {variables.FileType};
 
             isEmpty = cellfun(@isempty, filenameExpressions);
             matchesFiletype = strcmp(fileTypes, ext);
@@ -272,7 +307,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             end
 
             if ~isempty(matchedIdx)
-                varName = {obj.Data(matchedIdx).VariableName};
+                varName = {variables(matchedIdx).VariableName};
                 if warnMultiple
                     warning('Multiple matching variables were detected, selected first one (%s)', varName{1})
                 end
@@ -669,4 +704,21 @@ end
 % Local utility functions
 function tf = useDefaultDataLocation(dataLocationName)
     tf = strcmp(dataLocationName, 'DEFAULT') || isempty(dataLocationName);
+end
+
+function tf = isVariableInDataLocation(variables, dataLocationName, defaultDataLocationName)
+%isVariableInDataLocation - True for variables stored in the named data location
+%   A variable with an empty or 'DEFAULT' data location belongs to the
+%   default data location. It is placed there when the default's name is
+%   known and kept as a candidate otherwise.
+    variableDataLocations = {variables.DataLocation};
+    isUnresolved = cellfun(@useDefaultDataLocation, variableDataLocations);
+
+    tf = strcmp(variableDataLocations, char(dataLocationName));
+    if ismissing(defaultDataLocationName)
+        tf = tf | isUnresolved;
+    else
+        isDefault = strcmp(dataLocationName, defaultDataLocationName);
+        tf = tf | (isUnresolved & isDefault);
+    end
 end
