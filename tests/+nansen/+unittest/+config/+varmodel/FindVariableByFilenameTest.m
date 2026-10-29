@@ -99,6 +99,55 @@ classdef FindVariableByFilenameTest < matlab.unittest.TestCase
 
             testCase.verifyEqual(varName, 'Notes')
         end
+
+        function testPlaceholderMatchesWholeName(testCase)
+        %testPlaceholderMatchesWholeName An expanded placeholder expression names the whole file
+            model = testCase.createModel();
+            model.insertItem( testCase.createItem('SessionNwb', 'Rawdata', '{sessionID}', '.nwb') )
+            values = struct('sessionID', 'm001');
+
+            testCase.verifyEqual( model.findVariableByFilename('m001.nwb', 'all', ...
+                'PlaceholderValues', values), 'SessionNwb')
+            testCase.verifyEmpty( model.findVariableByFilename('m001_extra.nwb', 'all', ...
+                'PlaceholderValues', values) )
+            testCase.verifyEmpty( model.findVariableByFilename('m002.nwb', 'all', ...
+                'PlaceholderValues', values) )
+        end
+
+        function testPlaceholderWithWildcard(testCase)
+        %testPlaceholderWithWildcard A star in a placeholder expression matches any characters
+            model = testCase.createModel();
+            model.insertItem( testCase.createItem('SessionFiles', 'Rawdata', '{sessionID}*', '.nwb') )
+            values = struct('sessionID', 'm001');
+
+            testCase.verifyEqual( model.findVariableByFilename('m001_extra.nwb', 'all', ...
+                'PlaceholderValues', values), 'SessionFiles')
+            testCase.verifyEmpty( model.findVariableByFilename('m002.nwb', 'all', ...
+                'PlaceholderValues', values) )
+        end
+
+        function testPlaceholderNeedsValues(testCase)
+        %testPlaceholderNeedsValues Without values a placeholder expression never matches
+            model = testCase.createModel();
+            model.insertItem( testCase.createItem('SessionNwb', 'Rawdata', '{sessionID}', '.nwb') )
+
+            testCase.verifyEmpty( model.findVariableByFilename('m001.nwb', 'all') )
+            testCase.verifyEmpty( model.findVariableByFilename('m001.nwb', 'all', ...
+                'PlaceholderValues', struct('sessionID', '')) )
+        end
+
+        function testWholeNameMatchOutranksPartialMatch(testCase)
+        %testWholeNameMatchOutranksPartialMatch A placeholder match wins over a part-of-name match
+            model = testCase.createModel();
+            model.insertItem( testCase.createItem('SessionNwb', 'Rawdata', '{sessionID}', '.nwb') )
+            model.insertItem( testCase.createItem('AnyNwb', 'Rawdata', 'm0', '.nwb') )
+            values = struct('sessionID', 'm001');
+
+            testCase.verifyEqual( model.findVariableByFilename('m001.nwb', 'all', ...
+                'PlaceholderValues', values), 'SessionNwb')
+            testCase.verifyEqual( model.findVariableByFilename('m002.nwb', 'all', ...
+                'PlaceholderValues', values), 'AnyNwb')
+        end
     end
 
     methods (Access = private)

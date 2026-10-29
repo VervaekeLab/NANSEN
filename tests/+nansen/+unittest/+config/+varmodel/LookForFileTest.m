@@ -1,9 +1,10 @@
 classdef LookForFileTest < matlab.unittest.TestCase
     %LookForFileTest Locating a variable's file in a folder
     %
-    %   lookForFile turns a variable's file name expression into a wildcard
-    %   search for a file. A variable describes one file, so several
-    %   matching files are an error.
+    %   lookForFile turns a variable's file name expression into a search
+    %   for a file. An expression with placeholders names the whole file
+    %   once expanded; any other expression is a part of the file name. A
+    %   variable describes one file, so several matching files are an error.
     %
     %   Constructing a model looks up file adapters through the current
     %   project, so the tests run inside a temporary project. Each test
@@ -75,6 +76,38 @@ classdef LookForFileTest < matlab.unittest.TestCase
             item = testCase.createItem('Missing', 'missing', '.mat');
 
             testCase.verifyEmpty(model.lookForFile(testCase.Folder, item))
+        end
+
+        function testPlaceholderFindsExactFile(testCase)
+        %testPlaceholderFindsExactFile An expanded placeholder expression names one file
+            model = testCase.createModel();
+            item = testCase.createItem('SessionNwb', '{sessionID}', '.nwb');
+
+            fileName = model.lookForFile(testCase.Folder, item, ...
+                'PlaceholderValues', struct('sessionID', 'm001'));
+
+            testCase.verifyEqual(fileName, 'm001.nwb')
+        end
+
+        function testPlaceholderWithoutValueIsAnError(testCase)
+        %testPlaceholderWithoutValueIsAnError A placeholder cannot be searched for without its value
+            model = testCase.createModel();
+            item = testCase.createItem('SessionNwb', '{sessionID}', '.nwb');
+
+            testCase.verifyError(@() model.lookForFile(testCase.Folder, item), ...
+                'NANSEN:VariableModel:MissingPlaceholderValue')
+        end
+
+        function testFilterNarrowsPlaceholderMatches(testCase)
+        %testFilterNarrowsPlaceholderMatches The filter applies after a wildcard search
+            model = testCase.createModel();
+            item = testCase.createItem('SessionFiles', '{sessionID}*', '.nwb');
+
+            fileName = model.lookForFile(testCase.Folder, item, ...
+                'PlaceholderValues', struct('sessionID', 'm001'), ...
+                'FilterFcn', @(names) contains(names, 'extra'));
+
+            testCase.verifyEqual(fileName, 'm001_extra.nwb')
         end
     end
 

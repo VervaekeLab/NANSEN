@@ -87,6 +87,17 @@ classdef VariableModelTest < matlab.unittest.TestCase
                 'NANSEN:VariableModel:InvalidVariableName')
             testCase.verifyEqual(model.VariableNames, {'dffTrace'})
         end
+
+        function testUnknownPlaceholderIsRefused(testCase)
+        %testUnknownPlaceholderIsRefused A file name expression must use known placeholders
+            model = testCase.createModel();
+            item = testCase.createItem('dffTrace');
+            item.FileNameExpression = '{sessionId}_dff';
+
+            testCase.verifyError(@() model.insertItem(item), ...
+                'NANSEN:VariableModel:UnknownPlaceholder')
+            testCase.verifyEqual(model.NumVariables, 0)
+        end
     end
 
     methods (Access = private)
