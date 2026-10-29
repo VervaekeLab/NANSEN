@@ -754,7 +754,9 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
         %
         %       DataLocation        : Specifies the data location the variable should be loaded from
         %       Subfolder           : Loads the variable from the given subfolder in the session folder.
-        %       FileNameExpression  : Expression for detecting file containing variable
+        %       FileNameExpression  : Expression for detecting file containing variable.
+        %                             May hold placeholders such as {sessionID}, see
+        %                             nansen.config.varmodel.FileNamePattern
         %       FileType            : Load variable from a file of given type
         %       FileAdapter         : FileAdapter to use for loading variable
         %
@@ -968,7 +970,9 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
         %
         %       DataLocation        : Specifies which data location the variable belongs to
         %       Subfolder           : If file is in a subfolder of sessionfolder.
-        %       FileNameExpression  : Expression for detecting file containing variable
+        %       FileNameExpression  : Expression for detecting file containing variable.
+        %                             May hold placeholders such as {sessionID}, see
+        %                             nansen.config.varmodel.FileNamePattern
         %       FileType            : File type for file containing variable
         %       FileAdapter         : FileAdapter to use for variable
         %
@@ -1058,6 +1062,7 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
             if isempty(S.FileNameExpression)
                 fileName = obj.createFileName(varName, S);
             else
+                nvPairs = [nvPairs, {'PlaceholderValues', obj.getFileNamePlaceholderValues()}];
                 fileName = obj.VariableModel.lookForFile(sessionFolder, S, nvPairs{:});
                 if isempty(fileName) && strcmp(mode, 'write')
                     fileName = obj.getFileName(S);
@@ -1115,10 +1120,12 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
         end
 
         function fileName = getFileName(obj, S)
-
-            sid = obj.sessionID;
-
-            fileName = sprintf('%s_%s', sid, S.FileNameExpression);
+        %getFileName - File name for a variable whose file does not exist yet
+        %   fileName = getFileName(OBJ,S) returns the name of the file to
+        %   create for the variable described by the struct S. An expression
+        %   with placeholders names the whole file once expanded. Any other
+        %   expression is appended to the session ID.
+            import nansen.config.varmodel.FileNamePattern
 
             fileType = S.FileType;
 
@@ -1126,7 +1133,33 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
                 fileType = strcat('.', fileType);
             end
 
-            fileName = strcat(fileName, fileType);
+            if FileNamePattern.hasPlaceholder(S.FileNameExpression)
+                expression = FileNamePattern.expand(S.FileNameExpression, ...
+                    obj.getFileNamePlaceholderValues());
+                if contains(expression, '*')
+                    error('NANSEN:Session:WildcardInFileName', ...
+                        ['Cannot create a file for variable "%s" because its file ', ...
+                        'name expression "%s" contains a wildcard.'], ...
+                        S.VariableName, S.FileNameExpression)
+                end
+                fileName = FileNamePattern.toFileName(expression, fileType);
+            else
+                fileName = sprintf('%s_%s', obj.sessionID, S.FileNameExpression);
+                fileName = strcat(fileName, fileType);
+            end
+        end
+
+        function values = getFileNamePlaceholderValues(obj)
+        %getFileNamePlaceholderValues - Values for file name placeholders
+        %   VALUES = getFileNamePlaceholderValues(OBJ) returns a struct with
+        %   one field per placeholder listed by FileNamePattern, holding
+        %   this session's value for it.
+            placeholders = nansen.config.varmodel.FileNamePattern.listPlaceholders();
+
+            values = struct();
+            for i = 1:numel(placeholders)
+                values.(placeholders(i).Name) = obj.(placeholders(i).Name);
+            end
         end
 
         % Session folder
