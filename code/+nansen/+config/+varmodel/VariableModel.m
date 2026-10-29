@@ -446,13 +446,15 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 L = L(options.FilterFcn({L.name}));
             end
 
-            if ~isempty(L) && numel(L)==1
+            % A variable describes one file, so several matches mean the
+            % expression is not specific enough.
+            if isscalar(L)
                 fileName = L.name;
-            elseif ~isempty(L) && numel(L)>1
-                fileName = L(1).name;
-                warning off backtrace
-                warning('Multiple files were found for variable "%s".\nSelected first file in list.', variableInfo.VariableName)
-                warning on backtrace
+            elseif numel(L) > 1
+                error('NANSEN:VariableModel:AmbiguousFileMatch', ...
+                    ['Several files match the variable "%s" in "%s": %s. Give the ', ...
+                    'variable a file name expression that matches only one of them.'], ...
+                    variableInfo.VariableName, folderPath, strjoin({L.name}, ', '))
             else
                 fileName = '';
             end
