@@ -2041,6 +2041,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.SessionTaskMenu.updateSource(p, app.CurrentItemType)
             app.createMenu_Tools()
             app.MenuVisibilityManager.applyVisibility()
+
+            % The menu customization dialog lists the menu tags that
+            % existed when it was opened, so it is closed as on project
+            % change.
+            if ~isempty(app.MenuCustomizationDialogApp) && isvalid(app.MenuCustomizationDialogApp)
+                delete(app.MenuCustomizationDialogApp);
+                app.MenuCustomizationDialogApp = [];
+            end
         end
 
     %% Get meta objects from table selections
