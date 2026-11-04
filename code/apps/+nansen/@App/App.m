@@ -2028,11 +2028,11 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
 
         function onModuleSelectionChanged(app, ~, evtData)
-            % Get current project
+        %onModuleSelectionChanged Apply the module selection to the project
             p = app.ProjectManager.getCurrentProject();
 
             % Update the optional modules for the project
-            p.setOptionalModules( {evtData.SelectedData.PackageName} )
+            p.setOptionalModules({evtData.SelectedData.PackageName})
 
             % Session methods and tools are collected from the project's
             % modules, so both menus are rebuilt from the updated project.
