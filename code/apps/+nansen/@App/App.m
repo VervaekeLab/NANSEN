@@ -2038,7 +2038,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % modules, so both menus are rebuilt from the updated project.
             % Visibility preferences only reach menu items that exist when
             % they are applied, so they are re-applied to the new items.
-            app.SessionTaskMenu.CurrentProject = p;
+            app.SessionTaskMenu.updateSource(p, app.CurrentItemType)
             app.createMenu_Tools()
             app.MenuVisibilityManager.applyVisibility()
         end
