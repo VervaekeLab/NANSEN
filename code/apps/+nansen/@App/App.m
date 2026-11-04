@@ -57,6 +57,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         DLModelApp
         VariableModelApp
         MenuCustomizationDialogApp
+        ModuleManagerApp
     end
 
     properties (Access = private) % App / gui components
@@ -1900,6 +1901,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
 
         function onProjectChanged(app, varargin)
+            % Close Module Manager before this handler yields to the event
+            % queue (drawnow below). Its checked rows belong to the previous
+            % project, and a toggle writes them to the current project.
+            if ~isempty(app.ModuleManagerApp) && isvalid(app.ModuleManagerApp)
+                delete(app.ModuleManagerApp);
+                app.ModuleManagerApp = [];
+            end
+
             app.TableIsUpdating = true;
             returnToIdle = app.setBusy('Changing project'); %#ok<NASGU>
             [hDlg, dlgCleanup] = app.MessageDisplay.wait('Please wait, changing project...', ...
@@ -3237,15 +3246,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             p = app.ProjectManager.getCurrentProject();
             dataModules = p.Preferences.DataModule;
 
-            persistent hApp
-            if isempty(hApp) || ~isvalid(hApp) || ~hApp.Valid
+            % Open app by creating new instance or showing previous
+            if isempty(app.ModuleManagerApp) || ~isvalid(app.ModuleManagerApp) || ~app.ModuleManagerApp.Valid
                 hApp = nansen.config.module.ModuleManagerApp(dataModules);
                 hApp.transferOwnership(app)
+                app.ModuleManagerApp = hApp;
+
                 % hApp.changeWindowStyle('modal')
                 addlistener(hApp, 'ModuleSelectionChanged', @app.onModuleSelectionChanged);
             else
-                hApp.setSelectedModules(dataModules)
-                hApp.Visible = 'on';
+                app.ModuleManagerApp.setSelectedModules(dataModules)
+                app.ModuleManagerApp.Visible = 'on';
             end
         end
 
