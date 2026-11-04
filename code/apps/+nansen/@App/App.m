@@ -2034,7 +2034,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             % Update the optional modules for the project
             p.setOptionalModules( {evtData.SelectedData.PackageName} )
 
+            % Session methods and tools are collected from the project's
+            % modules, so both menus are rebuilt from the updated project.
+            % Visibility preferences only reach menu items that exist when
+            % they are applied, so they are re-applied to the new items.
             app.SessionTaskMenu.CurrentProject = p;
+            app.createMenu_Tools()
+            app.MenuVisibilityManager.applyVisibility()
         end
 
     %% Get meta objects from table selections
