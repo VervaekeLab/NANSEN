@@ -1962,7 +1962,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 app.BatchProcessor = nansen.TaskProcessor.empty;
             end
 
-            % Update menus
+            % Update menus. The project's hidden-menu list is loaded first
+            % because it is applied each time the session task menu is
+            % rebuilt, which updateSource triggers.
+            app.MenuVisibilityManager.loadPreferences('project');
             app.SessionTaskMenu.updateSource(currentProject, app.CurrentItemType)
             app.SessionContextMenu = app.createSessionTableContextMenu();
             app.updateMenu_PipelineItems()
@@ -1972,8 +1975,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             app.createMenu_Tools()
 
-            % Reload and apply menu visibility for new project
-            app.MenuVisibilityManager.loadPreferences('project');
+            % The Tools menu is rebuilt outside the session task menu
+            % update, so visibility is applied to its items here.
             app.MenuVisibilityManager.applyVisibility();
 
             % Make sure project list is displayed correctly
@@ -2249,6 +2252,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.createMenu_SessionTaskMode()
             app.createMenu_Help()
             app.updateMenu_SessionTaskMode()
+
+            % Visibility preferences only reach menu items that exist when
+            % they are applied, so they are re-applied to the recreated
+            % items. The manager is created after the menus in the
+            % constructor, so it may not exist yet.
+            if ~isempty(app.MenuVisibilityManager)
+                app.MenuVisibilityManager.applyVisibility()
+            end
         end
 
         function onSessionTaskModeChanged(app, ~, ~)
