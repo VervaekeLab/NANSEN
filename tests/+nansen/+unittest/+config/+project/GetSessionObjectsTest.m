@@ -61,6 +61,25 @@ classdef GetSessionObjectsTest < matlab.unittest.TestCase
             testCase.verifyEqual(data, magic(3))
         end
 
+        function testEmptyListReturnsNoSessions(testCase)
+            % A selection that matches nothing must not become every session
+            sessions = testCase.Project.getSessionObjects(string.empty(1, 0));
+
+            testCase.verifyEmpty(sessions)
+        end
+
+        function testSessionCreatedBeforeWithoutModelsIsNotReturned(testCase)
+            % The session table caches the objects it creates. An object made
+            % without the models must not be handed out by getSessionObjects.
+            sessionTable = testCase.Project.MetaTableCatalog.getMasterMetaTable('session');
+            sessionTable.getMetaObjects(1);
+
+            session = testCase.Project.getSessionObjects(testCase.SessionIDs(1));
+
+            testCase.verifyNotEmpty(session.VariableModel)
+            testCase.verifyNotEmpty(session.DataLocationModel)
+        end
+
         function testUnknownSessionIDErrors(testCase)
             testCase.verifyError(@() testCase.Project.getSessionObjects("no-such-session"), ...
                 'NANSEN:Project:SessionNotFound')

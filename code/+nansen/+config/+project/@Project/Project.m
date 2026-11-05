@@ -236,11 +236,14 @@ classdef Project < nansen.module.Module
         %   every session in the project's master session table.
         %
         %   sessions = project.getSessionObjects(sessionIDs) returns the
-        %   sessions with the given IDs, in the given order.
+        %   sessions with the given IDs, in the given order. An empty list
+        %   of IDs returns no sessions.
         %
         %   Each object has the project's data location and variable models,
         %   which Session.loadData and Session.saveData need; the NANSEN app
         %   gives them to the sessions it creates in the same way. The
+        %   objects are created anew, because the session table caches the
+        %   objects it has made before, and those can lack the models. The
         %   project must be the current project, because the session table
         %   completes its data location paths from the current project.
             arguments
@@ -258,7 +261,7 @@ classdef Project < nansen.module.Module
 
             sessionTable = obj.MetaTableCatalog.getMasterMetaTable('session');
             tableSessionIDs = string(sessionTable.entries.(sessionTable.SchemaIdName));
-            if isempty(sessionIDs)
+            if nargin < 2
                 rowIndices = 1:numel(tableSessionIDs);
             else
                 [isFound, rowIndices] = ismember(sessionIDs, tableSessionIDs);
@@ -269,9 +272,14 @@ classdef Project < nansen.module.Module
                 end
             end
 
-            sessions = sessionTable.getMetaObjects(rowIndices, ...
+            [sessions, isCreated] = sessionTable.getMetaObjects(rowIndices, ...
                 'DataLocationModel', obj.DataLocationModel, ...
-                'VariableModel', obj.VariableModel);
+                'VariableModel', obj.VariableModel, 'UseCache', false);
+            if ~all(isCreated)
+                error('NANSEN:Project:SessionCreationFailed', ...
+                    'No session object could be created for the session ID: %s.', ...
+                    strjoin(tableSessionIDs(rowIndices(~isCreated)), ', '))
+            end
         end
 
         function setWriteMetaTableCsvCopies(obj, isEnabled)
