@@ -220,22 +220,58 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
 
         % % Variable interaction and utility methods
 
-        function varName = findVariableByFilename(obj, filePath, mode)
+        function varName = findVariableByFilename(obj, filePath, mode, options)
+        %findVariableByFilename - Find variables matching a file name
+        %   varName = findVariableByFilename(OBJ,filePath) returns the name
+        %   of the variable whose FileType equals the extension of filePath
+        %   and whose FileNameExpression occurs in the file name, or '' when
+        %   no variable matches. When the expressions of several variables
+        %   occur in the name, only the variables with the longest expression
+        %   match. When no expression occurs in the name, a variable matches
+        %   on FileType alone, provided it is the only one with that file
+        %   type among the variables considered.
+        %
+        %   varName = findVariableByFilename(OBJ,filePath,MODE) also
+        %   specifies what to return when several variables match. MODE
+        %   must be:
+        %       "first" - (default) Returns the first matching variable name
+        %                 and warns.
+        %       "all"   - Returns all matching names, as a cell array when
+        %                 there are several.
+        %
+        %   varName = findVariableByFilename(...,DataLocation=NAME) only
+        %   considers variables stored in the data location called NAME.
+        %
+        %   varName = findVariableByFilename(...,DefaultDataLocation=NAME)
+        %   also names the project's default data location. A variable with
+        %   an empty or 'DEFAULT' data location belongs to the default data
+        %   location. When this name is not given, such a variable is
+        %   considered whatever DataLocation is.
 
             arguments
                 obj
                 filePath
                 mode (1,1) string {mustBeMember(mode, ["first", "all"])} = "first"
+                options.DataLocation (1,1) string = missing
+                options.DefaultDataLocation (1,1) string = missing
             end
 
-            [~, filename, ext] = fileparts(filePath);
+            variables = obj.Data;
+            if ~ismissing(options.DataLocation)
+                isInDataLocation = isVariableInDataLocation(variables, ...
+                    options.DataLocation, options.DefaultDataLocation); % Local function
+                variables = variables(isInDataLocation);
+            end
 
-            filenameExpressions = {obj.Data.FileNameExpression};
-            fileTypes = {obj.Data.FileType};
+            [~, ~, ext] = fileparts(filePath);
+
+            filenameExpressions = {variables.FileNameExpression};
+            fileTypes = {variables.FileType};
 
             isEmpty = cellfun(@isempty, filenameExpressions);
             matchesFiletype = strcmp(fileTypes, ext);
-            matchesFilename = cellfun(@(expr) contains(filename, expr), filenameExpressions);
+            matchesFilename = cellfun(@(expr) ~isempty(regexp(filePath, expr, 'once')), ...
+                filenameExpressions);
 
             % Find the longest match
             matchedFilenameExpressions = filenameExpressions(matchesFilename);
@@ -271,7 +307,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             end
 
             if ~isempty(matchedIdx)
-                varName = {obj.Data(matchedIdx).VariableName};
+                varName = {variables(matchedIdx).VariableName};
                 if warnMultiple
                     warning('Multiple matching variables were detected, selected first one (%s)', varName{1})
                 end
@@ -445,13 +481,15 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 L = L(options.FilterFcn({L.name}));
             end
 
-            if ~isempty(L) && numel(L)==1
+            % A variable describes one file, so several matches mean the
+            % expression is not specific enough.
+            if isscalar(L)
                 fileName = L.name;
-            elseif ~isempty(L) && numel(L)>1
-                fileName = L(1).name;
-                warning off backtrace
-                warning('Multiple files were found for variable "%s".\nSelected first file in list.', variableInfo.VariableName)
-                warning on backtrace
+            elseif numel(L) > 1
+                error('NANSEN:VariableModel:AmbiguousFileMatch', ...
+                    ['Several files match the variable "%s" in "%s": %s. Give the ', ...
+                    'variable a file name expression that matches only one of them.'], ...
+                    variableInfo.VariableName, folderPath, strjoin({L.name}, ', '))
             else
                 fileName = '';
             end
@@ -489,6 +527,42 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 wildCardExpression = strrep(wildCardExpression, '**', '*');
             end
         end
+
+        function tf = isFileNameMatch(obj, fileName, expression, fileType)
+        %isFileNameMatch - True when a file name expression finds a file
+        %   TF = isFileNameMatch(OBJ,fileName,EXPRESSION,fileType) is true
+        %   when the wildcard search that lookForFile runs for EXPRESSION
+        %   and fileType would match the whole of fileName.
+            fileType = char(fileType);
+            if ~isempty(fileType) && ~strncmp(fileType, '.', 1)
+                fileType = ['.', fileType];
+            end
+
+            wildcard = obj.patternToWildcardExpression(expression, fileType);
+            pattern = ['^', regexptranslate('wildcard', char(wildcard)), '$'];
+            tf = ~isempty( regexp(char(fileName), pattern, 'once') );
+        end
+    end
+
+    methods (Static)
+        function expression = suggestFileNameExpression(fileName, sessionID)
+        %suggestFileNameExpression - Propose an expression for a session's file
+        %   EXPRESSION = suggestFileNameExpression(fileName,sessionID)
+        %   returns fileName without its extension, with sessionID removed
+        %   and separators trimmed from both ends, or * when nothing is
+        %   left. The result finds the file again in any session folder
+        %   that holds one file of its type.
+            [~, expression] = fileparts(char(fileName));
+
+            if ~isempty(sessionID)
+                expression = strrep(expression, char(sessionID), '');
+            end
+            expression = regexprep(expression, '^[_-]+|[_-]+$', '');
+
+            if isempty(expression)
+                expression = '*';
+            end
+        end
     end
 
     methods % Override superclass methods
@@ -524,10 +598,103 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
         end
     end
 
+    methods (Static) % Validation of variable lists
+        function [isValid, message] = validateVariableNames(variableList)
+        %validateVariableNames Check that custom variables have valid, unique names
+        %
+        %   [isValid, message] = validateVariableNames(variableList) checks
+        %   the names of the custom variables in variableList, a struct array
+        %   of variable items. isValid is false if a custom variable has no
+        %   name, a name that is not a valid MATLAB identifier, or a name that
+        %   another variable in the list also has. message then describes
+        %   each problem on a line of its own and is empty otherwise.
+        %
+        %   Session objects expose each variable as a dynamic property, so a
+        %   name has to be a valid MATLAB identifier that no other variable
+        %   uses. Only custom variables are checked, because their names are
+        %   the ones users enter; preset variables are named in code. A
+        %   variable is referred to by its position among the preset, custom
+        %   or internal variables, which is how the variable model app lists
+        %   them.
+
+            arguments
+                variableList struct
+            end
+
+            isValid = true;
+            message = '';
+
+            if isempty(variableList); return; end
+
+            isCustom = logical([variableList.IsCustom]);
+            variableNames = cellfun(@char, {variableList.VariableName}, ...
+                'UniformOutput', false);
+
+            problems = {};
+
+            for i = find(isCustom)
+                thisName = variableNames{i};
+                if isempty(strtrim(thisName))
+                    problem = sprintf('%s has no name.', getVariableLabel(variableList, i));
+                elseif ~isvarname(thisName)
+                    problem = sprintf(['%s is named "%s", but a variable name must ', ...
+                        'start with a letter and contain only letters, numbers ', ...
+                        'and underscores.'], getVariableLabel(variableList, i), thisName);
+                else
+                    problem = '';
+                end
+
+                if ~isempty(problem)
+                    problems{end+1} = problem; %#ok<AGROW>
+                end
+            end
+
+            % A name shared by several variables is reported once. Blank
+            % names are left out because they are already reported above.
+            [uniqueNames, ~, nameIndex] = unique(variableNames);
+            for i = 1:numel(uniqueNames)
+                holders = find(nameIndex == i)';
+                isReportable = numel(holders) > 1 && ...
+                    ~isempty(strtrim(uniqueNames{i})) && any(isCustom(holders));
+
+                if isReportable
+                    labels = arrayfun(@(j) getVariableLabel(variableList, j), ...
+                        holders, 'UniformOutput', false);
+                    if numel(holders) == 2
+                        quantifier = 'both';
+                    else
+                        quantifier = 'all';
+                    end
+                    problem = sprintf(['%s and %s are %s named "%s", but variable ', ...
+                        'names must be unique.'], strjoin(labels(1:end-1), ', '), ...
+                        labels{end}, quantifier, uniqueNames{i});
+                    problems{end+1} = problem; %#ok<AGROW>
+                end
+            end
+
+            if ~isempty(problems)
+                isValid = false;
+                problems = cellfun(@(str) [upper(str(1)), str(2:end)], ...
+                    problems, 'UniformOutput', false);
+                message = strjoin(problems, newline);
+            end
+        end
+    end
+
     methods (Access = protected)
 
         function item = validateItem(obj, item)
             item = validateItem@utility.data.StorableCatalog(obj, item);
+
+            % Session objects expose each variable as a dynamic property, so
+            % the name has to be a valid MATLAB identifier.
+            if ~isvarname(item.VariableName)
+                error('NANSEN:VariableModel:InvalidVariableName', ...
+                    ['"%s" is not a valid data variable name. A name must ', ...
+                    'start with a letter and contain only letters, numbers ', ...
+                    'and underscores.'], item.VariableName)
+            end
+
             if isempty(item.FileAdapter)
                 % Todo: Have defaults for different filetypes...
                 item.FileAdapter = 'Default';
@@ -658,4 +825,44 @@ end
 % Local utility functions
 function tf = useDefaultDataLocation(dataLocationName)
     tf = strcmp(dataLocationName, 'DEFAULT') || isempty(dataLocationName);
+end
+
+function tf = isVariableInDataLocation(variables, dataLocationName, defaultDataLocationName)
+%isVariableInDataLocation - True for variables stored in the named data location
+%   A variable with an empty or 'DEFAULT' data location belongs to the
+%   default data location. It is placed there when the default's name is
+%   known and kept as a candidate otherwise.
+    variableDataLocations = {variables.DataLocation};
+    isUnresolved = cellfun(@useDefaultDataLocation, variableDataLocations);
+
+    tf = strcmp(variableDataLocations, char(dataLocationName));
+    if ismissing(defaultDataLocationName)
+        tf = tf | isUnresolved;
+    else
+        isDefault = strcmp(dataLocationName, defaultDataLocationName);
+        tf = tf | (isUnresolved & isDefault);
+    end
+end
+
+function label = getVariableLabel(variableList, index)
+%getVariableLabel Refer to a variable by its position among its own kind
+%
+%   Variables are either preset, custom or internal, and the variable model
+%   app lists each kind on a page of its own, so a variable is referred to
+%   by its position within its kind.
+    isInternal = logical([variableList(1:index).IsInternal]);
+    isCustom = logical([variableList(1:index).IsCustom]);
+
+    if isInternal(end)
+        kindName = 'internal';
+        isSameKind = isInternal;
+    elseif isCustom(end)
+        kindName = 'custom';
+        isSameKind = isCustom & ~isInternal;
+    else
+        kindName = 'preset';
+        isSameKind = ~isCustom & ~isInternal;
+    end
+
+    label = sprintf('%s variable %d', kindName, sum(isSameKind));
 end

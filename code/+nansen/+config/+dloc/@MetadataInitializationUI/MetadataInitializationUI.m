@@ -337,28 +337,13 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             else
                 hRow.StringExtractInputField.Value = obj.simplifyIndices(selectedIndices);
 
-                % If the variable is date or time, try to convert to
-                % datetime value:
+                % If the variable is date or time, prompt for the input
+                % format before showing the formatted preview.
                 if obj.isDateTimeVariable(hRow.VariableName.Text)
-
-                    shortName = strrep(hRow.VariableName.Text, 'Experiment', '');
-
                     substring = obj.getFolderSubstring(rowNumber);
-                    [dtInFormat, dtOutFormat] = obj.uiGetDateTimeFormat(hRow.VariableName.Text, substring);
-
-                    if ~isempty(dtInFormat)
-                        try
-                            datetimeValue = datetime(substring, 'InputFormat', dtInFormat);
-                            datetimeValue.Format = dtOutFormat;
-                            hRow.StringExtractResultField.Value = char(datetimeValue);
-                            obj.StringFormat{rowNumber} = dtInFormat;
-                        catch ME
-                            uialert(hFig, ME.message, sprintf('%s Format Error', shortName))
-                        end
-                    else
-                        message = 'This value will be represented as text. You can still change your mind!';
-                        uialert(hFig, message, sprintf('%s is represented as text', shortName), 'Icon','warning')
-                    end
+                    substring = obj.applyDateTimeFormat(rowNumber, substring, src, ForcePrompt=true);
+                    hRow.StringExtractResultField.Value = char(substring);
+                    hRow.StringExtractResultField.Tooltip = char(substring);
                 else
                     obj.updateStringResult(rowNumber)
                 end
@@ -373,44 +358,30 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
         %onStringInputValueChanged Updates result editfield when the string
         % input/selection indices are modified.
 
-            thisDataLocation = obj.DataLocationModel.Data(obj.DataLocationIndex);
-            metadataDefinitions = thisDataLocation.MetaDataDef;
-
             rowNumber = obj.getComponentRowNumber(src);
             hRow = obj.RowControls(rowNumber);
             identifierName = obj.getIdentifierNameForRow(rowNumber);
 
+            substringExtracted = true;
             try
                 substring = obj.getFolderSubstring(rowNumber);
             catch ME
                 hFig = ancestor(src, 'figure');
                 substring = 'N/A';
+                substringExtracted = false;
                 errorMessage = sprintf('Failed to extract "%s" from folder path. Caused by:\n\n%s', identifierName, ME.message);
                 uialert(hFig, errorMessage, 'String extraction failed')
             end
 
-            % Convert date/time value if date/time format is available
-            if obj.isDateTimeVariable(metadataDefinitions(rowNumber).VariableName)
-                if isa(substring, 'datetime')
-                    substring = char(substring);
-                else
-                    examplePath = thisDataLocation.ExamplePath;
-                    try
-                        switch metadataDefinitions(rowNumber).VariableName
-                            case 'Experiment Time'
-                                value = obj.DataLocationModel.getTime(examplePath, obj.DataLocationIndex);
-                            case 'Experiment Date'
-                                value = obj.DataLocationModel.getDate(examplePath, obj.DataLocationIndex);
-                        end
-                    catch
-                        value = '';
-                    end
-                    substring = char(value);
-                end
+            if isa(substring, 'datetime')
+                substring = char(substring);
+            elseif substringExtracted && ~isempty(substring) ...
+                    && obj.isDateTimeVariable(hRow.VariableName.Text)
+                substring = obj.applyDateTimeFormat(rowNumber, substring, src);
             end
 
-            hRow.StringExtractResultField.Value = substring;
-            hRow.StringExtractResultField.Tooltip = substring;
+            hRow.StringExtractResultField.Value = char(substring);
+            hRow.StringExtractResultField.Tooltip = char(substring);
 
             obj.IsDirty = true;
         end
@@ -1023,6 +994,55 @@ classdef MetadataInitializationUI < applify.apptable & nansen.config.mixin.HasDa
             if strcmp(obj.getStringExtractMode(rowNumber), 'func')
                 obj.setStringExtractMode(rowNumber, 'ind')
                 obj.setFunctionButtonVisibility(rowNumber)
+            end
+        end
+
+        function substring = applyDateTimeFormat(obj, rowNumber, substring, src, options)
+        %applyDateTimeFormat Apply or request datetime format for live preview
+            arguments
+                obj
+                rowNumber (1,1) double
+                substring
+                src
+                options.ForcePrompt (1,1) logical = false
+            end
+
+            hRow = obj.RowControls(rowNumber);
+            rawSubstring = char(substring);
+            dtOutFormat = obj.getDateTimeOutFormat(hRow.VariableName.Text);
+
+            if ~options.ForcePrompt && ~isempty(obj.StringFormat{rowNumber})
+                try
+                    datetimeValue = datetime(rawSubstring, 'InputFormat', obj.StringFormat{rowNumber});
+                    datetimeValue.Format = dtOutFormat;
+                    substring = char(datetimeValue);
+                    return
+                catch
+                    % The current extraction no longer matches the stored
+                    % format, so ask for the format that matches this value.
+                end
+            end
+
+            hFig = ancestor(src, 'figure');
+            shortName = strrep(hRow.VariableName.Text, 'Experiment', '');
+            [dtInFormat, dtOutFormat] = obj.uiGetDateTimeFormat(hRow.VariableName.Text, rawSubstring);
+
+            if ~isempty(dtInFormat)
+                try
+                    datetimeValue = datetime(rawSubstring, 'InputFormat', dtInFormat);
+                    datetimeValue.Format = dtOutFormat;
+                    substring = char(datetimeValue);
+                    obj.StringFormat{rowNumber} = dtInFormat;
+                catch ME
+                    substring = rawSubstring;
+                    obj.StringFormat{rowNumber} = '';
+                    uialert(hFig, ME.message, sprintf('%s Format Error', shortName))
+                end
+            else
+                substring = rawSubstring;
+                obj.StringFormat{rowNumber} = '';
+                message = 'This value will be represented as text. You can still change your mind!';
+                uialert(hFig, message, sprintf('%s is represented as text', shortName), 'Icon','warning')
             end
         end
 

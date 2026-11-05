@@ -230,8 +230,11 @@ classdef StorableCatalog < handle
             if strcmp(obj.SaveFormat, 'mat')
                 save(filePath, '-struct', 'S')
             elseif strcmp(obj.SaveFormat, 'json')
+                jsonFilePath = nansen.util.path.changeFilenameExtension(...
+                    filePath, '.json');
+
                 str = jsonencode(S, 'PrettyPrint', true);
-                utility.filewrite(strrep(filePath, 'mat', 'json'), str)
+                utility.filewrite(jsonFilePath, str)
             end
         end
     end

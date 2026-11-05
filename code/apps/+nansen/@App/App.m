@@ -57,6 +57,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         DLModelApp
         VariableModelApp
         MenuCustomizationDialogApp
+        ModuleManagerApp
     end
 
     properties (Access = private) % App / gui components
@@ -118,6 +119,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         TableIsUpdating (1,1) logical = false
         QuitRequestInProgress (1,1) logical = false
         RequestFocusOnNextMetaTableRefresh (1,1) logical = true
+        TaskProcessorBusyCleanup = [] % Holds onCleanup from setBusy for task processor status
     end
 
     properties (Constant, Hidden = true) % move to appwindow superclass
@@ -184,7 +186,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.VariableModel = nansen.VariableModel();
 
             app.loadMetaTable()
-            app.initializeBatchProcessor()
 
             warning('off', 'Nansen:OptionsManager:PresetChanged')
             app.createMenu()
@@ -759,6 +760,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mitem = uimenu(hMenu, 'Text', 'Edit Table Variable Definition', 'Tag', 'core.metatable.edit_variable');
             app.updateTableVariableMenuItems(mitem)
 
+            % Menu with submenus for resetting a table variable column:
+            mitem = uimenu(hMenu, 'Text', 'Reset Table Variable', 'Tag', 'core.metatable.reset_variable');
+            app.updateResetTableVariableMenuItems(mitem)
+
             % TODO: Include table variables from a metadata model.
             % TODO: Turn this section for creating a submenu into a function.
 
@@ -955,6 +960,27 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mItem.MenuSelectedFcn = @app.editTableVariableDefinition;
         end
 
+        function updateResetTableVariableMenuItems(app, hMenu)
+
+            if nargin < 2
+                hMenu = findobj(app.Figure, 'Text', 'Reset Table Variable');
+                if ~isempty(hMenu.Children)
+                    delete(hMenu.Children)
+                end
+            end
+
+            tableVariableAttributes = app.CurrentProject.getTable('TableVariable');
+
+            % Get names of variables that have update functions.
+            getRowsToKeep = @(T) T.HasUpdateFunction & ~T.IsEditable;
+            rowsToKeep = getRowsToKeep(tableVariableAttributes);
+            columnVariables = tableVariableAttributes{rowsToKeep, 'Name'};
+
+            % Create a menu list with items for each variable
+            mItem = uics.MenuList(hMenu, columnVariables, '', 'SelectionMode', 'none');
+            mItem.MenuSelectedFcn = @app.resetTableVariableColumn;
+        end
+
         function updateMenu_PipelineItems(app, hMenu)
 
             if nargin < 2
@@ -1146,7 +1172,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
         % Requires: varname2label
             import utility.string.varname2label
-            import utility.dir.recursiveDir
 
             L = recursiveDir(dirPath, "RecursionDepth", 1);
 
@@ -1590,6 +1615,48 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.BatchProcessor.updateSessionObjectListeners(app)
         end
 
+        function entityObj = reconstructEntityFromTask(app, task)
+        %reconstructEntityFromTask Reconstruct entity object from a task item.
+        %
+        %   Returns the live entity object for the task by looking it up in
+        %   the current MetaTable via entityId. Returns [] silently if
+        %   entityId is missing (legacy items) or the session is not found.
+            entityObj = [];
+            if ~isfield(task, 'entityId') || isempty(task.entityId)
+                return
+            end
+            try
+                entityObj = app.reconstructEntityObjects(task.entityId);
+            catch
+            end
+        end
+
+        function entityObjs = reconstructEntityObjects(app, entityIds)
+        %reconstructEntityObjects Reconstruct entity objects from identifiers.
+        %
+        %   entityObjs = reconstructEntityObjects(app, entityIds) looks up
+        %   each ID in entityIds (a cell array of strings) in the current
+        %   MetaTable and returns the corresponding live entity objects.
+        %   Used when reassigning a history task back to the queue.
+            entityObjs = [];
+            for i = 1:numel(entityIds)
+                rowInd = app.MetaTable.getIndexById(entityIds{i});
+                if isempty(rowInd)
+                    error('NANSEN:App:EntityNotFound', ...
+                        'Session "%s" was not found in the current MetaTable.', ...
+                        entityIds{i})
+                end
+                obj = app.MetaTable.getMetaObjects(rowInd, ...
+                    'DataLocationModel', app.DataLocationModel, ...
+                    'VariableModel', app.VariableModel);
+                if isempty(entityObjs)
+                    entityObjs = obj;
+                else
+                    entityObjs(end+1) = obj; %#ok<AGROW>
+                end
+            end
+        end
+
         function initializeBatchProcessorUI(app, hContainer)
         %initializeBatchProcessorUI Initialize task processor applet in container.
 
@@ -1599,6 +1666,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
 
             h = nansen.BatchProcessorUI(app.BatchProcessor, hContainer);
+            h.ReconstructEntityFcn = @(entityId) app.reconstructEntityObjects(entityId);
             app.BatchProcessorUI = h;
         end
 
@@ -1746,7 +1814,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.updateDataLocationFromModel()
 
             % - [ ] Refresh table on these events
-            app.refreshTable()
+            app.refreshTable(false)
         end
 
         function onMetaTableFileChangedOnDisk(app, evt)
@@ -1833,12 +1901,22 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
 
         function onProjectChanged(app, varargin)
+            % Close Module Manager before this handler yields to the event
+            % queue (drawnow below). Its checked rows belong to the previous
+            % project, and a toggle writes them to the current project.
+            if ~isempty(app.ModuleManagerApp) && isvalid(app.ModuleManagerApp)
+                delete(app.ModuleManagerApp);
+                app.ModuleManagerApp = [];
+            end
+
             app.TableIsUpdating = true;
             returnToIdle = app.setBusy('Changing project'); %#ok<NASGU>
             [hDlg, dlgCleanup] = app.MessageDisplay.wait('Please wait, changing project...', ...
                 'Title', 'Changing Project'); %#ok<ASGLU>
 
-            app.BatchProcessor.closeTaskList()
+            if ~isempty(app.BatchProcessor) && isvalid(app.BatchProcessor)
+                app.BatchProcessor.closeTaskList()
+            end
 
             % Delete current file viewer
             delete(app.UiFileViewer); app.UiFileViewer = [];
@@ -1877,21 +1955,28 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             currentProjectName = app.ProjectManager.CurrentProject;
             currentProject = app.ProjectManager.getProjectObject(currentProjectName);
 
-            % Load new project's task list
-            taskListFilepath = currentProject.getDataFilePath('TaskList');
-            app.BatchProcessor.openTaskList(taskListFilepath)
+            % Reset task processor so it is re-initialised lazily on next
+            % use (tab open or session method submission).
+            if ~isempty(app.BatchProcessor) && isvalid(app.BatchProcessor)
+                delete(app.BatchProcessor)
+                app.BatchProcessor = nansen.TaskProcessor.empty;
+            end
 
-            % Update menus
+            % Update menus. The project's hidden-menu list is loaded first
+            % because it is applied each time the session task menu is
+            % rebuilt, which updateSource triggers.
+            app.MenuVisibilityManager.loadPreferences('project');
             app.SessionTaskMenu.updateSource(currentProject, app.CurrentItemType)
             app.SessionContextMenu = app.createSessionTableContextMenu();
             app.updateMenu_PipelineItems()
             app.updateTableVariableMenuItems()
+            app.updateResetTableVariableMenuItems()
             app.updateMenu_DatalocationRootConfiguration()
 
             app.createMenu_Tools()
 
-            % Reload and apply menu visibility for new project
-            app.MenuVisibilityManager.loadPreferences('project');
+            % The Tools menu is rebuilt outside the session task menu
+            % update, so visibility is applied to its items here.
             app.MenuVisibilityManager.applyVisibility();
 
             % Make sure project list is displayed correctly
@@ -2060,10 +2145,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
                 task = evt.Task;
 
-                sessionObj = task.args{1};
-                fcnName = func2str(task.method);
-
                 if strcmp(task.status, 'Completed')
+                    % args{1} (the session object) is stripped before the
+                    % TaskAdded event fires for history items. Reconstruct
+                    % the session object from the MetaTable using entityId.
+                    sessionObj = app.reconstructEntityFromTask(task);
+                    if isempty(sessionObj); return; end
+
+                    fcnName = func2str(task.method);
                     if ismethod(sessionObj, 'updateProgress') && numel(sessionObj) == 1
                         sessionObj.updateProgress(fcnName, task.status)
                     end
@@ -2073,10 +2162,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
         function onTaskProcessorStatusChanged(app, ~, evt)
         %onTaskProcessorStatusChanged Callback for TaskProcessor Status
-            if strcmp( evt.AffectedObject.Status, 'busy' )
-                app.setBusy('Initializing task processor...')
+            if strcmp(evt.AffectedObject.Status, 'busy')
+                % Capture the cleanup handle so its statusId is registered and
+                % will be removed when the handle is cleared (see setIdle/setBusy).
+                app.TaskProcessorBusyCleanup = app.setBusy('Initializing task processor...');
             else
-                app.setIdle()
+                % Clearing the handle triggers onCleanup → setIdle(statusId),
+                % which removes the matching entry from StatusItems.
+                app.TaskProcessorBusyCleanup = [];
             end
         end
     end
@@ -2117,8 +2210,16 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     'VariableModel', app.VariableModel
                     };
 
+            if numel(tableRowIndices) > 5 % 5 is ad hoc here. Make preference?
+                [h, waitbarCleanup] = app.MessageDisplay.wait(message, ...
+                    'Title', 'Updating Values'); %#ok<ASGLU>
+            else
+                h = [];
+            end
+
+
             [metaObjects, status] = app.MetaTable.getMetaObjects(tableRowIndices, ...
-                nvPairs{:}, "UseCache", options.UseCache);
+                nvPairs{:}, "UseCache", options.UseCache, "Waitbar", h);
         end
     end
 
@@ -2158,6 +2259,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.createMenu_SessionTaskMode()
             app.createMenu_Help()
             app.updateMenu_SessionTaskMode()
+
+            % Visibility preferences only reach menu items that exist when
+            % they are applied, so they are re-applied to the recreated
+            % items. The manager is created after the menus in the
+            % constructor, so it may not exist yet.
+            if ~isempty(app.MenuVisibilityManager)
+                app.MenuVisibilityManager.applyVisibility()
+            end
         end
 
         function onSessionTaskModeChanged(app, ~, ~)
@@ -2236,6 +2345,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
                 case nansen.enum.AppPage.TaskProcessor.Label
 
+                    if isempty(app.BatchProcessor) || ~isvalid(app.BatchProcessor)
+                        app.initializeBatchProcessor()
+                    end
+
                     if isempty(app.BatchProcessorUI)
                         app.initializeBatchProcessorUI(evt.NewValue)
                     end
@@ -2276,9 +2389,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 end
             end
 
-            if app.setSessionTaskModeFromKey(evt.Key)
-                return
-            end
+            % if app.setSessionTaskModeFromKey(evt.Key)
+            %     return
+            % end
 
             switch evt.Key
                 case 'w'
@@ -2866,7 +2979,78 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
 
         function resetTableVariable(app, src, evt)
+        %resetTableVariable Reset table variable values for visible/selected rows
+        %
+        %   Callback for the column header reset action. Writes the variable's
+        %   default value into the chosen rows of the existing column. The
+        %   column type is left unchanged, so this fails if the variable
+        %   definition's default value type was changed externally. Use the
+        %   "Reset Table Variable" menu (resetTableVariableColumn) to rebuild
+        %   a column whose type has changed.
+
             app.updateTableVariable(src, evt, true)
+        end
+
+        function resetTableVariableColumn(app, src, ~)
+        %resetTableVariableColumn Discard a column's values and rebuild it
+        %
+        %   Callback for the "Reset Table Variable" menu. Replaces every value
+        %   in the column with the variable's current default value, rebuilding
+        %   the column from scratch. Because the column is rebuilt, its data
+        %   type may differ from the previous one (e.g. when the variable
+        %   definition's default value type has changed from numeric to text).
+        %   This permanently discards any values that were entered or computed
+        %   for the column.
+
+            if ischar(src) || isstring(src)
+                varName = char(src);
+            else
+                varName = src.Text; % Menu callback: src is the menu item
+            end
+
+            % Confirm, since this permanently discards entered values.
+            question = sprintf(['Reset ''%s''?\n\nThis permanently discards ', ...
+                'all values in the column and rebuilds it with the default ', ...
+                'value.'], varName);
+            answer = app.MessageDisplay.ask(question, ...
+                'Title', "Reset Table Variable", ...
+                'Alternatives', ["Reset", "Cancel"], ...
+                'DefaultAnswer', "Cancel");
+            if ~strcmp(answer, "Reset"); return; end
+
+            defaultValue = app.getTableVariableDefaultValue(varName);
+
+            % Build a full column of the default value and replace the column.
+            numRows = height(app.MetaTable.entries);
+            columnValues = repmat(defaultValue, numRows, 1);
+            app.MetaTable.replaceDataColumn(varName, columnValues);
+
+            % Cached metaObjects now hold stale values for this column.
+            app.MetaTable.resetMetaObjectCache();
+
+            app.UiMetaTableViewer.refreshColumnModel();
+            app.UiMetaTableViewer.refreshTable(app.MetaTable)
+        end
+
+        function defaultValue = getTableVariableDefaultValue(app, varName)
+        %getTableVariableDefaultValue Get a variable's default (null) value
+        %
+        %   Returns the default value produced by calling a table variable's
+        %   update function with no input arguments.
+
+            tableType = lower(app.CurrentItemType);
+
+            T = app.CurrentProject.getTable('TableVariable');
+            T = T(T.TableType==tableType, :);
+            S = table2struct(T);
+
+            isMatch = strcmp({S.Name}, varName);
+            assert(any(isMatch), ...
+                'No table variable named "%s" was found for table type "%s".', ...
+                varName, tableType)
+
+            updateFcn = str2func(S(isMatch).UpdateFunctionName);
+            defaultValue = updateFcn();
         end
 
         function updateTableVariable(app, src, evt, reset)
@@ -2878,7 +3062,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 reset = false;
             end
 
-            if ischar(src) % For manual calls: If the value of src is the name of the variable, evt should be the update mode.
+            if ischar(src) || isstring(src) % For manual calls: If the value of src is the name of the variable, evt should be the update mode.
                 varName = src;
                 updateMode = evt;
             else % If invoked as callback, update selected rows
@@ -3082,15 +3266,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             p = app.ProjectManager.getCurrentProject();
             dataModules = p.Preferences.DataModule;
 
-            persistent hApp
-            if isempty(hApp) || ~isvalid(hApp) || ~hApp.Valid
+            % Open app by creating new instance or showing previous
+            if isempty(app.ModuleManagerApp) || ~isvalid(app.ModuleManagerApp) || ~app.ModuleManagerApp.Valid
                 hApp = nansen.config.module.ModuleManagerApp(dataModules);
                 hApp.transferOwnership(app)
+                app.ModuleManagerApp = hApp;
+
                 % hApp.changeWindowStyle('modal')
                 addlistener(hApp, 'ModuleSelectionChanged', @app.onModuleSelectionChanged);
             else
-                hApp.setSelectedModules(dataModules)
-                hApp.Visible = 'on';
+                app.ModuleManagerApp.setSelectedModules(dataModules)
+                app.ModuleManagerApp.Visible = 'on';
             end
         end
 
@@ -3166,8 +3352,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             returnToIdle = app.setBusy('Updating table'); %#ok<NASGU>
             hDlg = app.MessageDisplay.wait('Please wait, updating table...', ...
                 'Title', 'Updating Table');
-            resetView = false;
-            app.UiMetaTableViewer.resetTable(resetView)
             app.onNewMetaTableSet(requestFocus)
             if isvalid(hDlg); delete(hDlg); end
         end
@@ -3301,6 +3485,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
 
             try
+                app.deleteMetaTableListeners()
+
                 % Load existing or create new experiment inventory
                 if isfile(loadPath)
                     metaTable = nansen.metadata.MetaTable.open(loadPath);
@@ -3325,7 +3511,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 % operating system.
                 metaTable = app.updateDataLocationFromModel(metaTable);
 
-                app.deleteMetaTableListeners()
                 previousRequestFocus = app.RequestFocusOnNextMetaTableRefresh;
                 app.RequestFocusOnNextMetaTableRefresh = requestFocus;
                 refreshFocusCleanup = onCleanup(...
@@ -3333,20 +3518,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 app.MetaTable = metaTable;
                 delete(refreshFocusCleanup)
 
-                app.MetaTableIsModifiedListener = addlistener(app.MetaTable, 'IsModified', 'PostSet', ...
-                    @app.onMetaTableModifiedChanged);
-
-                app.MetaTableTableEntryChangedListener = addlistener(app.MetaTable, 'TableEntryChanged', ...
-                    @app.onMetaTableEntryChanged);
-
-                app.MetaTableEntryAddedListener = addlistener(app.MetaTable, 'EntryAdded', ...
-                    @(~,~) app.refreshTable());
-
-                app.MetaTableEntryRemovedListener = addlistener(app.MetaTable, 'EntryRemoved', ...
-                    @(~,~) app.refreshTable());
-
-                app.MetaTableReloadedFromDiskListener = addlistener(app.MetaTable, 'TableReloadedFromDisk', ...
-                    @app.onMetaTableReloadedFromDisk);
+                app.createMetaTableListeners()
 
 % %                 if app.isInitialized() % Todo: implement this
 % %                     app.updateRelatedInventoryLists()
@@ -3474,6 +3646,23 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
         end
 
+        function createMetaTableListeners(app)
+            app.MetaTableIsModifiedListener = addlistener(app.MetaTable, 'IsModified', 'PostSet', ...
+                    @app.onMetaTableModifiedChanged);
+
+                app.MetaTableTableEntryChangedListener = addlistener(app.MetaTable, 'TableEntryChanged', ...
+                    @app.onMetaTableEntryChanged);
+
+                app.MetaTableEntryAddedListener = addlistener(app.MetaTable, 'EntryAdded', ...
+                    @(~,~) app.refreshTable());
+
+                app.MetaTableEntryRemovedListener = addlistener(app.MetaTable, 'EntryRemoved', ...
+                    @(~,~) app.refreshTable());
+
+                app.MetaTableReloadedFromDiskListener = addlistener(app.MetaTable, 'TableReloadedFromDisk', ...
+                    @app.onMetaTableReloadedFromDisk);
+        end
+
         function deleteMetaTableListeners(app)
         %deleteMetaTableListeners Remove listeners attached to app.MetaTable
 
@@ -3585,7 +3774,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
                 case {'TimerPeriod', 'RunTasksWhenQueued', 'RunTasksOnStartup'}
                     app.settings_.TaskProcessor.(name) = value;
-                    app.BatchProcessor.(name) = value;
+                    if ~isempty(app.BatchProcessor) && isvalid(app.BatchProcessor)
+                        app.BatchProcessor.(name) = value;
+                    end
 
                 case 'TableFontSize'
                     try
@@ -3810,6 +4001,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         %    Alternative    : Optional, for methods with multiple alternatives
         %    Restart        : Boolean flag, true if method should be restarted
 
+            if isempty(app.BatchProcessor) || ~isvalid(app.BatchProcessor)
+                app.initializeBatchProcessor()
+            end
+
             % Unpack variables from input struct:
             sessionMethod = taskConfiguration.Method;
             sessionObj = taskConfiguration.SessionObject;
@@ -3873,7 +4068,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
         end
 
-        function runTaskWithReset(~, sessionMethod, taskType, methodArgs)
+        function runTaskWithReset(app, sessionMethod, taskType, methodArgs)
 
             switch taskType
                 case 'class'
@@ -3972,8 +4167,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             %   [ ] try/catch
             %   [ ] if session method - should run a "validation" method
 
-            if isempty(app.BatchProcessor)
-                app.BatchProcessor = nansen.TaskProcessor;
+            if isempty(app.BatchProcessor) || ~isvalid(app.BatchProcessor)
+                app.initializeBatchProcessor()
             end
 
             % Unpack variables from input struct:

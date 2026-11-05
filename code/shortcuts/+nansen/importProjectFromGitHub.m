@@ -36,4 +36,6 @@ function importProjectFromGitHub(repositoryUrl, options)
 
     nansen.common.assertion.assertUserSessionActive()
 
-    nansen.config.project.importProjectFromGitHub(repositoryUrl, options)
+    options = namedargs2cell(options);
+    nansen.config.project.importProjectFromGitHub(repositoryUrl, options{:})
+end

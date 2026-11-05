@@ -233,8 +233,10 @@ methods % Subclass specific methods
         % Resolve data type
         fileformat = obj.readinivar(inistring,'file.format');
         switch fileformat
-            case {0, 1} % Todo: Add all possibilities..
+            case 0
                 metadata.dataType = 'uint16';
+            case 1
+                metadata.dataType = 'single'; % float32
             otherwise
                 error('Not implemented yet, please report')
         end

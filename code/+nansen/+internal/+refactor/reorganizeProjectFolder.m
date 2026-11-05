@@ -71,7 +71,7 @@ function reorganizeProjectFolder(projectFolderPath, projectManager)
         copyfile(oldConfigFolder, newConfigFolder)
 
         % Rename options files:
-        L = utility.dir.recursiveDir(fullfile(newConfigFolder, 'custom_options'), 'Type', 'file', 'FileType', 'mat');
+        L = recursiveDir(fullfile(newConfigFolder, 'custom_options'), 'Type', 'file', 'FileType', 'mat');
         filePaths = utility.dir.abspath(L);
 
         projectName = S.ProjectConfiguration.Name;

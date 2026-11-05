@@ -1,5 +1,8 @@
-classdef TestModalPreviewController < applify.mixin.ModalMethodPreviewController
-%TestModalPreviewController Test double for modal preview lifecycle tests.
+classdef ModalPreviewControllerSpy < applify.mixin.ModalMethodPreviewController
+%ModalPreviewControllerSpy Spy for modal preview controller lifecycle tests.
+%
+%   Records WasRun and EditorClosedCount so tests can assert on call-through
+%   behaviour without a real UI editor.
 
     properties
         Editor
@@ -9,7 +12,7 @@ classdef TestModalPreviewController < applify.mixin.ModalMethodPreviewController
 
     methods
 
-        function obj = TestModalPreviewController(options)
+        function obj = ModalPreviewControllerSpy(options)
             obj@applify.mixin.ModalMethodPreviewController(options)
             obj.DestroyOnFinish = false;
         end

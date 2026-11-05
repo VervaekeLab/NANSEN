@@ -189,7 +189,7 @@ classdef AddonManager < handle
             for i = 1:numel(addonEntries)
                 addonEntry = addonEntries(i);
                 if addonEntry.IsInstalled
-                    obj.downloadAddon(addonEntry.Name, true)
+                    obj.downloadAddon(addonEntry.Name, true);
                 end
             end
             obj.saveAddonList()
@@ -360,6 +360,10 @@ classdef AddonManager < handle
             installResult = nansen.config.addons.InstallationResult.create( ...
                 obj.AddonList(addonIdx), "succeeded", "complete", ...
                 sprintf('Installed %s.', addonEntry.Name));
+
+            if ~nargout
+                clear installResult
+            end
         end
 
         % Check if specified Add-On is installed
@@ -756,7 +760,14 @@ classdef AddonManager < handle
                 end
             end
             if ~isempty(addonEntry.Name)
-                matlab.addons.enableAddon(addonEntry.Name)
+                try
+                    matlab.addons.enableAddon(addonEntry.Name)
+                catch exception
+                    newException = MException('NANSEN:AddOns:EnableAddonFailed', ...
+                        'Failed to add-on with name: %s', addonEntry.Name);
+                    newException = newException.addCause(exception);
+                    throw(newException)
+                end
             end
         end
     end
