@@ -10,7 +10,7 @@ function modules = listModules()
 %       ManifestPath - Path of the dependencies.nansen.json file of the
 %                      module, or "" if the module has none
 %
-%   listModules calls only MATLAB functions, so it works before the
+%   listModules calls no community toolbox, so it works before the
 %   community toolboxes that NANSEN depends on are installed.
 %
 %   See also resolveModuleNames, resolveDependencyIds,

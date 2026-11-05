@@ -169,9 +169,12 @@ function installSelectedDependencies(addonManager, dependencies, declaringModule
 
     % The add-on manager tracks whether a dependency's setup step (such as
     % compiling MEX files) finished; the installation status tells whether
-    % its code is on the path
+    % its code is on the path. A dependency without an installCheck cannot
+    % be looked up on the path, so the add-on manager's record decides.
     dependencyStatus = nansen.internal.dependencies.checkInstallationStatus(dependencies);
-    isReady = [dependencyStatus.IsOnPath] & ...
+    hasInstallCheck = [dependencies.InstallCheck] ~= "";
+    isOnPath = [dependencyStatus.IsOnPath] | ~hasInstallCheck;
+    isReady = isOnPath & ...
         arrayfun(@(name) addonManager.isAddonInstalled(name), addonNames);
     if ~all(isReady)
         error('NANSEN:Setup:DependencyNotInstalled', ...

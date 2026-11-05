@@ -48,8 +48,9 @@ classdef DependencyLookupTest < matlab.unittest.TestCase
 
         function listModulesSkipsModuleTemplate(testCase)
         %listModulesSkipsModuleTemplate The template for new modules is not a module.
+        %   The template's module.nansen.json names it "<Module name>".
             modules = nansen.internal.dependencies.listModules();
-            testCase.verifyFalse(any([modules.PackageName] == "nansen.module.category.name"))
+            testCase.verifyFalse(any([modules.Name] == "<Module name>"))
         end
     end
 
