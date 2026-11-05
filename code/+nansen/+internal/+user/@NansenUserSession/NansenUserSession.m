@@ -212,6 +212,7 @@ classdef NansenUserSession < handle
             obj.Preferences.UserDataDirectory = obj.toPreferenceValue(newDirectory);
             obj.UserDataDirectoryOverride = '';
             obj.updateUserDataRedirect(newDirectory)
+            obj.recordUserDataDirectory(newDirectory)
             obj.ProjectManager.relocate(oldDirectory, newDirectory)
 
             % The old directory is the user's own when it was a chosen
@@ -256,6 +257,13 @@ classdef NansenUserSession < handle
             obj.AddonManager = nansen.AddonManager();
 
             userDataDirectory = obj.getCurrentUserDataDirectory();
+
+            % A session that uses the preference directory keeps the record
+            % of the directory used before, which is where the data is
+            if ~nansen.util.path.isSamePath(userDataDirectory, obj.PreferenceDirectory)
+                obj.recordUserDataDirectory(userDataDirectory)
+            end
+
             obj.ProjectManager = ProjectManager.instance(userDataDirectory, 'reset');
 
             obj.postStartup()
@@ -351,17 +359,53 @@ classdef NansenUserSession < handle
         %warnIfUserDataDirectoryIsReleaseSpecific Warn once when there is no userpath
         %
         %   Without a userpath there is no release independent default, so
-        %   the data stays in the preference directory. The resolver is
-        %   silent about it, because it runs on every path lookup.
+        %   the preference directory is used. The resolver is silent about
+        %   it, because it runs on every path lookup.
+        %
+        %   The data can still be in the directory that an earlier session
+        %   used, when the userpath was set then, and the startup migration
+        %   has emptied the preference directory. The warning names that
+        %   directory, which recordUserDataDirectory keeps.
 
             if strlength(obj.Preferences.UserDataDirectory) > 0; return; end
             if ~isempty(userpath()); return; end
 
-            warning('NANSEN:UserSession:EmptyUserpath', ...
-                ['MATLAB''s userpath is empty, so NANSEN keeps its data in ' ...
-                 'the preference directory of this MATLAB release. Set a ' ...
-                 'userpath, or set the UserDataDirectory preference, to keep ' ...
-                 'it across releases.'])
+            lastDirectory = obj.Preferences.LastUserDataDirectory;
+
+            if strlength(lastDirectory) == 0
+                warning('NANSEN:UserSession:EmptyUserpath', ...
+                    ['MATLAB''s userpath is empty, so NANSEN keeps its data in ' ...
+                     'the preference directory of this MATLAB release. Set a ' ...
+                     'userpath, or set the UserDataDirectory preference, to keep ' ...
+                     'it across releases.'])
+            else
+                warning('NANSEN:UserSession:EmptyUserpath', ...
+                    ['MATLAB''s userpath is empty, so NANSEN uses the preference ' ...
+                     'directory of this MATLAB release, "%s", for its data. The ' ...
+                     'last session with a userpath used the data in "%s". Set ' ...
+                     'MATLAB''s userpath again to use that data.'], ...
+                    obj.PreferenceDirectory, lastDirectory)
+            end
+        end
+
+        function recordUserDataDirectory(obj, folderPath)
+        %recordUserDataDirectory Remember the user data directory for a later warning
+        %
+        %   The record lets warnIfUserDataDirectoryIsReleaseSpecific name
+        %   the directory that holds the data when MATLAB's userpath is
+        %   empty. The preference directory is recorded as empty, since it
+        %   is the directory used without a userpath anyway. The file is
+        %   written only when the value changes.
+
+            if nansen.util.path.isSamePath(folderPath, obj.PreferenceDirectory)
+                recordedValue = "";
+            else
+                recordedValue = string(folderPath);
+            end
+
+            if obj.Preferences.LastUserDataDirectory ~= recordedValue
+                obj.Preferences.LastUserDataDirectory = recordedValue;
+            end
         end
 
         function folderPath = validateUserDataDirectory(obj, newDirectory)
