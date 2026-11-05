@@ -210,7 +210,7 @@ classdef UserDataDirectoryTest < matlab.unittest.TestCase
         function testLocalDirectoryIsKeyedByMachine(testCase)
         % Machines sharing a user data directory must not share this folder
 
-            machineIdentifier = string(utility.system.getComputerName(true));
+            machineIdentifier = nansen.internal.system.getMachineIdentifier();
 
             testCase.verifyEqual(nansen.localdatadir(), ...
                 char(fullfile(testCase.DefaultDirectory, 'local', machineIdentifier)))
