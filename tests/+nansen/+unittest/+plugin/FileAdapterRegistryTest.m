@@ -113,6 +113,22 @@ classdef FileAdapterRegistryTest < matlab.unittest.TestCase
             testCase.verifyEqual(entries.SupportedFileTypes, ".tiff")
         end
 
+        function testSidecarAdapterWithSeveralFileTypes(testCase)
+        %testSidecarAdapterWithSeveralFileTypes One adapter in a source lists two file types
+        %
+        %   A source with one adapter gives a scalar adapter struct, and
+        %   its SupportedFileTypes field holds two elements.
+            srcDir = testCase.makeSidecarSource('src', 'TiffAdapter', ["tif", "tiff"]);
+            reg = nansen.plugin.fileadapter.Registry();
+            reg.pinBottom("src", srcDir);
+            reg.reconcile();
+
+            entries = reg.list();
+            testCase.verifyNumElements(entries, 1)
+            testCase.verifyEqual(entries.FileAdapterName, "TiffAdapter")
+            testCase.verifyEqual(entries.SupportedFileTypes(:), [".tif"; ".tiff"])
+        end
+
         function testModuleDeprecationWarning(testCase)
             module = nansen.module.Module.fromName( ...
                 nansen.common.constant.BaseModuleName);
@@ -131,19 +147,22 @@ classdef FileAdapterRegistryTest < matlab.unittest.TestCase
     end
 
     methods (Access = private)
-        function srcDir = makeSidecarSource(testCase, name, adapterName, ext)
+        function srcDir = makeSidecarSource(testCase, name, adapterName, extensions)
         %makeSidecarSource Create a temp source dir with one sidecar adapter.
             srcDir = fullfile(testCase.TempDir, name);
-            testCase.makeSidecarSourceInDir(srcDir, adapterName, ext);
+            testCase.makeSidecarSourceInDir(srcDir, adapterName, extensions);
         end
 
-        function makeSidecarSourceInDir(~, srcDir, adapterName, ext)
+        function makeSidecarSourceInDir(~, srcDir, adapterName, extensions)
         %makeSidecarSourceInDir Write a fileadapter.json sidecar into srcDir.
         %
-        %   Writes the JSON with a "_type" field (dot-prefixed extension),
-        %   matching the format the parser expects.
+        %   extensions holds one or more file types without a dot. The JSON
+        %   has a "_type" field and lists each file type with a leading
+        %   dot, matching the format the parser expects.
             faDir = fullfile(srcDir, '+fileadapter', ['+', adapterName]);
             mkdir(faDir)
+
+            fileTypeList = strjoin("""." + string(extensions) + """", ", ");
 
             % Build JSON manually so the field is literally "_type"
             % (jsonencode would produce "x_type" from a struct, which also
@@ -155,7 +174,7 @@ classdef FileAdapterRegistryTest < matlab.unittest.TestCase
                 '    "Properties": {\n', ...
                 '        "Name": "%s",\n', ...
                 '        "Description": "",\n', ...
-                '        "SupportedFileTypes": [".%s"],\n', ...
+                '        "SupportedFileTypes": [%s],\n', ...
                 '        "FileExpression": "",\n', ...
                 '        "DataType": "generic",\n', ...
                 '        "IsGeneral": false,\n', ...
@@ -163,7 +182,7 @@ classdef FileAdapterRegistryTest < matlab.unittest.TestCase
                 '        "WriteFunction": "",\n', ...
                 '        "ViewFunction": ""\n', ...
                 '    }\n', ...
-                '}'], adapterName, ext);
+                '}'], adapterName, fileTypeList);
 
             utility.filewrite(fullfile(faDir, 'fileadapter.json'), jsonStr)
         end
