@@ -5,10 +5,6 @@ classdef ModuleActivationTest < matlab.unittest.TestCase
 %   module discovery finds for the two-photon module: the module itself,
 %   its session methods, file adapters, data variables and data locations.
 %
-%   This is the migration's final gate in miniature: it must pass with the
-%   module inside NANSEN and, after extraction, with the module's code
-%   folder on the path next to a NANSEN installation.
-%
 %   Run tests:
 %       runtests('twophotontest.ModuleActivationTest')
 

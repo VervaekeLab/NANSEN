@@ -3,9 +3,7 @@ classdef ModuleDiscoveryTest < matlab.unittest.TestCase
 %
 %   Pins how nansen.config.module.ModuleManager finds modules on the
 %   MATLAB path and what it derives for each: package name, short name,
-%   category and whether it is the core module. Written before the
-%   two-photon module moves out of the repository so that discovery does
-%   not change by accident on the way.
+%   category and whether it is the core module.
 %
 %   Run tests:
 %       runtests('nansen.unittest.module.ModuleDiscoveryTest')
@@ -51,8 +49,7 @@ classdef ModuleDiscoveryTest < matlab.unittest.TestCase
         end
 
         function testShortNamesAreUnique(testCase)
-            % Discovery keys modules by short name once the category folder
-            % is optional, so short names must not collide.
+            % Module short names must be unique across categories.
             shortNames = string({testCase.ModuleList.ShortName});
             testCase.verifyEqual(numel(unique(shortNames)), numel(shortNames))
         end
