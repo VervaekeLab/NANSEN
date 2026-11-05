@@ -1,4 +1,4 @@
-classdef SciScanRaw < nansen.stack.data.VirtualArray & nansen.stack.utility.TwoPhotonRecording
+classdef SciScanRaw < nansen.stack.data.VirtualArray & nansen.module.twophoton.io.TwoPhotonRecording
 %SciScanRaw Virtual data adapter for a sciscan raw file
 
 properties (Constant, Hidden)
@@ -24,7 +24,7 @@ methods % Structors
         % Open folder browser if there are no inputs.
         if nargin < 1; filePath = uigetdir; end
 
-        obj@nansen.stack.utility.TwoPhotonRecording(varargin{:})
+        obj@nansen.module.twophoton.io.TwoPhotonRecording(varargin{:})
         obj@nansen.stack.data.VirtualArray(filePath, varargin{:})
     end
 

@@ -24,7 +24,7 @@ classdef ScanImageMultiRoi2PSeries < nansen.dataio.FileAdapter
         %readData Read data from a sciscan file to a virtual ImageStack
 
             import nansen.stack.FileConcatenator
-            import nansen.stack.virtual.ScanImageTiff
+            import nansen.module.twophoton.io.scanimage.ScanImageTiff
 
             % Todo: One image stack per virtual data...
 
@@ -38,10 +38,10 @@ classdef ScanImageMultiRoi2PSeries < nansen.dataio.FileAdapter
             end
 
             % Create a virtualData object per fov.
-            virtualData = nansen.stack.virtual.ScanImageMultiRoiTiff.empty;
+            virtualData = nansen.module.twophoton.io.scanimage.ScanImageMultiRoiTiff.empty;
             for i = 1:numel(filePathList)
                 virtualData = [virtualData, ...
-                    nansen.stack.virtual.ScanImageMultiRoiTiff(filePathList{i})]; %#ok<AGROW>
+                    nansen.module.twophoton.io.scanimage.ScanImageMultiRoiTiff(filePathList{i})]; %#ok<AGROW>
             end
 
             imageStack = arrayfun(@(vd) nansen.stack.ImageStack(vd), virtualData, 'UniformOutput', false);

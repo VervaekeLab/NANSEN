@@ -334,7 +334,7 @@ methods (Access = protected) % Todo: Scan image and subclass
 
     function sIParams = getScanParameters(obj)
 
-        import nansen.module.twophoton.utility.scanimage.getScanParameters
+        import nansen.module.twophoton.io.scanimage.getScanParameters
 
         % Todo:
         %       Read info about channel colors...
@@ -552,7 +552,7 @@ methods (Static)
     %   The input, tiffRef can be the absolute file path to a tiff file or
     %   a Tiff object.
 
-        import nansen.module.twophoton.utility.scanimage.getScanParameters
+        import nansen.module.twophoton.io.scanimage.getScanParameters
 
         tiffObject = nansen.stack.utility.getTiffObject(tiffRef);
 
@@ -570,7 +570,7 @@ methods (Static)
                 assert(numImagingSystems == numel(tiffObject), 'Number of light paths must match number of tiff files')
                 numRois = zeros(1, numImagingSystems);
                 for j = 1:numel(tiffObject)
-                    [~, numRois(j)] = nansen.stack.virtual.ScanImageTiff.checkIfMultiRoi(tiffObject(j));
+                    [~, numRois(j)] = nansen.module.twophoton.io.scanimage.ScanImageTiff.checkIfMultiRoi(tiffObject(j));
                 end
                 numRois = sum(numRois);
                 isMultiRoi = numRois > 1;

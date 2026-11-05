@@ -21,7 +21,7 @@ classdef SciScanXYTSeries < nansen.dataio.FileAdapter
 
         function imageStack = readData(obj, ~)
         %readData Read data from a sciscan file to a virtual ImageStack
-            virtualData = nansen.stack.virtual.SciScanRaw(obj.Filename);
+            virtualData = nansen.module.twophoton.io.sciscan.SciScanRaw(obj.Filename);
             imageStack = nansen.stack.ImageStack(virtualData);
         end
     end

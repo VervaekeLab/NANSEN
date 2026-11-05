@@ -1,5 +1,5 @@
 classdef TwoPhotonRecording < handle
-%nansen.stack.utility.TwoPhotonRecording Mixin class for two-photon-stacks
+%nansen.module.twophoton.io.TwoPhotonRecording Mixin class for two-photon-stacks
 %
 %   This class can be added as a superclass to virtualdata classes that are
 %   developed especially for reading two-photon recording data.
@@ -157,7 +157,7 @@ classdef TwoPhotonRecording < handle
 
         function data = correctResonanceStretch(obj, data)
 
-            import nansen.module.twophoton.utility.sciscan.correctResonanceStretch
+            import nansen.module.twophoton.io.sciscan.correctResonanceStretch
 
             % Correct stretching of images due to the sinusoidal movement profile
             % of the resonance mirror

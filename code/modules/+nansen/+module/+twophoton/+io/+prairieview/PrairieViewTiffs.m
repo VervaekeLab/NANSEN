@@ -1,5 +1,5 @@
 classdef PrairieViewTiffs < nansen.stack.data.VirtualArray
-%nansen.stack.virtual.PrairieViewTiffs Create virtual array for PrairieView
+%nansen.module.twophoton.io.prairieview.PrairieViewTiffs Create virtual array for PrairieView
 %
 %
 %
@@ -351,7 +351,7 @@ methods (Access = protected)
 
     function metadata = getPrairieViewRecordingInfo(obj)
     %getPrairieViewRecordingInfo Get recording info from prairieview xml file
-        import nansen.module.twophoton.utility.prairieview.getPrairieMetaData
+        import nansen.module.twophoton.io.prairieview.getPrairieMetaData
         tSeriesPath = fileparts(obj.FilePath);
         metadata = getPrairieMetaData( tSeriesPath );
     end
