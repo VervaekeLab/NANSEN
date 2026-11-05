@@ -13,6 +13,7 @@ classdef ImportDatasetStructureModelTest < matlab.unittest.TestCase
 
     properties
         DataFolder char
+        Model
         DataLocationModel
         VariableModel
         Report
@@ -43,6 +44,7 @@ classdef ImportDatasetStructureModelTest < matlab.unittest.TestCase
                 '+fixture', 'datasetstructure', 'garad-2022.json');
             dsm = jsondecode(fileread(fixture));
             dsm.dataLocations.filesystemSource.rootStoragePaths.path = testCase.DataFolder;
+            testCase.Model = dsm;
 
             configFolder = fullfile(root, 'configurations');
             mkdir(configFolder)
@@ -70,8 +72,8 @@ classdef ImportDatasetStructureModelTest < matlab.unittest.TestCase
     methods (Test)
 
         function testImportedModelsLoadFromDisk(testCase)
-            % The only data location is read-only, so there is no default.
-            % Loading such a model used to raise.
+            % The only data location is read-only, so the model has no
+            % default data location, and it loads without one.
             testCase.verifyEqual(testCase.DataLocationModel.DataLocationNames, {'garad'})
             testCase.verifyEmpty(testCase.DataLocationModel.DefaultDataLocation)
             testCase.verifyEqual(testCase.VariableModel.getItem('abf').FileType, '.ABF')
@@ -140,6 +142,17 @@ classdef ImportDatasetStructureModelTest < matlab.unittest.TestCase
                 'FilterFcn', @(names) contains(names, '170519_2c'));
 
             testCase.verifyEqual(fileName, '170519_2c.ABF')
+        end
+
+        function testImportingAgainChangesNothing(testCase)
+            % Every name of the model is in the project after the first
+            % import, so the second one raises before it adds anything.
+            testCase.verifyError(@() nansen.config.dloc.importDatasetStructureModel(testCase.Model, ...
+                testCase.DataLocationModel, testCase.VariableModel), ...
+                'NANSEN:ImportDatasetStructureModel:NameExists')
+
+            testCase.verifyEqual(testCase.DataLocationModel.NumDataLocations, 1)
+            testCase.verifyEqual(sum(strcmp(testCase.VariableModel.VariableNames, 'abf')), 1)
         end
 
         function testReportIsReturned(testCase)
