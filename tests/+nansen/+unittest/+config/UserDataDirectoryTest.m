@@ -101,6 +101,31 @@ classdef UserDataDirectoryTest < matlab.unittest.TestCase
             preferenceValue = nansen.internal.user.Preferences.readValue( ...
                 nansen.prefdir, "UserDataDirectory");
             testCase.verifyEqual(preferenceValue, "")
+
+            % Other releases must not be sent to the old location
+            testCase.verifyFalse(isfile( ...
+                nansen.internal.user.UserDataRedirect.getFilePath(testCase.DefaultDirectory)))
+        end
+
+        function testRedirectPointsOtherReleasesToTheDirectory(testCase)
+        % A release without its own preference follows the redirect file
+
+            import nansen.internal.user.NansenUserSession
+            import nansen.internal.user.UserDataRedirect
+
+            newDirectory = testCase.moveUserDataDirectory('redirected');
+
+            testCase.verifyEqual(UserDataRedirect.read(testCase.DefaultDirectory), ...
+                string(newDirectory))
+
+            % Clear the preference on file, as in a release that never set it
+            preferences = testCase.UserSession.Preferences;
+            preferences.UserDataDirectory = "";
+            testCase.addTeardown(@() testCase.restorePreference(newDirectory))
+
+            resolved = NansenUserSession.getUserDataDirectory( ...
+                testCase.UserSession.CurrentUserName);
+            testCase.verifyEqual(resolved, char(newDirectory))
         end
 
         function testCurrentProjectIsPreservedAcrossMove(testCase)
@@ -278,6 +303,13 @@ classdef UserDataDirectoryTest < matlab.unittest.TestCase
             % moves the data back before the folder is removed.
             testCase.addTeardown( ...
                 @() testCase.UserSession.setUserDataDirectory("") )
+        end
+
+        function restorePreference(testCase, userDataDirectory)
+        %restorePreference Set the preference back to the directory in use
+
+            preferences = testCase.UserSession.Preferences;
+            preferences.UserDataDirectory = string(userDataDirectory);
         end
 
         function folderPath = createTemporaryDirectory(testCase, folderName)
