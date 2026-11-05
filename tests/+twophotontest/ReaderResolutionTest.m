@@ -4,9 +4,7 @@ classdef ReaderResolutionTest < matlab.unittest.TestCase
 %   Characterization tests for
 %   nansen.dataio.fileadapter.imagestack.ImageStack.getVirtualDataClassNameFromFilename,
 %   the core dispatcher that maps a file name (or, for SciScan and
-%   ScanImage, the file's content) to a virtual-data reader class. The
-%   scanner readers move into the two-photon module during the migration;
-%   these tests must keep passing with only the class names updated.
+%   ScanImage, the file's content) to a virtual-data reader class.
 %
 %   Content-probed formats are synthesised from what the predicates read:
 %   SciScanRaw.fileCheck wants a .raw file, a sibling .ini file, and two

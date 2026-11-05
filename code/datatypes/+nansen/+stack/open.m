@@ -47,12 +47,10 @@ function virtualData = open(pathStr, varargin)
             try
                 softwareName = imInfo.getTag('Software');
                 if strcmp(softwareName(1:2), 'SI')
+                    % ScanImage files, multi-ROI recordings included, are
+                    % opened as ScanImageTiff by openUsingCustomFileAdapter
+                    % before this switch.
                     isMultiFov = nansen.module.twophoton.io.scanimage.ScanImageTiff.checkIfMultiRoi(imInfo);
-                    % Multi-ROI (multi-FOV) ScanImage recordings have no
-                    % dedicated reader here and fall through to the generic
-                    % TIFF reader below. Dedicated multi-ROI dispatch belongs
-                    % to the reader-discovery follow-up of the two-photon
-                    % module migration.
                     if ~isMultiFov
                         virtualData = nansen.module.twophoton.io.scanimage.ScanImageTiff(pathStr, varargin{:}, nvPairs{:});
                     end
