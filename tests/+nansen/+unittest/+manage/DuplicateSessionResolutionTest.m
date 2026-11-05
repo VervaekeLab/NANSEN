@@ -116,6 +116,55 @@ classdef DuplicateSessionResolutionTest < matlab.unittest.TestCase
                 ["A_imaging.tif", "B_imaging.tif"])
         end
 
+        function testSameFolderDuplicatesAreReturned(testCase)
+            rootPath = testCase.createRootFolderWithFiles(...
+                ["A_imaging.tif", "A_behavior.csv", "B_imaging.tif"]);
+            sessionArray = createMockSessionArray(["A", "A", "B"], ...
+                ["A_imaging.tif", "A_behavior.csv", "B_imaging.tif"], rootPath);
+
+            [~, excludedSessionTable] = ...
+                nansen.manage.excludeSameFolderDuplicates(sessionArray);
+
+            testCase.verifyEqual(excludedSessionTable.SessionID, "A")
+            testCase.verifyEqual(excludedSessionTable.SessionIndex, 2)
+        end
+
+        function testFilesWithoutSessionIDAreKept(testCase)
+        %testFilesWithoutSessionIDAreKept Sessions with an empty ID are left for the dialog
+            fileNames = ["A_imaging.tif", "notes.txt", "README.txt"];
+            rootPath = testCase.createRootFolderWithFiles(fileNames);
+            sessionArray = createMockSessionArray(["A", "", ""], fileNames, rootPath);
+
+            [remainingSessions, excludedSessionTable] = ...
+                nansen.manage.excludeSameFolderDuplicates(sessionArray);
+
+            testCase.verifyEqual(remainingSessions, sessionArray)
+            testCase.verifyEqual(height(excludedSessionTable), 0)
+        end
+
+        function testSessionsWithOtherFolderInSecondDataLocationAreKept(testCase)
+        %testSessionsWithOtherFolderInSecondDataLocationAreKept Folders must match in every data location
+            fileNames = ["A_imaging.tif", "A_behavior.csv"];
+            rootPath = testCase.createRootFolderWithFiles(fileNames);
+            sessionArray = createMockSessionArrayWithTwoDataLocations(["A", "A"], ...
+                fileNames, ["a_one", "a_two"], rootPath);
+
+            remainingSessions = nansen.manage.excludeSameFolderDuplicates(sessionArray);
+
+            testCase.verifyEqual(remainingSessions, sessionArray)
+        end
+
+        function testSessionsWithSameFoldersInTwoDataLocationsKeepFirst(testCase)
+            fileNames = ["A_imaging.tif", "A_behavior.csv"];
+            rootPath = testCase.createRootFolderWithFiles(fileNames);
+            sessionArray = createMockSessionArrayWithTwoDataLocations(["A", "A"], ...
+                fileNames, ["a_one", "a_one"], rootPath);
+
+            remainingSessions = nansen.manage.excludeSameFolderDuplicates(sessionArray);
+
+            testCase.verifyEqual(remainingSessions, sessionArray(1))
+        end
+
         function testFilesInDifferentFoldersAreKept(testCase)
             relativeFilePaths = [fullfile("m01", "A_imaging.tif"), ...
                 fullfile("m02", "A_imaging.tif")];
@@ -210,5 +259,24 @@ function sessionArray = createMockSessionArray(sessionIDs, subfolders, rootPath)
             'Name', 'Raw', ...
             'RootPath', char(rootPath), ...
             'Subfolders', char(subfolders(i)));
+    end
+end
+
+function sessionArray = createMockSessionArrayWithTwoDataLocations(sessionIDs, ...
+        rawSubfolders, processedSubfolders, rootPath)
+%createMockSessionArrayWithTwoDataLocations Mock sessions with a Raw and a Processed data location
+    arguments
+        sessionIDs (:,1) string
+        rawSubfolders (:,1) string
+        processedSubfolders (:,1) string
+        rootPath (1,1) string
+    end
+
+    for i = numel(sessionIDs):-1:1
+        sessionArray(i).sessionID = char(sessionIDs(i));
+        sessionArray(i).DataLocation = struct(...
+            'Name', {'Raw', 'Processed'}, ...
+            'RootPath', char(rootPath), ...
+            'Subfolders', {char(rawSubfolders(i)), char(processedSubfolders(i))});
     end
 end

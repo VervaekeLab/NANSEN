@@ -1,9 +1,15 @@
-function sessionArray = excludeSameFolderDuplicates(sessionArray)
+function [sessionArray, excludedSessionTable] = excludeSameFolderDuplicates(sessionArray)
 %excludeSameFolderDuplicates - Remove duplicate sessions in the same folder
 %   sessionArray = excludeSameFolderDuplicates(sessionArray) removes every
 %   session that has the same sessionID and the same session folder in
 %   every data location as an earlier session in sessionArray. Sessions
-%   with the same sessionID and different session folders are kept.
+%   with the same sessionID and different session folders are kept, and so
+%   are sessions with an empty sessionID.
+%
+%   [sessionArray,excludedSessionTable] = excludeSameFolderDuplicates(...)
+%   also returns a table with one row for each removed session. The table
+%   has the variables of the table that buildDuplicateSessionTable
+%   returns. SessionIndex is the index into the input sessionArray.
 %
 %   Sessions of this kind are created when the session level of a data
 %   location is a file and one folder holds several files with the same
@@ -32,7 +38,13 @@ function sessionArray = excludeSameFolderDuplicates(sessionArray)
     isExcluded = true(numDuplicates, 1);
     isExcluded(keptRows) = false;
 
-    sessionArray(duplicateTable.SessionIndex(isExcluded)) = [];
+    % An empty sessionID means that no ID was found in the file or folder
+    % name, so sessions without one are not copies of each other. They are
+    % left for the duplicate session dialog.
+    isExcluded(duplicateTable.SessionID == "") = false;
+
+    excludedSessionTable = duplicateTable(isExcluded, :);
+    sessionArray(excludedSessionTable.SessionIndex) = [];
 end
 
 function sessionFolders = getSessionFolders(sessionObject)
