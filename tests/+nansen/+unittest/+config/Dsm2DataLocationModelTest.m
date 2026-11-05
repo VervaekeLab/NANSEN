@@ -50,6 +50,14 @@ classdef Dsm2DataLocationModelTest < matlab.unittest.TestCase
             {'7:9', '1a'}, {'-4:-1', '.AB'}, {'0:20', '170518_1a.ABF'}, {'7:20', '1a.ABF'}, ...
             {'15:20', ''}, {'20:', ''}, {'-20:', '170518_1a.ABF'}, {'-20:-4', '170518_1a'}, {':-20', ''}}
         refusedSliceCase = {'5:3', '-1:-3', '0:0', '-3:5'}
+        % Count fields of a file pattern, the field that decides, and
+        % whether they let a session have several matching files
+        countCase = struct( ...
+            'noCardinality', {{{}, "cardinality", true}}, ...
+            'cardinalityOne', {{{'cardinality', 'one'}, "cardinality", false}}, ...
+            'cardinalityMany', {{{'cardinality', 'many'}, "cardinality", true}}, ...
+            'maxCountThree', {{{'maxCount', 3}, "maxCount", true}}, ...
+            'maxCountOne', {{{'maxCount', 1}, "maxCount", false}})
     end
 
     methods (TestClassSetup)
@@ -313,29 +321,6 @@ classdef Dsm2DataLocationModelTest < matlab.unittest.TestCase
             testCase.verifyEqual(expression, "")
         end
 
-        function testRegexQuantifierIsNotAWildcard(testCase)
-            % In a regex, * repeats what precedes it: ^ab*c\.txt$ matches
-            % ac.txt but not abxc.txt, which the wildcard ab*c.txt matches.
-            convert = @(p) nansen.config.dloc.dsmconversion.convertFilePatternToWildcard(p, "recording_id");
-            for pattern = ["^ab*c\.txt$", "^data_+\.csv$", "^{recording_id}*\.ABF$", "^a{2}\.txt$"]
-                [~, ~, isConverted] = convert(pattern);
-                testCase.verifyFalse(isConverted, pattern)
-            end
-        end
-
-        function testUnanchoredEndMatchesLongerNames(testCase)
-            % A file pattern is searched for anywhere in the name, so a
-            % pattern without $ matches names that continue after it.
-            convert = @(p) nansen.config.dloc.dsmconversion.convertFilePatternToWildcard(p, "recording_id");
-
-            [expression, fileType] = convert("^{recording_id}_raw");
-            testCase.verifyEqual(expression, "^*_raw*$")
-            testCase.verifyEqual(fileType, "")
-
-            testCase.verifyEqual(convert("\.ABF"), ".ABF*$")
-            testCase.verifyEqual(convert("^{recording_id}.*"), "^*$")
-        end
-
         function testRepeatedPatternNamesAreQualifiedByLocation(testCase)
             % A file pattern name is unique within a level, but a NANSEN
             % variable name is unique within a project. Two locations that
@@ -396,6 +381,98 @@ classdef Dsm2DataLocationModelTest < matlab.unittest.TestCase
             testCase.verifyTrue(any(isAssociation & contains(report.Reason, "No extraction rule for this part")))
             testCase.verifyFalse(any(contains(report.Reason, "NANSEN needs a single id field")))
         end
+
+        function testRegexQuantifierIsNotAWildcard(testCase)
+            % In a regex, * repeats what precedes it: ^ab*c\.txt$ matches
+            % ac.txt but not abxc.txt, which the wildcard ab*c.txt matches.
+            convert = @(p) nansen.config.dloc.dsmconversion.convertFilePatternToWildcard(p, "recording_id");
+            for pattern = ["^ab*c\.txt$", "^data_+\.csv$", "^{recording_id}*\.ABF$", "^a{2}\.txt$"]
+                [~, ~, isConverted] = convert(pattern);
+                testCase.verifyFalse(isConverted, pattern)
+            end
+        end
+
+        function testFileTypeIsTheExtensionOfThePattern(testCase)
+            convert = @(p) nansen.config.dloc.dsmconversion.convertFilePatternToWildcard(p, "session_id");
+            cases = { ...
+                "\.7z$", ".7z"; ...
+                "^{session_id}\.ome\.tif$", ".ome.tif"; ...
+                "\.nii\.gz$", ".nii.gz"; ...
+                "^v1\.2\.txt$", ".txt"};
+            for i = 1:height(cases)
+                [~, fileType] = convert(cases{i, 1});
+                testCase.verifyEqual(fileType, cases{i, 2}, cases{i, 1})
+            end
+        end
+
+        function testFileAdapterOfTheLongestSupportedEnding(testCase)
+            adapters = struct( ...
+                'FileAdapterName', {'Tiff', 'Gzip', 'NIfTI', 'SevenZip'}, ...
+                'SupportedFileTypes', {{'tif', 'tiff'}, {'gz'}, {'nii', 'nii.gz'}, {'.7z'}});
+            adapterFor = @(fileType) nansen.config.dloc.dsmconversion.findFileAdapterName(fileType, adapters);
+
+            testCase.verifyEqual(adapterFor(".ome.tif"), "Tiff", 'No adapter has ome.tif, so tif decides.')
+            testCase.verifyEqual(adapterFor(".nii.gz"), "NIfTI", 'nii.gz is a longer ending than gz.')
+            testCase.verifyEqual(adapterFor(".TIF"), "Tiff")
+            testCase.verifyEqual(adapterFor(".7z"), "SevenZip")
+            testCase.verifyEqual(adapterFor(".ap.bin"), "")
+            testCase.verifyEqual(adapterFor(""), "")
+        end
+
+        function testPatternThatAllowsSeveralFilesIsReported(testCase, countCase)
+            [countFields, decidingField, isReported] = countCase{:};
+            model = testCase.garadModel();
+            abf = rmfield(model.dataLocations.filesystemSource.entityLayout.filePatterns, 'cardinality');
+            for j = 1:2:numel(countFields)
+                abf.(countFields{j}) = countFields{j+1};
+            end
+            model.dataLocations.filesystemSource.entityLayout.filePatterns = abf;
+
+            [~, ~, report] = nansen.config.dloc.dsm2DataLocationModel(model);
+
+            element = "dataLocations[garad].entityLayout[recording-files].filePatterns[abf]." + decidingField;
+            testCase.verifyEqual(any(report.Element == element), isReported)
+        end
+
+        function testCompositeIdentityOfFilesIsRefused(testCase)
+            % Joining whole file names would make each file a session, with
+            % its extension in the Session ID.
+            model = jsondecode(scanningDayModel());
+            model.dataLocations(1).filesystemSource.entityLayout{3}.fileSystemType = 'file';
+
+            [dataLocations, ~, report] = nansen.config.dloc.dsm2DataLocationModel(model, ...
+                SessionEntity="scanning_day");
+            association = dataLocations(strcmp({dataLocations.Name}, 'association'));
+
+            rule = association.MetaDataDef(strcmp({association.MetaDataDef.VariableName}, 'Session ID'));
+            testCase.verifyEmpty(rule.SubfolderLevel)
+            isAssociation = startsWith(report.Element, "dataLocations[association].metadataMapping");
+            testCase.verifyTrue(any(isAssociation & contains(report.Reason, "level of files")))
+        end
+
+        function testJoinedSessionIdsMatchAcrossLocationsOnlyOnTheSameLevels(testCase)
+            % The association joins experiment, monkey and day, and the
+            % localizer joins monkey and day, so their Session IDs differ.
+            [~, ~, report] = nansen.config.dloc.dsm2DataLocationModel( ...
+                jsondecode(scanningDayModel()), SessionEntity="scanning_day");
+
+            testCase.verifyTrue(any(report.Element == "dataLocations" & contains(report.Reason, "same order")))
+            testCase.verifyFalse(any(testCase.Report.Element == "dataLocations"), ...
+                'A model with one data location has no sessions to match across locations.')
+        end
+
+        function testUnanchoredEndMatchesLongerNames(testCase)
+            % A file pattern is searched for anywhere in the name, so a
+            % pattern without $ matches names that continue after it.
+            convert = @(p) nansen.config.dloc.dsmconversion.convertFilePatternToWildcard(p, "recording_id");
+
+            [expression, fileType] = convert("^{recording_id}_raw");
+            testCase.verifyEqual(expression, "^*_raw*$")
+            testCase.verifyEqual(fileType, "")
+
+            testCase.verifyEqual(convert("\.ABF"), ".ABF*$")
+            testCase.verifyEqual(convert("^{recording_id}.*"), "^*$")
+        end
     end
 end
 
@@ -443,7 +520,8 @@ function text = twoFormatModel()
     model = struct( ...
         'schemaVersion', '0.1.0', ...
         'entityTypes', {{struct('name', 'cell', 'identifierRef', 'cell_id')}}, ...
-        'metadataDefinitions', struct('cell_id', struct('name', 'cell_id', 'dataType', 'string', 'ofEntity', 'cell')), ...
+        'metadataDefinitions', struct('cell_id', ...
+            struct('name', 'cell_id', 'dataType', 'string', 'ofEntity', 'cell')), ...
         'dataLocations', {{location('igor', 'pxp', {}), ...
                            location('nwb', 'nwb', {struct('name', 'notes', 'pattern', '\.txt$')})}});
     text = jsonencode(model);

@@ -70,7 +70,20 @@ classdef Dsm2DataLocationFilesBelowSessionTest < matlab.unittest.TestCase
             [~, ~, report] = nansen.config.dloc.dsm2DataLocationModel(testCase.Model);
 
             isRunLevel = endsWith(report.Element, "entityLayout[run-files]");
-            testCase.verifyTrue(any(isRunLevel & contains(report.Reason, "uses the first")))
+            testCase.verifyTrue(any(isRunLevel & contains(report.Reason, "AmbiguousFileMatch")))
+        end
+
+        function testLevelOfFilesWithoutFilePatternsIsNotReported(testCase)
+            % Without file patterns the level gives no variable, so there
+            % is no variable to find several files for.
+            model = testCase.Model;
+            model.dataLocations.filesystemSource.entityLayout{4} = ...
+                rmfield(model.dataLocations.filesystemSource.entityLayout{4}, 'filePatterns');
+
+            [~, variables, report] = nansen.config.dloc.dsm2DataLocationModel(model);
+
+            testCase.verifyEmpty(variables)
+            testCase.verifyFalse(any(report.Element == "dataLocations[fmri].entityLayout[run-files]"))
         end
 
         function testLevelsBelowVariableFolderAreDropped(testCase)
