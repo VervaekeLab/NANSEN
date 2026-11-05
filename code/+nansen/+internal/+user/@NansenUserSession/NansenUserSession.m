@@ -609,8 +609,17 @@ classdef NansenUserSession < handle
 
             % Runs at every startup, in whichever directory this session
             % uses, so that these files are where nansen.localpath looks
-            % for them also when the move above did not run or failed.
-            nansen.internal.user.moveMachineLocalSettings(obj.getCurrentUserDataDirectory())
+            % for them also when the move above did not run or failed. A
+            % failure is reported, so that it does not stop the session.
+            try
+                nansen.internal.user.moveMachineLocalSettings(obj.getCurrentUserDataDirectory())
+            catch ME
+                warning('NANSEN:UserSession:MachineLocalSettingsNotMoved', ...
+                    ['NANSEN could not move the task list and the watch folder ' ...
+                     'catalog from the settings folder to the machine specific ' ...
+                     'folder, so this session does not find them.\nReason: %s'], ...
+                    ME.message)
+            end
         end
 
         function moveUserDataOutOfPreferenceDirectory(obj, preferenceDirectory, userDataDirectory)
