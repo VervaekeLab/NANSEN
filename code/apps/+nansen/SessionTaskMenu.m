@@ -101,7 +101,7 @@ classdef SessionTaskMenu < handle
         %   packages to include when building the menu
         %
         %   Currently available modules:
-        %       'ophys.twophoton'
+        %       'nansen.module.twophoton'
 
             obj.ParentApp = appHandle;
 

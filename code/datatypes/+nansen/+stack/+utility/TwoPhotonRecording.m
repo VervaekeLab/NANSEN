@@ -157,7 +157,7 @@ classdef TwoPhotonRecording < handle
 
         function data = correctResonanceStretch(obj, data)
 
-            import nansen.module.ophys.twophoton.utility.sciscan.correctResonanceStretch
+            import nansen.module.twophoton.utility.sciscan.correctResonanceStretch
 
             % Correct stretching of images due to the sinusoidal movement profile
             % of the resonance mirror

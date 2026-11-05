@@ -351,7 +351,7 @@ methods (Access = protected)
 
     function metadata = getPrairieViewRecordingInfo(obj)
     %getPrairieViewRecordingInfo Get recording info from prairieview xml file
-        import nansen.module.ophys.twophoton.utility.prairieview.getPrairieMetaData
+        import nansen.module.twophoton.utility.prairieview.getPrairieMetaData
         tSeriesPath = fileparts(obj.FilePath);
         metadata = getPrairieMetaData( tSeriesPath );
     end

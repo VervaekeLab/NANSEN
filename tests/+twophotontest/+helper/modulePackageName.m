@@ -3,5 +3,5 @@ function packageName = modulePackageName()
 %
 %   Kept in one place so that renaming the module updates a single value.
 
-    packageName = "nansen.module.ophys.twophoton";
+    packageName = "nansen.module.twophoton";
 end
