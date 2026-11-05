@@ -21,6 +21,11 @@ function moveMachineLocalSettings(userDataDirectory)
     machineLocalFileNames = ["task_list.mat", "watch_folder_catalog.mat"];
 
     settingsFolder = fullfile(userDataDirectory, "settings");
+
+    % Resolving the machine folder queries the operating system, so it is
+    % skipped when there is nothing to move
+    if ~any( isfile(fullfile(settingsFolder, machineLocalFileNames)) ); return; end
+
     localFolder = string( nansen.localdatadir(userDataDirectory) );
 
     for fileName = machineLocalFileNames
