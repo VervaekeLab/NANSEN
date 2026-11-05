@@ -1,5 +1,5 @@
 function moveTableVarsToProjectNameSpace(projectFolderPath)
-        
+
     try
         % Move table vars folder into a package with project name
         [~, projectName] = fileparts(projectFolderPath);
@@ -9,16 +9,16 @@ function moveTableVarsToProjectNameSpace(projectFolderPath)
 
         tableVarFolderSource = fullfile(tableFolder, '+tablevar');
         tableVarFolderTarget = fullfile(tableFolder, projectPackageName, '+tablevar');
-        
+
         if ~isfolder(tableVarFolderSource)
             return
         end
-        
+
         if isfolder(tableVarFolderTarget)
             %fprintf('Table variables are already moved for project "%s"\n', projectName)
             return
         end
-        
+
         movefile(tableVarFolderSource, tableVarFolderTarget)
         fprintf('Moved tablevariables to project namespace for project "%s"\n', projectName)
 

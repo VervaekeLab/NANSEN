@@ -11,9 +11,9 @@ function S = getDefaultOptions()
     S.Preprocessing.BidirectionalCorrection = 'None';
     S.Preprocessing.BidirectionalCorrection_ = {'None', 'Constant', 'Continuous'};
     %S.Preprocessing.BidirectionalCorrection_ = {'None', 'One Time', 'Continuous'};
-    
+
     S.General.correctDrift = false;
-    
+
     S.Preview.firstFrame = 1;
     S.Preview.numFrames = 500;
     S.Preview.saveResults = false;
@@ -26,7 +26,7 @@ function S = getDefaultOptions()
     %S.Export.saveParemetersToFile = '';
     %S.Export.PreviewSaveFolder_ = 'uigetdir';
     %S.Export.PreviewSaveFolder = '';
-    
+
     S.Export.FileName = '';
     S.Export.FileName_ = 'transient';
     S.Export.SaveDirectory = '';
@@ -41,7 +41,7 @@ function S = getDefaultOptions()
     S.Export.OutputFormat_ = {'Binary', 'Tiff'};
     S.Export.saveAverageProjection = true;
     S.Export.saveMaximumProjection = true;
-    
+
 % %     S.numFramesPerPart = 1000; % Image stack method...
 % %     S.OutputDataType = 'uint8';
 % %     S.OutputDataType_ = {'uint8', 'uint16', 'uint32'};
@@ -69,5 +69,4 @@ function S = getDefaultOptions()
 % %
 % %
 % %     S.RecastOutput = true; % Internal...
-
 end

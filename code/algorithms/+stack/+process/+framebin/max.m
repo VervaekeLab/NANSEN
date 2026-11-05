@@ -9,5 +9,4 @@ nDs = floor(size(Y, 3) / dsFactor);
 [imHeight, imWidth, ~] = size(Y);
 Y = reshape(Y(:,:,1:nDs*dsFactor), imHeight, imWidth, dsFactor, nDs);
 Y = squeeze(max(Y, [], 3));
-
 end

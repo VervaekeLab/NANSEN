@@ -28,9 +28,9 @@ classdef FluorescenceSpectrumColors
     end
 
     methods
-        
+
         function obj = FluorescenceSpectrumColors(name)
-            
+
             obj.Name = name;
 
             switch obj.Name

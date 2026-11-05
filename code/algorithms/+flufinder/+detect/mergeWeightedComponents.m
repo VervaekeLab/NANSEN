@@ -18,7 +18,7 @@ function [newComponents, summary] = mergeWeightedComponents(imageSize, S, vararg
 
     meanDiameter = mean( [S.EquivDiameter] );
     centroidTolerance = ceil( meanDiameter / 4 );
-    
+
     warning('off', 'stats:linkage:NonMonotonicTree')
 
     imageSize = imageSize(1:2); % In case imageSize is size of stack
@@ -30,37 +30,37 @@ function [newComponents, summary] = mergeWeightedComponents(imageSize, S, vararg
     % Compute two vectors to quickly identify overlapping components later
     allPixelIndices = cat(1, S.PixelIdxList); % 1D vector with pixel indices for all components
     regionInd = zeros(size(allPixelIndices)); % 1D vector with component number for all pixels
-    
+
     lastInd = 0;
     for i = 1:numel(S)
         IND = lastInd + (1:numel(S(i).PixelIdxList));
         regionInd(IND) = i;
         lastInd = IND(end);
     end
-    
+
     % Boolean for all remaining components that wasn't taken care of yet
     remaining = true(numel(S), 1);
-    
+
     % Create a "sum projection" image of all components.
     %uniquePixelList = unique(allPixelIndices);
-      
+
     componentImage = zeros(imageSize);
 
     for i = 1:numel(S)
         componentImage(S(i).PixelIdxList) = ...
             componentImage(S(i).PixelIdxList) + S(i).PixelValues;
     end
-    
+
     summary.ComponentImageInit = componentImage;
-    
+
     numRois = 0;
     numIter = 0;
     finished = false;
-    
+
     if params.Debug
         allIndividualComponents = zeros([imageSize, 0]);
     end
-    
+
     newComponents = struct();
 
     while ~finished
@@ -72,16 +72,16 @@ function [newComponents, summary] = mergeWeightedComponents(imageSize, S, vararg
         % Find all components that contain this peak
         containsPeak = regionInd(allPixelIndices==peakInd);
         containsPeak = intersect(containsPeak, find(remaining));
-        
+
         if isempty(containsPeak) % It happened once:(
             componentImage(peakInd) = 0;
             continue
         end
-        
+
         % Find all centroids and the center position
         currentCentroids = cat(1, S(containsPeak).Centroid);
         center = median(currentCentroids, 1);
-        
+
         % Get rid of centers that are more than X pixels away. Default test
         % is to find all centroids that are less than X pixels away from the
         % median centroid position. In rare cases, where there might be two
@@ -105,10 +105,10 @@ function [newComponents, summary] = mergeWeightedComponents(imageSize, S, vararg
 
             containsPeak = containsPeak(keepB);
         end
-        
+
         % Create image only containing the currently selected components.
         currentComponentImage = zeros(imageSize);
-        
+
         % Get the mean of all the pixel values for the components that are
         % detected...
         for i = 1:numel(containsPeak)
@@ -143,11 +143,11 @@ function [newComponents, summary] = mergeWeightedComponents(imageSize, S, vararg
 
         if sum(remaining) == 0; finished = true; end
         if sum(componentImage(:)) <= 0; finished = true; end
-        
+
         if numel(newComponents) >= params.MaxNumRois
              finished = true;
         end
-        
+
 % %         if mod(numel(newComponents), 10)==0
 % %             if exist('str', 'var')
 % %                 fprintf( char(8*ones(1,length(str))));
@@ -156,19 +156,19 @@ function [newComponents, summary] = mergeWeightedComponents(imageSize, S, vararg
 % %             str = sprintf('Detected %d rois...', numel(newComponents));
 % %             fprintf(str)
 % %         end
-        
+
         numIter = numIter+1;
     end
-    
+
     summary.ComponentImageFinished = componentImage;
-    
+
     warning('on', 'stats:linkage:NonMonotonicTree')
     fprintf(newline)
-    
+
     overlap = params.PercentOverlapForMerge ./ 100;
     roisOut = flufinder.utility.mergeOverlappingRois(roisOut, overlap);
     roisOut = roisOut.addTag('bw_threshold_segment');
-    
+
     if nargout == 1
         clear summary
     end

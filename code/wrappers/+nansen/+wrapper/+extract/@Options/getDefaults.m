@@ -25,7 +25,7 @@ P.Preprocess.spatial_highpass_cutoff        = 5;                    % This cutof
 P.Preprocess.remove_background              = true;
 P.Preprocess.temporal_denoising             = false;                % Boolean flag that determines whether to apply temporal wavelet denoising. This functionality is experimental; expect it to increase runtime considerably if the input movie has >10K frames and has larger field of view than 250x250 pixels.
 P.Preprocess.skip_dff                       = false;
-    
+
 % General parameters (downsampling)
 P.Downsample.downsample_time_by             = 1;                    %
 P.Downsample.downsample_space_by            = 1;                    %
@@ -92,7 +92,7 @@ P.Main.verbose_ = {0,1,2};
 P.CellFind.filter_type_ = {'butter', 'gauss', 'wiener', 'movavg', 'none'};
 
 % P.Fov.movie_mask Make interactive tool for creating this...
-    
+
 % - - - - Specify validation/assertion test for each parameter - - - -
 
 V                           = struct();

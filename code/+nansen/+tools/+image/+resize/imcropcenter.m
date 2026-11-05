@@ -18,5 +18,4 @@ yInd = (1:newSize(1)) - centerNew(1) + centerOrig(1);
 
 % Crop original array
 imArrayOut = imArrayIn(yInd, xInd, :);
-
 end

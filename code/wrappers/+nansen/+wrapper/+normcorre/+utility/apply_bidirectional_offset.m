@@ -30,5 +30,4 @@ end
 M = reshape(M,sizY) + min_value;
 M(M<min_value) = min_value;
 M(M>max_value) = max_value;
-
 end

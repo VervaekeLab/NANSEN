@@ -21,30 +21,30 @@ function varargout = sessionMethodFunctionTemplate(sessionObject, varargin)
 % Create a struct of default parameters (if applicable) and specify one or
 % more attributes (see nansen.session.SessionMethod.setAttributes) for
 % details.
-    
+
     % Get struct of parameters from local function
     params = getDefaultParameters();
-    
+
     % Create a cell array with attribute keywords
     ATTRIBUTES = {'serial', 'queueable'};
-    
+
 % % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % %
 % - - - - - - - - - - Please do not edit this part - - - - - - - - - - -
-    
+
     % Create a struct with "attributes" using a predefined pattern
     import nansen.session.SessionMethod
     fcnAttributes = SessionMethod.setAttributes(params, ATTRIBUTES{:});
-    
+
     if ~nargin && nargout > 0
         varargout = {fcnAttributes};   return
     end
-    
+
     % Parse name-value pairs from function input and update parameters
     params = utility.parsenvpairs(params, [], varargin);
-    
+
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
 % Implementation of the method : Add your code here:
-    
+
     % Return session object (please do not remove):
     % if nargout; varargout = {sessionObject}; end
 end
@@ -58,5 +58,4 @@ function params = getDefaultParameters()
     % Add fields to this struct in order to define parameters for this
     % session method:
     params = struct();
-
 end

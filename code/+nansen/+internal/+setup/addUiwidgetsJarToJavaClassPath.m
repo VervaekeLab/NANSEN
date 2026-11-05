@@ -2,7 +2,7 @@ function addUiwidgetsJarToJavaClassPath()
 
     jarFilePath = fullfile( widgetsRoot, 'resource', ...
                             'MathWorksConsultingWidgets.jar' );
-                        
+
     wasSuccess = nansen.internal.setup.java.addFilepathToStaticJavapath(jarFilePath);
 
     if ~wasSuccess

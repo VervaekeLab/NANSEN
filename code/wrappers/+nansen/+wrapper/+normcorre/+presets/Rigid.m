@@ -5,11 +5,11 @@ classdef Rigid < nansen.wrapper.normcorre.Options
         Name = 'Rigid'
         Description = 'Options for rigid correction'
     end
-    
+
     methods (Static)
-        
+
         function S = getOptions()
-            
+
             S = getOptions@nansen.wrapper.normcorre.Options();
 
             % Todo: Make sure gridsize can not be changed for rigid...
@@ -21,12 +21,11 @@ classdef Rigid < nansen.wrapper.normcorre.Options
             S.Template.updateTemplate       = true;
             S.Template.initialBatchSize     = 100;
             S.Template.binWidth             = 50;
-                        
         end
-        
+
         % Todo: implement this with optionsmanager/structeditor
         function newValue = validateOptions(name, value)
-            
+
             switch name
                 case {'numRows', 'numCols'}
                     newValue = 1;

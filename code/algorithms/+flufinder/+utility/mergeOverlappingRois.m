@@ -12,11 +12,11 @@ function roiArray = mergeOverlappingRois(roiArray, overlap, method)
 
     if nargin < 2 || isempty(overlap); overlap = 0.8; end
     if nargin < 3 || isempty(method); method = 'intersect'; end
-    
+
     % Merge overlapping rois in the activity based roi Array.
     [iA, iB] = roimanager.utilities.findOverlappingRois(roiArray, roiArray, overlap);
     IND = [iA, iB];
-    
+
     mergedRois = RoI.empty;
     while ~isempty(IND)
         ia = IND(1,1);
@@ -26,8 +26,7 @@ function roiArray = mergeOverlappingRois(roiArray, overlap, method)
         [row, ~] = find(IND == [ib, ia]);
         IND(row(1), :) = [];
     end
-    
+
     roiArray(iA) = [];
     roiArray = cat(2, roiArray, mergedRois);
-
 end

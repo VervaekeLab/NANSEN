@@ -7,5 +7,4 @@ function obj = OptionsManager(varargin)
 %   % This function is a "shortcut"
 
     obj = nansen.manage.OptionsManager(varargin{:});
-
 end

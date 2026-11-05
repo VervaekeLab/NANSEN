@@ -38,107 +38,106 @@ classdef TwoPhotonRecording < handle
         StretchCorrectionMethod = 'none' % 'imwarp', 'imresize', 'none'
         CorrectBidirectionalOffset = false;
     end
-    
+
     properties (Access = protected)
         % Todo: StretchCorrectionLookupTable
     end
 
     methods % Constructor
-        
+
         function obj = TwoPhotonRecording(varargin)
-            
+
             obj.assignNvPairs(varargin{:})
-            
         end
-        
+
         function assignNvPairs(obj, varargin)
-            
+
             import utility.getnvparametervalue
-            
+
             if isempty(varargin); return; end
-            
+
             propertyNames = {...
                 'NumFlybackLines', ...
                 'StretchCorrectionMethod', ...
                 'CorrectBidirectionalOffset' };
-            
+
             for i = 1:numel(propertyNames)
                 value = getnvparametervalue(varargin, propertyNames{i});
-                
+
                 if ~isempty(value)
                     obj.(propertyNames{i}) = value;
                 end
             end
         end
     end
-    
+
     methods % Set/get methods
-        
+
         function optsStruct = get.PreprocessingOptions(obj)
             optsStruct.NumFlybackLines = obj.NumFlybackLines;
             optsStruct.StretchCorrectionMethod = obj.StretchCorrectionMethod;
             optsStruct.CorrectBidirectionalOffset = obj.CorrectBidirectionalOffset;
         end
-        
+
         function set.PreprocessingOptions(obj, optsStruct)
             obj.NumFlybackLines = optsStruct.NumFlybackLines;
             obj.StretchCorrectionMethod = optsStruct.StretchCorrectionMethod;
             obj.CorrectBidirectionalOffset = optsStruct.CorrectBidirectionalOffset;
         end
-        
+
         function tf = get.PreprocessDataEnabled(obj)
-            
+
             doFlyBackRemoval = obj.NumFlybackLines ~= 0;
             doStretchCorrection = ~strcmp(obj.StretchCorrectionMethod, 'none');
             doBidirectionOffsetCorrection = obj.CorrectBidirectionalOffset;
-            
+
             tf = doFlyBackRemoval || doStretchCorrection || ...
                     doBidirectionOffsetCorrection;
         end
-        
+
         function set.StretchCorrectionMethod(obj, newValue)
-            
+
             if isempty(newValue); newValue = 'none'; end
             newValue = validatestring(newValue, {'none', 'imwarp', 'imresize'});
-            
+
             % Todo: Make sure value is valid.
             obj.StretchCorrectionMethod = newValue;
             obj.onStretchCorrectionMethodSet()
         end
-        
+
         function set.NumFlybackLines(obj, newValue)
             % Todo: Make sure value is valid.
             % validateattributes(newValue, {'numeric'}, 'integer')
             obj.NumFlybackLines = newValue;
         end
     end
-    
+
     methods (Access = protected)
-        
+
         function data = processData(obj, data, subs)
-            
+
             if obj.NumFlybackLines ~= 0
                 data = obj.removeFlybackLines(data, subs);
             end
-            
+
             if ~strcmp(obj.StretchCorrectionMethod, 'none')
                 data = obj.correctResonanceStretch(data);
             end
-            
+
             % Should this be done before or after destretching? I thought
             % before....
             if obj.CorrectBidirectionalOffset
                 obj.correctBidirectionalOffset()
             end
         end
-        
+
         function data = removeFlybackLines(obj, data, subs)
         %removeFlybackLines Remove flyback lines from data
-            
+
             firstLineToInclude = obj.NumFlybackLines + 1;
-                    
+
             yDim = strfind(obj.DataDimensionArrangement, 'Y');
-            
+
             ySubs = subs{yDim};
             if ischar(ySubs) && isequal(ySubs, ':')
                 yIdx = firstLineToInclude : size(data, yDim);
@@ -147,17 +146,17 @@ classdef TwoPhotonRecording < handle
             else
                 return;
             end
-            
+
             % Update subs
             tmpSubs = repmat({':'}, 1, ndims(data));
             tmpSubs{yDim} = yIdx;
-            
+
             % Get data without flyback lines
             data = data(tmpSubs{:});
         end
-        
+
         function data = correctResonanceStretch(obj, data)
-            
+
             import nansen.module.ophys.twophoton.utility.sciscan.correctResonanceStretch
 
             % Correct stretching of images due to the sinusoidal movement profile
@@ -166,49 +165,48 @@ classdef TwoPhotonRecording < handle
 
                 case {'imresize', 'imwarp'}
                     %scanParam = getSciScanVariables(folderpath, {'ZOOM', 'x.correct'});
-                    
+
                     % Todo: Make sure scan params are available...
                     scanParam = struct('zoom', obj.MetaData.zoomFactor, 'xcorrect', 32);
-                    
+
                     isTransposed = strcmp(obj.DataDimensionArrangement(1:2), 'XY');
                     if isTransposed
                         dimOrder = 1:ndims(obj);
                         dimOrder([1:2]) = dimOrder([2,1]);
                         data = permute(data, dimOrder);
                     end
-                        
+
                     % Todo: Add this method...
                     data = correctResonanceStretch(data, scanParam, obj.StretchCorrectionMethod);
-                    
+
                     if isTransposed
                         data = ipermute(data, dimOrder);
                     end
-                    
+
                 case 'none'
                     % Do nothing
                 otherwise
                     warning('Unknown stretch correction method, resonance stretch is not corrected')
             end
         end
-        
+
         function data = correctBidirectionalOffset(obj, data)
             % Todo...
             % [data, bidirBatchSize, colShifts] = correctLineOffsets(data, 100);
         end
     end
-    
+
     methods (Access = private)
-        
+
         function onStretchCorrectionMethodSet(obj)
-            
+
             if strcmp(obj.StretchCorrectionMethod, 'none')
                 return
             end
-            
+
             warning('on', 'SciScan:StretchProfileMissing')
             obj.readFrames(1); %#ok<MCNPN> % subclass method
             warning('off', 'SciScan:StretchProfileMissing')
-            
         end
     end
 end

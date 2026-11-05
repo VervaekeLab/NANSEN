@@ -19,7 +19,7 @@ function metadata = getScanParameters( fileReference )
     else
         error('Wrong input')
     end
-    
+
 %% Read metadata
     S = struct;
 
@@ -50,7 +50,7 @@ function metadata = getScanParameters( fileReference )
     % Physical units
     micronsPerPixel = mfileObj.ReadParameter('Microns per Pixel');
     S.MicronsPerPixel = stringWithUnitToNumber(micronsPerPixel, 'µm');
-    
+
     frameDuration = mfileObj.ReadParameter('Frame Duration (s)');
     S.FrameDuration = stringWithUnitToNumber(frameDuration, 's');
     S.FrameDurationUnit = 's';
@@ -58,7 +58,7 @@ function metadata = getScanParameters( fileReference )
     frameInterval = mfileObj.ReadParameter('Frame Interval (ms)');
     S.FrameInterval = stringWithUnitToNumber(frameInterval, 'ms');
     S.FrameIntervalUnit = 'ms';
-    
+
     magnification = mfileObj.ReadParameter('Magnification');
     S.Magnification = stringWithUnitToNumber(magnification, 'x');
 
@@ -85,7 +85,7 @@ function metadata = getScanParameters( fileReference )
         S.Magnification = 1;
         warning('Magnification could not be read from mdf');
     end
-    
+
     % Update frame duration
     if isempty(S.FrameDuration) || isempty(S.FrameInterval)
         S.FrameDuration = 1 / 30.91;
@@ -93,19 +93,18 @@ function metadata = getScanParameters( fileReference )
     else
         S.FrameDuration = S.FrameDuration + S.FrameInterval.*1000;
     end
-    
+
     metadata = S;
 end
 
 function num = stringWithUnitToNumber(str, unit)
-    
+
     % Replace commas with dots
     str = strrep(str, ',', '.');
 
     % Remove unit
     str = strrep(str, unit, '');
-    
+
     % Convert string to number
     num = str2double(str);
-
 end

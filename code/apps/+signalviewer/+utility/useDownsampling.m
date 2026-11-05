@@ -8,11 +8,10 @@ function tf = useDownsampling(numSamples, numTraces, dpPerPixel)
 
     % Ad hoc...
     tf = numSamples * numTraces > 1e6;
-    
+
     % % Alternative, much stricter:
     % screenSize = get(0, 'ScreenSize');
     % screenResolution = screenSize(3:4);
-    
-    % tf =  obj.ScreenResolution(1) .* dpPerPixel < numSamples;
 
+    % tf =  obj.ScreenResolution(1) .* dpPerPixel < numSamples;
 end

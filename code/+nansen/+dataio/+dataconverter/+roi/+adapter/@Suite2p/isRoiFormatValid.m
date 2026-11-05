@@ -3,7 +3,7 @@ function tf = isRoiFormatValid(filepath, data)
     if nargin < 2
         S = load(filepath);
     end
-    
+
     tf = false;
     [~, name, ~] = fileparts(filepath);
 
@@ -20,7 +20,7 @@ function tf = isRoiFormatValid(filepath, data)
         if all( isfield(data, {'stat', 'ops', 'iscell'}) )
             tf = true;
         end
-        
+
         % What if someone renamed their files...?
     end
 end

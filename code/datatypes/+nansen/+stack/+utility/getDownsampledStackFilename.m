@@ -11,5 +11,4 @@ function filePath = getDownsampledStackFilename(hImageStack, n, method)
     postfix = sprintf('_downsampled_%s_x%d', method, n);
     postfix = strcat(postfix, ext);
     filePath = strrep(hImageStack.FileName, ext, postfix);
-
 end

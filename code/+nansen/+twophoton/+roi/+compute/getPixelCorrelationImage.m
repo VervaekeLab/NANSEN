@@ -21,5 +21,4 @@ rhoIm(rhoIm<0)=0.001;
 
 % Remove nans
 rhoIm(isnan(rhoIm)) = 0;
-
 end

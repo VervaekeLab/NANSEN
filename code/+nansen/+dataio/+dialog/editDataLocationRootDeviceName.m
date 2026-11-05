@@ -6,8 +6,8 @@ function dataLocationRootInfo = editDataLocationRootDeviceName(dataLocationRootI
 %   dataLocationRootInfo struct (S).
 
 %   Todo
-%       [ ] Add some instructions in a textbox
-%       [ ] Is it possible to indicate that the diskname is a dropdown?
+%       [ ] Add some instructions in a textbox
+%       [ ] Is it possible to indicate that the diskname is a dropdown?
 %       [ ] Update dropdowns if drives are connected or disconnected
 
     try
@@ -20,7 +20,7 @@ function dataLocationRootInfo = editDataLocationRootDeviceName(dataLocationRootI
         errordlg('Failed to list mounted drives using system command. See MATLAB''s command window for details.')
         throw(ME)
     end
-    
+
     if ~isfield(dataLocationRootInfo, 'DiskType')
         [dataLocationRootInfo(:).DiskType] = deal('External');
     end
@@ -29,7 +29,7 @@ function dataLocationRootInfo = editDataLocationRootDeviceName(dataLocationRootI
     dataTable = rmfield(dataLocationRootInfo, 'Key');
     dataTable = orderfields(dataTable, {'DiskName', 'DiskType', 'Value'});
     dataTable = struct2table(dataTable, 'AsArray', true);
-    
+
     % Fix data type issue. Todo: Should be done upstream
     if isa(dataTable.DiskName, 'char')
         dataTable.DiskName = cellstr(dataTable.DiskName);
@@ -65,7 +65,7 @@ function dataLocationRootInfo = editDataLocationRootDeviceName(dataLocationRootI
         'Units', 'pixel', ...
         'ColumnResizePolicy', 'subsequent', ...
         'Position', [20 20 960 160] );
-    
+
     hTable.Units = 'normalized';
     hTable.changeColumnWidths([150,150,650]);
     hTable.ColumnResizePolicy = 'last';
@@ -79,19 +79,19 @@ function dataLocationRootInfo = editDataLocationRootDeviceName(dataLocationRootI
     hTable.ColumnEditable = [true, true, false];
     hTable.ColumnFormat = colDataTypes;
     hTable.ColumnFormatData = colFormatData;
-    
+
     hTable.Data = table2cell(dataTable);
-    
+
     % Add some interactivity callbacks
     hTable.CellEditCallback = @(src, evt, info) onTableDataChanged(src, evt, volumeInfo);
     addlistener(hTable, 'MouseMotion', @onMouseMoveInTable);
-    
+
     % When table is closed, return updated dataLocationRootInfo
     hFigure.CloseRequestFcn = @(src, evt) uiresume(src);
     uiwait(hFigure)
 
     tableData = hTable.Data;
-    
+
     for i = 1:size(tableData, 1)
         dataLocationRootInfo(i).Value = tableData{i,3};
         dataLocationRootInfo(i).DiskName = tableData{i,1};
@@ -102,9 +102,9 @@ function dataLocationRootInfo = editDataLocationRootDeviceName(dataLocationRootI
 end
 
 function onMouseMoveInTable(src, evt)
-    
+
     hFigure = ancestor(src, 'figure');
-    
+
     thisCol = evt.Cell(2);
     if thisCol == 1
         hFigure.Pointer = 'hand';
@@ -114,24 +114,24 @@ function onMouseMoveInTable(src, evt)
 end
 
 function onTableDataChanged(src, evt, volumeInfo)
-    
+
     rowIdx = evt.Indices(1);
     colIdx = evt.Indices(2);
 
     if colIdx ~= 1 % Only handle if first column (disk/device name) is changed
         return
     end
-    
+
     pathColIdx = 3; % Path is on 3rd column
 
     currentRoot = src.Data{rowIdx, pathColIdx};
 
     % Todo: combine / use DataLocationModel/replaceDiskMountInPath
-    
+
     % Determine what format old string is:
     isCurrentPathMacStyle = ~isempty(regexp(currentRoot, '^/Volumes', 'match'));
     isCurrentPathPcStyle = ~isempty(regexp(currentRoot, '^\w{1}\:', 'match'));
-    
+
     if ~isCurrentPathMacStyle && ~isCurrentPathPcStyle
         warndlg('Could not determine format of path...')
     end
@@ -141,16 +141,16 @@ function onTableDataChanged(src, evt, volumeInfo)
         isMatch = volumeInfo.VolumeName == string(evt.NewValue);
         newString = volumeInfo.DeviceID(isMatch);
         currentRoot = strrep(currentRoot, '/', '\');
-        
+
     elseif isCurrentPathMacStyle && ismac
         oldString = sprintf('/Volumes/%s/', evt.OldValue);
         newString = sprintf('/Volumes/%s/', evt.NewValue);
-    
+
     elseif isCurrentPathPcStyle && ispc
         oldString = regexp(currentRoot, '^\w{1}\:', 'match', 'once');
         isMatch = volumeInfo.VolumeName == string(evt.NewValue);
         newString = volumeInfo.DeviceID(isMatch);
-    
+
     elseif isCurrentPathPcStyle && ismac
         oldString = regexp(currentRoot, '^\w{1}\:', 'match', 'once');
         newString = sprintf('/Volumes/%s', evt.NewValue);
@@ -159,7 +159,7 @@ function onTableDataChanged(src, evt, volumeInfo)
     elseif isunix
         error('Not implemented yet')
     end
-    
+
     if exist('oldString', 'var') && exist('newString', 'var')
         currentRoot = replace(currentRoot, oldString, newString);
     end

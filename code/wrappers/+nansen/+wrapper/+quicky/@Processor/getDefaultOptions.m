@@ -3,9 +3,8 @@ function options = getDefaultOptions()
 
     S = nansen.wrapper.quicky.Options.getDefaults;
     options = S;
-    
+
     className = mfilename('class');
     superOptions = nansen.mixin.HasOptions.getSuperClassOptions(className);
     options = nansen.mixin.HasOptions.combineOptions(options, superOptions{:});
-
 end

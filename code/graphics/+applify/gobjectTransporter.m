@@ -1,25 +1,25 @@
 classdef gobjectTransporter < uim.handle
-    
+
     % TODO:
     %
-    % [ ] Rename to InteractiveGraphObject 
+    % [ ] Rename to InteractiveGraphObject
     % [ ] Work on style changes. Keep original style in objects userdata
-    % [ ] Style changes for different object, i.e patch, line, image etc.
-    
+    % [ ] Style changes for different object, i.e patch, line, image etc.
+
     properties
         MouseOverEffect matlab.lang.OnOffSwitchState = 'on'
         TransportFcn = []
         StopDragFcn = []
     end
-    
+
     properties (Access = protected)
         hFigure
         hAxes
-        
+
         isMouseDown
-        
+
         mouseOnHandle = gobjects(0)
-        
+
         currentHandle
         previousMousePointAxes
         WindowMouseMotionListener
@@ -35,12 +35,12 @@ classdef gobjectTransporter < uim.handle
                 obj.hFigure.WindowButtonMotionFcn = @(s,e,x) isempty([]);
             end
         end
-        
+
         function delete(obj)
             if ~isempty(obj.WindowMouseMotionListener)
                 obj.resetInteractiveFigureListeners()
             end
-            
+
             delete(obj)
         end
 
@@ -61,7 +61,7 @@ classdef gobjectTransporter < uim.handle
             x = event.IntersectionPoint(1);
             y = event.IntersectionPoint(2);
             obj.previousMousePointAxes = [x, y];
-            
+
             obj.currentHandle.FaceAlpha = 0.6;
         end
 
@@ -99,7 +99,7 @@ classdef gobjectTransporter < uim.handle
 
             obj.isMouseDown = false;
             obj.resetInteractiveFigureListeners()
-            
+
             if ~any(ismember(obj.mouseOnHandle, obj.currentHandle))
                 obj.currentHandle.LineWidth = 1;
                 hFig = obj.hFigure;
@@ -109,7 +109,7 @@ classdef gobjectTransporter < uim.handle
             if ~isempty(obj.StopDragFcn)
                 obj.StopDragFcn()
             end
-            
+
             obj.currentHandle.FaceAlpha = 0.4;
             obj.currentHandle = [];
         end
@@ -128,7 +128,7 @@ classdef gobjectTransporter < uim.handle
             pointerBehavior.enterFcn    = @(s,e,hObject) obj.onMouseEnteredMarker(h);
             pointerBehavior.exitFcn     = @(s,e,hObject) obj.onMouseExitedMarker(h);
             pointerBehavior.traverseFcn = [];%@obj.moving;
-            
+
             try % Use try/catch because this requires image processing toolbox.
                 iptPointerManager(ancestor(h, 'figure'));
                 iptSetPointerBehavior(h, pointerBehavior);
@@ -136,35 +136,34 @@ classdef gobjectTransporter < uim.handle
                 disp('failed to set pointerbehavior')
             end
         end
-        
+
         function onMouseEnteredMarker(obj, hSource)
-            
+
             if ~isvalid(obj); return; end
-            
+
             obj.mouseOnHandle(end+1) = hSource;
-            
+
             hFig = obj.hFigure;
             hFig.Pointer = 'hand';
-            
+
             hSource.LineWidth=2;
         end
 
         function onMouseExitedMarker(obj, hSource)
-            
+
             % Need this here in case the obj was deleted while the pointer
             % was still on it.
             if ~isvalid(obj); return; end
-            
+
             hFig = obj.hFigure;
-            
+
             if ~obj.isMouseDown
                 hFig.Pointer = 'arrow';
                 hSource.LineWidth=1;
             end
-            
+
             throw = ismember(obj.mouseOnHandle, hSource);
             obj.mouseOnHandle(throw) = [];
         end
     end
 end
-        

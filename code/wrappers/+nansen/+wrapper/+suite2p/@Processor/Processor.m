@@ -41,13 +41,13 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         OptionsManager nansen.manage.OptionsManager = ...
             nansen.OptionsManager('nansen.wrapper.suite2p.Processor')
     end
-    
+
     properties (Constant) % From ImageStack Processor...
         ImviewerPluginName = ''
     end
-    
+
     methods % Constructor
-        
+
         function obj = Processor(varargin)
         %nansen.wrapper.suite2p.Processor Construct suite2p processor
         %
@@ -55,11 +55,11 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         %   given ImageStack as a SourceStack for the suite2p processor.
         %
         %   See also nansen.stack.ImageStackProcessor/ImageStackProcessor
-            
+
             nansen.assert('Suite2pOnSavepath')
 
             obj@nansen.processing.RoiSegmentation(varargin{:})
-        
+
             % Return if there are no inputs.
             if numel(varargin) == 0
                 return
@@ -72,14 +72,14 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             end
         end
     end
-    
+
     methods (Access = protected) % Implementation of superclass methods
-        
+
         % Step 1
         function onInitialization(obj)
             onInitialization@nansen.processing.RoiSegmentation(obj)
         end
-        
+
         % Step 2 : Run the autosegmentation on each chunk of ImageStack.
         % Function in separate file
         result = segmentPartition(obj, Y)
@@ -91,15 +91,15 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             onCompletion@nansen.processing.RoiSegmentation(obj)
         end
     end
-    
+
     methods (Access = protected) % Implementation of RoiSegmentation methods
-        
+
         function opts = getToolboxSpecificOptions(obj, varargin)
         %getToolboxSpecificOptions Get suite2p options from parameters or file
         %
         %   OPTS = getToolboxSpecificOptions(OBJ) return a
         %   struct of parameters for the suite2p pipeline.
-            
+
             import nansen.wrapper.suite2p.Options
             opts = Options.convert(obj.Options);
 
@@ -110,23 +110,23 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 
         function mergeSpatialComponents(obj, iPlane, iChannel)
         %mergeSpatialComponents Merge spatial components.
-            
+
             import flufinder.detect.findUniqueRoisFromComponents
             import nansen.wrapper.suite2p.utility.* % conversion functions
 
             numParts = size(obj.Results, 1);
             imageSize = obj.SourceStack.FrameSize;
-            
+
             % Merge stat struct arrays form all sub parts
             statCellArray = cellfun(@(c) c.stat, obj.Results(:, iPlane, iChannel), 'UniformOutput', false);
             stat = cat(2, statCellArray{:});
             S = convertS2pStatToRegionProps(stat, imageSize); %Imported fcn
-            
+
             % Merge all the components
             numObservationsRequired = min(3, ceil(numParts/2));
             S = flufinder.detect.mergeWeightedComponents(imageSize, S, ...
                 'NumObservationsRequired', numObservationsRequired);
-            
+
             stat = convertRegionPropsToS2pStat(S, imageSize); %Imported fcn
 
             numRois = numel(stat);
@@ -139,7 +139,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 
         function roiArrayCell = getRoiArray(obj)
         %getRoiArray Get results as a roi array
-            
+
             [numZ, numC] = size(obj.MergedResults);
             roiArrayCell = cell(numZ, numC);
             imageSize = obj.SourceStack.FrameSize;
@@ -151,16 +151,16 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 end
             end
         end
-        
+
         function getRoiAppData(obj)
         %getRoiAppData Extends superclass method to include spatial weights
         %
         %   Include spatial weights as images for all rois.
 
             getRoiAppData@nansen.processing.RoiSegmentation(obj)
-                        
+
             [numZ, numC] = size(obj.RoiArray);
-            
+
             for iZ = 1:numZ
                 for iC = 1:numC
                     obj.addSpatialWeightsToRoiImages(iZ, iC)
@@ -168,9 +168,9 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             end
         end
     end
-    
+
     methods (Access = private) % Methods specific to the suite2p Processor
-        
+
         function addSpatialWeightsToRoiImages(obj, iZ, iC)
         %addSpatialWeightsToRoiImages Add spatial weights to roi images
         %
@@ -178,14 +178,14 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         %   images for each roi.
 
             if isempty(obj.RoiArray{iZ, iC}); return; end
-        
+
             % Get initial data.
             S = obj.MergedResults{iZ, iC};
 
             roiArray = obj.RoiArray{iZ, iC};
             roiImages = obj.RoiImages{iZ, iC};
             numRois = numel(roiArray);
-            
+
             spatialWeights = obj.convertStatToSpatialWeigths(S.stat);
 
             % Get spatial weights as uint8 roi thumbnail images.
@@ -210,12 +210,12 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 
             obj.RoiImages{iZ, iC} = orderfields(roiImages, newFieldnameOrder);
         end
-    
+
         function spatialWeights = convertStatToSpatialWeigths(obj, stat)
-            
+
             imageSize = obj.SourceStack.FrameSize;
             spatialWeights = zeros([imageSize, numel(stat)]);
-            
+
             for i = 1:numel(stat)
                 thisWeight = spatialWeights(:,:,i);
                 thisWeight(stat(i).ipix) = stat(i).lam;
@@ -223,15 +223,15 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             end
         end
     end
-    
+
     methods (Static) % Method in external file.
-        
+
         function options = getDefaultOptions()
             import nansen.wrapper.abstract.ToolboxWrapper
             className = mfilename('class');
             options = ToolboxWrapper.getDefaultOptions(className);
         end
-        
+
         pathList = getDependentPaths()
 
         function assertAddonInstalled()

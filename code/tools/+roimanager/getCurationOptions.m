@@ -1,7 +1,7 @@
 function S = getCurationOptions()
 
     S = struct();
-    
+
 % % %     S.selectVariable = 'Area';
 % % %     S.selectVariable_ = {'Area', 'PeakT'};
 % % %
@@ -12,5 +12,4 @@ function S = getCurationOptions()
 
     S.openClassifierApp = false;
     S.openClassifierApp_ = struct('type', 'button', 'args', {{'String', 'Open Classifier', 'FontWeight', 'bold', 'ForegroundColor', [0.1840    0.7037    0.4863]}});
-
 end

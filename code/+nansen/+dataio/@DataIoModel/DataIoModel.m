@@ -13,7 +13,7 @@ classdef DataIoModel < handle
 
 %   Todo:
 %
-%       [ ] Incorporate the datalocation model + filepath model.
+%       [ ] Incorporate the datalocation model + filepath model.
 %       [ ] Temporary saving results in a different location, i.e on an SSD drive.
 
 %       getSourceFolder
@@ -25,11 +25,11 @@ classdef DataIoModel < handle
         FolderPath          % The initial directory for saving data
         DataLocation
     end
-    
+
     properties (Access = private)
         DataLocationType = '' % 'InPlace', 'MultiLocation', ''
     end
-    
+
     properties (SetAccess = private)
         FilePathModel
         DataLocationModel
@@ -38,9 +38,9 @@ classdef DataIoModel < handle
     methods (Abstract)
         name = getDataId(obj)
     end
-    
+
     methods % Constructor
-        
+
         function obj = DataIoModel(varargin)
         %nansen.dataio.DataIoModel Construct a DataIoModel object
         %
@@ -48,13 +48,13 @@ classdef DataIoModel < handle
 
             if isempty(varargin) || (numel(varargin) == 1 && isempty(varargin{1}))
                 % Pass
-            
+
             elseif ischar(varargin{1}) && isfile(varargin{1})
                [folder, name] = fileparts(varargin{1});
                 obj.FolderPath = folder;
                 obj.FileName = name;
                 obj.DataLocation = folder;
-                
+
             elseif ischar(varargin{1}) && isfolder(varargin{1})
                 obj.FolderPath = varargin{1};
                 obj.DataLocation = obj.FolderPath;
@@ -70,35 +70,34 @@ classdef DataIoModel < handle
                     errId = 'Nansen:IOModel:WrongInput';
                     throw(nansen.dataio.getException(errId))
                 end
-                
+
             elseif isa(varargin{1}, 'struct') % Todo: Object???
-                
+
             else
                 errId = 'Nansen:IOModel:WrongInput';
                 throw(nansen.dataio.getException(errId))
             end
-            
+
             % Set FilePathModel %Todo: Do we need to get it from a global
             % variable. Why??
             global dataFilePathModel dataLocationModel
             if isempty(dataFilePathModel)
                 dataFilePathModel = nansen.config.varmodel.VariableModel;
             end
-            
+
             obj.FilePathModel = dataFilePathModel;
 
             if isempty(dataLocationModel)
                 % dataLocationModel = nansen.dataio.DataLocations(); Todo?
                 dataLocationModel = nansen.config.dloc.DataLocationModel();
             end
-            
+
             obj.DataLocationModel = dataLocationModel;
-            
         end
     end
 
     methods % Load data variables
-        
+
         function data = loadData(obj, varName, varargin)
         %loadData Load data given a variable name
         %
@@ -106,10 +105,10 @@ classdef DataIoModel < handle
         %   specifications for the variable with the given varName.
 
             % TODO:
-            %   [ ] Implement file adapters.
-            
+            %   [ ] Implement file adapters.
+
             filePath = obj.getDataFilePath(varName, '-r', varargin{:});
-            
+
             if isfile(filePath)
                 S = load(filePath, varName);
                 if isfield(S, varName)
@@ -121,7 +120,7 @@ classdef DataIoModel < handle
                 error('File not found')
             end
         end
-        
+
         function saveData(obj, varName, data, varargin)
         %saveData Save data given a variable name
         %
@@ -129,22 +128,22 @@ classdef DataIoModel < handle
         %   specification for the variable represented by varName.
 
             % TODO:
-            %   [ ] Implement file adapters.
-            
+            %   [ ] Implement file adapters.
+
             filePath = obj.getDataFilePath(varName, '-w', varargin{:});
-            
+
             S.(varName) = data;
-            
+
             varInfo = whos('data');
             byteSize = varInfo.bytes;
-            
+
             if byteSize > 2^31
                 save(filePath, '-struct', 'S', '-v7.3')
             else
                 save(filePath, '-struct', 'S')
             end
         end
-        
+
         function pathStr = getDataFilePath(obj, varName, varargin)
         %getDataFilePath Get absolute filepath for a data variable
         %
@@ -168,38 +167,38 @@ classdef DataIoModel < handle
         %   EXAMPLES:
         %
         %       pathStr = h.getFilePath('dff', '-w', 'Subfolder', 'roisignals')
-            
+
             % Todo:
             %   [ ] (Why) do I need mode here?
-            %   [ ] Implement load/save differences, and default datapath
+            %   [ ] Implement load/save differences, and default datapath
             %       for variable names that are not defined.
-            %   [ ] Implement ways to grab data spread over multiple files, i.e
+            %   [ ] Implement ways to grab data spread over multiple files, i.e
             %       if files are separate by imaging channel, imaging plane,
             %       trials or are just split into multiple parts...
-            
+
             % Check if mode is given as input:
             [mode, varargin] = obj.checkDataFilePathMode(varargin{:});
             parameters = struct(varargin{:});
-            
+
             % Get the entry for given variable name from model
             [S, isExistingEntry] = obj.FilePathModel.getEntry(varName);
-        
+
             % Get path to data folder
             dataFolderPath = obj.getDataFolder(S.DataLocation, mode);
-            
+
             % Check if file should be located within a subfolder.
             if isfield(parameters, 'Subfolder') && ~isExistingEntry
                 S.Subfolder = parameters.Subfolder;
             end
-            
+
             if ~isempty(S.Subfolder)
                 dataFolderPath = fullfile(dataFolderPath, S.Subfolder);
-                
+
                 if ~isfolder(dataFolderPath) && strcmp(mode, 'write')
                     mkdir(dataFolderPath)
                 end
             end
-            
+
             if isempty(S.FileNameExpression)
                 fileName = obj.createFileName(varName, parameters);
             else
@@ -208,42 +207,42 @@ classdef DataIoModel < handle
                     fileName = obj.getFileName(S);
                 end
             end
-            
+
             pathStr = fullfile(dataFolderPath, fileName);
-            
+
             % Save filepath entry to filepath settings if it did
             % not exist from before...
             if ~isExistingEntry && strcmp(mode, 'write')
                 obj.FilePathModel.addEntry(S)
             end
         end
-        
+
         function folderPath = getDataFolder(obj, dataLocationType, mode)
         %getDataFolder Get data folder for a dataLocationType
-        
+
             if nargin < 2
                 dataLocationType = '';
             end
-            
+
             if nargin < 3
                 mode = 'read';
             end
-            
+
             % Todo: Save directly in folder if it is assigned...
 %             if ~isempty(obj.FolderPath)
 %                 folderPath = obj.FolderPath; return;
 %             end
-                
+
             % Otherwise, use the datalocation schema...
             if ischar(obj.DataLocation) && isfolder(obj.DataLocation)
                 folderPath = fullfile(obj.DataLocation, dataLocationType);
-        
+
             elseif isfield(obj.DataLocation, dataLocationType)
                 folderPath = obj.DataLocation.(dataLocationType);
-            
+
             else
                 dataLocTypes = {obj.DataLocationModel.Data.Name};
-                    
+
                 if ~any( strcmp(dataLocTypes, dataLocationType) )
                     error(['Data location type ("%s") is not valid. Please use one of the following:\n', ...
                            '%s'], dataLocationType, strjoin(dataLocTypes, ', ') )
@@ -251,7 +250,7 @@ classdef DataIoModel < handle
                     folderPath = obj.createDataFolder(dataLocationType);
                 end
             end
-            
+
             if ~isfolder(folderPath) && strcmp(mode, 'read')
                 error('Data folder not found')
             elseif ~isfolder(folderPath) && strcmp(mode, 'write')
@@ -260,15 +259,15 @@ classdef DataIoModel < handle
             end
         end
     end
-    
+
     methods (Access = protected)
-        
+
         function [mode, varargin] = checkDataFilePathMode(~, varargin)
         %checkDataFilePathMode Check if access mode is part of varargin
-        
+
             % Default mode is read:
             mode = 'read';
-            
+
             if ~isempty(varargin) && ischar(varargin{1})
                 switch varargin{1}
                     case '-r'
@@ -280,24 +279,24 @@ classdef DataIoModel < handle
                 end
             end
         end
-        
+
         function fileName = lookForFile(obj, dataFolderPath, S)
         %lookForFile Look for file using provided specifications
-        
+
             % Todo: Move this method to filepath settings editor.
-            
+
             expression = S.FileNameExpression;
             fileType = S.FileType;
-            
+
             if contains(expression, fileType)
                 expression = ['*', expression];
             else
                 expression = ['*', expression, fileType]; % Todo: ['*', expression, '*', fileType] <- Is this necessary???
             end
-            
+
             L = dir(fullfile(dataFolderPath, expression));
             L = L(~strncmp({L.name}, '.', 1));
-            
+
             if ~isempty(L) && numel(L)==1
                 fileName = L.name;
             elseif ~isempty(L) && numel(L)>1
@@ -306,7 +305,7 @@ classdef DataIoModel < handle
                 fileName = '';
             end
         end
-        
+
         function fileName = createFileName(obj, varName, parameters)
         %createFileName Create filename for data variable
         %
@@ -315,7 +314,7 @@ classdef DataIoModel < handle
 
             %sid = obj.sessionID;
             baseName = obj.FileName;
-            
+
             capLetterStrInd = regexp(varName, '[A-Z, 1-9]');
 
             for i = fliplr(capLetterStrInd)
@@ -323,11 +322,11 @@ classdef DataIoModel < handle
                     varName = insertBefore(varName, i , '_');
                 end
             end
-            
+
             varName = lower(varName);
-            
+
             fileName = sprintf('%s_%s', baseName, varName);
-            
+
             if isfield(parameters, 'FileType')
                 fileExtension = parameters.FileType;
                 if ~strncmp(fileExtension, '.', 1)
@@ -336,41 +335,39 @@ classdef DataIoModel < handle
             else
                 fileExtension = '.mat';
             end
-            
-            fileName = strcat(fileName, fileExtension);
 
+            fileName = strcat(fileName, fileExtension);
         end
-        
+
         function fileName = getFileName(obj, S)
-            
+
             %sid = obj.sessionID;
             baseName = obj.FileName;
 
             fileName = sprintf('%s_%s', baseName, S.FileNameExpression);
-            
+
             fileType = S.FileType;
-            
+
             if ~strncmp(fileType, '.', 1) % Remove . from ".mat"
                 fileType = strcat('.', fileType);
             end
-            
+
             fileName = strcat(fileName, fileType);
-            
         end
-        
+
         function folderPath = createDataFolder(obj, dataLocationName)
-            
+
             % Get data location model. Question: Better way to do this?
             S = obj.DataLocationModel.getDataLocation(dataLocationName);
-            
+
             rootPath = S.RootPath{1};
-            
+
             folderPath = rootPath;
-            
+
             for i = 1:numel(S.SubfolderStructure)
-                
+
                 switch S.SubfolderStructure(i).Type
-                    
+
                     case 'Subject'
                         folderName = sprintf('subject-%s', obj.subjectID);
                     case 'Session'
@@ -381,28 +378,27 @@ classdef DataIoModel < handle
                         folderName = obj.Time;
                     otherwise
                         folderName = S.SubfolderStructure(i).Name;
-                        
+
                         if isempty(folderName)
                             error('Can not create session folder because foldername is not specified')
                         end
                 end
-                
+
                 folderPath = fullfile(folderPath, folderName);
-                
             end
-            
+
             if ~isfolder(folderPath)
                 mkdir(folderPath)
             end
-            
+
             obj.DataLocation.(dataLocationName) = folderPath;
-            
+
             if ~nargout
                 clear folderPath
             end
         end
     end
-    
+
     methods (Static) % Function in external file
         ME = getException(errorId)
     end

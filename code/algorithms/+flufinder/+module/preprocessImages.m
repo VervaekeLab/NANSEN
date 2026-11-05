@@ -17,9 +17,9 @@ function imArray = preprocessImages(imArray, varargin)
     params.SpatialFilterType = 'gaussian'; % Not implemented
     params.SmoothingSigma = 20; % Todo: Depend on roisize?
     params.PrctileForBaseline = 25;
-    
+
     params = utility.parsenvpairs(params, [], varargin{:});
-    
+
     imArray = single(imArray);
 
     % Create a temporally downsampled stack (binned by maximum)
@@ -29,17 +29,16 @@ function imArray = preprocessImages(imArray, varargin)
         case 'maximum'
             imArray = stack.process.framebin.max(imArray, params.BinningSize);
     end
-    
+
     % Preprocess (subtract dynamic background)
     optsNames = {'SpatialFilterType', 'SmoothingSigma'};
     opts = utility.struct.substruct(params, optsNames);
     imArray = flufinder.preprocess.removeBackground(imArray, opts);
-    
+
     % Preprocess (subtract static background)
     optsNames = {'PrctileForBaseline'};
     opts = utility.struct.substruct(params, optsNames);
     %imArray = flufinder.preprocess.removeStaticBackground(imArray, opts);
     % Todo: Bin size should be part of options...
     imArray = flufinder.preprocess.removeDynamicBackground(imArray);
-
 end

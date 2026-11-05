@@ -33,7 +33,7 @@ count = 0;
 
 for i = 1:numel(h)
     if ~isempty(h(i).Tag)
-       
+
         % Find center of mass for placement of text.
         edge = h(i).Shape.Vertices;
         x = (edge(:,1) - xMin)*m;
@@ -56,7 +56,7 @@ for i = 1:numel(h)
             case 'right'
                 if pos(1)<0; continue; end
         end
-       
+
         switch h(i).Tag
             case 'V2MM'
                 pos(2) = pos(2)+0.4;
@@ -72,5 +72,4 @@ if nargout
 end
 
 %if nargin < 1; close(tmpFig); end
-
 end

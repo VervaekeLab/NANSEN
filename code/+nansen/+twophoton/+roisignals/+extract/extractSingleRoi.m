@@ -47,7 +47,7 @@ function signalArray = extractSingleRoi(imArray, roiData, method, n)
     roiMaskCropped = roiData.Masks(roiData.yInd, roiData.xInd, :);
 
     if strcmp(method, 'mean')
-    
+
         % Create a weighted 2D sparse version of the roi mask.
         roiMaskCropped_ = reshape(roiMaskCropped, [], numSubregions)';
         roiMaskCropped_ = roiMaskCropped_ ./ sum(roiMaskCropped_, 2);
@@ -58,16 +58,15 @@ function signalArray = extractSingleRoi(imArray, roiData, method, n)
 
         % Return signal array as numSamples x numSubregions
         signalArray = tmpSignal';
-        
+
     elseif strcmp(method, 'median')
         signalArray = getPercentileSignal(imArrayCropped, roiMaskCropped, 50);
-        
+
     elseif strcmp(method, 'percentile')
         signalArray = getPercentileSignal(imArrayCropped, roiMaskCropped, n);
-        
+
     elseif strcmp(method, 'max')
         error('Not implemented yet.')
-        
     end
 end
 
@@ -85,14 +84,14 @@ function signalArray = getPercentileSignal(imArrayChunk, roiMaskChunk, p)
     if nargin < 2 || isempty(p)
         p = 50;
     end
-        
+
     nSamples = size(imArrayChunk, 3);
     nSubregions = size(roiMaskChunk, 3);
-    
+
     if numel(p) == 1 && nSubregions > 1
         p = repmat(p, nSubregions, 1);
     end
-    
+
     % Preallocate signalArray
     signalArray = zeros(nSamples, nSubregions);
 
@@ -100,11 +99,11 @@ function signalArray = getPercentileSignal(imArrayChunk, roiMaskChunk, p)
     for i = 1:nSubregions
         nPixels = sum(sum(roiMaskChunk(:,:,i)));
         tmpMask = repmat(roiMaskChunk(:,:,i), 1, 1, nSamples);
-        
+
         % Todo: Is it significantly faster to put this directly in the
         % median/perctile function?
         roiPixelValues = reshape(imArrayChunk(tmpMask), nPixels, nSamples);
-        
+
         if p(i) == 50
             signalArray(:, i) = median(roiPixelValues, 1);
         else

@@ -11,9 +11,9 @@ classdef TextRecycler < applify.utility.abstract.GObjectRecycler
         FontUnits = 'pixels'
         Color = 0.5 * ones(1,3)
     end
-    
+
     methods
-        
+
         function h = getTextHandles(obj, n)
         %getTextHandles Get a specified number of text objects
         %
@@ -24,7 +24,7 @@ classdef TextRecycler < applify.utility.abstract.GObjectRecycler
     end
 
     methods (Access = protected)
-    
+
         function h = createNewHandles(obj, n)
         %createNewHandles Create new line objects
             [xInit, yInit] = deal( zeros(n, 1) );
@@ -32,7 +32,7 @@ classdef TextRecycler < applify.utility.abstract.GObjectRecycler
 
             h = text(obj.ParentAxes, xInit, yInit, '', textProperties{:});
         end
-        
+
         function h = resetHandleData(~, h)
         %resetHandleData Reset the x- and y-data of line handles
             set(h, 'Position', [nan, nan])
@@ -50,15 +50,15 @@ function performanceTest()
 
     f = figure;
     ax = axes(f);
-    
+
     textProvider = applify.utility.TextRecycler(ax);
-        
+
     fprintf('Creating 2000 text handles\n')
     tic; h = textProvider.getTextHandles(2000); toc
 
     fprintf('Recycling 2000 text handles\n')
     tic; textProvider.recycle(h); toc
-    
+
     fprintf('Retrieving 2000 recycled text handles\n')
     tic; h = textProvider.getTextHandles(2000); toc
 end

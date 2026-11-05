@@ -14,17 +14,17 @@ function imageArray = removeStaticBackground(imageArray, varargin)
 %   PrctileForBaseline : scalar or 2x1 vector specifying percentile
 %       interval to use for computing static background. If value is
 %       scalar, the interval starts at the 0th percentile.
-   
+
     import flufinder.preprocess.computeStaticBackgroundImage
 
     assert( ndims(imageArray) == 3, 'Image array must be 3D')
-    
+
     bgImage = computeStaticBackgroundImage(imageArray, varargin{:});
 
     % "Remove" the background
     imageArray = single(imageArray);
     imageArray = imageArray - cast(bgImage, class(imageArray));
-    
+
     % Normalize imageArray to values between 0 and 1
     imageArray = imageArray - min(imageArray(:));
     imageArray = imageArray ./ max(imageArray(:));

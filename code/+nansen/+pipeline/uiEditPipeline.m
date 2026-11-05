@@ -11,17 +11,17 @@ function h = uiEditPipeline(pipelineName)
     end
 
     pipelineStruct = pipelineModel.getItem(pipelineName);
-    
+
     % Get session methods catalog, make sure its refreshed and add options
     % alternatives for all session methods.
     smCatalog = nansen.config.SessionMethodsCatalog;
     smCatalog.refresh()
     smCatalog.addOptionsAlternative()
-    
+
     %smCatalog.verifyPipeline(pipelineStruct) %Todo.
-    
+
     h = nansen.pipeline.PipelineBuilderUI(pipelineStruct, smCatalog);
-    
+
     if ~nargout
         clear h
     end

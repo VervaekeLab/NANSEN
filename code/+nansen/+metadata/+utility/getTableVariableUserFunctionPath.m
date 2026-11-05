@@ -9,7 +9,7 @@ function pathStr = getTableVariableUserFunctionPath(variableName, tableClass)
     rootPathTarget = nansen.ProjectManager().getCurrentProject().getTableVariableFolder();
     fcnTargetPath = fullfile(rootPathTarget, strcat("+", lower(tableClass)) );
     fcnFilename = variableName + ".m";
-    
+
     pathStr = fullfile(fcnTargetPath, fcnFilename);
     assert(isscalar(pathStr), ...
         "NANSEN:InternalError", "Expected output to be scalar")

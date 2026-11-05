@@ -12,5 +12,4 @@ function S = refineComponentsByArea(S, varargin)
     areaCutoff = median([S.Area])+2*std([S.Area]);
     keep = [S.Area] < areaCutoff;
     S = S(keep);
-        
 end

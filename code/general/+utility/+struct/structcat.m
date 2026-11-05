@@ -7,23 +7,23 @@ function structArray = structcat(dim, varargin)
 %   array.
 
     % Todo:
-    %   [ ] get data type from existing fields and initialize values with
+    %   [ ] get data type from existing fields and initialize values with
     %       same type
     %   [ ] order fields before returning?
 
     isStruct = cellfun(@(c) isstruct(c), varargin);
     structCellArray = varargin(isStruct);
-    
+
     numStructs = numel(structCellArray);
-    
+
     % Determine unique fieldnames across all structs
     fieldNames = cell(numStructs, 1);
     for i = 1:numStructs
         fieldNames{i} = fieldnames(structCellArray{i});
     end
-    
+
     uniqueFields = unique(cat(1, fieldNames{:}));
-        
+
     % Add missing fields for structs with missing fields
     for i = 1:numStructs
         hasFields = isfield(structCellArray{i}, uniqueFields);
@@ -34,7 +34,7 @@ function structArray = structcat(dim, varargin)
             end
         end
     end
-    
+
     % Todo: Do we need to order fields?
     structArray = cat(dim, structCellArray{:});
 end

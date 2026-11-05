@@ -4,9 +4,9 @@ function avgImages = getBinnedAvgImages(imageStack, N)
     chunkSize = floor( imageStack.NumTimepoints ./ N );
     [IND, ~] = imageStack.getChunkedFrameIndices(chunkSize);
     numParts = N;
-        
+
     fprintf('Loading image data...');
-    
+
     avgImages = zeros(imageStack.ImageHeight, imageStack.ImageWidth, N);
     for i = 1:numParts
         tmpImageData = imageStack.getFrameSet(IND{i});

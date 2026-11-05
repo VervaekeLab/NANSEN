@@ -6,7 +6,7 @@ function migrateUserdata(userSession)
 %   folder. This caused some problems when people reinstalled nansen
 %   manually, and therefore the contents of this folder is now moved to
 %   MATLAB's prefdir
-    
+
     % Todo: If user projects are saved in the _userdata, move them to
     % userpath.
 
@@ -22,7 +22,7 @@ function migrateUserdata(userSession)
 
     backupPath = fullfile(userpath, 'Nansen', 'Backup', dateStr, 'Userdata', timeStr, '_userdata');
     if ~isfolder(backupPath); mkdir(backupPath); end
-    
+
     try
         copyfile(oldPath, backupPath)
         copyfile(oldPath, newPath)
@@ -30,20 +30,20 @@ function migrateUserdata(userSession)
         newException = MException('NANSEN:UserDataMigrationFailed', ...
             'Could not copy userdata to new location. Please report!');
         newException = newException.addCause(ME);
-        
+
         % Log the error message to the backup folder.
         errorFile = fullfile(backupPath, 'migration_failed_error.txt');
         utility.filewrite(errorFile, getReport(newException, 'extended'))
         throw(newException);
     end
-    
+
     % If copy went fine, we can remove the original userdata folder from
     % MATLAB's savepath and delete the folder from disk.
     rmpath(genpath(oldPath)); savepath
     disp('Removed _userdata from MATLAB''s search path and saved changes.')
     rmdir(oldPath, 's')
     fprintf('The "_userdata" folder was moved to %s\n', newPath)
-    
+
     % Move the installed addons file.
     addonFilePathOld = fullfile(newPath, 'settings', 'installed_addons.mat');
     addonFilePathNew = fullfile(newPath, 'installed_addons.mat');
@@ -69,16 +69,16 @@ end
 
 function newProjectFolderPath = moveProjectFolderToUserpath(projectFolderPath)
 % moveProjectFolderToUserpath - Move a project folder to Nansen's userpath.
-                    
+
     newRootPath = nansen.common.constant.DefaultProjectPath;
     [~, projectName] = fileparts(projectFolderPath);
-    
+
     newProjectFolderPath = fullfile(newRootPath, projectName);
 
     movefile(projectFolderPath, newProjectFolderPath);
 
     % Move to files back.
-    
+
     filesToKeepInOriginalLocation = {...
         'datalocation_local_rootpath_settings.mat', ...
         'task_list.mat' ...

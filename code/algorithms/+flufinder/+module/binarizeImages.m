@@ -10,7 +10,7 @@ function BW = binarizeImages(imArray, params)
 
     optsNames = {'RoiDiameter', 'PrctileForBinarization'};
     bwOpts = utility.struct.substruct(params, optsNames);
-    
+
     switch lower( params.RoiType )
         case 'soma'
             BW = flufinder.binarize.binarizeSomaStack(imArray, bwOpts);

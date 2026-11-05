@@ -20,7 +20,7 @@ function [f, results] = visualizeDrift(data)
 %          the stack.
 %
 %   See also ophys.twophoton.analysis.computeDriftSummary
-    
+
     if isnumeric(data)
         results = ophys.twophoton.analysis.computeDriftSummary(data);
     elseif isstruct(data)
@@ -41,23 +41,23 @@ function [f, results] = visualizeDrift(data)
     yHeightPix = (figSize(2)-MARGIN*2-SPACING*4) .* [yHeightU, yHeightL];
 
     fprintf('Plotting data...'); fprintf(newline)
-    
+
     % Create figure
     f = figure('MenuBar', 'none', 'Position', [100,100,figSize]);
     f.Name = sprintf('Drift visualization');
-    
+
     % Setup axes layout and create axes
     figSize = getpixelposition(f);
     [xU, wU] = uim.utility.layout.subdividePosition(MARGIN, figSize(3)-MARGIN*2, [0.5,0.5], SPACING);
     [xL, wL] = uim.utility.layout.subdividePosition(MARGIN, figSize(3)-MARGIN*2, [1, yHeightPix(2)], SPACING*4);
     [y, h] = uim.utility.layout.subdividePosition(MARGIN, figSize(4)-MARGIN*2, [0.25,0.75], SPACING*2);
-    
+
     ax = matlab.graphics.axis.Axes.empty;
     ax(1) = axes(f, 'Units', 'pixels', 'Position', [xU(1), y(2), wU(1), h(2)]);
     ax(2) = axes(f, 'Units', 'pixels', 'Position', [xU(2), y(2), wU(2), h(2)]);
     ax(3) = axes(f, 'Units', 'pixels', 'Position', [xL(1), y(1), wL(1), h(1)]);
     ax(4) = axes(f, 'Units', 'pixels', 'Position', [xL(2), y(1), wL(2), h(1)]);
-    
+
     % Plot first and last image overlaid
     image(ax(1), results.ImagesMerged )
     ax(1).Title.String = 'First and last part overlaid';
@@ -71,12 +71,12 @@ function [f, results] = visualizeDrift(data)
     axis(ax(1:2), 'image')
     set([ax(1:2).XAxis], 'Visible', 'off')
     set([ax(1:2).YAxis], 'Visible', 'off')
-    
+
     warning('off', 'MATLAB:griddedInterpolant:CubicUniformOnlyWarnId')      % Temp turn off warning from cbrewer
     cMapB = cbrewer('div', 'RdBu', 255); cMapB(cMapB<0)=0;
     warning('on', 'MATLAB:griddedInterpolant:CubicUniformOnlyWarnId')
     set(ax(2), 'Colormap', cMapB)
-    
+
     % Plot the image correlations and the mean fluorescence throughout the
     % recording
     ax(3).Title.String = 'Image correlation w/ first part + mean fluorescence';
@@ -94,7 +94,7 @@ function [f, results] = visualizeDrift(data)
     plot(ax(3), meanFNorm  )
     hold(ax(3), "on")
     plot(ax(3), meanFSmoothNorm )
-    
+
     ax(3).Title.String = 'Stability throughout recording';
     ax(3).YLabel.String = 'Mean Fluorescence (% of peak)';
     ax(3).XLabel.String = 'Recording part number';
@@ -109,5 +109,4 @@ function [f, results] = visualizeDrift(data)
 
     if nargout < 1; clear f;       end
     if nargout < 2; clear results; end
-
 end

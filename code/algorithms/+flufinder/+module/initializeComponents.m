@@ -9,12 +9,12 @@ function results = initializeComponents(imageStack, params)
 %   component detection step for use on an ImageStack object.
 
     % Todo:
-    %   [ ] Downsampling before binarization
+    %   [ ] Downsampling before binarization
     %   [ ] Load downsampled images if they already exist....
 
     % Use hijacked fprintf if available
     global fprintf; if isempty(fprintf); fprintf = str2func('fprintf'); end
-    
+
     % Get chunking specifications
     numFramesPerPart = 2000;%params.BatchSize;
     [IND, numParts] = imageStack.getChunkedFrameIndices(numFramesPerPart);
@@ -22,12 +22,12 @@ function results = initializeComponents(imageStack, params)
     % Todo: Implement temporal downsampling.
     %dt = params.TemporalDownsamplingFactor;
     dt = 1;
-    
+
     for iPart = 1:dt:numParts
-                
+
         iIndices = IND{iPart};
         imArray = imageStack.getFrameSet(iIndices);
-        
+
         imArray = flufinder.module.preprocessImages(imArray, params);
         bwArray = flufinder.module.binarizeImages(imArray);
 

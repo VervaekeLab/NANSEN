@@ -14,12 +14,12 @@ classdef Preferences < nansen.config.abstract.Preferences
         %PreferredDateFormat = "yyyy.mm.dd"
         %PreferredTimeFormat = "HH:MM:SS"
     end
-    
+
     methods (Access = ?nansen.internal.user.NansenUserSession)
 
         function obj = Preferences(preferenceDirectory)
             import nansen.internal.user.Preferences
-            
+
             if ~nargin || isempty(preferenceDirectory)
                 preferenceDirectory = prefdir;
             end
@@ -30,7 +30,7 @@ classdef Preferences < nansen.config.abstract.Preferences
     end
 
     methods (Static, Access = public)
-        
+
         function filePath = buildFilePath(preferenceDirectory)
             % - Setup preference directory
             if ~isfolder(preferenceDirectory); mkdir(preferenceDirectory); end
@@ -42,7 +42,7 @@ classdef Preferences < nansen.config.abstract.Preferences
         function filename = createFilename()
         %Create filename for a preference file.
             classname = mfilename('class');
-            prefGroupName = eval(sprintf('%s.PreferenceGroupName', classname));
+            prefGroupName = nansen.internal.introspection.getConstantPropertyValue(classname, 'PreferenceGroupName');
             prefGroupName = matlab.lang.makeValidName(prefGroupName);
             filename = fullfile(sprintf('%s_Preferences.mat', prefGroupName));
         end

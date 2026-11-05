@@ -1,5 +1,5 @@
 function options = getOptions(imSize, roiSize)
-    
+
     if nargin < 1; imSize = [512,512,1];end
     if nargin < 2; roiSize = 6; end
 
@@ -24,8 +24,7 @@ function options = getOptions(imSize, roiSize)
         'merge_thr',merge_thr,...                   % merging threshold
         'gSig',tau ...                              % half size of neurons to be found (default: [5,5])
         );
-    
+
     options.d = d;
     options.nFrames = T;
-    
 end

@@ -1,33 +1,49 @@
 function varargout = computeClassificationData(sessionObject, varargin)
-%computeClassificationData Summary of this function goes here
-%   Detailed explanation goes here
+%Compute ROI images and statistics for longitudinal ROI classification.
+%
+%Use this when:
+%- You have `RoiArrayLongitudinal` for a session and want to classify those
+%  ROIs later.
+%- You need ROI thumbnails and ROI statistics derived from the
+%  motion-corrected stack.
+%
+%What happens:
+%- NANSEN loads `RoiArrayLongitudinal` and the selected ImageStack.
+%- For each channel and plane, it computes ROI images and ROI statistics
+%  from an initial chunk of frames.
+%- The ROI data, images, statistics, and empty classification labels are
+%  packaged as a longitudinal ROI group.
+%
+%Outputs:
+%- `RoiGroupLongitudinal`: ROI data prepared for longitudinal
+%  classification.
 
 % % % % % % % % % % % % CONFIGURATION CODE BLOCK % % % % % % % % % % % %
 % Create a struct of default parameters (if applicable) and specify one or
 % more attributes (see nansen.session.SessionMethod.setAttributes)
-    
+
     % Get struct of parameters from local function
     params = getDefaultParameters();
-    
+
     % Create a cell array with attribute keywords
     ATTRIBUTES = {'serial', 'queueable'};
-    
+
 % % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % %
 % - - - - - - - - - - Please do not edit this part - - - - - - - - - - -
-    
+
     % Create a struct with "attributes" using a predefined pattern
     import nansen.session.SessionMethod
     fcnAttributes = SessionMethod.setAttributes(params, ATTRIBUTES{:});
-    
+
     if ~nargin && nargout > 0
         varargout = {fcnAttributes};   return
     end
-    
+
     % Parse name-value pairs from function input and update parameters
     params = utility.parsenvpairs(params, [], varargin);
-    
+
 % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % %
-        
+
     import nansen.twophoton.roi.compute.computeRoiImages
     import nansen.twophoton.roi.getRoiAppData
     % - Load roi array
@@ -50,16 +66,16 @@ function varargout = computeClassificationData(sessionObject, varargin)
     roiGroupCellArrayOfStruct = cell(numZ, numC);
 
     %[roiImages, roiStats] = deal( cell(numZ, numC) );
-    
+
     N = imageStack.chooseChunkLength();
 
     stackIterator.reset()
     for i = 1:stackIterator.NumIterations
         stackIterator.next()
-        
+
         iC = stackIterator.CurrentIterationC;
         iZ = stackIterator.CurrentIterationZ;
-        
+
         thisRoiArray = roiArray{iZ, iC};
         if isa(thisRoiArray, 'struct')
             thisRoiArray = roimanager.utilities.struct2roiarray(thisRoiArray);
@@ -68,20 +84,20 @@ function varargout = computeClassificationData(sessionObject, varargin)
         if ~isempty(thisRoiArray)
             imageStack.CurrentChannel = stackIterator.CurrentChannel;
             imageStack.CurrentPlane = stackIterator.CurrentPlane;
-            
+
             % Load images:
             imArray = imageStack.getFrameSet(1:N);
-            
+
             % Todo: Include this but fix caching for multichannel data...
             % obj.SourceStack.addToStaticCache(imArray, 1:N)
             imArray = squeeze(imArray);
-    
+
             [roiImages, roiStats] = ...
                 getRoiAppData(imArray, thisRoiArray, params); % Imported function
         else
             [roiImages, roiStats] = deal(struct.empty);
         end
-        
+
         % Add all classification data the output struct
         thisRoiGroupStruct = struct();
         thisRoiGroupStruct.ChannelNumber = stackIterator.CurrentChannel;
@@ -94,7 +110,7 @@ function varargout = computeClassificationData(sessionObject, varargin)
 
         roiGroupCellArrayOfStruct{iZ, iC} = thisRoiGroupStruct;
     end
-    
+
     % Collect data and save roigroup
     roiGroupStruct = cell2mat(roiGroupCellArrayOfStruct);
 
@@ -104,16 +120,9 @@ function varargout = computeClassificationData(sessionObject, varargin)
 end
 
 function params = getDefaultParameters()
-%getDefaultParameters Get the default parameters for this session method
-%
-%   params = getDefaultParameters() should return a struct, params, which
-%   contains fields and values for parameters of this session method.
-
-    % Add fields to this struct in order to define parameters for this
-    % session method:
     params = struct();
-    params.ImageStackVariableName = 'TwoPhotonSeries_Corrected';
-    params.RoiImageSize = [21, 21];
+    params.ImageStackVariableName = 'TwoPhotonSeries_Corrected'; % ImageStack used to compute ROI images and statistics.
+    params.RoiImageSize = [21, 21]; % Pixel size of generated ROI thumbnails.
 end
 
 function throwError(errorID, sessionID)

@@ -1,5 +1,5 @@
 classdef (ConstructOnLoad) ValueChanged < event.EventData
-    
+
     properties
         Name
         OldValue
@@ -7,9 +7,9 @@ classdef (ConstructOnLoad) ValueChanged < event.EventData
         UIControls
         PageNumber
     end
-    
+
     methods
-        
+
         function data = ValueChanged(Name, OldValue, NewValue, UIControls, pageNumber)
             if nargin < 5;  pageNumber = 1; end
             data.Name = Name;

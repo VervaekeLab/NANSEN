@@ -12,19 +12,19 @@ function createTableVariable(app, metadataClass)
 % provides a mouse over effect etc.
 
     % Create a struct to open in a dialog window
-    
+
     if nargin < 2
         error('Missing input')
     end
-    
+
     import nansen.metadata.utility.createFunctionForCustomTableVar
     import nansen.metadata.utility.createClassForCustomTableVar
-    
+
     inputModeSelection = {...
         'Enter values manually', ...
         'Get values from function', ...
         'Get values from list' };
-    
+
     % Create a struct for opening in the structeditor dialog
     S = struct();
     S.VariableName = '';
@@ -32,16 +32,16 @@ function createTableVariable(app, metadataClass)
     S.DataType_ = {'numeric', 'text', 'logical'};
     S.InputMode = inputModeSelection{1};
     S.InputMode_ = inputModeSelection;
-    
+
     S = tools.editStruct(S, '', 'New Variable', ...
         'ReferencePosition', app.Figure.Position);
-    
+
     if isempty(S.VariableName); return; end
-             
+
     % Make sure variable does not already exist
     currentVars = app.MetaTable.entries.Properties.VariableNames;
     if any(strcmp( S.VariableName, currentVars ))
-        
+
         message = sprintf(['The variable "%s" already exists in this table. ', ...
             'Do you want to modify this variable? ', ...
             'Note: The old variable definition will be lost.'], S.VariableName);
@@ -66,7 +66,7 @@ function createTableVariable(app, metadataClass)
     % Make sure the variable name is valid
     msg = sprintf('%s is not a valid variable name', S.VariableName);
     if ~isvarname(S.VariableName); app.openErrorDialog(msg); return; end
-    
+
     switch S.InputMode
         case 'Enter values manually'
             createClassForCustomTableVar(S)
@@ -79,14 +79,14 @@ function createTableVariable(app, metadataClass)
             S.SelectionList = selectionList;
             createClassForCustomTableVar(S)
     end
-    
+
     % Todo: Add variable to table and table settings....
     initValue = nansen.metadata.utility.getDefaultValue(S.DataType);
-    
+
     app.MetaTable.addTableVariable(S.VariableName, initValue)
     app.UiMetaTableViewer.refreshColumnModel();
     app.UiMetaTableViewer.refreshTable(app.MetaTable)
-    
+
     % Refresh menus that show the variables of the session table...
     app.updateSessionInfoDependentMenus()
 end

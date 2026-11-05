@@ -8,25 +8,25 @@ function name = getOsDependentName(referenceName)
         name = referenceName;
         return
     end
-    
+
     % % Translate to names on windows
     if ispc
         switch referenceName
-            
+
             case 'Finder';  name = 'Explorer';
             case 'finder';  name = 'explorer';
-            
+
             otherwise
                 error('Name (%s) is not available', referenceName)
         end
-        
+
     % % Translate to names on linux
     elseif isunix
         switch referenceName
-                    
+
             case 'Finder';  name = 'File Explorer'; %?
             case 'finder';  name = 'file explorer'; %?
-                
+
             otherwise
                 error('Name (%s) is not available', referenceName)
         end

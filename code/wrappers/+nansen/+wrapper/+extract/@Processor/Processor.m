@@ -45,13 +45,13 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         OptionsManager nansen.manage.OptionsManager = ...
             nansen.OptionsManager('nansen.wrapper.extract.Processor')
     end
-    
+
     properties (Constant) % From ImageStack Processor...
         ImviewerPluginName = 'EXTRACT'
     end
-    
+
     methods % Constructor
-        
+
         function obj = Processor(varargin)
         %nansen.wrapper.extract.Processor Construct extract processor
         %
@@ -76,20 +76,20 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             end
         end
     end
-    
+
     methods (Access = protected) % Implementation of superclass methods
-        
+
         % Step 1
         function onInitialization(obj)
             onInitialization@nansen.processing.RoiSegmentation(obj)
-                        
+
             % This should only be done once... Adjust the number of cells
             % to find based on the division of the images in x-y. I.e if
             % image is divided in 4 patches, divide the number of cells to
             % find by 4.
             obj.adjustNumCellsToFind()
         end
-        
+
         % Step 2 : Run the autosegmentation on each chunk of ImageStack.
         function result = segmentPartition(obj, Y)
         %segmentPartition Segment subpart of ImageStack
@@ -102,44 +102,44 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 
             % Run superclass method first:
             onCompletion@nansen.processing.RoiSegmentation(obj)
-            
+
             if ~isfile(obj.getDataFilePath('ExtractTemporalWeights'))
-            
+
                 if isempty(obj.MergedResults)
                     obj.mergeResults()
                 end
-                
+
                 % % % Todo: The following should be a separate session method...
                 % % if isempty(obj.OriginalStack)
                 % %     sourceStack = obj.SourceStack;
                 % % else
                 % %     sourceStack = obj.OriginalStack;
                 % % end
-                % % 
-                % % % Get temporal segments 
+                % %
+                % % % Get temporal segments
                 % % tExtracor = nansen.wrapper.extract.ProcessorT(...
                 % %     sourceStack, obj.Options, obj.MergedResults);
                 % % tExtracor.Options.Run.numFramesPerPart = 2000;
                 % % tExtracor.DataIoModel = obj.DataIoModel;
-                % % 
+                % %
                 % % tExtracor.runMethod()
             end
-            
+
             %obj.createRoiClassificationData()
         end
     end
-    
+
     methods (Access = protected) % Implementation of RoiSegmentation methods
-        
+
         function opts = getToolboxSpecificOptions(obj, varargin)
         %getToolboxSpecificOptions Get EXTRACT options from parameters or file
         %
         %   OPTS = getToolboxSpecificOptions(OBJ) return a
         %   struct of parameters for the EXTRACT pipeline.
-            
+
             import nansen.wrapper.extract.Options
             opts = Options.convert(obj.Options);
-            
+
             % Make sure gpu option is turned off if running macOS version
             % 10.14 or above.
             if ismac
@@ -151,20 +151,20 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                     end
                 end
             end
-                
+
             optionsVarname = 'ExtractOptions';
 
             % Initialize options (Load from data folder if options already
             % exist, otherwise initialize and save to data folder)
             opts = obj.initializeOptions(opts, optionsVarname);
         end
-        
+
         function dsFactor = getTemporalDownsamplingFactor(obj)
-            
+
             % Prioritize value from internal pipeline
             dsFactor1 = obj.Options.Downsample.downsample_time_by;
             dsFactor2 = obj.Options.Run.TemporalDownsamplingFactor;
-            
+
             if dsFactor1 > 1
                 obj.Options.Downsample.downsample_time_by = 1; % Need to set this to 1, because stack processor takes care of downsampling...
                 dsFactor = dsFactor1;
@@ -174,13 +174,13 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 dsFactor = 1;
             end
         end
-        
+
         function mergeSpatialComponents(obj, iPlane, iChannel)
         %mergeSpatialComponents Merge spatial components.
 
             iMergedResults = obj.Results{1, iPlane, iChannel};
             [h, w, ~] = size(iMergedResults.spatial_weights);
-            
+
             numParts = size(obj.Results, 1);
 
             for i = 2:numParts
@@ -202,7 +202,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                     Smerged{j} = reshape(Smerged{j}, h, w, []);
                     S{j}(:, :, idx_match(j, :)) = [];
                 end
-                
+
                 % Merge rois by finding the average of the masks.
                 % Todo: weight by number of parts.
                 SMerged = mean( cat(4, Smerged{:}), 4 );
@@ -214,7 +214,6 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 % For merging temporal weights (deprecated)
                 % % % T{1} = iMergedResults.temporal_weights;
                 % % % T{2} = obj.Results{i, iPlane, iChannel}.temporal_weights;
-
             end
 
             obj.MergedResults{iPlane, iChannel} = iMergedResults;
@@ -222,30 +221,29 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 
         function roiArrayCell = getRoiArray(obj)
         %getRoiArray Get results as a roi array
-            
+
             [numZ, numC] = size(obj.MergedResults);
             roiArrayCell = cell(numZ, numC);
 
             for i = 1:numZ
                 for j = 1:numC
                     spatialWeights = obj.MergedResults{i,j}.spatial_weights;
-        
+
                     roiArrayCell{i,j} = nansen.wrapper.extract.convert2rois(...
                         struct('spatial_weights', spatialWeights));
-                    
                 end
             end
         end
-        
+
         function getRoiAppData(obj)
         %getRoiAppData Extends superclass method to include spatial weights
         %
         %   Include spatial weights as images for all rois.
 
             getRoiAppData@nansen.processing.RoiSegmentation(obj)
-                        
+
             [numZ, numC] = size(obj.RoiArray);
-            
+
             for iZ = 1:numZ
                 for iC = 1:numC
                     obj.addSpatialWeightsToRoiImages(iZ, iC)
@@ -253,21 +251,21 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             end
         end
     end
-    
+
     methods (Access = private) % Methods specific to the Extract Processor
-        
+
         function createRoiClassificationData(obj)
-            
+
             % Note: Similar to getRoiAppData, but looks like it's
             % deprecated
 
             % Load subset of downsampled image stack
             N = obj.SourceStack.chooseChunkLength();
             imArray = obj.SourceStack.getFrameSet(1:N);
-            
+
             % Load roiArray
             roiArray = obj.loadData( obj.RoiArrayVarName );
-            
+
             % Load signals
             roiSignals = obj.loadData('ExtractTemporalWeights');
 
@@ -277,26 +275,26 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
                 roiSignalsDs = resample(double(roiSignals)', 1, q)';
                 roiSignals = roiSignalsDs;
             end
-            
+
             % Choose same subset as for signals
             roiSignals = roiSignals(:, 1:N);
-            
+
             [roiImages, roiStats] = roimanager.utilities.createRoiUserdata(...
                 roiArray, imArray, roiSignals);
-            
+
             % Add spatial weights...
-            
+
             % Add area as a statistical value
             [roiStats(:).Area] = deal(roiArray.area);
-            
+
             % Save to roi file...
             filePath = obj.getDataFilePath( obj.RoiArrayVarName );
             S = struct('roiImages', roiImages, 'roiStats', roiStats);
             save(filePath, '-struct', 'S', '-append')
-            
+
             %tic; S = load(filePath); toc
         end
-        
+
         function addSpatialWeightsToRoiImages(obj, iZ, iC)
         %addSpatialWeightsToRoiImages Add spatial weights to roi images
         %
@@ -304,7 +302,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
         %   images for each roi.
 
             if isempty(obj.RoiArray{iZ, iC}); return; end
-        
+
             % Get initial data.
             spatialWeights = obj.MergedResults{iZ, iC}.spatial_weights;
 
@@ -334,14 +332,14 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 
             obj.RoiImages{iZ, iC} = orderfields(roiImages, newFieldnameOrder);
         end
-        
+
         function adjustNumCellsToFind(obj)
         %adjustNumCellsToFind Adjust number of cells to find if multiple
         %spatial partitions will be used.
 
             numPartitions = obj.ToolboxOptions.num_partitions_x * ...
                                 obj.ToolboxOptions.num_partitions_y;
-            
+
             if numPartitions > 1
                 if ~isfield(obj.ToolboxOptions, 'cellfind_max_steps_orig')
                     obj.ToolboxOptions.cellfind_max_steps_orig = obj.ToolboxOptions.cellfind_max_steps;
@@ -350,7 +348,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
             end
         end
     end
-    
+
     methods (Static) % Method in external file.
         options = getDefaultOptions()
         pathList = getDependentPaths()

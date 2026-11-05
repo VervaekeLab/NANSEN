@@ -1,6 +1,6 @@
 function defaultValue = getDefaultValue(dataType)
 %getDefaultValue Get default value of data type
-    
+
     switch dataType
         case 'logical (true)'
             defaultValue = true;

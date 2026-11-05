@@ -10,7 +10,7 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
 %   (1) https://github.com/MATLAB-Community-Toolboxes-at-INCF/DeepInterpolation-MATLAB
 
 %   Requires DeepLearningToolbox
-    
+
     properties (Constant) % Attributes inherited from nansen.processing.DataMethod
         MethodName = 'Deep Interpolation (Denoise Stack)'
         IsManual = false        % Does method require manual supervision?
@@ -23,7 +23,7 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
         DATA_SUBFOLDER = ''	% defined in nansen.processing.DataMethod
         VARIABLE_PREFIX	= '' % defined in nansen.processing.DataMethod
     end
-    
+
     properties (Access = private)
         DeepInterpolationNet
         OriginalFrameSize
@@ -37,34 +37,34 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
     end
 
     methods (Static)
-        
+
         function S = getDefaultOptions()
         % Get default options for the deep interpolation denoiser.
             S.DeepInterpolation.PrePostOmission = 0; % 0-4;
             S.DeepInterpolation.PreFrame = 30; % Fixed number of frames before the predicted frame
             S.DeepInterpolation.PostFrame = 30; % Fixed number of frames after the predicted frame
-            
+
             S.DeepInterpolation.PrePostOmission_ = struct('type', 'slider', ...
                 'args', {{'Min', 0, 'Max', 4, 'nTicks', 4, 'TooltipPrecision', 0}});
             S.DeepInterpolation.PreFrame_ = struct('type', 'slider', ...
                 'args', {{'Min', 1, 'Max', 30, 'nTicks', 29, 'TooltipPrecision', 0}});
             S.DeepInterpolation.PostFrame_ = struct('type', 'slider', ...
                 'args', {{'Min', 1, 'Max', 30, 'nTicks', 29, 'TooltipPrecision', 0}});
-            
+
             className = mfilename('class');
             superOptions = nansen.mixin.HasOptions.getSuperClassOptions(className);
             S = nansen.mixin.HasOptions.combineOptions(S, superOptions{:});
         end
     end
-    
+
     methods % Constructor
-        
+
         function obj = Denoiser(sourceStack, varargin)
-            
+
             % Todo: Ensure DeepLearningToolbox is installed
 
             obj@nansen.stack.ImageStackProcessor(sourceStack, varargin{:})
-            
+
             if ~nargout
                 obj.runMethod()
                 clear obj
@@ -73,7 +73,7 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
     end
 
     methods (Access = protected) % Override ImageStackProcessor methods
-        
+
         function onInitialization(obj)
         %onInitialization Custom code to run on initialization.
             obj.configureOutputStack()
@@ -92,9 +92,9 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
 
             preFrame = obj.Options.DeepInterpolation.PreFrame; % Fixed number of frames before the predicted frame
             postFrame = obj.Options.DeepInterpolation.PostFrame;
-            
+
             prePostOmission = obj.Options.DeepInterpolation.PrePostOmission;
- 
+
             numFramesPre = preFrame + prePostOmission;
             numFramesPost = postFrame + prePostOmission;
 
@@ -105,7 +105,7 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
                 partInd = obj.FrameIndPerPart{i};
                 % Save original indices in the TargetFrameIndPerPart prop
                 obj.TargetFrameIndPerPart{i} = partInd;
-                
+
                 firstFrameIndex = partInd(1);
                 lastFrameIndex = partInd(end);
 
@@ -130,7 +130,7 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
     methods (Access = protected) % Method for processing each part
 
         function [Y, results] = processPart(obj, Y, ~)
-            
+
             Y = obj.preprocessImageSubstack(Y);
 
             % Unless this is the first or last part, Y is bigger than what
@@ -146,19 +146,19 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
 
             chunkSize = size(Y);
             chunkSize(3) = numel(targetFrameIndices);
-            
+
             % Create new array for holding output data.
             YOut = zeros(chunkSize, 'like', Y);
-            
+
             % Note: iFrame is the frame relative to the output data,
             % whereas targetFrameIndices are relative to the input data
             % (i.e the data with extra "padded" frames).
 
             for iFrame = 1:numel(targetFrameIndices)
-                
+
                 targetFrameIdx = targetFrameIndices(iFrame);
                 predictionFrameIndices = obj.getPredictionFrameIndices(targetFrameIdx);
-            
+
                 if isempty(predictionFrameIndices)
                     YOut(:,:,iFrame) = nan;
                     continue
@@ -182,16 +182,16 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
     end
 
     methods (Access = private)
-    
+
         function configureOutputStack(obj)
         %createOutputStack Configure and create the output stack.
         %
         %   Note: If stack exists from before, new stack is not created.
-        
+
             % Create output filepath
             [~, sourceName] = fileparts( obj.SourceStack.FileName );
             targetName = strcat(sourceName, '_denoised');
-            
+
             % NB: outputs the same data type...
             targetFilepath = strrep(  obj.SourceStack.FileName, sourceName, targetName );
 
@@ -203,7 +203,6 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
 
             obj.openTargetStack(targetFilepath, stackSize, dataTypeOut, ...
                 'DataDimensionArrangement', obj.SourceStack.Data.StackDimensionArrangement);
-        
         end
 
         function initializeNetwork(obj)
@@ -217,7 +216,7 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
             if ~isfile(modelFileName)
                 obj.downloadModel()
             end
-            
+
             s = ver('MATLAB'); %#ok<VERMATLAB>
             releaseName = regexp(s.Release, '(?<=\().*(?=\))', 'match', 'once');
             supportPackageDirectory = fullfile(userpath, 'SupportPackages', releaseName);
@@ -233,7 +232,7 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
             regressionnet = replaceLayer(importednet, placeholders.Name , maeRegressionLayer);
             obj.DeepInterpolationNet = assembleNetwork(regressionnet);
         end
-        
+
         function Y = preprocessImageSubstack(obj, Y)
         %preprocessImageSubstack Preprocess each chunk of images
 
@@ -268,7 +267,7 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
 
             Y(isnan(Y)) = 0;
         end
-    
+
         function predictionFrameIndices = getPredictionFrameIndices(obj, targetFrameIdx)
         %getPredictionFrameIndices Get indices for prediction of a target
         %
@@ -289,11 +288,11 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
             lastPredictionIdx = targetFrameIdx + numPostFrames + numPrePostOmission;
 
             predictionFrameIndices = firstPredictionIdx : lastPredictionIdx;
-            
+
             % Drop the omitted frames before prediction
             prePostOmissionIndices = targetFrameIdx-numPrePostOmission : targetFrameIdx+numPrePostOmission; % index of frames to be dropped
             predictionFrameIndices = setdiff(predictionFrameIndices, prePostOmissionIndices);
-        
+
             % If any prediction indices are out of range, we don't make a
             % prediction
             if any(predictionFrameIndices < 1)
@@ -319,7 +318,7 @@ classdef Denoiser < nansen.stack.ImageStackProcessor
 
             modelUrl = "https://www.dropbox.com/sh/vwxf1uq2j60uj9o/AAC0sZWahCJFBRARoYsw8Nnra/2019_09_11_23_32_unet_single_1024_mean_absolute_error_Ai93-0450.h5?dl=1";
             if ~isfolder(modelSaveDirectory); mkdir(modelSaveDirectory); end
-            
+
             %fex.filedownload.downloadFile(modelSavepath, modelUrl)
             disp('Downloading deep interpolation model, please wait a moment.')
             websave(modelFilePath, modelUrl);

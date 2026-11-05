@@ -24,33 +24,32 @@ imageSignal = mean(mean(IM,2),1);
 imageSignal = single( squeeze(imageSignal) );
 
 % Divide data into chunks to use less memory during calculation
-tmpIm = stack.reshape.imsplit(IM, true, [], 'numRows', numRows, 'numCols', numCols);
+tmpIm = stack.reshape.splitImage(IM, numRows, numCols);
 tmpC = cell(size(tmpIm));
 
 for i = 1:size(tmpIm,1)
     for j = 1:size(tmpIm,2)
-        
+
         [d1,d2,d3] = size(tmpIm{i,j});
         pixelSignals = transpose( reshape( tmpIm{i,j} , d1*d2, d3) );
         pixelSignals = single(pixelSignals);
-        
+
         % Calculate the correlation of each pixel with the image signal.
         % Note: data is cast to single and transposed to row vectors.
         RHO = corr(imageSignal, pixelSignals, 'tail', 'right', 'rows', 'all');
         rhoIm = reshape(RHO, d1,d2);
-        
+
         tmpC{i, j} = rhoIm;
     end
 end
 
-% Unchunk data
+% Reassemble blocks into a single image
 [d1,d2,~] = size(IM);
-cIm = stack.reshape.imsplit(tmpC, false, [d1,d2,1], 'numRows', numRows, 'numCols', numCols);
+cIm = stack.reshape.mergeImageBlocks(tmpC, [d1,d2]);
 
 % cast...
 cIm = cIm .* nansen.util.range(P) + P(1);
 cIm = cast(cIm, class(IM));
 
 %cIm = stack.makeuint8(cIm);
-
 end

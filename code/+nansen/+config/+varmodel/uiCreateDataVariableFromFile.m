@@ -11,10 +11,19 @@ function varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sess
 %                          belongs to
 %
 %   Output Arguments:
-%       varItem          : Structure with specifications for new data variable
+%       varItem          : Structure with specifications for new data variable.
+%                          Empty if the dialog was cancelled.
+%
+%   The variable name must be a valid MATLAB identifier. If it is not, an
+%   error dialog is shown and the form reopens with the entered values.
+%
+%   The file name expression is pre-filled with the file name without the
+%   session ID, or * when nothing else remains. A variable created from a
+%   file has to search for it, so the expression cannot be left empty and
+%   must match the file. Otherwise the form reopens as well.
 
 %   Todo:
-%       [ ] Make dataLocationName and sessionObject optional inputs?
+%       [ ] Make dataLocationName and sessionObject optional inputs?
 
     arguments
         filePath
@@ -33,13 +42,11 @@ function varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sess
 
     fileAdapterList = nansen.dataio.listFileAdapters(ext);
 
-    % Remove session ID from filename
-    fileName = strrep(fileName, sessionObject.sessionID, '');
-    
     % Create a struct with fields that are required from user
     S = struct();
     S.VariableName = '';
-    S.FileNameExpression = fileName;
+    S.FileNameExpression = variableModel.suggestFileNameExpression( ...
+        fileName, sessionObject.sessionID);
     S.FileAdapter = fileAdapterList(1).FileAdapterName;
     S.FileAdapter_ = {fileAdapterList.FileAdapterName};
     S.Favorite = false;
@@ -47,18 +54,41 @@ function varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sess
     if ~isempty(options.SkipFields)
         S = rmfield(S, options.SkipFields);
     end
-    
+
     if ismissing(options.Prompt)
         nvPairs = {};
     else
         nvPairs = {'Prompt', options.Prompt};
     end
 
-    % Open user dialog:
-    [S, wasAborted] = tools.editStruct(S, [], 'Create New Variable', nvPairs{:});
+    % Open user dialog. A name that is not a valid MATLAB identifier can
+    % not become a data variable, and a variable created from a file has
+    % to find that file, so the dialog reopens with the entered values
+    % until both are valid or the dialog is cancelled.
+    isInputValid = false;
+    while ~isInputValid
+        [S, wasAborted] = tools.editStruct(S, [], 'Create New Variable', nvPairs{:});
+        if wasAborted; return; end
+
+        isNameValid = ~isfield(S, 'VariableName') || isvarname(S.VariableName);
+        if ~isNameValid
+            message = sprintf(['"%s" is not a valid data variable name. ', ...
+                'A name must start with a letter and contain only letters, ', ...
+                'numbers and underscores.'], S.VariableName);
+            uiwait( errordlg(message, 'Invalid Variable Name', 'modal') )
+            continue
+        end
+
+        expressionProblem = getExpressionProblem(S, variableModel, [fileName, ext]); % Local function
+        if ~isempty(expressionProblem)
+            uiwait( errordlg(expressionProblem, 'Invalid File Name Expression', 'modal') )
+            continue
+        end
+
+        isInputValid = true;
+    end
     S = rmfield(S, 'FileAdapter_');
-    if wasAborted; return; end
-    
+
     % Add other fields that are required for the variable model.
 
     % Create a new data variable item
@@ -83,17 +113,37 @@ function varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sess
     % Get the data location uuid for the given data location
     dloc = sessionObject.getDataLocation(dataLocationName);
     varItem.DataLocationUuid = dloc.Uuid;
-    
+
     % Determine if file is located in a session subfolder
     sessionFolder = sessionObject.getSessionFolder(dataLocationName);
     varItem.Subfolder = strrep(folder, sessionFolder, '');
     if strncmp(varItem.Subfolder, filesep, 1)
         varItem.Subfolder = varItem.Subfolder(2:end);
     end
-    
+
     % Get data type from file adapter
     fileAdapterIdx = strcmp({fileAdapterList.FileAdapterName}, S.FileAdapter);
-    
+
     % Normalize to char. Todo: Should support string type
     varItem.DataType = char( fileAdapterList(fileAdapterIdx).DataType );
+end
+
+function problem = getExpressionProblem(S, variableModel, fileName)
+%getExpressionProblem - Why the entered expression cannot find the file
+%   The result is empty when the expression is absent from the form, or
+%   when it is non-empty and matches the file.
+    problem = '';
+    if ~isfield(S, 'FileNameExpression'); return; end
+
+    [~, ~, fileType] = fileparts(fileName);
+
+    if isempty(S.FileNameExpression)
+        problem = ['Enter a file name expression. A variable created from a ', ...
+            'file has to search for it, so the expression cannot be empty. ', ...
+            'Use * to match any file of this type.'];
+    elseif ~variableModel.isFileNameMatch(fileName, S.FileNameExpression, fileType)
+        problem = sprintf(['The file name expression "%s" does not match the ', ...
+            'file "%s". Enter a part of the file name, or * to match any ', ...
+            'file of this type.'], S.FileNameExpression, fileName);
+    end
 end

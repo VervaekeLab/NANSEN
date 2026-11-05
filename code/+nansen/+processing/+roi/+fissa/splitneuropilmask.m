@@ -1,7 +1,7 @@
 function splitMask = splitneuropilmask(npMask, roiMask, nSlices)
 % Splits a mask into a number of approximately equal slices by area around
 %     the center of the mask.
-% 
+%
 %     Inputs
 %     ----------
 %     npMask : array (logical)
@@ -15,13 +15,12 @@ function splitMask = splitneuropilmask(npMask, roiMask, nSlices)
 %         slices to use if the ROI is surrounded by valid pixels, and
 %         automatically reduces the number of slices if it is on the
 %         boundary of the sampled region. NOT IMPLEMENTED.
-% 
+%
 %     Returns
 %     -------
 %     splitMask
 %         Neuropil mask as a 3d logical array where the third dimension is
 %         the number of slices.
-
 
 if nSlices == 1; splitMask=npMask; return; end
 
@@ -30,7 +29,7 @@ assert(islogical(npMask(1)) & numel(size(npMask))==2, ...
                         'Neuropil mask should be a logical matrix')
 assert(islogical(roiMask(1)) & numel(size(roiMask))==2, ...
                         'Roi mask should be a logical matrix')
-                    
+
 % get the center of mass for the cell
 [y, x] = find(roiMask);
 centre = [mean(y), mean(x)];
@@ -80,5 +79,4 @@ end
 % Make a logical 3d array for the output
 splitMask = arrayfun(@(i) splitMask == i, 1:nSlices, 'uni', 0);
 splitMask = logical(cat(3, splitMask{:}));
-
 end

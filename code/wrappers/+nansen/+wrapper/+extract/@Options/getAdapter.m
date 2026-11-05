@@ -15,5 +15,4 @@ function S = getAdapter() % todo: remame: getOptionsConversionMap()
     S.CellFind.numpix_threshold                 = 'cellfind_numpix_threshold';
     S.CellFind.high2low_brightness_ratio        = 'high2low_brightness_ratio';
     S.CellFind.S_init                           = 'S_init';
-
 end

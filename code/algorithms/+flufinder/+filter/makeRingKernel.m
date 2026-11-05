@@ -11,14 +11,14 @@ function kernel = makeRingKernel(im, varargin)
     def.InnerRadius = 3;
     def.OuterRadius = 5;
     def.Sigma       = 1;
-    
+
     opt = utility.parsenvpairs(def, [], varargin);
 
     % Compute kernel size
     kernelSize = (2*opt.OuterRadius + 2*ceil(2*opt.Sigma) + 1) .* [1,1];
-    
+
     imOrig = im;
-    
+
     % Todo: This is very ad hoc, could be much improved
     nuc = prctile(imOrig(:), 5);
     bg = prctile(imOrig(:), 50);
@@ -45,5 +45,4 @@ function kernel = makeRingKernel(im, varargin)
     kernel = single(kernel);
 
     kernel = stack.process.filter2.gauss2d(single(kernel), opt.Sigma);
-
 end

@@ -158,8 +158,8 @@ function uifigure_menu_mode_demo()
         statusLabel.Text = "Mode: " + mode ...
             + ". Press q/e/r/h/Shift or use toolbar; Escape resets.";
 
-        for i = 1:numel(taskItems)
-            item = taskItems(i);
+        for iTask = 1:numel(taskItems)
+            item = taskItems(iTask);
             data = item.UserData;
 
             item.Text = data.BaseText + modeSuffix(mode);
@@ -170,22 +170,22 @@ function uifigure_menu_mode_demo()
             end
         end
 
-        for i = 1:numel(modeItems)
-            if string(modeItems(i).Text) == mode
-                modeItems(i).Checked = "on";
+        for iItem = 1:numel(modeItems)
+            if string(modeItems(iItem).Text) == mode
+                modeItems(iItem).Checked = "on";
             else
-                modeItems(i).Checked = "off";
+                modeItems(iItem).Checked = "off";
             end
         end
 
-        for i = 1:numel(modeButtons)
+        for iButton = 1:numel(modeButtons)
             buttonMode = string(modeButtons(i).UserData);
             if buttonMode == mode
-                modeButtons(i).Color = "#0072BD";
-                modeButtons(i).BackgroundColor = [0.86 0.93 0.98];
+                modeButtons(iButton).Color = "#0072BD";
+                modeButtons(iButton).BackgroundColor = [0.86 0.93 0.98];
             else
-                modeButtons(i).Color = "#5F6368";
-                modeButtons(i).BackgroundColor = [0.94 0.94 0.94];
+                modeButtons(iButton).Color = "#5F6368";
+                modeButtons(iButton).BackgroundColor = [0.94 0.94 0.94];
             end
         end
         modeItems(1).Parent.Text = sprintf("Mode (%s)", mode);

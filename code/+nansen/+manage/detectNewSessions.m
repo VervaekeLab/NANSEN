@@ -13,25 +13,25 @@ function newSessionArray = detectNewSessions(metaTable, dataLocationName)
 
     import nansen.dataio.session.listSessionFolders
     import nansen.dataio.session.matchSessionFolders
-    
+
     % Get current data location model. Todo: What if there are situations
     % where another datalocation model should be used?
     dataLocationModel = nansen.DataLocationModel();
-    
+
     if nargin < 2 || isempty(dataLocationName)
         %dataLocationName = dataLocationModel.DefaultDataLocation;
         dataLocationName = 'all';
     end
-    
+
     if ~strcmp(dataLocationName, 'all')
         msg = sprintf('Data location (%s) does not exist', dataLocationName);
         assert(any(dataLocationModel.containsItem(dataLocationName)), msg)
     end
-    
+
     % % Use the folder structure to detect session folders.
     sessionFolders = listSessionFolders(dataLocationModel, 'all');
     sessionFolders = matchSessionFolders(dataLocationModel, sessionFolders);
-    
+
     if isempty(sessionFolders)
         return
     end
@@ -39,7 +39,7 @@ function newSessionArray = detectNewSessions(metaTable, dataLocationName)
     % Todo: Get schema based on selection
     sessionSchema = @nansen.metadata.type.Session;
     args = {'DataLocationModel', dataLocationModel};
-    
+
     % Create a list of session metadata objects
     numSessions = numel(sessionFolders);
     sessionArray = cell(numSessions, 1);
@@ -55,11 +55,11 @@ function newSessionArray = detectNewSessions(metaTable, dataLocationName)
     [~, iA] = setdiff( foundSessionIds, currentSessionIds, 'stable' );
 
     newSessionArray = sessionArray(iA);
-    
+
     % todo: deprecated?
     sessionArray = validateDataLocationStruct(metaTable, ...
         sessionArray, dataLocationModel); % local function
-    
+
     % Check for duplicate session IDs
     sessionIDs = {newSessionArray.sessionID};
     if numel(sessionIDs) ~= numel(unique(sessionIDs))
@@ -75,7 +75,7 @@ function newSessionArray = detectNewSessions(metaTable, dataLocationName)
 end
 
 function sessionArray = validateDataLocationStruct(metaTable, sessionArray, dataLocationModel)
-    
+
     % Make sure data location format is the same for the new sessions
     % Todo: This should not be necessary, just make sure from the get-go
     % that all datalocations structs are "extended"
@@ -87,7 +87,7 @@ function sessionArray = validateDataLocationStruct(metaTable, sessionArray, data
     fieldsOriginal = fieldnames(dataLocationOriginal);
     dataLocationNew = sessionArray(1).DataLocation;
     fieldNamesNew = fieldnames(dataLocationNew);
-    
+
     if numel(fieldsOriginal) ~= numel(fieldNamesNew)
         if numel(fieldNamesNew) > numel(fieldsOriginal)
             for i = 1:numel(sessionArray)

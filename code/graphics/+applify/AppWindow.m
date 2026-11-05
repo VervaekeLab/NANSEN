@@ -1,8 +1,8 @@
 classdef AppWindow < uim.handle
-    
+
     % This class relies on the undocumented JavaFrame property, which will
     % be removed in a future version of Matlab. Until then....
-    
+
 %   ABSTRACT PROPERTIES:
 %       AppName (Constant,Access=protected) : Name of app
 %       MINIMUM_FIGURE_SIZE (Constant)  : Minimum size of figure
@@ -11,22 +11,22 @@ classdef AppWindow < uim.handle
 %   ABSTRACT METHODS:
 %       setDefaultFigureCallbacks
 %
-   
+
     properties (Abstract, Constant)
         AppName char
     end
-    
+
     properties (Constant, Hidden = true) % move to appwindow superclass
         MAC_MENUBAR_HEIGHT = 25; % Todo: Figure out if this is the same across systems and screens...
     end
-    
+
     properties (SetAccess = protected, Hidden) % Layout
         DEFAULT_FIGURE_SIZE = [560 420] % Should be considered constant, i.e only set on construction...
         MINIMUM_FIGURE_SIZE = [560 420] % Should be considered constant, i.e only set on construction...
-        
+
         Margins = [20, 20, 20, 20]
     end
-    
+
     properties
         Figure
     end
@@ -34,28 +34,26 @@ classdef AppWindow < uim.handle
     properties (Dependent, SetAccess = private)
         CanvasSize
     end
-    
+
     properties (Access = protected) % State
         IsConstructed = false;
     end
-    
+
     methods % Structors
-        
+
         function obj = AppWindow(varargin)
-            
+
             obj.assignDefaultSubclassProperties()
             % Todo: assignPvPairs...
             obj.createFigure()
-            
         end
-        
+
         function delete(obj)
-            
         end
     end
-    
+
     methods
-    
+
         function set.IsConstructed(obj, newValue)
             assert(islogical(newValue), 'Value must be logical')
             if ~obj.IsConstructed
@@ -63,28 +61,28 @@ classdef AppWindow < uim.handle
                 obj.onConstructedSet()
             end
         end
-        
+
         function sz = get.CanvasSize(obj)
             sz = obj.Figure.Position(3:4) - sum( obj.Margins([1,2;3,4]) );
         end
     end
-    
+
     methods (Access = protected)
-        
+
         function assignDefaultSubclassProperties(obj)
             % Subclass may override.
         end
-        
+
         function setDefaultFigureCallbacks(obj)
             % Todo.
             obj.Figure.SizeChangedFcn = @(s,e) obj.setComponentLayout;
             % Subclasses may override
         end
-        
+
         function setComponentLayout(obj)
             % Subclasses may override
         end
-        
+
         function createFigure(obj)
             obj.Figure = figure('MenuBar', 'none');
             obj.Figure.NumberTitle = 'off';
@@ -95,11 +93,11 @@ classdef AppWindow < uim.handle
 
             obj.setFigureName()
         end
-        
+
         function setFigureName(obj)
             obj.Figure.Name = obj.AppName;
         end
-        
+
         function onConstructedSet(obj)
             obj.setDefaultFigureCallbacks()
             uim.utility.centerFigureOnScreen(obj.Figure)
@@ -111,19 +109,19 @@ classdef AppWindow < uim.handle
             % available.
             MP = get(0, 'MonitorPosition');
             nMonitors = size(MP, 1);
-            
+
             if nMonitors > 1
                 screenNumber = obj.getPreference('PreferredScreen', 1);
-                
+
                 prefScreenPos = obj.getPreference('PreferredScreenPosition', [1, 1, 1180, 700]);
                 obj.Figure.Position = prefScreenPos{screenNumber};
             end
 
             obj.setMinimumFigureSize()
         end
-        
+
         function setMinimumFigureSize(obj)
-            
+
             minWidth = obj.MINIMUM_FIGURE_SIZE(1);
             minHeight = obj.MINIMUM_FIGURE_SIZE(2);
 
@@ -134,7 +132,7 @@ classdef AppWindow < uim.handle
                 % Todo: add listener
             end
         end
-        
+
         function setFigureWindowBackgroundColor(obj, newColor)
             if nargin < 2
                 newColor = [13,13,13] ./ 255;
@@ -142,12 +140,12 @@ classdef AppWindow < uim.handle
             nansen.ui.legacy.setJavaWindowBackgroundColor(obj.Figure, newColor)
         end
     end
-    
+
     methods
         function uiwait(obj)
             uiwait(obj.Figure)
         end
-        
+
         function [screenSize, screenNum] = getCurrentMonitorSize(obj)
             [screenSize, screenNum] = obj.getMonitorInfo(obj.Figure);
         end
@@ -177,7 +175,7 @@ classdef AppWindow < uim.handle
             else
                 [screenSize, screenNum] = uim.utility.getCurrentScreenSize(hFigure);
             end
-            
+
             if ismac
                 osMenubarHeight = applify.AppWindow.MAC_MENUBAR_HEIGHT;
             elseif isunix
@@ -186,7 +184,7 @@ classdef AppWindow < uim.handle
                 osMenubarHeight = 0;
                 %screenSize(2) = screenSize(2) + osMenubarHeight; TODO: CHECK
             end
-            
+
             screenSize(4) = screenSize(4) - osMenubarHeight;
             screenSize(4) = screenSize(4) - titleBarHeight;
 

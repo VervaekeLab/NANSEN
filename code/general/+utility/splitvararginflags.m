@@ -1,7 +1,7 @@
 function [flagsOut, vararginCell] = splitvararginflags(vararginCell, flagsIn)
 
     flagsOut = {};
-    
+
     % Convert flags to name/value pairs
     hasFlag = @(c, name) ischar(c) && strcmp(c, name);
 

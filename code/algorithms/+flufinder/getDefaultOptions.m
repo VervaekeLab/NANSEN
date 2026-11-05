@@ -24,11 +24,11 @@ function [P, V] = getDefaultOptions(mode)
 
     % Names                             Values (default)      Description
     P                                   = struct();
-    
+
     P.General.RoiDiameter               = 12;                 % Expected diameter of rois in pixels
 %     P.NucleusDiameter                 = 6;                  % Todo
     P.General.RoiType                   = 'Soma';             % Morphological structure to detect. Alternatives: 'Soma' (default), 'Axonal Bouton'.
-        
+
     % Binarization
     P.Detection.PrctileForBinarization  = 93;                 % Percentile of pixel values to use for thresholding grayscale images to BW
     P.Detection.NumObservationsRequired = 2;                  % Number of times a component should be observed in order to detect.
@@ -40,7 +40,7 @@ function [P, V] = getDefaultOptions(mode)
     P.Preprocessing.SpatialFilterType   = 'gaussian';         % todo...
     P.Preprocessing.SmoothingSigma      = 20;                 % "Size" (standard deviation/sigma) of the gaussian kernel for creating background image
     P.Preprocessing.PrctileForBaseline  = 25;                 % For background when computing Dff stack..
-    
+
     % Morphological shape detection
     P.Detection.UseShapeDetection       = true;
     P.Detection.MorphologicalShape      = 'ring';             % Type of shape to use for morphological search. Alternatives: 'ring' (default), 'disk'.
@@ -51,7 +51,7 @@ function [P, V] = getDefaultOptions(mode)
     P.Curation.MinimumDiameter          = 4;                  % Minimum allowed roi diameter in pixels
     P.Curation.MaximumDiameter          = 16;                 % Maximum allowed roi diameter in pixels
     P.Curation.PercentOverlapForMerge   = 75;                 % todo.
-    
+
 % %     P.Preview.Show = 'Preprocessed';
 % %     P.Preview.Show_ = {'Preprocessed', 'Binarized', 'Static Background'};
 
@@ -63,26 +63,26 @@ function [P, V] = getDefaultOptions(mode)
     P.Preprocessing.SpatialFilterType_  = {'gaussian'};
     P.Preprocessing.PrctileForBaseline_ = struct('type', 'slider', 'args', {{'Min', 1, 'Max', 100, 'nTicks', 99, 'TooltipPrecision', 0}});
     P.Detection.PrctileForBinarization_ = struct('type', 'slider', 'args', {{'Min', 1, 'Max', 100, 'nTicks', 99, 'TooltipPrecision', 0}});
-    
+
     % - - - - Specify validation/assertion test for each parameter - - - -
-    
+
     V                           = struct();
     V.Detection.MaxNumRois      = @(x) assert( isnumeric(x) && isscalar(x) && x >= 0,  ...
                                     'Value must be a scalar, non-negative, integer number' );
-    
+
     if nargin == 1 && strcmp(mode, 'ungrouped')
         P = nansen.wrapper.abstract.OptionsAdapter.ungroupOptions(P);
         V = nansen.wrapper.abstract.OptionsAdapter.ungroupOptions(V);
     end
-                                
+
     if nargout == 0
         displayParameterTable(mfilename('fullpath'))
-        
+
 %         S = utility.convertParamsToStructArray(mfilename('fullpath'));
 %         T = struct2table(S);
 %         fprintf('\nSignal extraction default parameters and descriptions:\n\n')
 %         disp(T)
-        
+
         clear P V
     elseif nargout == 1
         clear V

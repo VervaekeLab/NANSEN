@@ -5,22 +5,22 @@ function project = importProjectFromGitHub(repositoryUrl, options)
 %   nansen.config.project.importProjectFromGitHub(repositoryUrl)
 %
 % Description:
-%   This function downloads a specified GitHub repository containing a 
-%   Nansen project and installs it into the user's local Nansen directory. 
-%   After the repository is downloaded, the function locates the project 
-%   file and imports it into the Nansen project manager, setting it as the 
+%   This function downloads a specified GitHub repository containing a
+%   Nansen project and installs it into the user's local Nansen directory.
+%   After the repository is downloaded, the function locates the project
+%   file and imports it into the Nansen project manager, setting it as the
 %   active project.
 %
 % Inputs:
-%   repositoryUrl (string) - The URL of the GitHub repository containing 
+%   repositoryUrl (string) - The URL of the GitHub repository containing
 %                            the Nansen project.
 %
 % Notes:
-%   - The project folder is downloaded to the default installation 
+%   - The project folder is downloaded to the default installation
 %     location under the user's path in the 'Nansen/Projects' directory.
-%   - The function expects the project to contain a 'project.nansen.json' 
+%   - The function expects the project to contain a 'project.nansen.json'
 %     file to be successfully imported.
-%   - If the project already exists, it will be updated with the latest 
+%   - If the project already exists, it will be updated with the latest
 %     version from GitHub.
 %
 % Example:
@@ -28,7 +28,6 @@ function project = importProjectFromGitHub(repositoryUrl, options)
 %
 % See also:
 %   matbox.setup.internal.installGithubRepository, projectManager.importProject
-
 
     arguments
         repositoryUrl (1,1) string
@@ -38,7 +37,7 @@ function project = importProjectFromGitHub(repositoryUrl, options)
 
     import nansen.internal.user.NansenUserSession
 
-    % Download target repository folder 
+    % Download target repository folder
     installationLocation = fullfile(userpath, 'Nansen', 'Projects');
     repoTargetFolder = matbox.setup.internal.installGithubRepository(repositoryUrl, "InstallationLocation", installationLocation, "Update", true);
     if ismissing(options.NansenUserName)

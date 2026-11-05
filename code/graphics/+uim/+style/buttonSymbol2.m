@@ -1,7 +1,7 @@
 classdef buttonSymbol2 < uim.style.buttonScheme
-    
+
     properties (Constant)
-        
+
         HighlightedOn = struct(...
             'ForegroundColor', ones(1,3) * 1, ...
             'BackgroundColor', ones(1,3) * 0.2, ...
@@ -26,6 +26,5 @@ classdef buttonSymbol2 < uim.style.buttonScheme
             'BackgroundAlpha', 0, ...
             'BorderColor', 'none', ...%[0.3,0.3,0.3], ...
             'BorderWidth', 0.5)
-        
     end
 end

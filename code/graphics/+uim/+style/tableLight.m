@@ -1,7 +1,7 @@
 classdef tableLight < uim.style.tableTheme
-    
+
     properties (Constant)
-        
+
         HeaderBackgroundColor = [0.95, 0.95, 0.95]
         HeaderForegroundColor = [0.05, 0.05, 0.05]
         TableBackgroundColor = [0.95, 0.95, 0.95]
@@ -17,6 +17,5 @@ classdef tableLight < uim.style.tableTheme
         BorderWidth = 0
         SortArrowForeground = [240,171,15] ./ 255
         SortOrderForeground = [240,171,15] ./ 255
-        
     end
 end

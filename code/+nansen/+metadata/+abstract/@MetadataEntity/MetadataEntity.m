@@ -30,11 +30,11 @@ classdef MetadataEntity < ...
     properties (Transient, SetAccess = immutable, GetAccess = protected)
         IsConstructed = false
     end
-    
+
     events
         PropertyChanged
     end
-    
+
     methods % Constructor
         function obj = MetadataEntity(varargin)
             if ~isempty(varargin) && isa(varargin{1}, 'table')
@@ -65,10 +65,10 @@ classdef MetadataEntity < ...
 
                 needsProp = ~isprop(obj, thisVariableName);
                 if options.UpdateValue && dynamicVariables.HasUpdateFunction(iVar)
-                    
+
                     % Todo: update for all items of the metatable
                     updateFcnName = dynamicVariables.UpdateFunctionName{iVar};
-                    
+
                     [propertyValue, wasFound] = obj.getDynamicVariableValue(thisVariableName, updateFcnName);
                     [propertyValue{~wasFound}] = deal( dynamicVariables.NullValue{iVar} );
                 else
@@ -92,11 +92,11 @@ classdef MetadataEntity < ...
                 strjoin(" - " + dynamicVariableNames, newline))
 
             if dynamicVariables.HasUpdateFunction(iVar)
-                    
+
                 updateFcnName = dynamicVariables.UpdateFunctionName{iVar};
-                
+
                 [propertyValue, ~] = obj.getDynamicVariableValue(variableName, updateFcnName);
-                
+
                 for i = 1:numel(obj)
                     % Use private setter to bypass protected SetAccess
                     obj.setDynamicPropertyValue(variableName, propertyValue)
@@ -122,15 +122,15 @@ classdef MetadataEntity < ...
 
             currentProject = nansen.getCurrentProject();
             variableAttributes = currentProject.getTable('TableVariable');
-            
+
             keep = variableAttributes.TableType == lower(entityType) ...
                 & variableAttributes.IsCustom;
 
             dynamicVariables = variableAttributes(keep, :);
         end
-    
+
         function [result, hasResult] = getDynamicVariableValue(obj, variableName, functionName, options)
-            
+
             arguments
                 obj nansen.metadata.abstract.MetadataEntity
                 variableName (1,1) string
@@ -138,13 +138,13 @@ classdef MetadataEntity < ...
                 options.ProgressMonitor = [] % Todo: waitbar class?
                 options.MessageDisplay = [] % Constrain to message display
             end
-        
+
             hasResult = false(1, numel(obj));
             hasWarned = false;
 
             % Todo: Should be a function in the tablevar function
             %updateFunction = obj.getTableVariableUpdateFunction(variableName);
-            
+
             updateFunction = str2func(functionName);
             defaultValue = updateFunction();
 
@@ -157,7 +157,7 @@ classdef MetadataEntity < ...
 
             warnState = warning('backtrace', 'off');
             warningCleanup = onCleanup(@() warning(warnState));
-            
+
             numEntities = numel(obj);
             result = cell(numEntities, 1);
 
@@ -172,7 +172,7 @@ classdef MetadataEntity < ...
                     [isValid, newValue] = ...
                         nansen.metadata.tablevar.validateVariableValue(...
                             defaultValue, newValue);
-                    
+
                     if isValid
                         hasResult(iEntity) = true;
                         result{iEntity} = newValue;
@@ -201,28 +201,98 @@ classdef MetadataEntity < ...
                 end
             end
         end
-    
+
         function setDynamicPropertyValue(obj, variableName, propertyValue)
             % Need to temporarily make SetAccess public, because a super
             % class does not have access to set properties of subclasses
             % with properties that has SetAccess = protected.
             P = obj.findprop(variableName);
             P.SetAccess = 'public';
-            accessCleanup = onCleanup(@() resetPropertySetAccess(P)); 
+            accessCleanup = onCleanup(@() resetPropertySetAccess(P));
             obj.(variableName) = propertyValue;
         end
+
+        function setTableBackedPropertyValue(obj, propertyName, propertyValue)
+            propertyName = char(propertyName);
+            propertyMeta = obj.findprop(propertyName);
+
+            if isa(propertyMeta, 'meta.DynamicProperty')
+                obj.setDynamicPropertyValue(propertyName, propertyValue)
+            else
+                obj.(propertyName) = propertyValue;
+            end
+        end
     end
-    
+
+    methods (Access = ?nansen.metadata.MetaTable)
+        function refreshFromTableRow(obj, tableRow)
+        %refreshFromTableRow Update table-backed properties from one row
+
+            arguments
+                obj (1,1) nansen.metadata.abstract.MetadataEntity
+                tableRow (1,:) table
+            end
+
+            assert(height(tableRow) == 1, ...
+                'NANSEN:MetadataEntity:ExpectedScalarTableRow', ...
+                'Input must be a single table row.')
+
+            rowStruct = table2struct(tableRow);
+            propertyNames = fieldnames(rowStruct);
+
+            for iProperty = 1:numel(propertyNames)
+                obj.refreshProperty(propertyNames{iProperty}, ...
+                    rowStruct.(propertyNames{iProperty}))
+            end
+        end
+
+        function refreshProperty(obj, propertyName, newValue)
+        %refreshProperty Update or create one table-backed property
+
+            arguments
+                obj (1,1) nansen.metadata.abstract.MetadataEntity
+                propertyName (1,1) string
+                newValue
+            end
+
+            propertyNameChar = char(propertyName);
+            if isprop(obj, propertyNameChar)
+                obj.setTableBackedPropertyValue(propertyNameChar, newValue)
+            else
+                obj.createDynamicProperty(propertyName, {newValue})
+            end
+        end
+
+        function removeTableBackedProperty(obj, propertyName)
+        %removeTableBackedProperty Remove a dynamic table-backed property
+
+            arguments
+                obj (1,1) nansen.metadata.abstract.MetadataEntity
+                propertyName (1,1) string
+            end
+
+            propertyNameChar = char(propertyName);
+            if ~isprop(obj, propertyNameChar)
+                return
+            end
+
+            propertyMeta = obj.findprop(propertyNameChar);
+            if isa(propertyMeta, 'meta.DynamicProperty')
+                delete(propertyMeta)
+            end
+        end
+    end
+
     methods (Access = private)
         function obj = constructFromTable(obj, metaTable)
         %constructFromTable Construct object(s) from meta table
         %
         %   metaObj.constructFromTable(metaTable) constructs a vector of
         %   objects from a table
-        
+
         %   Note: Need to return obj, because this function might change
         %   the size of obj.
-        
+
             % Initialize array of objects
             numObjects = size(metaTable, 1);
             obj(numObjects) = feval(class(obj));
@@ -230,7 +300,7 @@ classdef MetadataEntity < ...
             % Assign object properties from meta table
             obj = obj.fromTable(metaTable);
         end
-    
+
         function initializeDynamicProperty(obj, propName, nullValue)
         % initializeDynamicProperty - Method for initializing a dynamic property
             P = obj.addprop(propName);
@@ -249,7 +319,7 @@ classdef MetadataEntity < ...
                 propName (1,1) string
                 propertyValues (1,:) cell
             end
-            
+
             if ~isscalar(obj) && isscalar(propertyValues)
                 % Expand if value is scalar
                 propertyValues = repmat(propertyValues, 1, numel(obj));
@@ -262,22 +332,22 @@ classdef MetadataEntity < ...
             for i = 1:numel(obj)
                 obj(i).(propName) = propertyValues{i};
             end
-            
+
             % Dynamic props must only be set from within the class
             [P.SetAccess] = deal('protected');
         end
     end
 
-    methods % Methods for retyping
-        
+    methods % Methods for re-typing
+
         function fromStruct(obj, S)
-            
+
             assert(numel(obj) == numel(S), ...
                 'NANSEN:MetadataEntity:WrongStructLength', ...
                 'Input structure must be the same length as the object')
-            
+
             propertyNames = fieldnames(S);
-            
+
             for jProp = 1:numel(propertyNames)
                 thisPropertyName = propertyNames{jProp};
 
@@ -302,14 +372,14 @@ classdef MetadataEntity < ...
                 end
             end
         end
-        
+
         function S = toStruct(obj)
         %TOSTRUCT Convert object to a struct.
             S = toStruct@nansen.util.StructAdapter(obj);
         end
 
         function T = makeTable(obj)
-            
+
             for i = 1:numel(obj)
                 if i == 1
                     S = obj(i).toStruct();
@@ -317,32 +387,32 @@ classdef MetadataEntity < ...
                     S(i) = obj(i).toStruct();
                 end
             end
-            
+
             T = struct2table(S, 'AsArray', true);
         end
-        
+
         function obj = fromTable(obj, dataTable)
-           
+
             S = table2struct(dataTable);
             numObjects = numel(S);
             obj(numObjects) = feval(class(obj));
-            
+
             obj.fromStruct(S);
         end
     end
-    
+
     methods (Access = protected)
         function onNotebookPropertySet(obj)
             evtData = obj.getPropertyChangedEventData('Notebook');
             obj.notify('PropertyChanged', evtData)
         end
-        
+
         function evtData = getPropertyChangedEventData(obj, propertyName)
             newValue = obj.(propertyName);
             % Todo: This should either be improved, or documented, i.e why
             % is a struct wrapped in a cell array?
             if isa(newValue, 'struct'); newValue = {newValue}; end
-            
+
             evtData = uiw.event.EventData('Property', propertyName, ...
                 'NewValue', newValue);
         end

@@ -17,5 +17,4 @@ S.Neuropil.neuropilCellRatio            = 'ratioNeuropil';
 S.Deconvolution.imagingRate             = 'imageRate';
 S.Deconvolution.sensorTimeConstant      = 'sensorTau';
 S.Deconvolution.maxNeuropil             = 'maxNeurop';
-
 end

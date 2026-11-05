@@ -20,7 +20,7 @@ classdef MessageDisplay < handle
 
         function hFigure = inform(obj, message, options)
         % inform - Open a message box with info message
-            
+
             arguments
                 obj (1,1) nansen.MessageDisplay
                 message (1,1) string
@@ -54,7 +54,7 @@ classdef MessageDisplay < handle
                 options.Alternatives (1,:) string = ["Yes", "No", "Cancel"]
                 options.DefaultAnswer (1,1) string = "Yes"
             end
-        
+
             promptStr = obj.getFormattedMessage(question);
             dlgOptions = obj.getDialogOptions();
 
@@ -107,7 +107,7 @@ classdef MessageDisplay < handle
                 message (1,1) string
                 options.Title (1,1) string = "Error"
             end
-            
+
             messageStr = obj.getFormattedMessage(message);
 
             if obj.useModernDialog("uialert")
@@ -144,34 +144,6 @@ classdef MessageDisplay < handle
                 dialogCleanupObj = onCleanup(@()deleteWaitbarIfValid(hDialog));
             end
         end
-
-        function updateProgress(~, hDialog, value, message)
-        % updateProgress - Update progress dialog value and optional message.
-
-            arguments
-                ~
-                hDialog
-                value (1,1) double {mustBeGreaterThanOrEqual(value, 0), mustBeLessThanOrEqual(value, 1)}
-                message (1,1) string = string(missing)
-            end
-
-            if isempty(hDialog) || ~isvalid(hDialog)
-                return
-            end
-
-            if isprop(hDialog, 'Value')
-                hDialog.Value = value;
-                if ~ismissing(message) && isprop(hDialog, 'Message')
-                    hDialog.Message = message;
-                end
-            else
-                if ismissing(message)
-                    waitbar(value, hDialog)
-                else
-                    waitbar(value, hDialog, message)
-                end
-            end
-        end
     end
 
     methods (Access = private)
@@ -185,7 +157,7 @@ classdef MessageDisplay < handle
                 % dialogs is small, so we increase it via text formatting.
                 formatSpec = sprintf('\\fontsize{%d}', obj.FontSize);
                 formattedMessage = strcat(formatSpec, message);
-                
+
                 % Fix some characters that are interpreted as tex markup
                 formattedMessage = strrep(formattedMessage, '_', '\_');
             else
@@ -194,7 +166,9 @@ classdef MessageDisplay < handle
         end
 
         function tf = useModernDialog(obj, functionName)
-            tf = obj.hasDialogFunction(functionName) && obj.hasUiFigureParent();
+            tf = obj.hasDialogFunction(functionName) && ...
+                    obj.hasUiFigureParent() && ...
+                    obj.hasVisibleFigureParent();
         end
 
         function tf = hasDialogFunction(~, functionName)
@@ -203,8 +177,12 @@ classdef MessageDisplay < handle
 
         function tf = hasUiFigureParent(obj)
             hFigure = obj.getDialogParent();
-            tf = ~isempty(hFigure) && isvalid(hFigure) && ...
-                obj.isUiFigure(hFigure) && strcmp(hFigure.Visible, 'on');
+            tf = nansen.ui.utility.isWebBasedUIFigure(hFigure);
+        end
+
+        function tf = hasVisibleFigureParent(obj)
+            hFigure = obj.getDialogParent();
+            tf = strcmp(hFigure.Visible, 'on');
         end
 
         function hFigure = getDialogParent(obj)
@@ -227,23 +205,6 @@ classdef MessageDisplay < handle
             end
         end
 
-        function tf = isUiFigure(~, hFigure)
-            if verLessThan('matlab', '9.0')
-                tf = false;
-                return
-            end
-
-            try
-                if verLessThan('matlab', '9.5')
-                    tf = ~isempty(matlab.ui.internal.dialog.DialogHelper.getFigureID(hFigure));
-                else
-                    tf = matlab.ui.internal.isUIFigure(hFigure);
-                end
-            catch
-                tf = false;
-            end
-        end
-
         function icon = getAlertIcon(~, icon, defaultIcon)
             if strlength(icon) == 0
                 icon = defaultIcon;
@@ -257,6 +218,35 @@ classdef MessageDisplay < handle
                 cancelIdx = numel(alternatives);
             end
             cancelOption = char(alternatives(cancelIdx));
+        end
+    end
+
+    methods (Static)
+        function updateProgress(hDialog, value, message)
+        % updateProgress - Update progress dialog value and optional message.
+
+            arguments
+                hDialog
+                value (1,1) double {mustBeGreaterThanOrEqual(value, 0), mustBeLessThanOrEqual(value, 1)}
+                message (1,1) string = string(missing)
+            end
+
+            if isempty(hDialog) || ~isvalid(hDialog)
+                return
+            end
+
+            if isprop(hDialog, 'Value')
+                hDialog.Value = value;
+                if ~ismissing(message) && isprop(hDialog, 'Message')
+                    hDialog.Message = message;
+                end
+            else
+                if ismissing(message)
+                    waitbar(value, hDialog)
+                else
+                    waitbar(value, hDialog, message)
+                end
+            end
         end
     end
 end

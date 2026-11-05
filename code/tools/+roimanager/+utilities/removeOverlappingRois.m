@@ -9,5 +9,4 @@ function roiArray = removeOverlappingRois(roiArrayA, roiArrayB)
     end
 
     roiArray = cat(2, roiArrayB, roiArrayA);
-
 end

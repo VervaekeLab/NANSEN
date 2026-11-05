@@ -19,7 +19,7 @@ function createFunctionFromTemplate(datalocation, identifierName, functionName)
     rootDir = fileparts(mfilename('fullpath'));
     templatePath = fullfile(rootDir, 'templates', 'getDataIdTemplateFunction.mtemplate');
     functionTemplateStr = fileread(templatePath);
-    
+
     functionTemplateStr = strrep(functionTemplateStr, '{{function_name}}', functionName);
     functionTemplateStr = strrep(functionTemplateStr, '{{identifier_name}}', identifierName);
     functionTemplateStr = strrep(functionTemplateStr, '{{case_blocks}}', caseBlocks);

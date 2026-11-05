@@ -21,22 +21,22 @@ classdef iconSet < uim.handle
         iconNames               % Name of icons in set
         iconData = struct       % Data of icons in set
     end
-    
+
     methods %Structors
         function obj = iconSet(pathStr)
         %iconSet Initialize an iconSet for an icon library
         %
         %   obj = iconSet(pathStr)
-        
+
             obj.iconDir = pathStr;
             obj.filePath = fullfile(obj.iconDir, 'icon_library.mat');
-            
+
             obj.loadIcons();
         end
     end
-    
+
     methods
-        
+
         function varargout = subsref(obj, s)
             varargout = cell(1, nargout);
 
@@ -66,100 +66,97 @@ classdef iconSet < uim.handle
                     end
             end
         end
-        
+
         function loadIcons(obj)
         %LOADICONS Load icons from matfile
-        
+
             if isfile(obj.filePath)
                 obj.iconData = load(obj.filePath);
             end
-            
+
             obj.iconNames = fieldnames(obj.iconData);
         end
-        
+
         function saveIcons(obj, S)
         %SAVEICONS Save icons to matfile
-        
+
             if nargin < 2
                 S = obj.iconData;
             end
-            
+
             if ~isfile(obj.filePath)
                 save(obj.filePath, '-struct', 'S');
             else
                 save(obj.filePath, '-struct', 'S', '-append');
             end
         end
-        
+
         function listIcons(obj)
             fprintf([strjoin(obj.iconNames, '\n'), '\n'])
         end
-        
+
         function addIcon(obj, iconName, S)
         %addIcon Add icon to the library
         %
         %   addIcon(obj, iconName) converts a png to matlab patch data and
         %   saves it to the icon library. iconName must be the name of a
         %   png-file in the iconSet's root directory.
-        
+
             if nargin < 2
                 S = obj.createIcon(obj.iconDir);
             elseif nargin < 3
                 S = obj.createIcon(obj.iconDir, iconName);
             end
-            
+
             if ~isempty(S)
                 obj.saveIcons(S)
             end
-            
+
             iconNames = fieldnames(S);
 
             for i = 1:numel(iconNames)
                 obj.iconData.(iconNames{i}) = S.(iconNames{i});
             end
-            
+
             obj.iconNames = fieldnames(obj.iconData);
-            
         end
-        
+
         function addIconFromFile(obj, iconName, filePath)
-            
+
             if nargin < 3
                 [fileName, folder] = uigetfile();
                 if fileName == 0; return; end
                 filePath = fullfile(folder, fileName);
             end
-            
+
             S = load(filePath);
-            
+
             if nargin < 2
                 iconName = inputdlg();
                 if isempty(iconName); return; end
                 iconName = iconName{1};
             end
-            
+
             newS = struct();
             newS.(iconName) = S.imageVector;
             obj.addIcon(iconName, newS)
-            
         end
-        
+
         function removeIcon(obj, iconName)
-            
+
             isMatch = contains(obj.iconNames, iconName);
-            
+
             if any(isMatch)
                 obj.iconData = rmfield(obj.iconData, iconName);
             end
-            
+
             obj.iconNames = fieldnames(obj.iconData);
-            
         end
-        
+
         function setSimplifyFalse(obj)
-            
+
             names = obj.iconNames;
-            
+
             for i = 1:numel(names)
                 for j = 1:numel(obj.iconData.(names{i}))
                     p1 = obj.iconData.(names{i})(j).Shape;
@@ -169,15 +166,15 @@ classdef iconSet < uim.handle
             end
         end
     end
-    
+
     methods (Access = private)
 % %         function filePath = getIconPackagePath(obj)
 % %
 % %         end
     end
-    
+
     methods (Static)
-        
+
         function S = createIcon(rootDir, iconName, plotType)
         %createIcon Create icondata from a png file
         %
@@ -190,16 +187,16 @@ classdef iconSet < uim.handle
         %   iconName (name of icon png file). plotType can be 'patch'
         %   (default) or 'polygon'. Not sure why I would ever want to use
         %   polygon...
-            
+
             % Preallocate output
             S = struct.empty();
-            
+
             if nargin < 3; plotType = 'polygon'; end
-            
+
             L = dir(fullfile(rootDir, '*.png'));
-    
+
             [~, iconName] = fileparts(iconName);
-            
+
             if nargin >= 2 || exist('iconName', 'var')
                 IND = find(strcmp({L.name}, [iconName, '.png'] ));
             else
@@ -209,7 +206,7 @@ classdef iconSet < uim.handle
             fig = figure('Visible', 'off');
             ax = axes(fig);
             axis equal
-            
+
             for i = IND
                 imageName = L(i).name;
 
@@ -229,12 +226,12 @@ classdef iconSet < uim.handle
                         delete(hP)
 
                         hV = uim.graphics.imageVector(ax, V);
-                        
+
                     case 'patch'
                         V = struct('Faces', {hP.Faces}, 'Vertices', {hP.Vertices}, ...
                             'FaceColor', {hP.FaceColor}, 'EdgeColor', {'none'});
                         delete(hP)
-                        
+
                         hV = uim.graphics.imageVector(ax, V);
                         hV.center()
                 end
@@ -247,13 +244,11 @@ classdef iconSet < uim.handle
                 else
                     S.(iconName) = hV.getVectorStruct;
                 end
-                
+
                 delete(hV)
-
             end
-            
-            close(fig)
 
+            close(fig)
         end
     end
 end

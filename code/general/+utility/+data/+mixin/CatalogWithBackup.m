@@ -6,7 +6,7 @@ classdef CatalogWithBackup < handle
     properties (Abstract, SetAccess = protected)
         Data         % Subclass should implement
     end
-    
+
     properties (Dependent)
         IsDirty      % Flag indicating if Data property is dirty (modified)
     end
@@ -14,9 +14,9 @@ classdef CatalogWithBackup < handle
     properties (Access = private)
         DataOriginal % Stores the original Data
     end
-    
+
     methods
-        
+
         function originalData = getOriginalData(obj)
             originalData = obj.DataOriginal;
         end

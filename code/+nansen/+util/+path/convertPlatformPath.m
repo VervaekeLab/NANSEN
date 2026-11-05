@@ -12,7 +12,7 @@ function convertedPath = convertPlatformPath(pathStr, newMount, conversionType)
 %
 %   SUPPORTED CONVERSIONS:
 %   'mac2pc'    - /Volumes/disk/path -> D:\path
-%   'mac2mac'   - /Volumes/old/path -> /Volumes/new/path  
+%   'mac2mac'   - /Volumes/old/path -> /Volumes/new/path
 %   'mac2unix'  - /Volumes/disk/path -> /mnt/disk/path
 %   'pc2mac'    - D:\path -> /Volumes/disk/path
 %   'pc2pc'     - D:\path -> E:\path
@@ -39,13 +39,13 @@ function convertedPath = convertPlatformPath(pathStr, newMount, conversionType)
             "pc2mac", "pc2pc", "pc2unix", ...
             "unix2mac", "unix2pc", "unix2unix"])}
     end
-    
+
     % Handle empty paths
     if strlength(pathStr) == 0
         convertedPath = "";
         return;
     end
-    
+
     try
         % Perform the conversion based on type
         switch conversionType
@@ -68,7 +68,7 @@ function convertedPath = convertPlatformPath(pathStr, newMount, conversionType)
             case 'unix2unix'
                 convertedPath = convertUnixToUnix(pathStr, newMount);
         end
-        
+
     catch ME
         % Provide meaningful error context
         error('utility:path:ConversionFailed', ...
@@ -103,7 +103,7 @@ function convertedPath = convertMacToUnix(pathStr, newMount)
 %convertMacToUnix Convert Mac path to Unix mount format
     remainingPath = extractMacVolumePath(pathStr);
     newMount = ensureUnixMountFormat(newMount);
-    
+
     if isempty(remainingPath)
         convertedPath = char(newMount);
     else
@@ -137,7 +137,7 @@ function convertedPath = convertPcToUnix(pathStr, newMount)
 %convertPcToUnix Convert PC path to Unix mount format
     remainingPath = extractPcDrivePath(pathStr);
     newMount = ensureUnixMountFormat(newMount);
-    
+
     if isempty(remainingPath)
         convertedPath = char(newMount);
     else
@@ -172,7 +172,7 @@ function convertedPath = convertUnixToUnix(pathStr, newMount)
 %convertUnixToUnix Convert Unix path to different mount point
     remainingPath = extractUnixMountPath(pathStr);
     newMount = ensureUnixMountFormat(newMount);
-    
+
     if isempty(remainingPath)
         convertedPath = char(newMount);
     else
@@ -184,13 +184,13 @@ end
 function remainingPath = extractMacVolumePath(pathStr)
 %extractMacVolumePath Extract path after /Volumes/VolumeName/
     pathParts = strsplit(pathStr, '/');
-    
+
     if length(pathParts) < 3 || ~strcmp(pathParts{2}, 'Volumes')
         % Not a standard volume path or too short
         remainingPath = '';
         return;
     end
-    
+
     if length(pathParts) > 3
         remainingPath = strjoin(pathParts(4:end), '/');
     else
@@ -200,7 +200,7 @@ end
 
 function remainingPath = extractPcDrivePath(pathStr)
 %extractPcDrivePath Extract path after drive letter or UNC share
-    
+
     % Handle UNC paths
     if startsWith(pathStr, "\\")
         parts = strsplit(pathStr, '\');
@@ -211,7 +211,7 @@ function remainingPath = extractPcDrivePath(pathStr)
         end
         return;
     end
-    
+
     % Regular drive letter path
     if length(pathStr) >= 2 && pathStr(2) == ':'
         remainingPath = pathStr(3:end);
@@ -229,17 +229,17 @@ end
 
 function remainingPath = extractUnixMountPath(pathStr)
 %extractUnixMountPath Extract path after common mount points
-    
+
     % Common Unix mount prefixes to recognize
     commonMounts = {'/mnt/', '/media/', '/run/media/', '/mount/', '/data/', '/storage/'};
-    
+
     for i = 1:length(commonMounts)
         mountPrefix = commonMounts{i};
         if startsWith(pathStr, mountPrefix)
             % Find the next directory separator after mount prefix
             pathAfterMount = pathStr(length(mountPrefix)+1:end);
             sepIdx = find(pathAfterMount == '/', 1);
-            
+
             if isempty(sepIdx)
                 % No subdirectories after mount point
                 remainingPath = '';
@@ -249,7 +249,7 @@ function remainingPath = extractUnixMountPath(pathStr)
             return;
         end
     end
-    
+
     % Fallback: try to extract after first two directory levels
     % e.g., /any/mount/remaining -> remaining
     pathParts = strsplit(pathStr, '/');
@@ -262,14 +262,14 @@ end
 
 function mountPath = ensureUnixMountFormat(newMount)
 %ensureUnixMountFormat Ensure mount path follows Unix conventions
-    
+
     % If newMount doesn't start with /, assume it's a mount name to be added to /mnt/
     if ~startsWith(newMount, "/")
         mountPath = sprintf('/mnt/%s', newMount);
     else
         mountPath = char(newMount);
     end
-    
+
     % Remove trailing slash if present
     if endsWith(mountPath, "/") && length(mountPath) > 1
         mountPath = mountPath(1:end-1);

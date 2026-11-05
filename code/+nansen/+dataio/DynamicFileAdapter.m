@@ -1,5 +1,5 @@
 classdef DynamicFileAdapter < nansen.dataio.FileAdapter
-    
+
     properties (SetAccess = private)
         Description (1,1) string  = ""
     end
@@ -17,7 +17,7 @@ classdef DynamicFileAdapter < nansen.dataio.FileAdapter
     properties (Access = private, Dependent)
         FileAdapterFolder (1,1) string
     end
-    
+
     properties (Constant)
         DataType = ""
     end
@@ -76,7 +76,7 @@ classdef DynamicFileAdapter < nansen.dataio.FileAdapter
             assert(~isempty(obj.WriteFunction), assertMsg)
         end
     end
-    
+
     methods (Access = private)
         function detectReadFunction(obj, metadata)
             readFunctionName = '';
@@ -91,7 +91,7 @@ classdef DynamicFileAdapter < nansen.dataio.FileAdapter
                 obj.ReadFunction = str2func(readFunctionName);
             end
         end
-        
+
         function detectWriteFunction(obj, metadata)
             writeFunctionName = '';
             if ~isempty(metadata.WriteFunction)
@@ -120,14 +120,14 @@ classdef DynamicFileAdapter < nansen.dataio.FileAdapter
             end
         end
     end
-    
+
     methods (Static)
         function filePath = resolveName(fileAdapterName)
             fileAdapterNamespace = replace(fileAdapterName, '.', [filesep, '+']);
             s = what(fileAdapterNamespace);
             assert(numel(s) == 1, ...
                 'Expected to find exactly one file adapter definition for %s', fileAdapterName);
-            
+
             filePath = fullfile(s.path, 'fileadapter.json');
         end
 

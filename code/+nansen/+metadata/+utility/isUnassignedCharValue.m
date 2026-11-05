@@ -1,8 +1,8 @@
-function tf = isUnassignedCharValue(inputValue) 
+function tf = isUnassignedCharValue(inputValue)
 % isUnassignedCharValue Check if a value represents an unassigned character placeholder.
 %
-%   tf = nansen.metadata.utility.isUnassignedCharValue(inputValue) returns 
-%   true if inputValue is a scalar cell array containing one of the 
+%   tf = nansen.metadata.utility.isUnassignedCharValue(inputValue) returns
+%   true if inputValue is a scalar cell array containing one of the
 %   recognized unassigned character placeholders: {'N/A'} or {'<undefined>'}.
 %
 %   Input:

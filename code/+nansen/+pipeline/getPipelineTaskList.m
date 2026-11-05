@@ -9,16 +9,16 @@ function taskList = getPipelineTaskList(pipelineStruct, mode)
 %   The task list will be the uncompleted tasks in the list which is of
 %   the specified type, i.e Manual or Queuable directly following any
 %   completed tasks.
-    
+
     if isempty(pipelineStruct); taskList = []; return; end
-    
+
     assertMsg = 'The input pipelineStruct must have a field "TaskList"';
     assert(isfield(pipelineStruct, 'TaskList'), assertMsg)
-    
+
     pipeTaskList = pipelineStruct.TaskList;
-    
+
     idxFinished = find( [pipeTaskList.IsFinished] );
-    
+
     idxManual =  find( [pipeTaskList.IsManual] );
     idxAuto = find( ~[pipeTaskList.IsManual] );
 
@@ -38,5 +38,4 @@ function taskList = getPipelineTaskList(pipelineStruct, mode)
     end
 
     taskList = pipeTaskList(selectedIdx);
-    
 end

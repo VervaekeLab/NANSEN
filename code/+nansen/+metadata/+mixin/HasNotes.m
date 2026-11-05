@@ -1,6 +1,6 @@
 classdef HasNotes < handle
 % HasNotes - Mixin for adding notes to metadata types
-    properties % Todo: SetAccess = nansen.util.StructAdapter
+    properties (SetObservable) % Todo: SetAccess = nansen.util.StructAdapter
         Notebook = struct.empty
     end
 
@@ -13,13 +13,13 @@ classdef HasNotes < handle
             else
                 error('Invalid input')
             end
-            
+
             if isempty(obj.Notebook)
                 obj.Notebook = noteStruct;
             else
                 obj.Notebook(end+1) = noteStruct;
             end
-            
+
             obj.onNotebookPropertySet()
         end
 
@@ -32,5 +32,5 @@ classdef HasNotes < handle
         function onNotebookPropertySet(~)
             % Subclasses may implement
         end
-    end 
+    end
 end

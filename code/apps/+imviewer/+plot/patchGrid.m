@@ -29,13 +29,13 @@ function hPatches = patchGrid(hImviewer, numRows, numCols, gridWidth, gridHeight
     yDataH = cat(1, yDataH, yDataH);
     yDataH(1:2, :) = yDataH(1:2, :) - gridHeight/2;
     yDataH(3:4, :) = yDataH(3:4, :) + gridHeight/2;
-           
+
     % Patch vertical grid lines
     hV = patch(hImviewer.Axes, xDataV, yDataV, 'w');
-    
+
     % Patch horizontal grid lines
     hH = patch(hImviewer.Axes, xDataH, yDataH, 'w');
-    
+
     hPatches = [hV, hH];
     set(hPatches, 'HitTest', 'off', 'PickableParts', 'none')
 end

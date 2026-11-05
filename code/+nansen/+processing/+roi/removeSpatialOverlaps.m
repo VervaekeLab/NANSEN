@@ -17,7 +17,7 @@ function roiMasksOut = removeSpatialOverlaps(roiMasksIn, roiInd)
     if nargin < 2 || (ischar(roiInd) && strcmp(roiInd, 'all'))
         roiInd = 1:numRois;
     end
-    
+
     roiMasksOut = false( height, width, numel(roiInd) );
 
     % Do a projection sum over masks to get number of rois in each pixel.

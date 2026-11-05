@@ -7,5 +7,4 @@ function imOut = gradient(imArray)
     grIm = padarray(grIm,[1,1],0,'pre');
 
     imOut = stack.makeuint8(grIm);
-    
 end

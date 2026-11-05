@@ -7,7 +7,7 @@ function addpath()
 
 %   Note (Todo): This should be solved in a different way, or users need
 %   to be informed of this behavior...
-    
+
     % Ensure current project is on path.
     p = nansen.getCurrentProject();
     if ~isempty(p)
@@ -24,7 +24,7 @@ function addpath()
     if isequal( firstPathOnPath, nansenRootPath ); return; end
 
     nansenAddonPath = nansen.config.addons.getDefaultAddonFolder();
-    
+
     warning('off', 'MATLAB:rmpath:DirNotFound')
     rmpath(genpath(nansenRootPath))
     rmpath(genpath(nansenAddonPath))
@@ -34,13 +34,11 @@ function addpath()
     addpath(genpath(nansenAddonPath))
 
     pathList = genpath(nansenRootPath);
-    
+
     pathListCell = strsplit(pathList, pathsep);
     keep = ~contains(pathListCell, '.git');
     pathListCell = pathListCell(keep);
     pathListNoGit = strjoin(pathListCell, pathsep);
-    
+
     addpath(pathListNoGit)
-
-
 end

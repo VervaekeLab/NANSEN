@@ -12,29 +12,29 @@ function [roiArray, classification, stats, images] = convertRois(S)
     % Create roi image
     imageSize = [S.ops.Ly, S.ops.Lx];
     roiArray = nansen.wrapper.suite2p.getRoiArray(S.stat, imageSize);
-    
+
     if isa(S.stat, 'cell'); S.stat = cat(1, S.stat{:}); end
     assert(isa(S.stat, 'struct'), 'Expected suite2p "stat" to be a struct array')
-    
+
     % Initialize classification using manual classification label.
     % Todo: implement enum?
     classification = S.iscell(:,1);
     classification(classification == 0) = 2;
-    
+
     % Add classification to stats
     numRois = numel(roiArray);
     stats = struct;
     iscell = num2cell(S.iscell);
     [stats(1:numRois).s2pClassificationLabel] = iscell{:, 1};
     [stats(1:numRois).s2pClassificationConfidence] = iscell{:, 2};
-    
+
     [stats(1:numRois).s2pCompactness] = deal( S.stat.compact );
     [stats(1:numRois).s2pSignalSkew] = deal( S.stat.skew );
-    
+
     % Todo: Make a RoI method for getting these images and more?
     images = struct.empty; % Todo: Create weight image...
     [images(1:numRois).SpatialWeights] = deal([]);
-    
+
     imageSize = cast(imageSize, 'like', S.stat(1).ypix);
 
     mask = zeros([imageSize, numRois], 'single');
@@ -44,7 +44,7 @@ function [roiArray, classification, stats, images] = convertRois(S)
         tmpMask(ind) = S.stat(i).lam;
         mask(:, :, i) = tmpMask;
     end
-    
+
     imArray = nansen.wrapper.extract.util.convertSpatialWeightsToThumbnails(roiArray, mask);
     imArray = stack.makeuint8(imArray);
     for i = 1:numRois

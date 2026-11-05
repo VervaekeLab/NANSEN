@@ -10,33 +10,33 @@ classdef SciScanXYTSeries < nansen.dataio.FileAdapter
         DataType = 'ImageStack'
         Description = ''
     end
-    
+
     properties (Constant, Hidden, Access = protected)
         SUPPORTED_FILE_TYPES = {'raw'}
     end
-    
+
 % - - - - - - - - - - - - - METHODS - - - - - - - - - - - - - - - - - - -
 
     methods (Access = protected)
-        
+
         function imageStack = readData(obj, ~)
         %readData Read data from a sciscan file to a virtual ImageStack
             virtualData = nansen.stack.virtual.SciScanRaw(obj.Filename);
             imageStack = nansen.stack.ImageStack(virtualData);
         end
     end
-    
+
     methods
-        
+
         function save(~, ~)
             error('Can not save data to a SciScan raw file')
         end
-        
+
         function imageStack = open(obj)
             imageStack = obj.load();
             %imviewer(imageStack)
         end
-        
+
         function view(obj)
         %VIEW View the sciscan data in imviewer
             imageStack = obj.load();

@@ -54,7 +54,7 @@ V.Configuration.sigmaX         = @(x) assert( isnumeric(x) && isscalar(x) && x >
                                     'Value must be a scalar, non-negative number' );
 V.Configuration.sigmaY         = @(x) assert( isnumeric(x) && isscalar(x) && x >= 0, ...
                                     'Value must be a scalar, non-negative number' );
-                                
+
 % - - - - - Adapt output to how many outputs are requested - - - - - -
 
 if nargout == 0

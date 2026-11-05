@@ -10,7 +10,7 @@ function arrayOut = insertIntoArray(arrayOriginal, arrayToInsert, insertIndices,
 % Input Arguments:
 %  - arrayOriginal (any) - An array
 %  - arrayToInsert (any) - An array to insert
-%  - insertIndices (integer) - Indices / locations where to insert array slices 
+%  - insertIndices (integer) - Indices / locations where to insert array slices
 %    along insertDimension
 %  - insertDimension (integer) - Which dimension to perform insertions
 %
@@ -27,17 +27,17 @@ function arrayOut = insertIntoArray(arrayOriginal, arrayToInsert, insertIndices,
 %       C = utility.insertIntoArray(A, B, [2 4], 1); % Insert rows 2 and 4
 %
 %       A =
-%   
+%
 %           1     5     9
 %           2     6    10
 %           3     7    11
 %           4     8    12
 %       B =
-%   
+%
 %         100   101   102
 %         200   201   202
 %       C =
-% 
+%
 %           1     5     9
 %         100   101   102
 %           2     6    10
@@ -65,7 +65,7 @@ function arrayOut = insertIntoArray(arrayOriginal, arrayToInsert, insertIndices,
         error('NANSEN:InsertArray:InvalidInsertDimension', ...
             'insertDimension exceeds the number of dimensions of the inputs.');
     end
-    
+
     sizeInput  = size(arrayOriginal);
     sizeInsert = size(arrayToInsert);
 

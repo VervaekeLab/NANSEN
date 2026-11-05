@@ -16,9 +16,9 @@ function removeFilepathFromStaticJavaPath(filePath)
     tf = contains(pathItems, filePath);
     if any(tf)
         pathItems(tf)=[];
-    
+
         updatedPath = strjoin(pathItems, '\n');
-    
+
         fid = fopen(staticJavaFilepath, 'w');
         fwrite(fid, updatedPath);
         fclose(fid);

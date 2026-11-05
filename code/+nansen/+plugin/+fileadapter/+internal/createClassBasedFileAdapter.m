@@ -22,13 +22,13 @@ function templateTargetPath = createClassBasedFileAdapter(templateFolder, target
     movefile(oldFilePath, newFilepath)
 
     % Also rename read (and write) template files
-    oldTemplateFiles = utility.dir.recursiveDir(templateTargetPath, ...
+    oldTemplateFiles = recursiveDir(templateTargetPath, ...
         'Expression', '.m.template', 'OutputType', 'FilePath');
     newTemplateFiles = strrep(oldTemplateFiles, '.m.template', '.m');
     for i = 1:numel(oldTemplateFiles)
          movefile(oldTemplateFiles{i}, newTemplateFiles{i})
     end
-    
+
     fileAdapterInfo = fileAdapterInfo.toStruct();
     fileAdapterInfo = fileAdapterInfo.Properties;
 
@@ -36,7 +36,7 @@ function templateTargetPath = createClassBasedFileAdapter(templateFolder, target
 
     % Read file contents
     classdefStr = fileread(newFilepath);
-    
+
     classdefStr = nansen.internal.templating.fillTemplate(...
         classdefStr, fileAdapterInfo);
 

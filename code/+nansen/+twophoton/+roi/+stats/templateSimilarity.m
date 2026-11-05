@@ -8,7 +8,7 @@ function similarity = templateSimilarity(roiImageArray, template)
 %
 %   OUTPUT
 %       similarity : column vector with a value for each roi
-    
+
     if isa(roiImageArray, 'struct') % If roi images is a structarray
         fieldName = fieldnames(roiImageArray);
         roiImageArray = cat(3, roiImageArray.(fieldName) );
@@ -17,16 +17,15 @@ function similarity = templateSimilarity(roiImageArray, template)
     assert( ndims(roiImageArray) == 3, 'Roi images must be a 3D array')
 
     roiImageArray(isnan(roiImageArray)) = 0;
-    
+
     if nargin < 2
         template = mean(roiImageArray, 3);
     end
-    
+
     numRois = size(roiImageArray, 3);
     similarity = zeros(numRois, 1);
 
     for i = 1:numRois
         similarity(i) = corr2( template, roiImageArray(:,:,i) );
-
     end
 end

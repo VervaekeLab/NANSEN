@@ -49,14 +49,14 @@ function signalArray = batchExtract(imArray, roiData, varargin)
 %   Eivind Hennestad | Vervaeke Lab | August 2021
 
 %   TODO:
-%       [ ] Is it fine with current roi format (i.e struct with Masks field
+%       [ ] Is it fine with current roi format (i.e struct with Masks field
 %       or should it just be a simple cell array???
 %       [ ] Add support for weighted masks.
 %       [ ] Add support for getting median or percentile values instead of
 %           weighted mean? See serialExtract...
-    
+
     assert( ndims(imArray) == 2 || ndims(imArray) == 3, 'Image array must be 3D')
-    
+
     % If roidata is an array of RoIs, it must be prepared for extraction.
     if isa(roiData, 'RoI')
         [P, V] = nansen.twophoton.roisignals.extract.getDefaultParameters();
@@ -64,25 +64,24 @@ function signalArray = batchExtract(imArray, roiData, varargin)
         params.RoiOutputFormat = 'sparse';
         roiData = nansen.processing.roi.prepareRoiMasks(roiData, params);
     end
-    
+
     % Reshape image array to a 2D matrix of nPixelsPerImage x nSamples
     numSamples = size(imArray, 3);
     imArray = double(reshape(imArray, [], numSamples));
-    
+
     % Concatenate masks to create a matrix of nSubregions x nPixelsPerImage
     roiMaskMatrix = cat(1, roiData.Masks{:});
-    
+
     % Multiply matrices to get a nSubregions x nSamples matrix of signals
     signals = roiMaskMatrix * imArray;
-    
+
     signals = signals'; % --> nSamples x nSubregions
-    
+
     % Reshape to get signals as an array of nSamples x nRois x nSubregions
     numRois = size(roiData.Masks{1}, 1);
     numSubRegions = numel(roiData.Masks);
     signalArray = reshape(signals, numSamples, numRois, numSubRegions);
-    
+
     % Rearrange 2nd and 3rd dim to get nSamples x nSubregions x nRois.
     signalArray = permute(signalArray, [1, 3, 2]);
-    
 end

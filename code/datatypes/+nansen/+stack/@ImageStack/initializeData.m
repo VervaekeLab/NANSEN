@@ -5,7 +5,7 @@ function imageStackData = initializeData(dataReference, varargin)
 %   array.
 %
 %   INPUTS:
-%       dataReference : matrix | array | char | cell array of chars
+%       dataReference : matrix | array | char | cell array of chars
 %           Reference to image data. Different types are allowed:
 %
 %           - matrix (n x m) : treated as a grayscale image
@@ -18,20 +18,20 @@ function imageStackData = initializeData(dataReference, varargin)
 %   PARAMETERS:
 
 % TODO:
-%   [ ] dataReference from clipboard could be a cell array of strings...
-%   [ ] Work out what todo if dataReference is a cellarray of pathStrings.
+%   [ ] dataReference from clipboard could be a cell array of strings...
+%   [ ] Work out what todo if dataReference is a cellarray of pathStrings.
 %       Should open many stack objects or concatenate into one stack
 %       object?
 % 	[?] Fix so that many can be loaded...
 
     [nvPairs, varargin] = utility.getnvpairs(varargin{:});
-    
+
     % CASE 0: dataReference is already ImageStackData
     if isa(dataReference, 'nansen.stack.data.abstract.ImageStackData')
         imageStackData = dataReference;
         return
     end
-    
+
     % CASE 1: dataReference is empty. First, check if there is a filepath
     % on the clipboard. If not, open filebrowser.
     if isempty(dataReference) && isa(dataReference, 'char')
@@ -44,13 +44,13 @@ function imageStackData = initializeData(dataReference, varargin)
                 dataReference{1})
         end
     end
-    
+
     % CASE 2: dataReference is an empty double. Create matrix of nans
     if isempty(dataReference) && isa(dataReference, 'double')
         imageStackData = nansen.stack.data.MatlabArray(nan(512,512));
         return
     end
-    
+
     % CASE 3: dataReference is a matlab array
     if isnumeric(dataReference) && ndims(dataReference) >= 2
         imageStackData = nansen.stack.data.MatlabArray(dataReference, nvPairs{:});
@@ -61,11 +61,11 @@ function imageStackData = initializeData(dataReference, varargin)
     if isa(dataReference, 'cell')
         isValidPathStr = @(x) ischar(x) && (isfile(x) || isfolder(x));
         isValidCellArray = cellfun(@(x) isValidPathStr(x), dataReference);
-        
+
         msg = 'Cell array must contain strings to files or folders';
         assert(all(isValidCellArray), msg)
     end
-    
+
     % CASE 5: dataReference is a character vector. Check if folder
     if isa(dataReference, 'char') || isa(dataReference, 'string')
         if isfolder(dataReference)
@@ -80,7 +80,7 @@ function imageStackData = initializeData(dataReference, varargin)
     end
 
     % Finally: Create an  ImageStackData from the dataReference
-    
+
     if isa(dataReference, 'char') || isa(dataReference, 'string')
         dataReference = char(dataReference);
         imageStackData = nansen.stack.open(dataReference, varargin{:}, nvPairs{:});

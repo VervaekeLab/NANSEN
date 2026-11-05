@@ -21,12 +21,12 @@ classdef NansenUserSession < handle
 %       - AddonManager
 
 % Todo:
-%   [ ] Clear projectmanager instance when user session is deleted
-%   [ ] Add DataManager app when it is initialized and shut it down
+%   [ ] Clear projectmanager instance when user session is deleted
+%   [ ] Add DataManager app when it is initialized and shut it down
 %   properly when a user session is ended.
-%   [ ] If DataManager app is shut down independently, DataManagerApp
+%   [ ] If DataManager app is shut down independently, DataManagerApp
 %   property should be reset
-    
+
     properties (SetAccess = immutable) % Public
         CurrentUserName = "default"
         Preferences nansen.internal.user.Preferences
@@ -104,7 +104,7 @@ classdef NansenUserSession < handle
             assert(isa(app, 'nansen.App'), 'DataManager must be of type ''nansen.App''')
             obj.DataManagerApp = app;
         end
-        
+
         function assertProjectsAvailable(obj)
             if obj.ProjectManager.NumProjects == 0
                 error('Nansen:NoProjectsAvailable', ...
@@ -137,7 +137,6 @@ classdef NansenUserSession < handle
         function delete(obj)
 
             if ~isempty(obj.DataManagerApp)
-
             end
 
             delete(obj.ProjectManager)
@@ -151,7 +150,7 @@ classdef NansenUserSession < handle
     end
 
     methods (Access = private) % Initialization procedures
-    
+
         function prefs = initializePreferences(obj)
             prefdir = obj.getPrefdir(obj.CurrentUserName);
             obj.PreferenceDirectory = prefdir;
@@ -169,7 +168,7 @@ classdef NansenUserSession < handle
         % preStartup - Run procedures that need to execute before startup.
             obj.runPreStartupUpdateActions()
         end
-        
+
         function postStartup(obj)
         % postStartup - Run procedures that need to execute after startup.
 
@@ -181,7 +180,7 @@ classdef NansenUserSession < handle
                     warning(ME.identifier, '%s', ME.message)
                 end
             end
-            
+
             addlistener(obj.ProjectManager, 'CurrentProjectChanged', ...
                 @obj.onCurrentProjectChangedInProjectManager);
 
@@ -219,8 +218,8 @@ classdef NansenUserSession < handle
     end
 
     methods (Access = private) % Callbacks
-        
-        function onCurrentProjectChangedInPreferences(obj, src, evt)
+
+        function onCurrentProjectChangedInPreferences(obj, ~, ~)
         % Set new current project in project manager.
             if obj.isPreferenceListenerActive('CurrentProjectName')
                 newProjectName = char(string(obj.Preferences.CurrentProjectName));
@@ -232,7 +231,7 @@ classdef NansenUserSession < handle
             end
         end
 
-        function onCurrentProjectChangedInProjectManager(obj, src, evt)
+        function onCurrentProjectChangedInProjectManager(obj, ~, evt)
         % Update value for current project in preferences. Make sure that
         % this is not triggering an event, to avoid infinite update loop.
             obj.deactivatePreferenceListener('CurrentProjectName')
@@ -245,18 +244,18 @@ classdef NansenUserSession < handle
 
         function runPreStartupUpdateActions(obj)
         % runPreStartupUpdateActions - Run upgrade actions
-            
+
         % The actions here should be a one-time thing. Sometimes changes
         % are made to the code which influence user data, and these actions
         % update userdata if necessary.
-            
+
             % Move _userdata folder from the nansen repository folder to
             % MATLAB's pref dir in order to avoid having preferences saved
             % in the reposiory folder.
             if isfolder(fullfile(nansen.rootpath, '_userdata'))
                 nansen.internal.refactor.migrateUserdata(obj)
             end
-            
+
             if contains( getpref('NansenSetup', 'DefaultProjectPath', ''), fullfile(nansen.rootpath, '_userdata'))
                 rmpref('NansenSetup', 'DefaultProjectPath')
             end
@@ -280,7 +279,7 @@ classdef NansenUserSession < handle
             end
 
             obj.ProjectManager.checkProjectsExist()
-            
+
             if obj.ProjectManager.hasUnversionedProjects()
                 obj.ProjectManager.upgradeProjects()
             end
@@ -299,14 +298,14 @@ classdef NansenUserSession < handle
             end
         end
     end
-    
+
     methods (Static)
         % Why is this static
         function preferenceDirectory = getPrefdir(userName)
             if ~nargin || isempty(userName)
                 warning('No username given, returning prefdir for default user')
                 className = mfilename('class');
-                userName = eval(sprintf('%s.DEFAULT_USER_NAME', className));
+                userName = nansen.internal.introspection.getConstantPropertyValue(className, 'DEFAULT_USER_NAME');
             end
             preferenceDirectory = fullfile(prefdir, 'Nansen', userName);
         end

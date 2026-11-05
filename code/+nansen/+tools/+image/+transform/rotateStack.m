@@ -33,7 +33,7 @@ if ~crop
     testIm = zeros(nRows, nCols);
     testIm = imrotate(testIm, 45);
     new_size = size(testIm)+1;
-    
+
     % Need this to work for boolean arrays as well
     switch class(imStack)
         case 'logical'
@@ -45,9 +45,9 @@ end
 
 % Loop through images and rotate
 for n = 1:nFrames
-    
+
     angle = angles(n);
-    
+
     if crop
         imStack(:, :, n) = imrotate(imStack(:, :, n), angle, method, 'crop');
     else
@@ -56,9 +56,8 @@ for n = 1:nFrames
         shift = floor((new_size - tmp_size) ./ 2);
         newStack(shift(1) + (1 : tmp_size(1)), ...
            shift(2) + (1 : tmp_size(2)), n) = im; % put im in cntr...
-
     end
-    
+
     if mod(n,100) == 0 && printmsg
         str=['rotating frame ' num2str(n) '/' num2str(nFrames)];
         refreshdisp(str, prevstr, n);

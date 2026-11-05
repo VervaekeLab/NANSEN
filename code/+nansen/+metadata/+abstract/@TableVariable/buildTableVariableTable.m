@@ -22,7 +22,7 @@ function attributeTable = buildTableVariableTable(fileList)
 %       - DoubleClickFunctionName: Full name, including package prefix
 
     % Todo:
-    %   [ ] Generalize so this is not session only.
+    %   [ ] Generalize so this is not session only.
 
     % Table variables as they are implemented now:
     %
@@ -57,7 +57,7 @@ function attributeTable = buildTableVariableTable(fileList)
     S = repmat(defaultAttributes, 1, numDefaultVariables);
     [S(:).Name] = deal(defaultVariables.Name);
     [S(:).TableType] = deal(defaultVariables.TableType);
-    
+
     % Loop through the pre-defined / custom table variable file list
     % Loop through pre-defined variables for table class
     numFiles = numel(fileList);
@@ -67,12 +67,12 @@ function attributeTable = buildTableVariableTable(fileList)
         thisFilePath = thisFilePath{1};
         thisFcnName = utility.path.abspath2funcname(thisFilePath);
         fcnNameSplit = strsplit(thisFcnName, '.');
-        
+
         thisName = fcnNameSplit{end};
         thisTableType = fcnNameSplit{end-1};
 
         isMatch = strcmp({S.Name}, thisName) & strcmp({S.TableType}, thisTableType);
-        
+
         if ~any(isMatch)
             idx = numel(S) + 1;
             S(idx) = defaultAttributes;
@@ -137,7 +137,7 @@ function attributeTable = buildTableVariableTable(fileList)
             S(idx).RendererFunctionName = thisFcnName;
         end
     end
-    
+
     attributeTable = struct2table(S);
     attributeTable.TableType = string(attributeTable.TableType);
 end

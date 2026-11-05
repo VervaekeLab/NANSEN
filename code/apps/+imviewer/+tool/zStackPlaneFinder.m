@@ -43,15 +43,13 @@ frameNumbers = arrayfun(@(hc) hc.UserData.FrameNum, hCorners);
 
 % Delete corners.
 delete(hCorners)
-
 end
 
 % Callback for buttonpress in cornerboxes.
 function cornerPressed(src, ~, hImviewer)
 
     src.UserData.FrameNum = hImviewer.currentFrameNo;
-    
+
     src.LineWidth = 2;
     src.FaceColor = ones(1,3)*0.2;
-    
 end

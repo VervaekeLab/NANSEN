@@ -16,7 +16,7 @@ function configureProject(flags, options)
 %   Opens the project setup wizard with the minimal set of pages, but also
 %   adds a page for configuring variables.
 %
-%   nansen.configureProject("v") 
+%   nansen.configureProject("v")
 
     arguments (Repeating)
         flags (1,1) string {mustBeMember(flags, ["d", "dependencies", "v", "variables"])}
@@ -26,7 +26,7 @@ function configureProject(flags, options)
     end
 
     flags = string(flags);
-    
+
     if options.CreateNew
         pagesToShow = "ProjectTab";
     else

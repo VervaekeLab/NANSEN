@@ -7,6 +7,5 @@ classdef Caiman < nansen.dataio.dataconverter.roi.RoiAdapter
     methods
 
         [roiArray, classification, stats, images] = convertRois(obj, data)
-
     end
 end

@@ -24,12 +24,12 @@ function [ eventStartIdx, eventStopIdx ] = findTransitions( eventVector )
     eventStartStop = diff(eventVector);
     eventStartIdx = find((eventStartStop == 1)) + 1; % diff shifts start transition 1 step forward, so add one...
     eventStopIdx = find(eventStartStop == -1); % ...but stop transition is already one step after. Makes sense?
-    
+
     % Maybe event is ongoing in the beginning or in the end?
     if eventVector(1)
         eventStartIdx = cat(dim, 1, eventStartIdx);
     end
-    
+
     if eventVector(end)
         eventStopIdx = cat(dim, eventStopIdx, numel(eventVector));
     end

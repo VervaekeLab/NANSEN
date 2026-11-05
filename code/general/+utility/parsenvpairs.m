@@ -29,15 +29,15 @@ nvPairs = {};
 % If varargin is a struct (could happen if an opt struct is passed instead
 % of name, value pairs.
 if ~isempty(varargin) && (isa(varargin{1}, 'struct') || isa(varargin{end}, 'struct'))
-    
+
     if isa(varargin{1}, 'struct')
         ind = 1;
     else
         ind = numel(varargin);
     end
-    
+
     fields = fieldnames(varargin{ind})';
-    
+
     %In this case, only use fields which are also part of def, so that user
     % is more free in passing the opts even if it does not contain relevant
     % fields.
@@ -46,12 +46,11 @@ if ~isempty(varargin) && (isa(varargin{1}, 'struct') || isa(varargin{end}, 'stru
     nvPairs = reshape(vertcat(fields, values), 1, numel(fields)*2);
 
     varargin(ind) = [];
-    
 end
 
 % Ignore name, value pairs that are not included in def..
 if ~isempty(varargin) && isa(varargin{1}, 'char')
-    
+
     namesIn = varargin(1:2:end);
     matchInd = find(contains(namesIn, names) )*2 - 1; % Correct for selecting every other name in line above...
 
@@ -89,5 +88,4 @@ end
 parserObj.parse(nvPairs{:});
 opt = parserObj.Results;
 opt = orderfields(opt, names);
-
 end

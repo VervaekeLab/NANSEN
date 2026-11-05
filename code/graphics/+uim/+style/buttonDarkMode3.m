@@ -1,7 +1,7 @@
 classdef buttonDarkMode3 < uim.style.buttonScheme
-    
+
     properties (Constant)
-        
+
         HighlightedOn = struct(...
             'ForegroundColor', [234,236,237]/255, ...
             'FontWeight', 'bold', ...

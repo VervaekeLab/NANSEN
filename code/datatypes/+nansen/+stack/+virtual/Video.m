@@ -9,49 +9,49 @@ classdef Video < nansen.stack.data.VirtualArray
     properties (Constant, Hidden)
         FILE_PERMISSION = 'read'
     end
-    
+
     properties (Access = private, Hidden)
         VideoReaderObj
     end
-    
+
     properties
         FrameRate
     end
-    
+
     methods % Structors
-        
+
         function obj = Video(filePath, varargin)
             % Open folder browser if there are no inputs.
             if nargin < 1; filePath = uigetdir; end
             obj@nansen.stack.data.VirtualArray(filePath, varargin{:})
         end
-        
+
         function delete(obj)
             if ~isempty(obj.VideoReaderObj)
                 delete(obj.VideoReaderObj)
             end
         end
     end
-    
+
     methods (Access = protected) % Implementation of abstract methods
-        
+
         function obj = assignFilePath(obj, filePath, ~)
-            
+
             % Todo: Add video formats and some validation of path
-            
+
             if isa(filePath, 'cell') && numel(filePath) == 1
                 filePath = filePath{1};
             end
-            
+
             if isfolder(filePath)
                 % Todo: Search folder, and select video. If several videos,
                 % make a listbox dialog.
                 error('Not implemented')
-                
+
             elseif isfile(filePath) % Check that file is a supported video file
                 [~, ~, ext] = fileparts(filePath);
                 ffi = VideoReader.getFileFormats;
-                
+
                 ext = lower(strrep(ext, '.', ''));
                 assert( any(contains({ffi.Extension} , ext) ), ...
                     'Video file format is not supported')
@@ -59,20 +59,18 @@ classdef Video < nansen.stack.data.VirtualArray
                 msg = 'Filepath does not point to any existing file or folder';
                 error(msg);
             end
-            
-            obj.FilePath = filePath;
 
+            obj.FilePath = filePath;
         end
-        
+
         function getFileInfo(obj)
-            
+
             obj.VideoReaderObj = VideoReader(obj.FilePath);
             obj.FrameRate = obj.VideoReaderObj.FrameRate;
 
             obj.assignDataSize()
 
             obj.assignDataType()
-
         end
 
         function createMemoryMap(~)
@@ -82,7 +80,7 @@ classdef Video < nansen.stack.data.VirtualArray
         function assignDataSize(obj)
 
             obj.VideoReaderObj = VideoReader(obj.FilePath);
-        
+
             obj.DataSize = [obj.VideoReaderObj.Height, obj.VideoReaderObj.Width];
             obj.DataDimensionArrangement = 'YX';
 
@@ -94,7 +92,7 @@ classdef Video < nansen.stack.data.VirtualArray
             elseif contains(obj.VideoReaderObj.VideoFormat, 'Grayscale')
                 numChannels = 1;
             end
- 
+
             % Add length of channels if there is more than one channel
             if numChannels > 1
                 obj.DataSize = [obj.DataSize, numChannels];
@@ -113,17 +111,17 @@ classdef Video < nansen.stack.data.VirtualArray
             obj.DataType = class(tmpIm);
         end
     end
-    
+
     methods % Implementation of methods for reading data
-        
+
         function data = readFrames(obj, frameInd)
-            
+
             nDim = numel(obj.DataSize);
 
             % Determine size of requested data
             newDataSize = obj.DataSize;
             newDataSize(end) = numel(frameInd);
-                   
+
             % Preallocate output data
             data = zeros(newDataSize, obj.DataType);
 
@@ -131,15 +129,15 @@ classdef Video < nansen.stack.data.VirtualArray
 
             c = 0;
             for i = frameInd % Read all requested frames.
-                
+
                 if i > obj.DataSize(end)
                     break
                 end
-                
+
                 % Read frame and add to putput data:
                 obj.VideoReaderObj.currentTime = (i-1) .* (1/obj.FrameRate);
                 frameData = obj.VideoReaderObj.readFrame();
-                
+
                 c = c+1;
                 if nDim == 3
                     data(:, :, c) = frameData;
@@ -150,11 +148,11 @@ classdef Video < nansen.stack.data.VirtualArray
                 end
             end
         end
-        
+
         function writeFrames(obj, data, frameInd)
             error('Writing frames to video files are not supported yet')
         end
-        
+
         function frameData = getFrame(obj, iFrame)
             obj.VideoReaderObj.currentTime = (iFrame-1) .* (1/obj.FrameRate);
             frameData = readFrame(obj.VideoReaderObj);

@@ -21,7 +21,7 @@ function hApp = imviewer(varargin)
     else
         hApp = imviewer.App(varargin{:});
     end
-    
+
     if ~nargout
         clear hApp
     end

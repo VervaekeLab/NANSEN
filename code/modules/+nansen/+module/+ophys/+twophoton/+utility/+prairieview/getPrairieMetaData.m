@@ -52,9 +52,9 @@ xmlDoc = xmlread(fullfile(tSeriesPath, xmlFile(1).name));
 
 % start filling up fields of metadata
 if isempty(fieldnames(metadata))
-    
+
     metadata.microscope = 'Prairie';
-    
+
     PvStateItems = xmlDoc.getElementsByTagName('PVStateValue');
 
     for i = 1:PvStateItems.getLength()
@@ -65,7 +65,7 @@ if isempty(fieldnames(metadata))
             case 'bitDepth'
                 bitDepth = PvStateItems.item(i-1).getAttribute('value');
                 metadata.bitDepth = str2double(bitDepth);
-                
+
             case 'framePeriod'
                 framePeriod = PvStateItems.item(i-1).getAttribute('value');
                 metadata.dt = str2double(framePeriod);
@@ -110,7 +110,6 @@ if isempty(fieldnames(metadata))
                 metadata.umPerPx_x = str2double( items.item(0).getAttribute('value') );
                 metadata.umPerPx_y = str2double( items.item(1).getAttribute('value') );
                 metadata.umPerPx_z = str2double( items.item(2).getAttribute('value') );
-
         end
     end
 
@@ -123,9 +122,9 @@ if isempty(fieldnames(metadata))
     else
         %error('Unknown objective, please resolve')
     end
-    
+
     metadata.nPlanes = 1; % Todo
-    
+
     % Set metadata.nBlocks to 0 and metadata.nFrames to empty array
     metadata.nBlocks = 0;
     metadata.nFrames = [];
@@ -140,11 +139,11 @@ nSequences = sequenceItems.getLength();
 for s = 1:nSequences
     frameItems = sequenceItems.item(s-1).getElementsByTagName('Frame');
     nFrames = frameItems.getLength();
-    
+
     if nFrames ~= 0
         metadata.nBlocks = metadata.nBlocks + 1; % update number of blocks
         metadata.nFrames(end+1) = nFrames; % update number of frames in block
-    
+
         % Retrieve channel info from the first frame
         chItems = frameItems.item(0).getElementsByTagName('File');
         metadata.nCh = chItems.getLength();
@@ -157,7 +156,7 @@ for s = 1:nSequences
             metadata.channelNames{c} = char(chItems.item(c-1).getAttribute('channelName'));
             metadata.channelColor{c} = colors{metadata.channels(c)};
         end
-    
+
         % Retrieve frame times
         times = zeros(nFrames, 1);
         for f = 1:nFrames

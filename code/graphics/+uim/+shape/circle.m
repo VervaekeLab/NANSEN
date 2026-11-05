@@ -11,9 +11,8 @@ function varargout = circle(radius, numCornerSegmentPoints)
 
     if nargin < 2; numCornerSegmentPoints = 25; end
     if nargin < 1; radius = 10; end
-    
-    varargout = cell(1, nargout);
-    
-    [varargout{:}] = uim.shape.rectangle([radius*2, radius*2], radius, numCornerSegmentPoints);
 
+    varargout = cell(1, nargout);
+
+    [varargout{:}] = uim.shape.rectangle([radius*2, radius*2], radius, numCornerSegmentPoints);
 end

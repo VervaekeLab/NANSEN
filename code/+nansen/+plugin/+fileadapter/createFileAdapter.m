@@ -8,15 +8,14 @@ function createFileAdapter(targetPath, fileAdapterMeta, adapterType)
 %
 %   Input Arguments:
 %       targetPath : Pathname of folder to save file adapter in.
-%       fileAdapterMeta : Object with file adapter metadata 
+%       fileAdapterMeta : Object with file adapter metadata
 
     arguments
         targetPath (1,1) string % Folder to save file adapter in.
-        fileAdapterMeta (1,1) nansen.plugin.fileadapter.FileAdapterMeta % Fileadapter metadata 
+        fileAdapterMeta (1,1) nansen.plugin.fileadapter.FileAdapterMeta % Fileadapter metadata
         adapterType (1,1) string = "R"
     end
 
-    
     % Get path for template
     rootPath = fileparts(mfilename('fullpath'));
     templateFolder = fullfile( rootPath, 'resources');
@@ -41,7 +40,7 @@ function createFileAdapter(targetPath, fileAdapterMeta, adapterType)
     % Finally, open the function in the matlab editor.
     cd(templateTargetPath)
     edit(fullfile(templateTargetPath, 'read.m'))
-    
+
     if isfile(fullfile(templateTargetPath, 'write.m'))
         edit(fullfile(templateTargetPath, 'write.m'))
     end

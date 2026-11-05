@@ -10,7 +10,7 @@ function S = getSessionMethodInfo(pathStr)
 %         OptionsAlternatives
 
     S = struct();
-    
+
     [~, fileName] = fileparts(pathStr);
 
     S.SessionMethodName = fileName;
@@ -19,5 +19,4 @@ function S = getSessionMethodInfo(pathStr)
 
     optsManager = nansen.OptionsManager(S.SessionMethodPackageName);
     S.OptionsAlternatives = optsManager.AvailableOptionSets;
-
 end

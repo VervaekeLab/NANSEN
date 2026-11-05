@@ -37,5 +37,4 @@ elseif nDim == 4
 end
 
 video.close()
-
 end

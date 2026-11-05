@@ -6,7 +6,7 @@ function sessionTable = updateSessionDatalocations(sessionTable, dataLocationMod
 
     import nansen.dataio.session.listSessionFolders
     import nansen.dataio.session.matchSessionFolders
-    
+
     % % Use the folder structure to detect session folders.
     detectedSessionFolders = listSessionFolders(dataLocationModel, 'all');
     try
@@ -33,14 +33,14 @@ function sessionTable = updateSessionDatalocations(sessionTable, dataLocationMod
 
     % Match sessions in table with sessionFolder (data locations)
     unresolvedIdx = [];
-    
+
     sessionStructArray = table2struct(sessionTable.entries);
-    
+
     for i = 1:size(sessionTable.entries, 1)
-        
+
         thisSessionID = tableSessionIDs{i};
         matchedIdx = find(strcmp(sessionIDs, thisSessionID));
-        
+
         if isempty(matchedIdx)
             continue
         elseif numel(matchedIdx) == 1
@@ -51,21 +51,21 @@ function sessionTable = updateSessionDatalocations(sessionTable, dataLocationMod
         end
         sessionStructArray(i).DataLocation = sessionFolders(matchedIdx);
     end
-    
+
     if ~isempty(unresolvedIdx)
         %Todo
         warning('Some sessions had multiple datalocations')
     end
-    
+
     % Update the session table
     newDataLocation = arrayfun(@(s) s.DataLocation, sessionStructArray, 'uni', 0);
-    
+
     sessionTable.replaceDataColumn('DataLocation', newDataLocation );
 
     % Post hoc fix: Make sure structs are right format
     sessionTable = nansen.metadata.temp.fixMetaTableDataLocations(...
         sessionTable, dataLocationModel);
-    
+
     % Another post hoc fix that ensures all struct fields are added.
     dataLocationStructs = sessionTable.entries.DataLocation;
     dataLocationStructs = dataLocationModel.validateDataLocationPaths(dataLocationStructs);

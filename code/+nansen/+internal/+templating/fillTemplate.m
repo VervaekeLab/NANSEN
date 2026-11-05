@@ -7,7 +7,7 @@ function templateString = fillTemplate(templateString, templateVariables)
     end
 
     templateVariableNames = fieldnames(templateVariables);
-    
+
     for i = 1:numel(templateVariableNames)
         thisName = templateVariableNames{i};
         thisValue = templateVariables.(thisName);

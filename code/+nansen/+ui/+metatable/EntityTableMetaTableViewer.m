@@ -15,6 +15,7 @@ classdef EntityTableMetaTableViewer < handle
         CellEditCallback
         KeyPressCallback
         MouseDoubleClickedFcn = []
+        Theme (1,1) string = "light"
 
         DeleteColumnFcn = []
         UpdateColumnFcn = []
@@ -282,7 +283,7 @@ classdef EntityTableMetaTableViewer < handle
             obj.notifyTableRowsUpdated()
         end
 
-        function refreshTable(obj, newTable, flushTable)
+        function refreshTable(obj, newTable, flushTable, requestFocus)
             requireReset = isempty(obj.MetaTable) || obj.RequireReset;
 
             if nargin >= 2 && ~(isnumeric(newTable) && isempty(newTable))
@@ -292,11 +293,17 @@ classdef EntityTableMetaTableViewer < handle
             if nargin < 3 || isempty(flushTable)
                 flushTable = requireReset;
             end
+            if nargin < 4 || isempty(requestFocus)
+                requestFocus = true;
+            end
 
             if flushTable
                 obj.DataFilterMap = [];
                 obj.ColumnFilterActive = [];
                 obj.ActiveColumnFilterNames = strings(1, 0);
+                if ~isempty(obj.EntityTableView) && isvalid(obj.EntityTableView)
+                    obj.EntityTableView.resetFilters('SkipNotification', true)
+                end
                 if ~isempty(obj.MetaTable) && ~isempty(obj.ColumnFilter)
                     obj.ColumnFilter.onMetaTableChanged()
                 end
@@ -311,7 +318,7 @@ classdef EntityTableMetaTableViewer < handle
                 % EntityTable validates column specs against its current
                 % data, so table refreshes must update data and specs in
                 % the same operation.
-                obj.updateTableView()
+                obj.updateTableView([], requestFocus)
             else
                 obj.createEntityTable(table.empty, entitytable.ColumnSpec.empty(1, 0))
             end
@@ -588,7 +595,24 @@ classdef EntityTableMetaTableViewer < handle
                 RowKey=options.RowKey, ...
                 ColumnSpecs=options.ColumnSpecs, ...
                 SelectionMode=options.SelectionMode, ...
-                Backend=backend);
+                Backend=backend, ...
+                Theme=obj.Theme);
+        end
+
+        function applyFigureTheme(obj, parent)
+            if isempty(parent) || strlength(obj.Theme) == 0
+                return
+            end
+
+            hFigure = ancestor(parent, 'figure');
+            if isempty(hFigure) || ~isvalid(hFigure) || ~isprop(hFigure, 'Theme')
+                return
+            end
+
+            hFigure.Theme = obj.Theme;
+            if isprop(hFigure, 'ToolBar')
+                hFigure.ToolBar = 'none';
+            end
         end
 
         function cleanup = suspendEntityTableRefresh(obj)
@@ -634,6 +658,7 @@ classdef EntityTableMetaTableViewer < handle
                 obj.Parent = uifigure(...
                     'Name', 'NANSEN Metadata Table', ...
                     'Visible', 'on');
+                obj.applyFigureTheme(obj.Parent)
             end
 
             tableLayout = obj.captureTableLayout();
@@ -675,6 +700,7 @@ classdef EntityTableMetaTableViewer < handle
             end
 
             selectedEntries = obj.getSelectedEntries();
+            userFilterSpecs = obj.captureUserFilterSpecs();
             if needsCreate
                 obj.createEntityTable(dataTable, columnSpecs)
             elseif obj.UseHtmlTable && ...
@@ -700,6 +726,60 @@ classdef EntityTableMetaTableViewer < handle
             if ~isempty(selectedEntries)
                 obj.setSelectedEntries(selectedEntries)
             end
+            obj.restoreUserFilterSpecs(userFilterSpecs)
+        end
+
+        function filterSpecs = captureUserFilterSpecs(obj)
+            arguments
+                obj
+            end
+
+            filterSpecs = struct("VariableName", cell(1, 0), "FilterSpec", cell(1, 0));
+            if isempty(obj.EntityTableView) || ~isvalid(obj.EntityTableView)
+                return
+            end
+
+            variableNames = obj.ActiveColumnFilterNames;
+            for i = 1:numel(variableNames)
+                variableName = variableNames(i);
+                if obj.isSystemFilterVariable(variableName)
+                    continue
+                end
+
+                filterSpec = obj.EntityTableView.getFilterSpec(variableName);
+                if isempty(filterSpec)
+                    continue
+                end
+
+                filterSpecs(end+1).VariableName = variableName; %#ok<AGROW>
+                filterSpecs(end).FilterSpec = filterSpec;
+            end
+        end
+
+        function restoreUserFilterSpecs(obj, filterSpecs)
+            arguments
+                obj
+                filterSpecs (1,:) struct
+            end
+
+            if isempty(filterSpecs) || isempty(obj.EntityTableView) || ~isvalid(obj.EntityTableView)
+                return
+            end
+
+            tableVariableNames = string(obj.MetaTableVariableNames);
+            restoredVariableNames = strings(1, 0);
+            for i = 1:numel(filterSpecs)
+                variableName = string(filterSpecs(i).VariableName);
+                if ~any(tableVariableNames == variableName)
+                    continue
+                end
+
+                obj.EntityTableView.setFilter(variableName, filterSpecs(i).FilterSpec)
+                restoredVariableNames(end+1) = variableName; %#ok<AGROW>
+            end
+
+            obj.ActiveColumnFilterNames = unique(restoredVariableNames, 'stable');
+            obj.updateColumnFilterState()
         end
 
         function applyTableProperties(obj)

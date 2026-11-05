@@ -4,15 +4,15 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
     %
     %
     % Todo:
-    %   [ ] Generalize
-    %   [ ] Consider the use of append when adding data. What if the method
+    %   [ ] Generalize
+    %   [ ] Consider the use of append when adding data. What if the method
     %       is resumed from a previous run?
-    %   [ ] Add more metadata
-    %   [ ] Reconsider using the CorrectedImageStack type.
+    %   [ ] Add more metadata
+    %   [ ] Reconsider using the CorrectedImageStack type.
     %    -  For Motion Correction (Defer this...):
-    %       [ ] Link to original file if possible
-    %       [ ] Way to insert shifts / translations
-    %       [ ] Should imaging plane be shared among original and
+    %       [ ] Link to original file if possible
+    %       [ ] Way to insert shifts / translations
+    %       [ ] Should imaging plane be shared among original and
     %           corrected?
     %   [V] Create Device
     %   [V] Create ImagingPlane
@@ -51,14 +51,14 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
         Device
         ImagingPlanes cell % Cell array (numPlanes x numChannels) of objects.
         DataPipeObject cell % Cell array (numPlanes x numChannels) of objects.
-    
+
         %Device
         %OpticalChannel
         %ImagingPlane
     end
 
     methods (Static)
-    
+
         function S = getDefaultOptions()
             % Get default options for the deep interpolation denoiser.
             S.NWBExporter.NWBFilePath = '';
@@ -70,7 +70,7 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
             S.NWBExporter.GroupName_ = {'acquisition', 'processing'};
             S.NWBExporter.NeuroDataType = 'TwoPhotonSeries';
             S.NWBExporter.NeuroDataType_ = {'TwoPhotonSeries', 'OnePhotonSeries', 'ImageSeries'}; % Todo...
-        
+
             S.NWBMetadata.DeviceDescription = '';
             S.NWBMetadata.DeviceManufacturer = '';
             S.NWBMetadata.ExcitationWavelength = [];
@@ -84,14 +84,14 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
     end
 
     methods % Constructor
-        
+
         function obj = NWBExporter(sourceStack, varargin)
-            
+
             % Todo:
             % assert(isInstalled('matnwb'))
 
             obj@nansen.stack.ImageStackProcessor(sourceStack, varargin{:})
-            
+
             if ~nargout
                 obj.runMethod()
                 clear obj
@@ -163,7 +163,7 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
             obj.StackIterator.reset()
             for i = 1:obj.StackIterator.NumIterations
                 [iZ, iC] = obj.StackIterator.next();
-                
+
                 % Create imaging planes.
                 imagingPlane = matnwb.types.core.ImagingPlane( ...
                     'description', 'n/a', ...
@@ -172,7 +172,7 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
                     'imaging_rate', obj.SourceStack.MetaData.SampleRate, ...
                     'indicator', obj.Options.NWBMetadata.IndicatorNames, ...
                     'location', 'n/a');
-                
+
                 % Todo: This should refer to channel index of microscope,
                 % not channel index of image stack.
                 channelName = sprintf('channel%d', iC);
@@ -218,12 +218,12 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
                     'starting_time_rate', obj.SourceStack.MetaData.SampleRate, ...
                     'data', obj.DataPipeObject{iZ, iC}, ...
                     'data_unit', 'lumens');
-                
+
                 name = sprintf('two_photon_data_plane%d_channel%d', iZ, iC);
                 obj.addTwoPhotonSeriesToNwb(name, twoPhotonSeries)
             end
         end
-        
+
         function device = createDevice(obj)
             device = matnwb.types.core.Device();
 
@@ -244,7 +244,7 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
 
             numChannels = obj.SourceStack.NumChannels;
             opticalChannels = cell(1, numChannels);
-            
+
             for i = 1:numChannels
                 opticalChannels{i} = matnwb.types.core.OpticalChannel();
             end
@@ -253,9 +253,9 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
             % description
             % emission_lambda
         end
-        
+
         function addTwoPhotonSeriesToNwb(obj, name, twoPhotonSeries)
-            
+
             if strcmp(obj.SemanticDataType, 'Acquired')
             % Add the two photon series to the acquisition group.
                 name = sprintf('original_%s', name);
@@ -265,7 +265,7 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
             % Add the two photon series to a correctedImageStack and append
             % it to the MotionCorrectionGroup.
                 motionCorrection = obj.getMotionCorrectionGroup();
-            
+
                 rawTwoPhotonSeries = obj.getOriginalTwoPhotonSeriesLink(name);
 
                 xyTimeseries = matnwb.types.core.TimeSeries( );
@@ -275,7 +275,7 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
                     'corrected', twoPhotonSeries, ...
                     'original', matnwb.types.untyped.SoftLink(rawTwoPhotonSeries), ...
                     'xy_translation', xyTimeseries );
-            
+
                 name = sprintf('corrected_%s', name);
                 motionCorrection.correctedimagestack.set(name, correctedImageStack);
             end
@@ -284,7 +284,7 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
         function twoPhotonSeries = getOriginalTwoPhotonSeriesLink(obj, name)
 
             optical_channel = matnwb.types.core.OpticalChannel();
-            
+
             imaging_plane = matnwb.types.core.ImagingPlane(...
                 'device', matnwb.types.untyped.SoftLink(obj.Device), ...
                 'opticalchannel', optical_channel);
@@ -298,7 +298,7 @@ classdef NWBExporter < nansen.stack.ImageStackProcessor
                 'starting_time', 0.0, ...
                 'starting_time_rate', 1.0 ...
                 );
-            
+
             name = sprintf('missing_%s', name);
             obj.NWBObject.general_optophysiology.set(name, imaging_plane);
 

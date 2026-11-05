@@ -8,10 +8,10 @@ function pathListOut = excludeItemsFromPathList(pathListIn, expr)
         end
         pathList = strsplit(pathListIn, pathsep);
     end
-    
+
     keep = ~contains(pathList, expr);
     pathListOut = pathList(keep);
-    
+
     if ischar(pathListIn)
         pathListOut = strjoin(pathListOut, pathsep);
     end

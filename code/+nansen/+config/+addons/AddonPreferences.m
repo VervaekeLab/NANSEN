@@ -1,5 +1,5 @@
 classdef AddonPreferences < nansen.external.fex.utility.Preferences
-    
+
     properties (Constant, Hidden)
         PreferenceGroupName = 'NansenAddonManager'
     end

@@ -35,7 +35,7 @@ P.Configuration.numCols_ = struct('type', 'slider', 'args', {{'Min', 1, 'Max', 1
 
 P.Correction.shiftsMethod_ = {'FFT','cubic','linear'};
 P.Correction.boundary_ = {'NaN','copy','zero','template'};
-    
+
 % - - - - Specify validation/assertion test for each parameter - - - -
 
 V                               = struct();
@@ -43,7 +43,7 @@ V.Configuration.numRows         = @(x) assert( isnumeric(x) && isscalar(x) && x 
                                     'Value must be a scalar, non-negative, integer number' );
 V.Configuration.numRows         = @(x) assert( isnumeric(x) && isscalar(x) && x >= 0 && round(x)==x, ...
                                     'Value must be a scalar, non-negative, integer number' );
-                                
+
 % - - - - - Adapt output to how many outputs are requested - - - - - -
 
 if nargout == 0

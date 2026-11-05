@@ -15,7 +15,7 @@ function hApp = structeditor(varargin)
         varargin = prepareModernStructEditorInputs(varargin);
         hApp = structeditor.StructEditorApp(varargin{:});
     end
-    
+
     if ~nargout
         clear hApp
     end

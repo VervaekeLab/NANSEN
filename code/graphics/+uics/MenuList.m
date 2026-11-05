@@ -21,13 +21,13 @@ classdef MenuList < uiw.mixin.AssignPVPairs
         ParentMenu
         MenuListItems
     end
-    
+
     properties (Constant, Access = private)
         VALID_SELECTIONMODE = {'none', 'single', 'multiple'}
     end
 
     methods % Constructor
-        
+
         function obj = MenuList(hMenu, items, value, varargin)
         %
         %   obj = MenuList(hMenu, items, value)
@@ -37,14 +37,13 @@ classdef MenuList < uiw.mixin.AssignPVPairs
             if nargin < 3
                 value = items{1};
             end
-            
+
             % Assign property values.
             obj.ParentMenu = hMenu;
             obj.Items = items;
             obj.Value = value;
-            
+
             obj.assignPVPairs(varargin{:})
-            
         end
     end
 
@@ -71,11 +70,11 @@ classdef MenuList < uiw.mixin.AssignPVPairs
             obj.onSelectionModeSet()
         end
     end
-    
+
     methods (Access = private)
-            
+
         function createMenuList(obj)
-            
+
             numItems = numel(obj.Items);
 
             obj.MenuListItems = gobjects(1, numItems);
@@ -90,7 +89,7 @@ classdef MenuList < uiw.mixin.AssignPVPairs
         end
 
         function onMenuSelected(obj, src, evt)
-            
+
             switch obj.SelectionMode
                 case 'none'
                     % do nothing
@@ -121,7 +120,7 @@ classdef MenuList < uiw.mixin.AssignPVPairs
         end
 
         function onItemsSet(obj)
-                 
+
             if ~isempty(obj.ParentMenu.Children)
                 delete(obj.ParentMenu.Children)
             end
@@ -130,7 +129,7 @@ classdef MenuList < uiw.mixin.AssignPVPairs
         end
 
         function onValueSet(obj)
-            
+
             if isempty( obj.MenuListItems )
                 return
             else

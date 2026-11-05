@@ -29,12 +29,12 @@ classdef StatusText < handle & dynamicprops
 
     methods
         function newText = getText(obj)
-            
+
             textSnippets = {};
-            
+
             for i = 1:numel(obj.PropertyNames)
                 thisValue = obj.Data.(obj.PropertyNames{i});
-                
+
                 if ischar(thisValue) && isempty(thisValue)
                     continue
                 elseif isstring(thisValue) && thisValue==""
@@ -43,7 +43,7 @@ classdef StatusText < handle & dynamicprops
                     textSnippets{end+1} = char(thisValue); %#ok<AGROW>
                 end
             end
-            
+
             newText = strjoin(textSnippets, obj.Delimiter);
         end
     end

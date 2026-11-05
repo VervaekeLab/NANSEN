@@ -8,11 +8,11 @@ function createFunctionForCustomTableVar(initializationStruct)
 
     % Make sure the variable name is valid
     assert(isvarname(variableName), '%s is not a valid variable name', variableName)
-    
+
     % Get the path for the template function
     rootPathSource = nansen.common.constant.TableVariableTemplateDirectory();
     fcnSourcePath = fullfile(rootPathSource, 'TemplateFunction.m');
-    
+
     % Modify the template function by adding the variable name
     fcnContentStr = fileread(fcnSourcePath);
     fcnContentStr = strrep(fcnContentStr, 'TemplateFunction', variableName);
@@ -23,22 +23,21 @@ function createFunctionForCustomTableVar(initializationStruct)
     defaultValue = nansen.metadata.utility.getDefaultValueAsChar(dataType);
     valueExpr = sprintf('value = %s', defaultValue);
     fcnContentStr = strrep(fcnContentStr, 'value = []', valueExpr);
-    
+
     % Create a target path for the function in the current project folder.
     project = nansen.getCurrentProject();
     rootPathTarget = project.getProjectPackagePath('Table Variables');
 
     fcnTargetPath = fullfile(rootPathTarget, ['+', lower(tableClass)] );
     fcnFilename = [variableName, '.m'];
-    
+
     if ~isfolder(fcnTargetPath); mkdir(fcnTargetPath); end
-    
+
     % Create a new m-file and add the function template to the file.
     fid = fopen(fullfile(fcnTargetPath, fcnFilename), 'w');
     fwrite(fid, fcnContentStr);
     fclose(fid);
-    
+
     % Finally, open the function in the matlab editor.
     edit(fullfile(fcnTargetPath, fcnFilename))
-    
 end

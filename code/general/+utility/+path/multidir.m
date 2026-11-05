@@ -9,6 +9,6 @@ function L = multidir(name)
     else
         L = dir(name);
     end
-    
+
     L = L(~strncmp({L.name}, '.', 1));
 end

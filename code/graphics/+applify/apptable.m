@@ -23,7 +23,7 @@ classdef apptable < applify.UiControlTable %Rename? MLAppTable
 %       [x] place tablepanel right underneath the column header border,
 %           without spacing, but do something so that the interior area of
 %           the scrollpanel is a bit higher than the uppermost component.
-%       [ ] Debug why text extent of header labels change in some cases
+%       [ ] Debug why text extent of header labels change in some cases
 %           after the drawnow command is executed...
 
     properties (Access = protected, Hidden) % Internal layout properties
@@ -31,7 +31,7 @@ classdef apptable < applify.UiControlTable %Rename? MLAppTable
         TempAxes % Axes used for determining extent of text labels.
         TempText % Text used for determining extent of text labels.
     end
-    
+
     properties (Access = protected, Hidden) % Internal graphical properties
         TableHeaderSpacer % An empty image placed in top of table panel to create some padding in the top of a scrollpanel.
         ImageGraphicPaths struct = struct()
@@ -40,21 +40,20 @@ classdef apptable < applify.UiControlTable %Rename? MLAppTable
     properties (Constant, Access = protected)
         DEFAULT_COMPONENT_HEIGHT = 22 % Default height of appdesigner components
     end
-    
+
     methods % Structors
-        
+
         function obj = apptable(varargin)
         %apptable Constructor
             obj@applify.UiControlTable(varargin{:})
-            
-            delete(obj.TempFig)
-            
-            obj.addTablePanelMargin() % Quirk needed in scrollable uipanel...
 
+            delete(obj.TempFig)
+
+            obj.addTablePanelMargin() % Quirk needed in scrollable uipanel...
         end
-        
+
         function delete(obj)
-            
+
             % delete all table image graphics...
             fNames = fieldnames(obj.ImageGraphicPaths);
             for i = 1:numel(fNames)
@@ -62,22 +61,20 @@ classdef apptable < applify.UiControlTable %Rename? MLAppTable
                     delete(obj.ImageGraphicPaths.(fNames{i}))
                 end
             end
-            
+
             obj.deleteHeader()
-            
         end
     end
 
     methods (Access = protected) % Configuration and construction
-        
+
         function assignDefaultTablePropertyValues(obj)
             % Subclasses may override this method.
         end
-        
+
         function createTableRowComponents(obj) % defined in applify.UiControlTable
-        
         end
-        
+
         function createLayoutContainers(obj)
         %createLayoutContainers Create container objects based on layout
         	obj.createTablePanel()
@@ -91,28 +88,28 @@ classdef apptable < applify.UiControlTable %Rename? MLAppTable
         function createTempAxes(obj)
         % Temporary axes for getting length of strings to fit component
         % width to text length..... Wtf matlab, this should not be necessary.
-        
+
         % Note important to plot in traditional figure to get pixel size
         % correct.
             obj.TempFig = figure('Visible', 'off');
-        
+
             obj.TempAxes = uiaxes(obj.TempFig, 'Units', 'pixels', ...
                 'Position', obj.TablePanel.Position);
             obj.TempAxes.HandleVisibility = 'off';
             obj.TempAxes.Visible = 'off';
-            
+
             obj.TempText = text(obj.TempAxes);
             obj.TempText.Units = 'pixels';
             obj.TempText.FontSize = 12;
             obj.TempText.FontWeight = 'bold';
         end
-        
+
         function createHeader(obj)
         %createHeader Create column header
         %
         %   Creates column labels, add border between column header and
         %   table and add help button on column headers if requested.
-            
+
             % Create a border below the column header
             imagePathStr = obj.getColumnHeaderRowBorder();
             obj.ColumnHeaderBorder = uiimage(obj.Parent);
@@ -122,20 +119,20 @@ classdef apptable < applify.UiControlTable %Rename? MLAppTable
 
             yOff = 5; % Correction factor in pixels to keep labels closer
                       % to horizontal border below
-                      
+
             % Todo(?): Create panel for header
             for i = 1:obj.NumColumns
-                
+
                 % Skip this column if name is empty
                 if isempty(obj.ColumnNames{i}); continue; end
-                
+
                 % Add position(1) to correct for xOffset (column header is
                 % created directly in parent, but table components are
                 % created in table panel)
                 xi = obj.ColumnLocations(i) + obj.Position(1);
                 w = obj.ColumnWidths(i);
                 y = obj.ColumnHeaderPosition(2);
-                
+
                 % Create a uilabel for the column header
                 obj.ColumnHeaderLabels{i} = uilabel(obj.Parent);
                 obj.ColumnHeaderLabels{i}.Text = obj.ColumnNames{i};
@@ -158,13 +155,12 @@ classdef apptable < applify.UiControlTable %Rename? MLAppTable
                 end
             end
             drawnow;
-            
+
             % Add horizontal border below header.
-            
         end
-        
+
         function hTxt = plotText(obj, hLabel, i)
-            
+
             obj.TempText(i) = text(obj.TempAxes);
             obj.TempText(i).String = obj.ColumnNames{i};
             obj.TempText(i).Units = 'pixels';
@@ -173,17 +169,17 @@ classdef apptable < applify.UiControlTable %Rename? MLAppTable
             obj.TempText(i).FontWeight = hLabel.FontWeight;
             hTxt = obj.TempText(i);
         end
-        
+
         function hIconButton = createHelpIconButton(obj, hContainer)
         %createHelpIconButton Create a help button
-        
+
             imgPath = fullfile(nansen.toolboxdir, 'resources', 'icons');
             hIconButton = uiimage(hContainer);
             hIconButton.Tooltip = 'Press for help';
             hIconButton.ImageSource = fullfile(imgPath, 'help.png');
             hIconButton.ImageClickedFcn = @obj.onHelpButtonClicked;
         end
-        
+
         function setTableScrolling(obj, state)
             msg = 'Table scroll state must be ''on'' or ''off''';
             assert( any( strcmp(state, {'on', 'off'}) ), msg)
@@ -198,43 +194,43 @@ classdef apptable < applify.UiControlTable %Rename? MLAppTable
 %         end
 
         function updateTableRowBackground(obj, rowNumber, isSelected)
-                
+
             hRow = obj.RowControls(rowNumber);
-            
+
             if isSelected
                 selection = 'on';
             else
                 selection = 'off';
             end
-            
+
             % Todo: Bordertype should be a class property
-            
+
             % Change highlight of table row background
             imageArgs = {'BorderType', 'bottom', 'Selection', selection};
             imagePathStr = obj.getTableRowBackground(imageArgs{:});
             hRow.HDivider.ImageSource = imagePathStr;
         end
-        
+
         function pathStr = getTableRowBackground(obj, varargin)
         %getTableRowBorder Get path to image containing a table row border
-        
+
         % Todo: Implement with keywords for where border should be and for
         % background color
         %
         % Todo: Find a much smarter way to do this!
-            
+
             imageName = strjoin( [{'TableBackground'}, varargin{:}], '_' );
-            
+
             % If image already exists, return pathstr
             if isfield(obj.ImageGraphicPaths, imageName)
                 pathStr = obj.ImageGraphicPaths.(imageName);
                 return
             end
-            
+
             % Else: Create and save a temporary image.
             h = obj.RowHeight + obj.RowSpacing;
             w = obj.TablePanelPosition(3);
-            
+
             if any(strcmp(varargin(1:2:end), 'Selection'))
                 matchedInd = find( strcmp(varargin(1:2:end), 'Selection') );
                 matchedValue = varargin{matchedInd*2};
@@ -249,10 +245,10 @@ classdef apptable < applify.UiControlTable %Rename? MLAppTable
             else
                 bgColor = obj.RowBackgroundColor;
             end
-            
+
             % Create background image.
             colorData = ones(h,w,3) .* reshape(bgColor, 1, 1, 3);
-            
+
             % Add border
             if  any(strcmp(varargin(1:2:end), 'BorderType'))
                 matchedInd = find( strcmp(varargin(1:2:end), 'BorderType') );
@@ -272,16 +268,15 @@ classdef apptable < applify.UiControlTable %Rename? MLAppTable
                         error('Bordertype is not implemented :(')
                 end
             end
-            
+
             pathStr = [tempname, '.png'];
             imwrite(colorData, pathStr, 'png', 'Transparency', [1,1,1]);
             obj.ImageGraphicPaths.(imageName) = pathStr;
- 
         end
-        
+
         function deleteHeader(obj)
             delete(obj.ColumnHeaderBorder)
-            
+
             for i = 1:numel(obj.ColumnHeaderLabels)
                 delete(obj.ColumnHeaderLabels{i})
                 if obj.ShowColumnHeaderHelp
@@ -290,13 +285,13 @@ classdef apptable < applify.UiControlTable %Rename? MLAppTable
             end
         end
     end
-    
+
     methods (Access = private, Hidden) % Internal updating
-        
+
         function addTablePanelMargin(obj)
         %addTablePanelMargin Create image object which serves to give some
         % space in the interior top part of a scrollable panel.
-        
+
             % Place empty image in top of table to add some space between
             % table and column header.
             obj.TableHeaderSpacer = uiimage(obj.TablePanel);
@@ -306,34 +301,33 @@ classdef apptable < applify.UiControlTable %Rename? MLAppTable
         function createTableRowBackgroundImages(obj)
             % Todo
         end
-    
+
         function pathStr = getColumnHeaderRowBorder(obj)
         %getColumnHeaderRowBorder Get path to image containing a table row border
         %
         % Same as getTableRowBorder, but this image is not so tall because
         % row spacing is not included
-        
+
             % If image already exist return pathstr
             if isfield(obj.ImageGraphicPaths, 'ColumnHeaderRowBorder')
                 pathStr = obj.ImageGraphicPaths.TableRowBorder;
                 return
             end
-            
+
             % Else: Create and save a temporary image.
             h = obj.RowHeight;
             w = obj.Position(3);
 
             colorData = ones(h,w,3);
             %alphaData = zeros(h,w,3);
-            
+
             colorData(h, :, :) = repmat(obj.TableBorderColor, w, 1);
-            
+
             pathStr = [tempname, '.png'];
             imwrite(colorData, pathStr, 'png', 'Transparency', [1,1,1]);
             obj.ImageGraphicPaths.TableRowBorder = pathStr;
- 
         end
-        
+
         function updateTablePanelMargin(obj)
         %updateTablePanelMargin Update position of image object that serves
         %to give some space in the interior top part of a scrollable panel.
@@ -342,12 +336,12 @@ classdef apptable < applify.UiControlTable %Rename? MLAppTable
             obj.TableHeaderSpacer.Position = [1,h,0,10];
         end
     end
-    
+
     methods
-        
+
         function addRow(obj, rowNumber, rowData)
         %addRow Add a row to the table.
-            
+
             if nargin < 2
                 addRow@applify.UiControlTable(obj)
             elseif nargin < 3
@@ -355,14 +349,14 @@ classdef apptable < applify.UiControlTable %Rename? MLAppTable
             else
                 addRow@applify.UiControlTable(obj, rowNumber, rowData)
             end
-            
+
             obj.updateTablePanelMargin()
         end
-        
+
         function removeRow(obj, rowNumber)
-            
+
             removeRow@applify.UiControlTable(obj, rowNumber)
-        
+
             obj.updateTablePanelMargin()
         end
     end

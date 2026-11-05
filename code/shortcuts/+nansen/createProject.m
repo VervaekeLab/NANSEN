@@ -10,6 +10,6 @@ function createProject(flags)
     % Make sure we don't have a current project selection
     pm = nansen.ProjectManager();
     pm.changeProject('', "Verbose", false);
-    
+
     nansen.configureProject(flags{:}, "CreateNew", true)
 end

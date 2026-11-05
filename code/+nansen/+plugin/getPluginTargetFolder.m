@@ -11,7 +11,7 @@ function targetFolder = getPluginTargetFolder(pluginType, location)
         catch
             currentProject = [];
         end
-    
+
         if isempty(currentProject)
             error('Need a project to save plugins to.')
             targetFolder = getUserPluginPath(pluginType);

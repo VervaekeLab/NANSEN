@@ -1,5 +1,5 @@
 classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.CatalogWithBackup
- 
+
 % Categories
 %   Preset / Custom
 %   Internal / Public?
@@ -7,42 +7,42 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
 
     % Todo:
     %   [x] Add subfolders. I.e if session folder should be further organized in subfolders.
-    %   [ ] Methods for above...
+    %   [ ] Methods for above...
     %
     %   [ ] Should internal variables be custom or preset? Preset...
-    %   [ ] Flag for whether model data has changed...
-    %   [ ] Add event for case where variable item is modified
-    
+    %   [ ] Flag for whether model data has changed...
+    %   [ ] Add event for case where variable item is modified
+
     properties (Constant)
 %         FileTypes
 %         DataAdapters
     end
-    
+
     properties (Constant, Hidden)
         ITEM_TYPE = 'Variable'
     end
-    
+
     properties (Dependent, SetAccess = private)
         VariableNames
         NumVariables
     end
-    
+
     properties (Access = private)
         DoNotify = true
         DataLocationNameChangedListener
         %DataLocationModel % Todo: needed?
     end
-    
+
     events
         DataLocationNameChanged
         VariableAdded
         VariableRemoved
     end
-    
+
     methods (Static) % Get empty and default item
-        
+
         function S = getBlankItem()
-            
+
             S = struct(...
                 'VariableName', '', ...         % Name of variable
                 'DataLocation', '', ...         % todo: rename DataLocationName? Name of datalocation where variable is stored.
@@ -59,7 +59,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 'IsFavorite', false, ...        % Flag for favorited variables
                 'PathInFile', '');              % Path for variable in file if it is located within a container file, like .mat or .h5
         end
-        
+
         function S = getDefaultItem(varName)
         % getDefaultItem -  Get default data variable configuration struct
         %
@@ -74,54 +74,54 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             S.IsCustom = true;
         end
     end
-        
+
     methods % Constructor
-        
+
         function obj = VariableModel(varargin)
 
             % Superclass constructor. Loads given (or default) archive
             obj@utility.data.StorableCatalog(varargin{:})
-            
+
             obj.updateDefaultValues() %  This should be temporary, to account for changes made during development
         end
     end
-    
+
     methods % Set/get methods
-    
+
         function numVariable = get.NumVariables(obj)
             numVariable = numel(obj.Data);
         end
-        
+
         function variableNames = get.VariableNames(obj)
             variableNames = obj.ItemNames;
         end
     end
-    
+
     methods
-        
+
         function addDataLocationModel(obj, dataLocationModel)
-            
+
             el = listener(dataLocationModel, 'DataLocationModified', ...
                 @obj.onDataLocationModelModified);
             obj.DataLocationNameChangedListener = el;
         end
-        
+
         function [S, isExistingEntry] = getVariableStructure(obj, varName)
-            
+
             S = obj.getItem(varName);
-            
+
             % Check if varname exists as alias:
             if isempty(S)
                 S = obj.getVariableInfoFromField(varName, 'Alias');
             end
-            
+
             % Check if varname exists as filename:
             if isempty(S)
                 S = obj.getVariableInfoFromField(varName, 'FileNameExpression');
             end
-            
+
             isExistingEntry = ~isempty(S);
-            
+
             % Create a default variable structure
             if ~isExistingEntry
                 S = obj.getDefaultItem(varName);
@@ -136,41 +136,41 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 S.Subfolder = strrep(S.Subfolder, '\', filesep);
             end
         end
-        
+
         function load(obj)
         %load Load list (csv or xml) with required/supported variables
             obj.tempFixVariableNameInFile()
             load@utility.data.StorableCatalog(obj)
         end
-        
+
         function view(obj)
             T = struct2table(obj.Data);
             disp(T)
         end
 
         function updateDefaultValues(obj)
-            
+
             str = 'Not implemented yet';
-            
+
             hasDataLocationUuid = isfield(obj.Data, 'DataLocationUuid');
             if ~hasDataLocationUuid
                 dlModel = nansen.DataLocationModel();
             end
-            
+
             fileAdapterList = nansen.dataio.listFileAdapters();
-            
+
             for i = 1:numel(obj.Data)
                 if isempty( obj.Data(i).FileAdapter ) || strcmp(obj.Data(i).FileAdapter, str)
                     obj.Data(i).FileAdapter = 'Default';
                 end
-                
+
                 if ~hasDataLocationUuid
                     dlName = obj.Data(i).DataLocation;
                     dlItem = dlModel.getDataLocation(dlName);
                     obj.Data(i).DataLocationUuid = dlItem.Uuid;
                 end
             end
-            
+
             if ~isfield(obj.Data, 'DataType') % Infer from file adapter
                 [obj.Data(:).DataType] = deal('');
                 for i = 1:numel(obj.Data)
@@ -192,62 +192,98 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                     end
                 end
             end
-            
+
             if ~isfield(obj.Data, 'Alias')
                 [obj.Data(:).Alias] = deal('');
             end
-            
+
             if ~isfield(obj.Data, 'GroupName')
                 [obj.Data(:).GroupName] = deal('');
             end
-            
+
             if ~isfield(obj.Data, 'IsCustom')
                 [obj.Data(:).IsCustom] = deal(false);
             end
-            
+
             if ~isfield(obj.Data, 'IsInternal')
                 [obj.Data(:).IsInternal] = deal(false);
             end
-            
+
             if ~isfield(obj.Data, 'IsFavorite')
                 [obj.Data(:).IsFavorite] = deal(false);
             end
-                       
+
             if ~isfield(obj.Data, 'PathInFile')
                 [obj.Data(:).PathInFile] = deal('');
             end
         end
-        
+
         % % Variable interaction and utility methods
 
-        function varName = findVariableByFilename(obj, filePath, mode)
+        function varName = findVariableByFilename(obj, filePath, mode, options)
+        %findVariableByFilename - Find variables matching a file name
+        %   varName = findVariableByFilename(OBJ,filePath) returns the name
+        %   of the variable whose FileType equals the extension of filePath
+        %   and whose FileNameExpression occurs in the file name, or '' when
+        %   no variable matches. When the expressions of several variables
+        %   occur in the name, only the variables with the longest expression
+        %   match. When no expression occurs in the name, a variable matches
+        %   on FileType alone, provided it is the only one with that file
+        %   type among the variables considered.
+        %
+        %   varName = findVariableByFilename(OBJ,filePath,MODE) also
+        %   specifies what to return when several variables match. MODE
+        %   must be:
+        %       "first" - (default) Returns the first matching variable name
+        %                 and warns.
+        %       "all"   - Returns all matching names, as a cell array when
+        %                 there are several.
+        %
+        %   varName = findVariableByFilename(...,DataLocation=NAME) only
+        %   considers variables stored in the data location called NAME.
+        %
+        %   varName = findVariableByFilename(...,DefaultDataLocation=NAME)
+        %   also names the project's default data location. A variable with
+        %   an empty or 'DEFAULT' data location belongs to the default data
+        %   location. When this name is not given, such a variable is
+        %   considered whatever DataLocation is.
 
             arguments
                 obj
                 filePath
                 mode (1,1) string {mustBeMember(mode, ["first", "all"])} = "first"
+                options.DataLocation (1,1) string = missing
+                options.DefaultDataLocation (1,1) string = missing
             end
-            
-            [~, filename, ext] = fileparts(filePath);
 
-            filenameExpressions = {obj.Data.FileNameExpression};
-            fileTypes = {obj.Data.FileType};
-            
+            variables = obj.Data;
+            if ~ismissing(options.DataLocation)
+                isInDataLocation = isVariableInDataLocation(variables, ...
+                    options.DataLocation, options.DefaultDataLocation); % Local function
+                variables = variables(isInDataLocation);
+            end
+
+            [~, ~, ext] = fileparts(filePath);
+
+            filenameExpressions = {variables.FileNameExpression};
+            fileTypes = {variables.FileType};
+
             isEmpty = cellfun(@isempty, filenameExpressions);
             matchesFiletype = strcmp(fileTypes, ext);
-            matchesFilename = cellfun(@(expr) contains(filename, expr), filenameExpressions);
+            matchesFilename = cellfun(@(expr) ~isempty(regexp(filePath, expr, 'once')), ...
+                filenameExpressions);
 
             % Find the longest match
             matchedFilenameExpressions = filenameExpressions(matchesFilename);
             matchLength = cellfun(@numel, matchedFilenameExpressions);
             maxLength = max(matchLength);
             matchedFilenameExpressions = unique( matchedFilenameExpressions(matchLength == maxLength) );
-            
+
             % Refine match by only the longest matches
             matchesFilename = cellfun(@(expr) ...
                 any(strcmp(matchedFilenameExpressions, expr)), ...
                 filenameExpressions, 'UniformOutput', true);
-            
+
             isMatch = matchesFiletype & matchesFilename & ~isEmpty;
 
             warnMultiple = false;
@@ -269,9 +305,9 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             else
                 matchedIdx = find(isMatch);
             end
-            
+
             if ~isempty(matchedIdx)
-                varName = {obj.Data(matchedIdx).VariableName};
+                varName = {variables(matchedIdx).VariableName};
                 if warnMultiple
                     warning('Multiple matching variables were detected, selected first one (%s)', varName{1})
                 end
@@ -298,19 +334,19 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             if ischar(variableInfo)
                 [~, variableInfo] = obj.getDataFilePath(variableInfo);
             end
-            
+
             % Find file adapter match for name
             isMatch = strcmp({fileAdapterList.FileAdapterName}, variableInfo.FileAdapter);
-            
+
             if ~any(isMatch)
                 error('File adapter was not found')
             elseif sum(isMatch) > 1
                 error('This is a bug. Please report')
             end
-            
+
             fileAdapterFcn = str2func(fileAdapterList(isMatch).FunctionName);
         end
-    
+
         function varNames = getVariableNamesOfType(obj, typeName)
         %getVariableNamesOfType Get name of variables of specified datatype
         %
@@ -328,12 +364,12 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
         %       varNames - A cell array of character vectors. If no
         %       variables were found for the given type, the cell array
         %       contains one element, 'N/A'. Todo: Return empty cell array?
-    
+
             allDataTypes = {obj.Data.DataType};
             isOfGivenType = strcmp(allDataTypes, typeName);
             varNames = {obj.Data(isOfGivenType).VariableName};
         end
-    
+
         function addDataVariableSet(obj, variableList)
         % addDataVariableSet - Add a set of variables to the variable model
         %
@@ -345,7 +381,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
 
             dataLocationModel = nansen.DataLocationModel(); % dependent prop?
             defaultDataLocation = dataLocationModel.getDefaultDataLocation;
-            
+
             % Insert variable specifications to the model
             for j = 1:numel(variableList)
                 thisName = variableList(j).VariableName;
@@ -384,15 +420,15 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             end
             obj.save()
         end
-    
+
         function data = getVariableSet(obj, flag)
-            
+
             if nargin < 2 || isempty(flag)
                 flag = 'public';
             end
-            
+
             flag = validatestring(flag, {'all', 'public', 'internal'}, 1);
-            
+
             keep = true(size(obj.Data));
 
             if strcmp(flag, 'all')
@@ -402,11 +438,11 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             elseif strcmp(flag, 'internal')
                 keep = keep & [obj.Data.IsInternal];
             end
-        
+
             data = obj.Data(keep);
         end
     end
-    
+
     methods % Todo: Move to nansen.dataio.DataVariable
         function fileName = lookForFile(obj, folderPath, variableInfo, options)
 
@@ -418,7 +454,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             % %     };
             % %
             % % L = recursiveDir(sessionFolder, nvPairs{:});
-            
+
             arguments
                 obj
                 folderPath (1,1) string
@@ -437,28 +473,30 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             end
 
             expression = obj.patternToWildcardExpression(variableInfo.FileNameExpression, fileType);
-            
+
             L = dir(fullfile(folderPath, expression));
             L = L(~strncmp({L.name}, '.', 1));
 
             if ~isempty(options.FilterFcn)
                 L = L(options.FilterFcn({L.name}));
             end
-            
-            if ~isempty(L) && numel(L)==1
+
+            % A variable describes one file, so several matches mean the
+            % expression is not specific enough.
+            if isscalar(L)
                 fileName = L.name;
-            elseif ~isempty(L) && numel(L)>1
-                fileName = L(1).name;
-                warning off backtrace
-                warning('Multiple files were found for variable "%s".\nSelected first file in list.', variableInfo.VariableName)
-                warning on backtrace
+            elseif numel(L) > 1
+                error('NANSEN:VariableModel:AmbiguousFileMatch', ...
+                    ['Several files match the variable "%s" in "%s": %s. Give the ', ...
+                    'variable a file name expression that matches only one of them.'], ...
+                    variableInfo.VariableName, folderPath, strjoin({L.name}, ', '))
             else
                 fileName = '';
             end
         end
 
         function wildCardExpression = patternToWildcardExpression(obj, filenamePattern, fileExtension)
-            
+
             arguments
                 obj (1,1) nansen.config.varmodel.VariableModel %#ok<INUSA>
                 filenamePattern (1,1) string
@@ -489,6 +527,42 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 wildCardExpression = strrep(wildCardExpression, '**', '*');
             end
         end
+
+        function tf = isFileNameMatch(obj, fileName, expression, fileType)
+        %isFileNameMatch - True when a file name expression finds a file
+        %   TF = isFileNameMatch(OBJ,fileName,EXPRESSION,fileType) is true
+        %   when the wildcard search that lookForFile runs for EXPRESSION
+        %   and fileType would match the whole of fileName.
+            fileType = char(fileType);
+            if ~isempty(fileType) && ~strncmp(fileType, '.', 1)
+                fileType = ['.', fileType];
+            end
+
+            wildcard = obj.patternToWildcardExpression(expression, fileType);
+            pattern = ['^', regexptranslate('wildcard', char(wildcard)), '$'];
+            tf = ~isempty( regexp(char(fileName), pattern, 'once') );
+        end
+    end
+
+    methods (Static)
+        function expression = suggestFileNameExpression(fileName, sessionID)
+        %suggestFileNameExpression - Propose an expression for a session's file
+        %   EXPRESSION = suggestFileNameExpression(fileName,sessionID)
+        %   returns fileName without its extension, with sessionID removed
+        %   and separators trimmed from both ends, or * when nothing is
+        %   left. The result finds the file again in any session folder
+        %   that holds one file of its type.
+            [~, expression] = fileparts(char(fileName));
+
+            if ~isempty(sessionID)
+                expression = strrep(expression, char(sessionID), '');
+            end
+            expression = regexprep(expression, '^[_-]+|[_-]+$', '');
+
+            if isempty(expression)
+                expression = '*';
+            end
+        end
     end
 
     methods % Override superclass methods
@@ -496,7 +570,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             import nansen.config.varmodel.event.VariableAddedEventData
             newItem = obj.updateVariableDataType(newItem);
             newItem = insertItem@utility.data.StorableCatalog(obj, newItem);
-            
+
             if obj.DoNotify
                 eventData = VariableAddedEventData(newItem);
                 obj.notify('VariableAdded', eventData)
@@ -510,7 +584,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
         function removeItem(obj, itemName)
             import nansen.config.varmodel.event.VariableRemovedEventData
             removeItem@utility.data.StorableCatalog(obj, itemName);
-            
+
             if obj.DoNotify
                 eventData = VariableRemovedEventData(itemName);
                 obj.notify('VariableRemoved', eventData)
@@ -523,32 +597,125 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             obj.Data = S;
         end
     end
-    
+
+    methods (Static) % Validation of variable lists
+        function [isValid, message] = validateVariableNames(variableList)
+        %validateVariableNames Check that custom variables have valid, unique names
+        %
+        %   [isValid, message] = validateVariableNames(variableList) checks
+        %   the names of the custom variables in variableList, a struct array
+        %   of variable items. isValid is false if a custom variable has no
+        %   name, a name that is not a valid MATLAB identifier, or a name that
+        %   another variable in the list also has. message then describes
+        %   each problem on a line of its own and is empty otherwise.
+        %
+        %   Session objects expose each variable as a dynamic property, so a
+        %   name has to be a valid MATLAB identifier that no other variable
+        %   uses. Only custom variables are checked, because their names are
+        %   the ones users enter; preset variables are named in code. A
+        %   variable is referred to by its position among the preset, custom
+        %   or internal variables, which is how the variable model app lists
+        %   them.
+
+            arguments
+                variableList struct
+            end
+
+            isValid = true;
+            message = '';
+
+            if isempty(variableList); return; end
+
+            isCustom = logical([variableList.IsCustom]);
+            variableNames = cellfun(@char, {variableList.VariableName}, ...
+                'UniformOutput', false);
+
+            problems = {};
+
+            for i = find(isCustom)
+                thisName = variableNames{i};
+                if isempty(strtrim(thisName))
+                    problem = sprintf('%s has no name.', getVariableLabel(variableList, i));
+                elseif ~isvarname(thisName)
+                    problem = sprintf(['%s is named "%s", but a variable name must ', ...
+                        'start with a letter and contain only letters, numbers ', ...
+                        'and underscores.'], getVariableLabel(variableList, i), thisName);
+                else
+                    problem = '';
+                end
+
+                if ~isempty(problem)
+                    problems{end+1} = problem; %#ok<AGROW>
+                end
+            end
+
+            % A name shared by several variables is reported once. Blank
+            % names are left out because they are already reported above.
+            [uniqueNames, ~, nameIndex] = unique(variableNames);
+            for i = 1:numel(uniqueNames)
+                holders = find(nameIndex == i)';
+                isReportable = numel(holders) > 1 && ...
+                    ~isempty(strtrim(uniqueNames{i})) && any(isCustom(holders));
+
+                if isReportable
+                    labels = arrayfun(@(j) getVariableLabel(variableList, j), ...
+                        holders, 'UniformOutput', false);
+                    if numel(holders) == 2
+                        quantifier = 'both';
+                    else
+                        quantifier = 'all';
+                    end
+                    problem = sprintf(['%s and %s are %s named "%s", but variable ', ...
+                        'names must be unique.'], strjoin(labels(1:end-1), ', '), ...
+                        labels{end}, quantifier, uniqueNames{i});
+                    problems{end+1} = problem; %#ok<AGROW>
+                end
+            end
+
+            if ~isempty(problems)
+                isValid = false;
+                problems = cellfun(@(str) [upper(str(1)), str(2:end)], ...
+                    problems, 'UniformOutput', false);
+                message = strjoin(problems, newline);
+            end
+        end
+    end
+
     methods (Access = protected)
-        
+
         function item = validateItem(obj, item)
             item = validateItem@utility.data.StorableCatalog(obj, item);
+
+            % Session objects expose each variable as a dynamic property, so
+            % the name has to be a valid MATLAB identifier.
+            if ~isvarname(item.VariableName)
+                error('NANSEN:VariableModel:InvalidVariableName', ...
+                    ['"%s" is not a valid data variable name. A name must ', ...
+                    'start with a letter and contain only letters, numbers ', ...
+                    'and underscores.'], item.VariableName)
+            end
+
             if isempty(item.FileAdapter)
                 % Todo: Have defaults for different filetypes...
                 item.FileAdapter = 'Default';
             end
-            
+
             if strcmp(item.DataLocation, 'DEFAULT')
                 dataLocationModel = nansen.DataLocationModel();
                 item.DataLocation = dataLocationModel.DefaultDataLocation;
             end
         end
     end
-    
+
     methods (Access = private)
-        
+
         function S = getVariableInfoFromField(obj, varName, fieldName)
         %getVariableInfoFromField Get variable info from fieldname of Data
             S = struct.empty;
-            
+
             names = {obj.Data.(fieldName)};
             isMatch = strcmp(names, varName);
-            
+
             if any(isMatch) && sum(isMatch) == 1
                 S = obj.Data(isMatch);
             elseif any(isMatch) && sum(isMatch) > 1
@@ -557,55 +724,55 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 S = obj.Data(isMatch);
             end
         end
-        
+
         function tempFixVariableNameInFile(obj)
         %tempFixVariableNameInFile Rename VariableList to Data...
             if isfile(obj.FilePath)
                 S = whos('-file', obj.FilePath);
-               
+
                 if any(strcmp({S.name}, 'VariableList'))
                     S = load(obj.FilePath);
                     obj.Data = S.VariableList;
                     obj.Preferences = struct();
-                    
+
                     obj.save()
                 end
             end
         end
-        
+
         function onDataLocationModelModified(obj, src, evt)
-            
+
             if strcmp(evt.DataField, 'Name')
                 newName = evt.NewValue;
                 dataLocationItem = src.getDataLocation(newName);
-                
+
                 obj.updateVariableDataLocation(dataLocationItem)
             end
         end
-        
+
         function updateVariableDataLocation(obj, dataLocationItem)
         %updateVariableDataLocation Update datalocation name for variables
         %
         %   This method is used to make sure the datalocation name is
         %   up-to-date with the name of the data location model
-            
+
             %isDirty = false;
-        
+
             dlUuid = dataLocationItem.Uuid;
             dlName = dataLocationItem.Name;
-            
+
             for i = 1:numel(obj.Data)
                 if strcmp( obj.Data(i).DataLocationUuid, dlUuid )
                     obj.Data(i).DataLocation = dlName;
                     %isDirty = true;
                 end
             end
-            
+
             evtData = event.EventData;
             obj.notify('DataLocationNameChanged', evtData);
         end
     end
-    
+
     methods (Access = ?nansen.config.varmodel.VariableModelUI)
         function enableNotifications(obj)
             obj.DoNotify = true;
@@ -617,18 +784,18 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
     end
 
     methods (Static)
-        
+
         function pathString = getDefaultFilePath()
         %getDefaultFilePath Get filepath for loading/saving filepath settings
-           
+
             error('NANSEN:DefaultVariableModelNotImplemented', ...
                 ['Please specify a file path for a file variable model. ' ...
                 'There is currently no implementation of a default model.'])
         end
     end
-    
+
     methods (Static)
-        
+
         function className = getFileAdapterFunctionName(fileAdapterName)
             % Todo: This step should not be necessary...
             switch fileAdapterName
@@ -645,7 +812,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 isMatch = strcmp({fileAdapterList.FileAdapterName}, variableItem.FileAdapter);
                 if any(isMatch)
                     fileAdapterFcn = str2func(fileAdapterList(isMatch).FunctionName);
-                    
+
                     variableItem.DataType = fileAdapterFcn().DataType;
                 else
                     % pass
@@ -658,4 +825,44 @@ end
 % Local utility functions
 function tf = useDefaultDataLocation(dataLocationName)
     tf = strcmp(dataLocationName, 'DEFAULT') || isempty(dataLocationName);
+end
+
+function tf = isVariableInDataLocation(variables, dataLocationName, defaultDataLocationName)
+%isVariableInDataLocation - True for variables stored in the named data location
+%   A variable with an empty or 'DEFAULT' data location belongs to the
+%   default data location. It is placed there when the default's name is
+%   known and kept as a candidate otherwise.
+    variableDataLocations = {variables.DataLocation};
+    isUnresolved = cellfun(@useDefaultDataLocation, variableDataLocations);
+
+    tf = strcmp(variableDataLocations, char(dataLocationName));
+    if ismissing(defaultDataLocationName)
+        tf = tf | isUnresolved;
+    else
+        isDefault = strcmp(dataLocationName, defaultDataLocationName);
+        tf = tf | (isUnresolved & isDefault);
+    end
+end
+
+function label = getVariableLabel(variableList, index)
+%getVariableLabel Refer to a variable by its position among its own kind
+%
+%   Variables are either preset, custom or internal, and the variable model
+%   app lists each kind on a page of its own, so a variable is referred to
+%   by its position within its kind.
+    isInternal = logical([variableList(1:index).IsInternal]);
+    isCustom = logical([variableList(1:index).IsCustom]);
+
+    if isInternal(end)
+        kindName = 'internal';
+        isSameKind = isInternal;
+    elseif isCustom(end)
+        kindName = 'custom';
+        isSameKind = isCustom & ~isInternal;
+    else
+        kindName = 'preset';
+        isSameKind = ~isCustom & ~isInternal;
+    end
+
+    label = sprintf('%s variable %d', kindName, sum(isSameKind));
 end

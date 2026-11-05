@@ -18,14 +18,14 @@ function dataLocationModel = initializeDataLocationModel(filePath)
 %   nansen.config.dloc.DataLocationModelApp
 
     dataLocationModel = nansen.config.dloc.DataLocationModel(filePath);
-        
+
     % Create a datalocation item for rawdata (recorded)
     newItem = dataLocationModel.getBlankItem();
     newItem.Name = 'Rawdata';
     newItem.Type = nansen.config.dloc.DataLocationType('recorded');
 
     dataLocationModel.insertItem(newItem)
-    
+
     % Create a datalocation item for processed data
     newItem = dataLocationModel.getBlankItem();
     newItem.Name = 'Processed';
@@ -34,14 +34,14 @@ function dataLocationModel = initializeDataLocationModel(filePath)
     newItem.SubfolderStructure(1).Type = 'Subject';
     newItem.SubfolderStructure(2) = dataLocationModel.getDefaultSubfolderStructure;
     newItem.SubfolderStructure(2).Type = 'Session';
-    
+
     dataLocationModel.insertItem(newItem)
 
     % Set the processed data location as the default.
     dataLocationModel.DefaultDataLocation = 'Processed';
-    
+
     dataLocationModel.save()
-    
+
     if ~nargout
         clear dataLocationModel
     end

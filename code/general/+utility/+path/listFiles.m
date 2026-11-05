@@ -10,15 +10,15 @@ function [filePath, filename] = listFiles(filePathCellArray, filetype)
         [filePath, filename] = deal({});
         return
     end
-    
+
     if ~isa(filePathCellArray, 'cell')
         filePathCellArray = {filePathCellArray};
     end
 
     L = [];
-    
+
     for i = 1:numel(filePathCellArray)
-        
+
         thisL = dir(filePathCellArray{i});
         thisL = thisL(~[thisL.isdir]);
 
@@ -35,16 +35,16 @@ function [filePath, filename] = listFiles(filePathCellArray, filetype)
     if ~isempty(filetype) && ~strncmp(filetype, '.', 1)
         filetype = sprintf('.%s', filetype);
     end
-    
+
     if ~isempty(filetype) % Filter by filetype...
         [~, ~, ext] = fileparts({L.name});
         keep = strcmp(ext, filetype);
         L = L(keep);
     end
-    
+
     filePath = fullfile({L.folder}, {L.name});
     if isrow(filePath); filePath = filePath'; end
-    
+
     if nargout == 2
         filename = {L.name};
     end

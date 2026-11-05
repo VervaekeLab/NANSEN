@@ -14,5 +14,4 @@ xData2 = [repmat(xLim(1), 1, n); repmat(xLim(2), 1, n)];
 yData2 = cat(1, yPoints, yPoints);
 
 h = plot(ax, xData1, yData1, xData2, yData2, 'Color', ones(1,3)*0.5);
-
 end

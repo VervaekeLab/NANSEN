@@ -29,58 +29,58 @@ classdef StructAdapter < handle & matlab.mixin.SetGet
 % parser and hidden attribute in toStruct.
 
     methods (Access = protected)
-    
+
         function parseInputs(obj, varargin)
-            
+
             mc = metaclass(obj);
-            
+
             % Get all property names
             propertyNames = {mc.PropertyList.Name};
             isTransient = [mc.PropertyList.Transient];
             propertyNames = propertyNames(~isTransient);
-            
+
             % todo:
 %             hasDefault = [mc.PropertyList.HasDefault];
 %             defaultValues = cell(1, sum(isTransient));
-            
+
             % Todo: What if no default value exists?
 
             % Get default values.
             defaultValues = {mc.PropertyList(~isTransient).DefaultValue};
             S = cell2struct(defaultValues, propertyNames, 2);
             S = utility.parsenvpairs(S, 1, varargin);
-            
+
             for i = 1:numel(propertyNames)
                 obj.(propertyNames{i}) = S.(propertyNames{i});
             end
         end
     end
-    
+
     methods
-        
+
         function S = toStruct(obj)
         %toStruct Convert class instance to a struct.
         %
         %   Note: obj can be a single instance or a vector of instances.
-        
+
             mc = metaclass(obj);
 
             % Get all property names
             propertyNames = {mc.PropertyList.Name};
             isTransient = [ mc.PropertyList.Hidden ];
             propertyNames = propertyNames(~isTransient);
-            
+
             propertyNames = properties(obj);
-            
+
             % Get all values for these properties
             values = get(obj, propertyNames);
-            
+
             % Assign names and values to a struct.
             S = cell2struct(values, propertyNames, 2);
-            
+
             % Check if any of the properties are instances of the
             % StructAdapter class.
-            
+
             for iProp = 1:numel(propertyNames)
                 thisProp = propertyNames{iProp};
                 for jInstance = 1:numel(S)
@@ -90,14 +90,12 @@ classdef StructAdapter < handle & matlab.mixin.SetGet
                 end
             end
         end
-        
+
         function fromStruct(obj)
-            
         end
-        
+
 % % %         function saveobj()
 % % %
 % % %         end
-        
     end
 end

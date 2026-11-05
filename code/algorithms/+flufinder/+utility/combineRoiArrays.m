@@ -28,7 +28,7 @@ function roiArray = combineRoiArrays(roiArrayA, roiArrayB, varargin)
     params.MergeMethod      = 'remove';
 
     params = utility.parsenvpairs(params, [], varargin);
-    
+
     % Return if one of the roi arrays are empty
     if isempty(roiArrayA) || isempty(roiArrayB)
         if isempty(roiArrayA)
@@ -46,5 +46,4 @@ function roiArray = combineRoiArrays(roiArrayA, roiArrayB, varargin)
 
     % Concatenate roi arrays
     roiArray = [roiArrayA, roiArrayB];
-
 end

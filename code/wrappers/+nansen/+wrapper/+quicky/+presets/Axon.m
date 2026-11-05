@@ -2,14 +2,14 @@ classdef Axon < nansen.wrapper.quicky.Options
 
     properties (Constant)
         Name = 'Axons'
-        Description = 'Autosegment neuronal axonal boutons'
+        Description = 'Tuned to detect smaller axonal bouton-like structures'
     end
-    
+
     methods (Static)
-        
+
         function S = getOptions()
             S = getOptions@nansen.wrapper.quicky.Options();
-            
+
             S.General.RoiDiameter = 4;
             S.General.RoiType = 'Axonal Bouton';
             S.Detection.MaxNumRois = 1000; % For axonal data...

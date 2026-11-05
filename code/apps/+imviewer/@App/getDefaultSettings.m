@@ -51,7 +51,7 @@ S.Interaction.panFactor     = 0.25;         % Not currently used, should be part
 S.Interaction.scrollFactor  = 1;            % Scroll sensitivity for frame scrolling or zoom scrolling
 S.Interaction.scrollFactor_ = struct('type', 'slider', 'args', {{'Min', 1, 'Max', 100, 'nTicks', 99}});
 S.Interaction.correctTouchpadJitter = false;
-                     
+
 % Options for app layout
 S.AppLayout.showHeader              = true;
 S.AppLayout.showFooter              = true;
@@ -64,5 +64,4 @@ S.AppLayout.imageToolbarLocation_   = {'northwest', 'southwest', 'northeast', 's
 
 S.AppLayout.XScaleFactor = 1;
 S.AppLayout.YScaleFactor = 1;
-
 end

@@ -13,7 +13,7 @@ function assertSingleVersionOnPath(functionName)
     if contains(functionName, '.')
         % If this is a function with namespaces, we need to convert it to a
         % relative path for "which <function name> -all" to find all
-        % instances. We use the result of the previous call to which to ensure 
+        % instances. We use the result of the previous call to which to ensure
         % class names are expanded properly (e.g if they are wrapped in class
         % folders (@classname))
         functionRelativePath = "+" + extractAfter(result, '+');

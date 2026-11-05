@@ -133,7 +133,7 @@ classdef ModernUiMetaTableViewer < handle
         function set.MetaTableType(obj, newValue)
             oldType = obj.MetaTableType;
             obj.MetaTableType = lower(newValue);
-            obj.RequireReset = ~strcmp(oldType, lower(newValue));
+            obj.RequireReset = ~strcmpi(oldType, newValue);
         end
 
         function set.ColumnSettings(obj, newSettings)
@@ -238,7 +238,7 @@ classdef ModernUiMetaTableViewer < handle
             obj.updateTableView(rowInd)
         end
 
-        function refreshTable(obj, newTable, flushTable)
+        function refreshTable(obj, newTable, flushTable, requestFocus)
             requireReset = isempty(obj.MetaTable) || obj.RequireReset;
 
             if nargin >= 2 && ~(isnumeric(newTable) && isempty(newTable))
@@ -247,6 +247,9 @@ classdef ModernUiMetaTableViewer < handle
 
             if nargin < 3 || isempty(flushTable)
                 flushTable = requireReset;
+            end
+            if nargin < 4 || isempty(requestFocus)
+                requestFocus = true;
             end
 
             if flushTable
@@ -264,7 +267,7 @@ classdef ModernUiMetaTableViewer < handle
             if ~isempty(obj.MetaTable)
                 obj.updateMetaTableVariableAttributes()
                 obj.updateColumnLayout()
-                obj.updateTableView()
+                obj.updateTableView([], requestFocus)
             else
                 obj.HTable.ColumnName = cell(1,0);
             end
@@ -974,7 +977,6 @@ classdef ModernUiMetaTableViewer < handle
                 end
             end
         end
-
     end
 
     methods (Static)

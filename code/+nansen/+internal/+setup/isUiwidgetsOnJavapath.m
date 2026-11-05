@@ -1,11 +1,11 @@
 function tf = isUiwidgetsOnJavapath()
 % isUiwidgetsOnJavapath - Check if Widgets Toolbox jar dependency is on the
 %   static java path.
-    
+
     if exist('widgetsRoot', 'file') == 2
         jarFilePath = fullfile( widgetsRoot, 'resource', ...
                                 'MathWorksConsultingWidgets.jar' );
-                            
+
         spath = javaclasspath('-static');
         tf = any( contains(spath, jarFilePath) );
     else

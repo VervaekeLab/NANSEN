@@ -5,7 +5,7 @@ function camelCaseStr = snake2camel(snakeCaseStr)
 
     capitalLetterStrIdx = regexp(snakeCaseStr, '_');
     capitalLetterStrIdx = capitalLetterStrIdx + 1;
-    
+
     for i = capitalLetterStrIdx
         snakeCaseStr(i) = upper(snakeCaseStr(i));
     end

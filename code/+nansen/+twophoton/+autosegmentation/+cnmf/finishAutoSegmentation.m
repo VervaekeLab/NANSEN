@@ -14,7 +14,6 @@ function [roiArray, cnmfResults] = finishAutoSegmentation(cnmfData)
     bin = cnmfData.bin;
     fin = cnmfData.fin;
     p = 2;
-    
-    clearvars cnmfData
 
+    clearvars cnmfData
 end

@@ -2,13 +2,13 @@ function checkWidgetsToolboxVersion()
 % checkWidgetsToolboxVersion - Validates the version of the Widgets Toolbox.
 %
 % Syntax:
-%   nansen.internal.setup.checkWidgetsToolboxVersion() verifies that the 
-%   Widgets Toolbox version is compatible with NANSEN. Nansen requires exactly 
+%   nansen.internal.setup.checkWidgetsToolboxVersion() verifies that the
+%   Widgets Toolbox version is compatible with NANSEN. Nansen requires exactly
 %   v1.3.330
 
     S = ver("widgets");
     if isempty(S); return; end
-    
+
     if ~any( strcmp( {S.Version}, '1.3.330' ) )
         downloadURL = sprintf('<a href="matlab:nansen.internal.setup.installWidgetsToolbox" style="font-weight:bold">%s</a>', 'Click to install');
         warning('backtrace', 'off')

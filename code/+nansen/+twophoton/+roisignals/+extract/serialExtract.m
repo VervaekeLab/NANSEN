@@ -21,7 +21,7 @@ function signalArray = serialExtract(imArray, roiMasks, varargin)
 %   See also nansen.twophoton.roisignals.extract.getDefaultParameters
 
 % TODO:
-% [ ] Simplify roi mask format.
+% [ ] Simplify roi mask format.
 
     imArray = squeeze(imArray);
     assert( ndims(imArray) == 3, 'Image array must be 3D')
@@ -32,26 +32,25 @@ function signalArray = serialExtract(imArray, roiMasks, varargin)
     else
         params = P;
     end
-    
+
     % If roiMasks is an array of RoIs, it must be prepared for extraction.
     if isa(roiMasks, 'RoI')
 
         params.RoiOutputFormat = 'struct';
         roiMasks = nansen.processing.roi.prepareRoiMasks(roiMasks, params);
     end
-    
+
     numSamples = size(imArray, 3);
     numSubregions = size(roiMasks(1).Masks, 3);
     numRois = numel(roiMasks);
-    
+
     signalArray = zeros(numSamples, numSubregions, numRois);
-    
+
     % Loop through rois
     for jRoi = 1:numRois
-        
+
         signalArray(:, :, jRoi) = ...
             nansen.twophoton.roisignals.extract.extractSingleRoi(...
             imArray, roiMasks(jRoi), params.pixelComputationMethod);
-
     end
 end

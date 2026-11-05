@@ -2,15 +2,15 @@ function neuropilMasks = estimateNeuropilMasks(roiMasksIn, varargin)
 %estimateNeuropilMasks Estimate neuropil masks for RoIs.
 %
     % TODO
-    %   [ ] Instead of using max count of 100 to stop, use a parameter
+    %   [ ] Instead of using max count of 100 to stop, use a parameter
     %       called max neuropil radius....
     %   [ ] Add doc
     %   [ ] test the max radius
-    %   [ ] add warning if mask can't be created (i.e not enough neuropil available)
-    
+    %   [ ] add warning if mask can't be created (i.e not enough neuropil available)
+
     % Get default parameters and assertion functions.
     [P, V] = nansen.twophoton.roisignals.extract.getDefaultParameters();
-    
+
     % Parse potential parameters from input arguments
     params = utility.parsenvpairs(P, V, varargin{:});
 
@@ -18,12 +18,12 @@ function neuropilMasks = estimateNeuropilMasks(roiMasksIn, varargin)
     if params.excludeRoiFromNeuropil
         % Create an array with all rois overlapping.
         footprintAllRois = sum(roiMasksIn, 3) >= 1;
-    
+
         % Use binary erosion to remove pixels in the vicinity of main rois
         for i = 1:params.cellNeuropilSeparation
             footprintAllRois = imdilateoddeven(footprintAllRois, i);
         end
-    
+
         if ~isempty(params.imageMask)
             pixelsToIgnore = footprintAllRois & ~params.imageMask;
         else
@@ -36,23 +36,23 @@ function neuropilMasks = estimateNeuropilMasks(roiMasksIn, varargin)
             pixelsToIgnore = [];
         end
     end
-    
+
     % Allocate array for neuropil masks.
     [height, width, ~] = size(roiMasksIn);
     neuropilMasks = false( height, width, numel(params.roiInd) );
-    
+
     % Loop through rois
     for n = 1:numel(params.roiInd)
-        
+
         currentRoiInd = params.roiInd(n);
         currentRoiMask = roiMasksIn(:, :, currentRoiInd);
-    
+
         thisMask = currentRoiMask;
         origArea = sum(currentRoiMask(:));  % original area
         maxArea = numel(currentRoiMask) - origArea;
 
         targetArea = min([maxArea, params.neuropilExpansionFactor * origArea]);
-        
+
         currentArea = 0;                    % current area
         count = 0;
 
@@ -68,11 +68,11 @@ function neuropilMasks = estimateNeuropilMasks(roiMasksIn, varargin)
             % the foot print of all rois (with margins...) when updating
             % the area.
             tmpMask = thisMask;
-            
+
             if ~isempty(pixelsToIgnore)
                 tmpMask(pixelsToIgnore) = false;
             end
-            
+
             % Update area
             currentArea = sum(tmpMask(:));
 
@@ -88,9 +88,8 @@ function neuropilMasks = estimateNeuropilMasks(roiMasksIn, varargin)
         if ~isempty(pixelsToIgnore)
             thisMask(pixelsToIgnore) = false;
         end
-        
+
         neuropilMasks(:, :, n) = thisMask;
-        
     end
 end
 
@@ -101,7 +100,7 @@ function mask = imdilateoddeven(mask, count)
 %   between case 0 (cardinals) and case 1 (diagonals). Will preserve shape
 %   of mask.
 %   Todo: add proper credit.
-    
+
     if mod(count, 2) == 0
         % Imdilate 1 pixel in each direction: N, E, S, W.
         nhood = [0,1,0; 1,1,1; 0,1,0];

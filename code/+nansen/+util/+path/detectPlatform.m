@@ -1,7 +1,7 @@
 function platformName = detectPlatform(pathName)
 %detectPlatform Determine which platform a path is native to
 %
-%   platformName = detectPlatform(pathStr) returns the platform name 
+%   platformName = detectPlatform(pathStr) returns the platform name
 %   ('windows', 'mac', 'unix', or 'unknown') based on the path string format.
 %
 %   Supported formats:
@@ -28,28 +28,28 @@ function platformName = detectPlatform(pathName)
     if ismissing(pathName) || strlength(pathName) == 0
         return;
     end
-    
+
     % Convert to char for consistent processing
     pathName = char(pathName);
-    
+
     % Windows detection (check first due to specificity)
     if looksLikeWindows(pathName)
         platformName = 'windows';
         return;
     end
-    
+
     % Mac detection (check before generic Unix)
     if looksLikeMac(pathName)
         platformName = 'mac';
         return;
     end
-    
+
     % Unix/Linux detection
     if looksLikeUnix(pathName)
         platformName = 'unix';
         return;
     end
-    
+
     % Default case
     platformName = 'unknown';
 end
@@ -60,11 +60,11 @@ function isWin = looksLikeWindows(pathChar)
     isDriveLetter = length(pathChar) >= 2 && ...
                    isstrprop(pathChar(1), 'alpha') && ...
                    pathChar(2) == ':';
-    
+
     % UNC path pattern (\\server\share)
     isUNC = length(pathChar) >= 2 && ...
             strcmp(pathChar(1:2), '\\');
-    
+
     isWin = isDriveLetter || isUNC;
 end
 
@@ -79,9 +79,9 @@ function isUnixLike = looksLikeUnix(pathChar)
     % Must start with / or ~ and not be a Mac-specific path
     startsCorrectly = length(pathChar) >= 1 && ...
                      (pathChar(1) == '/' || pathChar(1) == '~');
-    
+
     % Exclude Mac paths that were already checked
     isNotMac = ~looksLikeMac(pathChar);
-    
+
     isUnixLike = startsCorrectly && isNotMac;
 end

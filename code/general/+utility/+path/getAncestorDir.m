@@ -11,14 +11,14 @@ function pathStr = getAncestorDir(pathStr, numFoldersUp)
     if nargin < 2
         numFoldersUp = 1;
     end
-    
+
     % Check if the current path is a file or a folder. If it is a file, add
     % one to number of folders to traverse.
     if isfile(pathStr)
         % For files, first iteration below gives current folder.
         numFoldersUp = numFoldersUp + 1;
     end
-    
+
     % Loop backward from current folder n times.
     for i = 1:numFoldersUp
         pathStr = fileparts(pathStr);

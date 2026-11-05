@@ -21,16 +21,16 @@ function S = getdata(sessionID, dataName)
     % Note: Ideally, all of these datatypes are present in sData
 
     % Eivind's example code:
-    
+
     sData = getSessionData(sessionID);
     S = struct();
-    
+
     if isa(dataName, 'char')
         dataName = {dataName};
     end
-    
+
     for i = 1:numel(dataName)
-    
+
         switch dataName{i}
 
             case 'fovImage'

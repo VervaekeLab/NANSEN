@@ -2,16 +2,16 @@ function saveIcon(iconName)
 
     rootDir = fileparts(mfilename('fullpath'));
     L = dir(fullfile(rootDir, '*.png'));
-    
+
     if nargin >= 1
         IND = find(contains({L.name}, iconName ));
     else
         IND = 1:numel(L);
     end
-    
+
     for i = IND
         imageName = L(i).name;
-    
+
         loadPath = fullfile(rootDir, imageName);
 
         im = imread(loadPath);

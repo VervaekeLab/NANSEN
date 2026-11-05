@@ -9,7 +9,7 @@ switch type
         hline.LineWidth = 1;
         hline.HitTest = 'off';
         tmpH = uicontrol('style', 'edit', 'Parent', figH, 'Visible', 'off');
-        
+
         for i = 1:2
             impoints{i} = impoint(ax);
             impoints{i}.setColor(ones(1,3)*0.5);
@@ -21,10 +21,9 @@ switch type
 
         hline.XData = impointPosition(:, 1)';
         hline.YData = impointPosition(:, 2)';
-        
+
         centerX = min(hline.XData) + abs(diff(hline.XData))/2;
         centerY = min(hline.YData) + abs(diff(hline.YData))/2;
-        
 end
 
 [x, y] = ds2nfu(ax, centerX, centerY);
@@ -40,22 +39,20 @@ pos1 = impoints{1}.getPosition();
 pos2 = impoints{2}.getPosition();
 
 M.PixelLength = sqrt( (pos2(1)-pos1(1)).^2 + (pos2(2)-pos1(2)).^2 );
-        
 end
 
 function imPointMoved(pos, hLine, i, tmpH)
     x = pos(1);
     y = pos(2);
-    
+
     hLine.XData(i) = x;
     hLine.YData(i) = y;
-    
+
     centerX = min(hLine.XData) + abs(diff(hLine.XData))/2;
     centerY = min(hLine.YData) + abs(diff(hLine.YData))/2;
-    
+
     [x, y] = ds2nfu(gca, centerX, centerY);
     tmpH.Position(1:2) = [x+0.03, 1-y-0.02-0.03];
-    
 end
 
 function uiresumeKeyPress(src, event)

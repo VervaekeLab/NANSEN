@@ -8,7 +8,7 @@ function savejson(jsonFilePath, S)
 % Note: Same as writestruct as json (introduced in R2023b)
 
     jsonStr = jsonencode(S, 'PrettyPrint', true);
-    
+
     % Update json file properties. Replace the x_ (matlab encoded) with _
     jsonStr = strrep(jsonStr, '"x_type":', '"_type":');
     jsonStr = strrep(jsonStr, '"x_description":', '"_description":');

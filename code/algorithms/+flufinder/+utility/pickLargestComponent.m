@@ -6,12 +6,11 @@ function BW = pickLargestComponent(BW)
     CC = bwconncomp(BW);
 
     if ~(CC.NumObjects == 0)
-        
+
         stat = regionprops(CC, 'Area');
         [~, ind] = max([stat.Area]);
 
         BW(:) = 0;
         BW(CC.PixelIdxList{ind}) = 1;
-
     end
 end

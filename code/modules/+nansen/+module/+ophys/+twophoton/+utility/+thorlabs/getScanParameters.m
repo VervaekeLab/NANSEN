@@ -23,22 +23,22 @@ function [ metadata ] = getScanParameters( dataFolderPath )
 
     % Init metadata
     metadata = struct;
-    
+
     % open xmlfile using xmlread
     xmlFile = dir(fullfile(dataFolderPath, '*.xml'));
     keep = ~ strncmp({xmlFile.name}, '.', 1);
     xmlFile = xmlFile(keep);
-    
+
     xmlDoc = xmlread(fullfile(dataFolderPath, xmlFile(1).name));
 
     metadata.microscope = 'Thorlabs';
-    
+
     elementNames = fieldnames(attributes);
 
     for i = 1:numel(elementNames)
         xmlElements = xmlDoc.getElementsByTagName(elementNames{i});
         elementItem = xmlElements.item(0);
-        
+
         attributeNames = attributes.(elementNames{i});
 
         for j = 1:numel(attributeNames)
@@ -46,7 +46,7 @@ function [ metadata ] = getScanParameters( dataFolderPath )
             metadata.(attributeNames{j}) = str2double(thisAttributeValue);
         end
     end
-    
+
     % Example parsing all attributes:
     % xmlElements = xmlDoc.getElementsByTagName('Streaming');
     % item = xmlElements.item(0);

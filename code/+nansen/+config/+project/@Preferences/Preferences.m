@@ -7,7 +7,6 @@ classdef Preferences < handle
 
     methods (Access = ?nansen.config.project.Project)
         function obj = Preferences()
-            
         end
     end
 end

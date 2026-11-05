@@ -30,7 +30,7 @@ function infoTable = listMountedDrives()
         if ismac % Use diskutil
             [~, infoStr] = system('diskutil list physical');
             infoTable = convertListToTableMac(infoStr);
-    
+
         elseif ispc % Use PowerShell Get-Volume
             [~, infoStr] = system(['powershell -Command "Get-Volume | ', ...
                 'Where-Object {$_.DriveLetter} | ', ...
@@ -38,7 +38,7 @@ function infoTable = listMountedDrives()
                 'Size, DriveType | ', ...
                 'ConvertTo-Csv -NoTypeInformation"']);
             infoTable = convertListToTablePc(infoStr);
-    
+
         elseif isunix % Use lsblk
             [~, infoStr] = system('lsblk -o NAME,LABEL,FSTYPE,SIZE,TYPE,MOUNTPOINT -P -b');
             infoTable = convertListToTableLinux(infoStr);

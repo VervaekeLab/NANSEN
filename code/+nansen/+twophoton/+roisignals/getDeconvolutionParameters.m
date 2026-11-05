@@ -20,15 +20,15 @@ function [P, V] = getDeconvolutionParameters()
 %       nansen.twophoton.roisignals.getDeconvolutionParameters()
 
 %   TODO:
-%    [ ] Rename to caiman.deconvolution.parameters
-%    [ ] Rename to caiman.deconvolution.options
+%    [ ] Rename to caiman.deconvolution.parameters
+%    [ ] Rename to caiman.deconvolution.options
 
 % DESCRIPTION:
 %   Change these parameters to change the behavior of the deconvolution
 %   method.
 
     % - - - - - - - - Specify parameters and default values - - - - - - - -
-    
+
     % Names                       Values (default)      Description
     P                           = struct();             %
     P.modelType                 = 'ar2';                % Defines the model of the deconvolution kernel. See decovolveCa
@@ -40,13 +40,13 @@ function [P, V] = getDeconvolutionParameters()
     P.tauRise                   = 180;                  % Rise time constant (ms)
     P.tauDecay                  = 550;                  % Decay time constant (ms)
     P.sampleRate                = 31;                   % Number of samples per second
-       
+
     % - - - - - - - - - - Specify customization flags - - - - - - - - - - -
     P.modelType_                = {'ar1', 'ar2', 'exp2'};
     P.modelParams_              = 'internal';
-    
+
     % - - - - Specify validation/assertion test for each parameter - - - -
-    
+
     V                           = struct();
     V.modelType                 = @(x) assert(any(strcmp(x, {'ar1', 'ar2', 'exp2', 'kernel', 'autoar'})), ...
                                     'modelType must be ''ar1'', ''ar2'', ''exp2'' or ''kernel''');
@@ -62,17 +62,17 @@ function [P, V] = getDeconvolutionParameters()
                                     'Value must be a scalar, non-negative, integer number' );
     V.sampleRate                = @(x) assert( isnumeric(x) && isscalar(x) && x >= 0, ...
                                     'Value must be a scalar, non-negative number' );
-                                
+
     % - - - - - Adapt output to how many outputs are requested - - - - - -
-    
+
     if nargout == 0
         displayParameterTable(mfilename('fullpath'))
-        
+
 %         S = utility.convertParamsToStructArray(mfilename('fullpath'));
 %         T = struct2table(S);
 %         fprintf('\nSignal extraction default parameters and descriptions:\n\n')
 %         disp(T)
-        
+
         clear P V
     elseif nargout == 1
         clear V

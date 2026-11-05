@@ -10,7 +10,7 @@ function [rgbMatrix, alphaMatrix] = getRoiImageMatrix(roiData, varargin)
     params = struct();
     params.colorMap = 'viridis';
     params.imageUsFactor = 1;
-    
+
     % Get parameter selection from varargins.
     params = utility.parsenvpairs(params, [], varargin{:});
 
@@ -22,10 +22,10 @@ function [rgbMatrix, alphaMatrix] = getRoiImageMatrix(roiData, varargin)
     elseif isa(roiData, 'logical') && ndims(roiData)==3
         spatialWeightArray = roiData;
     end
-        
+
     % Create the rgb and alpha matrices.
     imSize = size(spatialWeightArray);
-    
+
     rgbArray = reshape(spatialWeightArray, [imSize(1:2), 1, imSize(3)]);
     rgbArray = repmat(rgbArray, 1,1,3,1);
 
@@ -34,16 +34,16 @@ function [rgbMatrix, alphaMatrix] = getRoiImageMatrix(roiData, varargin)
     colorArray = cmapFcn(imSize(3));
     colorArray = transpose(colorArray);
     colorArray = reshape(colorArray, 1, 1, 3, imSize(3));
-    
+
     % Colorcode each roi
     rgbArray = rgbArray .* colorArray;
     rgbMatrix = sum(rgbArray, 4);
     alphaMatrix = max(spatialWeightArray, [], 3);
-    
+
     % Upsample images if requested
     rgbMatrix = imresize(rgbMatrix, params.imageUsFactor);
     alphaMatrix = imresize(alphaMatrix, params.imageUsFactor);
-    
+
     if nargout == 1
         clear alphaMatrix
     end

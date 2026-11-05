@@ -7,12 +7,12 @@ function wasAborted = initializeSessionTable(dataLocationModel, sessionConstruct
         hFigure = [] % Defaults to no figure
         options.SkipInteractiveSteps (1,1) logical = false
     end
-    
+
     import nansen.dataio.session.listSessionFolders
     import nansen.dataio.session.matchSessionFolders
 
     uiWaitbar.Message = 'Locating session folders...';
-    
+
     % % Use the folder structure to detect session folders.
     sessionFolders = listSessionFolders(dataLocationModel, 'all');
 
@@ -31,7 +31,7 @@ function wasAborted = initializeSessionTable(dataLocationModel, sessionConstruct
         % Automatically match session folders
         uiWaitbar.Message = 'Matching session folders from different data locations...';
         [sessionFolders, ~, sessionFoldersUnmatched] = matchSessionFolders(dataLocationModel, sessionFolders);
-    
+
         % Let user manually check and match unmatched session folders
         if dataLocationModel.NumDataLocations > 1 && ~isempty(sessionFoldersUnmatched)
             if ~options.SkipInteractiveSteps
@@ -51,7 +51,7 @@ function wasAborted = initializeSessionTable(dataLocationModel, sessionConstruct
     end
 
     uiWaitbar.Message = 'Creating session objects...';
-    
+
     % Create a list of session metadata objects
     numSessions = numel(sessionFolders);
     if numSessions == 0
@@ -67,14 +67,14 @@ function wasAborted = initializeSessionTable(dataLocationModel, sessionConstruct
     end
 
     sessionArray = cat(1, sessionArray{:});
-    
+
     if ~options.SkipInteractiveSteps
         % Check for duplicate session IDs
         sessionIDs = {sessionArray.sessionID};
         if numel(sessionIDs) ~= numel(unique(sessionIDs))
             [sessionArray, wasAborted] = nansen.manage.uiresolveDuplicateSessions(sessionArray, hFigure);
             numSessionPostExclusion = numel(sessionArray);
-                      
+
             % Todo: Why are all duplicates excluded? I.e keep first one...
 
             if numSessionPostExclusion == 0
@@ -93,7 +93,7 @@ function wasAborted = initializeSessionTable(dataLocationModel, sessionConstruct
     end
 
     uiWaitbar.Message = 'Creating session table...';
-    
+
     % Initialize a MetaTable using the given session schema and the
     % detected session folders.
     metaTable = nansen.metadata.MetaTable.new(sessionArray);
@@ -103,7 +103,7 @@ function wasAborted = initializeSessionTable(dataLocationModel, sessionConstruct
     S.MetaTableName = metaTable.createDefaultName;
     S.IsDefault = true;
     S.IsMaster = true;
-    
+
     % Register the metatable in the catalog and save to disk
     try
         currentProject = nansen.getCurrentProject();
@@ -112,34 +112,34 @@ function wasAborted = initializeSessionTable(dataLocationModel, sessionConstruct
     catch ME
         throwAsCaller(ME)
     end
-    
+
     uiWaitbar.Message = 'Implementing project specifications...';
 
     % Get user defined (project) variables...
     varNames = nansen.metadata.utility.getCustomTableVariableNames();
-    
+
     for i = 1:numel(varNames)
-        
+
         thisName = varNames{i};
-        
+
         if metaTable.isVariable(thisName)
             continue
         end
-        
+
         thisFcn = nansen.metadata.utility.getCustomTableVariableFcn(thisName);
-        
+
         initValue = thisFcn();
-        
+
         if isa(initValue, 'nansen.metadata.abstract.TableVariable')
             initValue = initValue.DEFAULT_VALUE;
         end
-        
+
         metaTable.addTableVariable(thisName, initValue)
     end
-    
+
     metaTable.save()
-   
+
     uiWaitbar.Message = 'Metatable created!'; %#ok<STRNU>
-    
+
     wasAborted = false;
 end

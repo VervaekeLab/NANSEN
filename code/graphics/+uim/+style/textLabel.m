@@ -1,7 +1,7 @@
 classdef textLabel < uim.style.buttonScheme
-    
+
     properties (Constant)
-        
+
         HighlightedOn = struct(...
             'ForegroundColor', [0.2157    0.4941    0.7216], ...
             'BackgroundColor', ones(1,3) * 0.2, ...

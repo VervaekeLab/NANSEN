@@ -5,7 +5,7 @@ function [fileAdapterName, isDynamic] = detectFileAdapterForFilepath(filePath)
 
     [~, ~, fileExtension] = fileparts(filePath);
 
-    supportsFile = false(1, numel(fileAdapterList));   
+    supportsFile = false(1, numel(fileAdapterList));
     % Find matching file type
     for i = 1:numel(fileAdapterList)
         currentFileAdapterInfo = fileAdapterList(i);

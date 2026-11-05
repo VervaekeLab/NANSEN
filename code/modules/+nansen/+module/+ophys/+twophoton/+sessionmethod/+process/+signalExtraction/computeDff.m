@@ -1,7 +1,22 @@
 classdef computeDff < nansen.session.SessionMethod
-%COMPUTEDFF Summary of this function goes here
-%   Detailed explanation goes here
-    
+%Compute delta-F-over-F traces from extracted ROI signals.
+%
+%Use this when:
+%- You have already run signal extraction for the session.
+%- You want normalized ROI activity traces for visualization, deconvolution,
+%  or downstream analysis.
+%
+%What happens:
+%- NANSEN loads `RoiSignals_MeanF`.
+%- If the selected dF/F method requires neuropil data, NANSEN also loads
+%  `RoiSignals_NeuropilF`.
+%- The selected dF/F algorithm is applied to each ROI trace.
+%- Preview mode opens the dF/F explorer so parameters can be tuned before
+%  committing the run.
+%
+%Outputs:
+%- `RoiSignals_Dff`: delta-F-over-F ROI signals.
+
     properties (Constant) % SessionMethod attributes
         MethodName = 'Compute Delta F over F'
         BatchMode = 'serial'
@@ -14,11 +29,11 @@ classdef computeDff < nansen.session.SessionMethod
         DATA_SUBFOLDER = 'roisignals' % defined in nansen.processing.DataMethod
         VARIABLE_PREFIX	= ''          % defined in nansen.processing.DataMethod
     end
-    
+
     methods
-        
+
         function obj = computeDff(varargin)
-            
+
             obj@nansen.session.SessionMethod(varargin{:})
 
             if ~nargout % how to generalize this???
@@ -27,20 +42,20 @@ classdef computeDff < nansen.session.SessionMethod
             end
         end
     end
-    
+
     methods (Static)
         function options = getDefaultOptions()
-        %GETDEFAULTOPTIONS Summary of this function goes here
+        %GETDEFAULTOPTIONS Return default delta-F-over-F options.
             options = nansen.twophoton.roisignals.getDffParameters();
         end
     end
 
     methods
-        
+
         function runMethod(obj)
 
             import nansen.twophoton.roisignals.computeDff
-            
+
             obj.SessionObjects.validateVariable('RoiSignals_MeanF')
             signalArray = obj.loadData('RoiSignals_MeanF');
 
@@ -52,7 +67,7 @@ classdef computeDff < nansen.session.SessionMethod
                     warning(ME.message)
                 end
             end
-            
+
             % Reshape signals to have correct dimensions and sizes for the
             % dff functions. (numsamples x numsubregions x numrois)
             if any(strcmp(signalArray.Properties.VariableNames, ...
@@ -68,12 +83,14 @@ classdef computeDff < nansen.session.SessionMethod
                     error(errMsg);
                 end
             end
-            
+
             dff = computeDff(signalArray, obj.Options);
             obj.saveData('RoiSignals_Dff', dff)
-            
+
+            filePath = obj.getDataFilePath('RoiSignals_Dff');
+            fprintf('Saved DFF to %s\n', filePath)
         end
-        
+
         function wasSuccess = preview(obj)
             h = openDffExplorer(obj.SessionObjects);
             wasSuccess = obj.finishPreview(h);
@@ -89,12 +106,12 @@ function hDffPlugin = openDffExplorer(sessionObj)
 
     % Load rois
     roiArray = sessionObj.loadData('RoiArray');
-    
+
     % Load signals (Todo: Should be able to do this in one line
     roiSignalTableMeanF = sessionObj.loadData('RoiSignals_MeanF');
     roiSignalTableNPilF = sessionObj.loadData('RoiSignals_NeuropilF');
     roiSignalTable = cat(2, roiSignalTableMeanF, roiSignalTableNPilF);
-    
+
     % Create roi group
     if isa(roiArray, 'roimanager.roiGroup')
         roiGroup = roiArray;
@@ -106,10 +123,10 @@ function hDffPlugin = openDffExplorer(sessionObj)
     if numel(roiGroup) > 1
         roiGroup = roimanager.CompositeRoiGroup(roiGroup);
     end
-    
+
     % Open roitable app
     hTableViewer = roimanager.RoiTable(roiGroup);
-    
+
     % Create a roi signal array....
     rs = nansen.roisignals.RoiSignalArrayExtracted(roiSignalTable, roiGroup);
 
@@ -118,21 +135,20 @@ function hDffPlugin = openDffExplorer(sessionObj)
     hSignalviewer.RoiGroup = roiGroup;
     hSignalviewer.showSignal('dff')
     hSignalviewer.showLegend()
-    
+
     % Open the dff options
     hDffPlugin = nansen.plugin.signalviewer.DffExplorer(hSignalviewer, struct.empty, 'Modal', false);
-    
+
     % Position apps on screen
     hSignalviewer.place('bottom')
     hTableViewer.place('left')
     hTableViewer.place('bottom', hSignalviewer.Figure.OuterPosition(4) + 5)
     hDffPlugin.place('left', hTableViewer.Figure.OuterPosition(3) + 5)
     hDffPlugin.place('bottom', hSignalviewer.Figure.OuterPosition(4) + 5)
-        
+
     % Cleanup up if plugin is deleted.
     addlistener(hDffPlugin, 'ObjectBeingDestroyed', @(s,e) delete(hSignalviewer));
     addlistener(hDffPlugin, 'ObjectBeingDestroyed', @(s,e) delete(hTableViewer));
-    
+
     hDffPlugin.waitfor()
-    
 end

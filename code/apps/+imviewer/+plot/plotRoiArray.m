@@ -22,7 +22,7 @@ for roiNo = 1:numel(roiArray)
     for j = 1:length(roiArray(roiNo).boundary)
 
         centerPosArray(roiNo, :) = [roiArray(roiNo).center, 0];
-        
+
         boundary = roiArray(roiNo).boundary{j};
 
         if j == 1

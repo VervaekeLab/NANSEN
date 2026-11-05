@@ -3,12 +3,12 @@ function isMatch = matchFolderListWithSessionID(folderList, sessionID, dataLocat
 %   Detailed explanation goes here
 
     % Question: Should this be a template function which is added to all projects?
-    
+
     fileName = 'matchFolderListWithSessionID.m';
 
     project = nansen.getCurrentProject();
     filePath = fullfile( project.getModuleFolder(), fileName);
-    
+
     if ~isfile(filePath)
         isMatch = contains(folderList, sessionID);
     else

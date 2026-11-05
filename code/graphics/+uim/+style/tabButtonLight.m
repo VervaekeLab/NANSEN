@@ -1,7 +1,7 @@
 classdef tabButtonLight < uim.style.buttonScheme
-    
+
     properties (Constant)
-        
+
         HighlightedOn = struct(...
             'ForegroundColor', ones(1,3) * 1, ...
             'BackgroundColor', uim.style.tabButtonLight.getFocusColor(), ...
@@ -27,7 +27,7 @@ classdef tabButtonLight < uim.style.buttonScheme
             'BorderColor', 'none', ...
             'BorderWidth', 0.5)
     end
-    
+
     methods (Static)
         function rgb = getFocusColor
             try

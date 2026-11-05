@@ -17,10 +17,10 @@ function data = circularsmooth(data, N, method)
     data = cat(1, data(end-N+1:end), data, data(1:N));
 
     data = smoothdata(data, 1, method, N);
-    
+
     % Remove circular padding
     data = data((1+N):end-N);
-    
+
     % Make sure output has same shape as input
     if isTransposed
         data = data';

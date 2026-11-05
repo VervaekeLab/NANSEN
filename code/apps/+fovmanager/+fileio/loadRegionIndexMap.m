@@ -1,16 +1,15 @@
 function S = loadRegionIndexMap(atlasName)
-    
+
     if nargin == 0; atlasName = 'paxinos'; end
-    
+
     atlasName = validatestring(atlasName, {'paxinos', 'allen'});
 
     % Create filepath for loading file.
     % rootPath = fileparts( mfilename('fullpath') );
-    
+
     rootPath = fovmanager.localpath('brain_atlas');
     fileName = 'regionIndexMap.mat';
     loadPath = fullfile(rootPath, atlasName, fileName);
-    
-    S = load(loadPath);
 
+    S = load(loadPath);
 end

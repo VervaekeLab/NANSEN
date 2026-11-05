@@ -7,7 +7,7 @@ classdef StackCropper < nansen.stack.ImageStackProcessor
     properties
         NewSize (1,2) double
     end
-    
+
     properties (Constant) % Attributes inherited from nansen.processing.DataMethod
         MethodName = 'Crop Stack'
         IsManual = false        % Does method require manual supervision?
@@ -22,7 +22,7 @@ classdef StackCropper < nansen.stack.ImageStackProcessor
     end
 
     methods (Static)
-        
+
         function S = getDefaultOptions()
         % Get default options for the temporal downsampler
             S.Cropping.NewSize    = [512, 512];
@@ -32,11 +32,11 @@ classdef StackCropper < nansen.stack.ImageStackProcessor
         end
     end
     methods % Constructor
-        
+
         function obj = StackCropper(sourceStack, newSize, varargin)
 
             obj@nansen.stack.ImageStackProcessor(sourceStack, varargin{:})
-            
+
             obj.NewSize = newSize;
 
             if ~nargout
@@ -48,11 +48,11 @@ classdef StackCropper < nansen.stack.ImageStackProcessor
 
     methods (Access = protected) % Override ImageStackProcessor methods
         function onInitialization(obj)
-            
+
             % Create output filepath
             [~, sourceName] = fileparts( obj.SourceStack.FileName );
             targetName = strcat(sourceName, '_cropped');
-            
+
             targetFilepath = strrep(  obj.SourceStack.FileName, sourceName, targetName );
 
             % Get new size

@@ -13,5 +13,4 @@ function S = getDefaultSettings()
     S.TileAlpha = 0.5;
     S.DeleteRejectedTilesOnRefresh = false;
     S.IgnoreClassifiedTileOnShiftClick = true;
-
 end

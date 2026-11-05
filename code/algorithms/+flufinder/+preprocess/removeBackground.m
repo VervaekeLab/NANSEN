@@ -11,17 +11,17 @@ function imageArray = removeBackground(imageArray, varargin)
 %   Optional name/value pairs:
 %
 %   SmoothingSigma : "Size" (standard deviation/sigma) of the gaussian kernel
-    
+
     %assert( ndims(imageArray) == 3, 'Image array must be 3D')
     assert(isa(imageArray, 'single') | isa(imageArray, 'double'), ...
         'Image array must be single or double')
-    
+
     params = struct();
     params.SpatialFilterType = 'gaussian'; % Todo: Are there other filters that would be better?
     params.SmoothingSigma = 20;
-    
+
     params = utility.parsenvpairs(params, [], varargin{:});
-    
+
     % Smooth using a big gaussian kernel, to wash out cell-sized objects
     switch params.SpatialFilterType
         case 'gaussian'
@@ -31,10 +31,8 @@ function imageArray = removeBackground(imageArray, varargin)
         otherwise
             error('Filter type "%s" is not implemented', ...
                 params.SpatialFilterType)
-            
     end
 
     % Subtract background (smoothed version)
     imageArray = imageArray - bgArray;
-    
 end

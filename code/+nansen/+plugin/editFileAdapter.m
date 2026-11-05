@@ -3,7 +3,7 @@ function editFileAdapter(fileAdapterName)
     arguments
         fileAdapterName (1,1) string
     end
-    
+
     fileAdapterList = nansen.dataio.listFileAdapters();
 
     if contains(fileAdapterName, 'fileadapter.')
@@ -19,7 +19,7 @@ function editFileAdapter(fileAdapterName)
     elseif sum(isMatch) > 1
         error('Multiple file adapters matched name "%s"', fileAdapterName)
     end
-    
+
     fileAdapterInfo = fileAdapterList(isMatch);
     fileAdapterName = fileAdapterInfo.FunctionName;
 
@@ -29,7 +29,7 @@ function editFileAdapter(fileAdapterName)
     else
         pathStr = which( fileAdapterName );
     end
-    
+
     if isfile(pathStr)
         pathStr = fileparts(pathStr);
     end

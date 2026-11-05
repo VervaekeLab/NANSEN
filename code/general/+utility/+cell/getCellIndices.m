@@ -32,7 +32,7 @@ cellArrayFlat = cellArray(:);
 for i = 1:numel(cellArray)
     % Get the current cell
     thisCell = cellArrayFlat{i};
-    
+
     % Assign the cell index to each element in the cell
     cellIndices = [cellIndices, ones(1, length(thisCell)) * i]; %#ok<AGROW>
 end

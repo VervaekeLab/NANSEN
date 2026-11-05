@@ -27,17 +27,17 @@ function propertyNames = findproperties(obj, attributeName, attributeValue)
     elseif isobject(obj)
       mc = metaclass(obj);
     end
-    
+
     % Get all property names
     propertyNames = {mc.PropertyList.Name};
-    
+
     if isempty(attributeName)
         return % Return all property names
     elseif isempty (findprop(mc.PropertyList(1), attributeName))
         % Throw error if attribute name is invalid.
         error('%s is not a valid attribute name', attributeName)
     end
-    
+
     % Match properties with the specified. attribute.
     if islogical(mc.PropertyList(1).(attributeName) )
         isMatched = [ mc.PropertyList.(attributeName) ] == attributeValue;
@@ -45,7 +45,6 @@ function propertyNames = findproperties(obj, attributeName, attributeValue)
         allAttributeValues = { mc.PropertyList.(attributeName) };
         isMatched = contains(allAttributeValues, attributeValue);
     end
-    
+
     propertyNames = propertyNames(isMatched);
-    
 end

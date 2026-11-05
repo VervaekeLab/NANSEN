@@ -14,5 +14,4 @@ function snakeCaseStr = camel2snake(camelCaseStr)
     end
 
     snakeCaseStr = lower(camelCaseStr);
-
 end

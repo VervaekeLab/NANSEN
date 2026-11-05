@@ -1,12 +1,12 @@
 classdef signalViewerLabel < handle
-    
+
     properties
         Text = ''
         FontSize = 18
         FontColor = 'k'
         FontName = 'helvetica'
     end
-    
+
     properties (SetAccess = immutable, GetAccess = private)
         Axes
     end
@@ -51,7 +51,7 @@ classdef signalViewerLabel < handle
             obj.TextObject.Color = obj.FontColor;
             obj.TextObject.Tag = 'Signalviewer Axes Label';
         end
-        
+
         function [x, y] = getAxesCenterPosition(obj)
             x = obj.Axes.XLim(1) + (obj.Axes.XLim(2)-obj.Axes.XLim(1))/2;
             y = obj.Axes.YLim(1) + (obj.Axes.YLim(2)-obj.Axes.YLim(1))*0.75;
@@ -60,7 +60,7 @@ classdef signalViewerLabel < handle
         function assignAxesSizeListener(obj)
             obj.AxesSizeListener = listener(obj.Axes, 'SizeChanged', ...
                 @(s, e) obj.onAxesSizeChanged);
-            
+
             props = {'XLim', 'YLim'};
             obj.AxesLimitsChangedListener = listener(obj.Axes, props, ...
                 'PostSet', @(s, e) obj.onAxesLimitsChanged);

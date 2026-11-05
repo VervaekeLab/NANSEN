@@ -1,7 +1,7 @@
 classdef helpButton < uim.style.buttonScheme
-    
+
     properties (Constant)
-        
+
         HighlightedOn = struct(...
             'ForegroundColor', [0, 77, 128]/255*0.75, ...
             'BackgroundColor', ones(1,3) * 0.2, ...

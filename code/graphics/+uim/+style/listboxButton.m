@@ -1,7 +1,7 @@
 classdef listboxButton < uim.style.buttonScheme
-    
+
     properties (Constant)
-        
+
         HighlightedOn = struct(...
             'ForegroundColor', ones(1,3) * 1, ...
             'BackgroundColor', [0.2157    0.4941    0.7216]*0.7, ...

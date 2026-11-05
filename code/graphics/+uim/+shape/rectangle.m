@@ -30,15 +30,15 @@ function varargout = rectangle(boxSize, cornerRadius, numCornerSegmentPoints)
 
     if nargin < 3; numCornerSegmentPoints = 25; end
     if nargin < 2; cornerRadius = 0; end
-    
+
     boxSize = round(boxSize);
-    
+
     if cornerRadius == 0
         xx = [0, 0, boxSize(1), boxSize(1)];
         yy = [boxSize(2), 0, 0, boxSize(2)];
-        
+
     else
-        
+
         numPoints = numCornerSegmentPoints * 4;
         segmentInd = repmat(1:4, numCornerSegmentPoints, 1);
 
@@ -63,9 +63,8 @@ function varargout = rectangle(boxSize, cornerRadius, numCornerSegmentPoints)
 
         xx(end+1) = xx(1);
         yy(end+1) = yy(1);
-            
     end
-    
+
 if nargout == 1
     varargout = {[xx', yy']};
 elseif nargout == 2

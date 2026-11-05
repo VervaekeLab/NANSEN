@@ -1,6 +1,23 @@
 function varargout = classifyMultiSessionRois(sessionObject, varargin)
-%CLASSIFYMULTISESSIONROIS Summary of this function goes here
-%   Detailed explanation goes here
+%Classify matched ROIs across a longitudinal session set.
+%
+%Use this when:
+%- You have already migrated ROIs across sessions and computed
+%  classification data for each session.
+%- You want one classifier view where corresponding ROIs from different
+%  sessions stay aligned.
+%
+%What happens:
+%- NANSEN loads the multi-session ROI cross-reference from the first
+%  selected session.
+%- `RoiGroupLongitudinal` data are loaded from each selected session and
+%  reordered so matched ROIs appear together.
+%- The ROI classifier opens with session-aware labels.
+%- When classifications are saved, each session's `RoiGroupLongitudinal`
+%  is updated with the new labels.
+%
+%Outputs:
+%- Updated `RoiGroupLongitudinal` files for the selected sessions.
 
 % % % % % % % % % % % % % % % INSTRUCTIONS % % % % % % % % % % % % % % %
 % - - - - - - - - - - You can remove this part - - - - - - - - - - -
@@ -21,30 +38,30 @@ function varargout = classifyMultiSessionRois(sessionObject, varargin)
 % Create a struct of default parameters (if applicable) and specify one or
 % more attributes (see nansen.session.SessionMethod.setAttributes) for
 % details.
-    
+
     % Get struct of parameters from local function
     params = getDefaultParameters();
-    
+
     % Create a cell array with attribute keywords
     ATTRIBUTES = {'batch', 'queueable'};
-    
+
 % % % % % % % % % % % % % DEFAULT CODE BLOCK % % % % % % % % % % % % % %
 % - - - - - - - - - - Please do not edit this part - - - - - - - - - - -
-    
+
     % Create a struct with "attributes" using a predefined pattern
     import nansen.session.SessionMethod
     fcnAttributes = SessionMethod.setAttributes(params, ATTRIBUTES{:});
-    
+
     if ~nargin && nargout > 0
         varargout = {fcnAttributes};   return
     end
-    
+
     % Parse name-value pairs from function input and update parameters
     params = utility.parsenvpairs(params, [], varargin);
-    
+
 % % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % %
-% Implementation of the method : Add your code here:
-    
+% Implementation of the session method.
+
     varName = 'MultisessionRoiCrossReference';
     filePath = sessionObject(1).loadData(varName);
 
@@ -56,7 +73,7 @@ function varargout = classifyMultiSessionRois(sessionObject, varargin)
         numChannels = unique(channelNumbers);
         channelNumber = 1:numChannels;
     end
-    
+
     % Load all multi session roi groups and concatenate by nRois x nSessions
     numSessions = numel(sessionObject);
 
@@ -72,8 +89,8 @@ function varargout = classifyMultiSessionRois(sessionObject, varargin)
 
     % Concatenate roi from different channels and planes
     % longterm todo
-    
-    [roiArray, roiImages, roiStats, roiClassification, roiLabels] = deal(cell(1, numSessions));
+
+    [roiArray, roiImages, ~, roiClassification, roiLabels] = deal(cell(1, numSessions));
 
     for i = 1:numSessions
         sessionID = sessionObject(i).sessionID;
@@ -100,13 +117,13 @@ function varargout = classifyMultiSessionRois(sessionObject, varargin)
     roiClassification = cat(1, roiClassification{:});
     roiLabels = cat(1, roiLabels{:});
     roiStats = struct();
-    
+
     % Compute image correlation for each roi across sessions
     avgRoiCorrelation = zeros(1, numSessions);
-    
+
     for i = 1:numRois
         thisImage = cat(3, roiImages(:,i).ActivityWeightedMean);
-        
+
         RHO = zeros(numSessions);
         for j = 1:numSessions
             for k = 1:numSessions
@@ -117,7 +134,7 @@ function varargout = classifyMultiSessionRois(sessionObject, varargin)
     end
 
     avgRoiCorrelation = repmat(avgRoiCorrelation, numSessions, 1);
-    
+
     % Flatten all to make a 1d vector
     roiArray = roiArray(:);
     roiImages = roiImages(:);
@@ -127,7 +144,7 @@ function varargout = classifyMultiSessionRois(sessionObject, varargin)
 
     roiGroup = struct('roiArray', roiArray, 'roiImages', ...
         roiImages, 'roiStats', roiStats, 'roiClassification', roiClassification);
-    
+
     % - Create a new roiStats
 
         % Compute classification stats
@@ -145,7 +162,7 @@ function varargout = classifyMultiSessionRois(sessionObject, varargin)
 end
 
 function saveClassifiedRois(sessionObjects, classifiedRoiGroup)
-    
+
     varName = 'MultisessionRoiCrossReference';
     filePath = sessionObjects(1).loadData(varName);
 
@@ -169,7 +186,7 @@ function saveClassifiedRois(sessionObjects, classifiedRoiGroup)
     for i = 1:numSessions
         roiGroup = sessionObjects(i).loadData('RoiGroupLongitudinal', ...
             'FileAdapter', 'nansen.dataio.fileadapter.internal.RoiGroupStruct');
-        
+
         numRoisPerCell = cellfun(@numel, {roiGroup.roiArray} );
 
         roiArrayUnflattened = utility.cell.unflatten(roiArray(i, :), numRoisPerCell);
@@ -204,5 +221,4 @@ function params = getDefaultParameters()
     % Add fields to this struct in order to define parameters for this
     % session method:
     params = struct();
-
 end
