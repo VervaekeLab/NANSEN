@@ -692,7 +692,6 @@ classdef Project < nansen.module.Module
 
                 if ~isempty(addedModuleID) || ~isempty(removeIdx)
                     obj.FileAdapterRegistry.reconcile();
-                    notify(obj, 'ModuleListChanged')
                 end
             end
         end
