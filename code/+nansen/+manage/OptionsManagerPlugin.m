@@ -83,11 +83,6 @@ classdef OptionsManagerPlugin < handle
 
             obj.refreshOptionsDropdown();
         end
-
-        function onFinishStateChanged(~, ~, ~)
-            % Hook kept for the generic plugin lifecycle. OptionsManager
-            % state is read by callers after editor.waitfor returns.
-        end
     end
 
     methods (Access = private)
