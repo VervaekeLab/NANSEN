@@ -1115,10 +1115,20 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
         end
 
         function fileName = getFileName(obj, S)
+        %getFileName - File name for a variable whose file does not exist yet
+        %   fileName = getFileName(OBJ,S) returns the session ID followed by
+        %   the file name expression and the file type of the variable
+        %   described by the struct S. An expression with a wildcard
+        %   describes existing files only, so it cannot name a file.
+            if contains(S.FileNameExpression, '*')
+                error('NANSEN:Session:WildcardInFileName', ...
+                    ['Cannot create a file for the variable "%s" because its file ', ...
+                    'name expression "%s" contains a wildcard. Give the variable an ', ...
+                    'expression without wildcards, or leave it empty to let NANSEN ', ...
+                    'name the file.'], S.VariableName, S.FileNameExpression)
+            end
 
-            sid = obj.sessionID;
-
-            fileName = sprintf('%s_%s', sid, S.FileNameExpression);
+            fileName = sprintf('%s_%s', obj.sessionID, S.FileNameExpression);
 
             fileType = S.FileType;
 
