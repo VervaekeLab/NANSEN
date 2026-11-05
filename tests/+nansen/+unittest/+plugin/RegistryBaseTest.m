@@ -1,8 +1,10 @@
 classdef RegistryBaseTest < matlab.unittest.TestCase
 %RegistryBaseTest Unit tests for nansen.plugin.base.Registry.
 %
-%   Tests source pinning, middle-tier ordering, removeSource from any slot,
-%   reconcile event emission, and precedence-based dedup.
+%   Tests source pinning, middle-tier ordering, source id conflicts,
+%   removeSource from any slot, scanning on the first lookup after a
+%   change, markStale, reconcile event emission, and precedence-based
+%   dedup.
 
     properties
         TempDir (1,1) string  % Temporary directory root for test sources

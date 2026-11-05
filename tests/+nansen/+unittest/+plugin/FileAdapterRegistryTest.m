@@ -1,9 +1,14 @@
 classdef FileAdapterRegistryTest < matlab.unittest.TestCase
 %FileAdapterRegistryTest Tests for nansen.plugin.fileadapter.Registry.
 %
-%   Uses temporary directories so no Project object is needed. Verifies
-%   that the registry is project-agnostic and that class-based and
-%   sidecar-based adapters are discovered correctly.
+%   Each test writes its sources to a temporary folder, so no Project
+%   object is needed. The tests cover discovery of sidecar-based adapters
+%   and of a class-based adapter, filtering by file extension, precedence
+%   between sources, and the char and cell fields that
+%   nansen.dataio.listFileAdapters returns. listFileAdapters is given a
+%   struct with a FileAdapterRegistry field in place of a project.
+%
+%   The deprecation tests use the core module.
 
     properties
         TempDir (1,1) string

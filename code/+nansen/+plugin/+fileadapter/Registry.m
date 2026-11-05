@@ -1,9 +1,14 @@
 classdef Registry < nansen.plugin.base.Registry
 %Registry Project-owned registry for FileAdapter plugins.
 %
-%   Scans +fileadapter/ subfolders of registered sources and provides the
-%   same struct-array shape that nansen.dataio.listFileAdapters previously
-%   returned via Module.getTable.
+%   Scans the +fileadapter/ subfolder of each registered source for
+%   class-based adapters (classdef files) and sidecar-based adapters
+%   (fileadapter.json files). A class-based adapter is found only when its
+%   class is on the MATLAB path at the time of the scan.
+%
+%   list returns a struct array with one element per adapter.
+%   nansen.dataio.listFileAdapters returns the same fields with the text
+%   as char and the file types as a cell array.
 %
 %   Fields per entry:
 %       FileAdapterName     - Class name (string)
