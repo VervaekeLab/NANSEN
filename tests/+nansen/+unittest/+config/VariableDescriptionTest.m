@@ -1,9 +1,9 @@
 classdef VariableDescriptionTest < matlab.unittest.TestCase
 %VariableDescriptionTest - The Description field of data variables
 %
-%   Variables got a Description field after models and module templates
-%   were written without one. A model saved without it and an item made
-%   without it must still load and insert.
+%   Items, such as those of module templates, can lack fields that the
+%   blank item has. A model saved without a Description field and an item
+%   made without one must still load and insert.
 %
 %   Run tests:
 %       runtests('nansen.unittest.config.VariableDescriptionTest')
