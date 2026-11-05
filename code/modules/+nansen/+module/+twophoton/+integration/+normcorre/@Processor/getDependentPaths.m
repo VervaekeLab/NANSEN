@@ -18,5 +18,5 @@ function pathList = getDependentPaths()
     % Todo:
     %   Need nansen.stack.ImageStack
     %   Need nansen.processing.DataMethod
-    %   Need nansen.processing.MotionCorrection
+    %   Need nansen.module.twophoton.motioncorrection.MotionCorrection
 end

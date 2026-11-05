@@ -1,5 +1,5 @@
 classdef MotionCorrection < nansen.stack.ImageStackProcessor
-%nansen.processing.MotionCorrection Run motion correction on ImageStacks
+%nansen.module.twophoton.motioncorrection.MotionCorrection Run motion correction on ImageStacks
 %
 %   This class is an abstract class that provides a framework for running
 %   motion correction on ImageStack objects. It inherits the following
@@ -12,13 +12,13 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
 %   - nansen.wrappers.normcorre.Processor : Implements the normcorre toolbox
 %   - nansen.wrappers.flowreg.Processor : Implements the flowregistration toolbox
 %
-%  obj = obj@nansen.processing.MotionCorrection(dataLocation) creates the
+%  obj = obj@nansen.module.twophoton.motioncorrection.MotionCorrection(dataLocation) creates the
 %  object based on a given dataLocation. The dataLocation can be:
 %       1) A filepath
 %       2) An ImageStack (containing VirtualData)
 %       3) A struct-based DataLocation (not implemented yet).
 %
-%  obj = obj@nansen.processing.MotionCorrection(dataLocation, options)
+%  obj = obj@nansen.module.twophoton.motioncorrection.MotionCorrection(dataLocation, options)
 %  creates the object and specifies the options to use for processing.
 %
 % Notes:

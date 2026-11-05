@@ -1,5 +1,5 @@
 classdef Options < nansen.wrapper.abstract.OptionsAdapter
-%nansen.wrapper.normcorre.Options Options adapter for normcorre method
+%nansen.module.twophoton.integration.normcorre.Options Options adapter for normcorre method
 %
 %   Implements default options which can be edited in structeditor and
 %   a conversion map so that options can be converted to the format
@@ -21,9 +21,9 @@ classdef Options < nansen.wrapper.abstract.OptionsAdapter
     methods (Static)
 
         function S = getOptions()
-            S = nansen.wrapper.normcorre.Options.getDefaults();
+            S = nansen.module.twophoton.integration.normcorre.Options.getDefaults();
 
-            className = 'nansen.wrapper.normcorre.Processor';
+            className = 'nansen.module.twophoton.integration.normcorre.Processor';
             superOptions = nansen.mixin.HasOptions.getSuperClassOptions(className);
             S = nansen.mixin.HasOptions.combineOptions(S, superOptions{:});
         end
@@ -45,7 +45,7 @@ classdef Options < nansen.wrapper.abstract.OptionsAdapter
                 d3 = 1;
             end
 
-            nameMap = nansen.wrapper.normcorre.Options.getAdapter();
+            nameMap = nansen.module.twophoton.integration.normcorre.Options.getAdapter();
             nvPairs = nansen.wrapper.abstract.OptionsAdapter.rename(S, nameMap, 'nvPairs');
 
             if isfield(S, 'Configuration') && isfield(S.Configuration, 'numRows')

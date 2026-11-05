@@ -16,7 +16,7 @@ classdef MotionCorrectionPreview < handle
     end
 
     properties (Access = private)
-        DefaultOptions = nansen.processing.MotionCorrection.getDefaultOptions();
+        DefaultOptions = nansen.module.twophoton.motioncorrection.MotionCorrection.getDefaultOptions();
     end
 
     methods (Access = protected)
@@ -128,7 +128,7 @@ classdef MotionCorrectionPreview < handle
         function imArray = loadSelectedFrameSet(obj)
         %loadSelectedFrameSet Load images for frame interval in options
 
-            import nansen.wrapper.normcorre.utility.apply_bidirectional_offset
+            import nansen.module.twophoton.integration.normcorre.utility.apply_bidirectional_offset
 
             imArray = [];
 

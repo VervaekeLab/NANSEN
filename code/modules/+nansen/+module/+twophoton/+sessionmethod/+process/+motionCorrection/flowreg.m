@@ -1,4 +1,4 @@
-classdef flowreg < nansen.session.SessionMethod & nansen.wrapper.flowreg.Processor
+classdef flowreg < nansen.session.SessionMethod & nansen.module.twophoton.integration.flowreg.Processor
 %Motion-correct the raw two-photon recording with FlowRegistration.
 %
 %Use this when:
@@ -31,7 +31,7 @@ classdef flowreg < nansen.session.SessionMethod & nansen.wrapper.flowreg.Process
         function obj = flowreg(varargin)
 
             % Dont want this to be in charge, use session task instead.
-            obj@nansen.wrapper.flowreg.Processor()
+            obj@nansen.module.twophoton.integration.flowreg.Processor()
 
             % Call the SessionTask constructor last to make sure the
             % session's data I/O model is used.
