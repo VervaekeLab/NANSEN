@@ -395,6 +395,17 @@ classdef UserDataFoldersTest < matlab.unittest.TestCase
             testCase.verifyEqual(testCase.listEntries(settingsFolder), "app.mat")
         end
 
+        function testNothingToMoveCreatesNoMachineFolder(testCase)
+        % It runs at every startup, so with nothing to move it must do nothing
+
+            userDataDirectory = fullfile(testCase.RootFolder, "userdata");
+            testCase.createFile(fullfile(userDataDirectory, "settings"), "app.mat")
+
+            nansen.internal.user.moveMachineLocalSettings(userDataDirectory)
+
+            testCase.verifyEqual(testCase.listEntries(userDataDirectory), "settings")
+        end
+
         function testMachineLocalFileIsNotOverwritten(testCase)
             userDataDirectory = fullfile(testCase.RootFolder, "userdata");
             localFolder = nansen.localdatadir(userDataDirectory);
