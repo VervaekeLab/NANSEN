@@ -27,7 +27,7 @@
     },
     "scopeId": {
       "type": "string",
-      "description": "Unique identifier for the scope. 'core' for core NANSEN, or a dot-separated module package name (e.g. 'nansen.module.ophys.twophoton')."
+      "description": "Unique identifier for the scope. 'core' for core NANSEN, or a dot-separated module package name (e.g. 'nansen.module.twophoton')."
     },
     "dependencies": {
       "type": "array",
@@ -64,7 +64,7 @@
         },
         "scopeId": {
           "type": "string",
-          "description": "Overrides the manifest-level scopeId for this entry. Use a workflow-specific identifier like 'nansen.module.ophys.twophoton.workflow.suite2p'. If omitted, inherits from the manifest."
+          "description": "Overrides the manifest-level scopeId for this entry. Use a workflow-specific identifier like 'nansen.module.twophoton.workflow.suite2p'. If omitted, inherits from the manifest."
         },
         "source": {
           "type": "string",
