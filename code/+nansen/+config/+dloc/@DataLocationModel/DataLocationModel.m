@@ -1079,7 +1079,8 @@ classdef DataLocationModel < utility.data.StorableCatalog
         %applyExtractionPattern Apply an ind or expr extraction rule to text
         %
         %   mode 'ind'  — evaluates pattern as a character index expression
-        %                 (e.g. '1:5', '3:end')
+        %                 where 'end' is the last character
+        %                 (e.g. '1:5', '3:end', '1:end-3', 'end-5:end')
         %   mode 'expr' — treats pattern as a regexp and returns first match
 
             arguments
@@ -1090,20 +1091,21 @@ classdef DataLocationModel < utility.data.StorableCatalog
 
             switch lower(mode)
                 case 'ind'
-
-                    if strcmp(pattern, '1:end') % Special case
-                        pattern = sprintf('1:%d', strlength(text));
-                    end
+                    % 'end' has a value only inside an indexing expression,
+                    % so it is replaced by the text length before the
+                    % pattern is evaluated as a plain numeric expression.
+                    numChars = strlength(text);
+                    numericPattern = regexprep(pattern, '\<end\>', num2str(numChars));
                     try
-                        indices = eval(['[' pattern ']']);
+                        indices = eval(['[' numericPattern ']']);
                     catch
                         error('NANSEN:DataLocationModel:InvalidIndexPattern', ...
                             'Index pattern "%s" is not valid MATLAB index syntax.', pattern)
                     end
-                    if any(indices > strlength(text))
+                    if any(indices < 1) || any(indices > numChars)
                         error('NANSEN:DataLocationModel:IndexOutOfRange', ...
-                            'Index range [%s] exceeds the string length (%d characters).', ...
-                            pattern, strlength(text))
+                            'Index range [%s] is outside the string length (%d characters).', ...
+                            pattern, numChars)
                     end
                     substring = text(indices);
                 case 'expr'
