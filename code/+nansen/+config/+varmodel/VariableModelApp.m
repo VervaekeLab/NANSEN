@@ -81,6 +81,19 @@ classdef VariableModelApp < nansen.config.abstract.ConfigurationApp
                 switch selection
 
                     case 'Yes'
+                        % setVariableList replaces the whole list without
+                        % the checks single insertions get, so the names
+                        % are checked here. An invalid list keeps the
+                        % editor open so the names can be fixed.
+                        [isValid, validationMessage] = ...
+                            nansen.config.varmodel.VariableModel.validateVariableNames(newModel);
+                        if ~isValid
+                            uialert(obj.Figure, sprintf('The variables were not saved.\n\n%s', ...
+                                validationMessage), 'Invalid Variable Names')
+                            doCancel = true;
+                            return
+                        end
+
                         obj.VariableModel.setVariableList(newModel)
                         obj.VariableModel.save()
                         obj.ModelBackup = obj.VariableModel.Data;
