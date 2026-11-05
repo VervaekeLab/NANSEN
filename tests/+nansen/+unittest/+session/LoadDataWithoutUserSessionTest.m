@@ -44,7 +44,7 @@ classdef LoadDataWithoutUserSessionTest < matlab.unittest.TestCase
                 'DataLocationModel', project.DataLocationModel, ...
                 'VariableModel', variableModel);
 
-            LocalData = testCase.StoredValue; %#ok<NASGU> Saved by name
+            LocalData = testCase.StoredValue; % Saved by name
             save(fullfile(testCase.Session.getSessionFolder('MockData'), 'local_data.mat'), 'LocalData')
         end
     end

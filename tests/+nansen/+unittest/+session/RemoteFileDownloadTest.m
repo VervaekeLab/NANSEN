@@ -89,7 +89,7 @@ classdef RemoteFileDownloadTest < matlab.unittest.TestCase
         end
 
         function testLoadDataWithoutSourceReportsEmptyFile(testCase)
-            % A project without a source treats an empty file as before
+            % A project without a source treats an empty file as an error
             testCase.verifyError(@() testCase.Session.loadData(testCase.VariableName), ...
                 'NANSEN:Session:EmptyFile')
         end
@@ -97,6 +97,12 @@ classdef RemoteFileDownloadTest < matlab.unittest.TestCase
         function testDownloadDataFileWithoutSourceErrors(testCase)
             testCase.verifyError(@() testCase.Session.downloadDataFile(testCase.VariableName), ...
                 'NANSEN:Session:NoRemoteFileSource')
+        end
+
+        function testSetRemoteFileSourceRejectsAbstractClass(testCase)
+            % An abstract class can not be constructed, so every load would fail
+            testCase.verifyError(@() testCase.Project.setRemoteFileSource("nansen.dataio.RemoteFileSource"), ...
+                'NANSEN:Project:InvalidRemoteFileSource')
         end
 
         function testSetRemoteFileSourceRejectsOtherClass(testCase)

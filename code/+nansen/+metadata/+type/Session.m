@@ -829,9 +829,14 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
         %   the variable varName when the file in the session folder is a
         %   placeholder for a file stored online. A file that is already
         %   local is left as it is. The project names the source of online
-        %   files in its preference RemoteFileSource.
+        %   files with Project.setRemoteFileSource.
         %
         %   See also nansen.dataio.RemoteFileSource
+
+            arguments
+                obj (1,1) nansen.metadata.type.Session
+                varName (1,1) string
+            end
 
             [filePath, variableInfo] = obj.getDataFilePath(varName, '-r');
             if ~isfile(filePath)
@@ -842,7 +847,7 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
             if isempty(source)
                 error('NANSEN:Session:NoRemoteFileSource', ...
                     ['The current project has no source of online files. Name a subclass of ', ...
-                     'nansen.dataio.RemoteFileSource in the project preference RemoteFileSource.'])
+                     'nansen.dataio.RemoteFileSource with project.setRemoteFileSource.'])
             end
 
             if source.isOnlineOnly(filePath)
@@ -1429,8 +1434,8 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
             else
                 error('NANSEN:Session:FileIsOnlineOnly', ...
                     ['The file of variable "%s" is stored online and has not been downloaded: %s\n', ...
-                     'Download it with sessionObject.downloadDataFile("%s"), or set the project ', ...
-                     'preference AutoDownloadRemoteFiles to true to download files when they are loaded.'], ...
+                     'Download it with sessionObject.downloadDataFile("%s"), or call ', ...
+                     'project.setAutoDownloadRemoteFiles(true) to download files when they are loaded.'], ...
                     varName, filePath, varName)
             end
         end
@@ -1439,15 +1444,19 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
         %getRemoteFileSource The project's source of online files for a data location
         %
         %   Returns [] when no user session is active, when there is no
-        %   current project, or when the project names no source in its
-        %   preference RemoteFileSource.
+        %   current project, when the project names no source, or when the
+        %   class it names is not on the MATLAB path. The last case gives the
+        %   warning NANSEN:Session:RemoteFileSourceNotFound, so that local
+        %   files still load on a computer without the module that holds
+        %   the source.
 
             source = [];
             try
                 project = nansen.getCurrentProject();
             catch exception
                 % A session object can load data without a user session,
-                % for example in a parallel worker; files are then local
+                % for example in a parallel worker. No source is asked then,
+                % and a placeholder fails the check for an empty file.
                 if ~strcmp(exception.identifier, 'NANSEN:NoActiveUserSession')
                     rethrow(exception)
                 end
@@ -1459,6 +1468,16 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
 
             preferences = project.Preferences;
             if ~isfield(preferences, 'RemoteFileSource') || isempty(preferences.RemoteFileSource)
+                return
+            end
+
+            if isempty(meta.class.fromName(preferences.RemoteFileSource))
+                warning('NANSEN:Session:RemoteFileSourceNotFound', ...
+                    ['The project names "%s" as its source of online files, but the class ', ...
+                     'is not on the MATLAB path, so files stored online can not be downloaded. ', ...
+                     'Add the module that holds it to the path, or call ', ...
+                     'project.setRemoteFileSource("") to remove the source.'], ...
+                    preferences.RemoteFileSource)
                 return
             end
 
