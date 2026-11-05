@@ -6,6 +6,10 @@ classdef (Abstract) Registry < handle
 %     - Middle (ordered list of sources, added with addSource)
 %     - Bottom (single pinned slot, lowest priority)
 %
+%   A source id names one source only. pinTop, pinBottom and addSource
+%   error with NANSEN:Registry:DuplicateSourceId when the id already names
+%   a source in another slot.
+%
 %   The registry scans its sources on the first list, get or resolve after
 %   a change: pinning, adding or removing a source, or calling markStale.
 %   Until the next change, these methods return the entries of the last
@@ -57,13 +61,15 @@ classdef (Abstract) Registry < handle
         function pinTop(obj, id, path)
         %pinTop Set or replace the top-priority source slot.
         %
-        %   pinTop(id, path) assigns the top slot. If a different source is
-        %   already pinned at the top it is silently replaced.
+        %   pinTop(id, path) assigns the top slot. A source already pinned
+        %   at the top is replaced. Errors if id names a source in the
+        %   middle tier or the bottom slot.
             arguments
                 obj
                 id   (1,1) string
                 path (1,1) string
             end
+            obj.assertSourceIdIsFree(id, obj.TopSource)
             obj.TopSource = struct('id', id, 'path', path);
             obj.IsStale = true;
         end
@@ -71,13 +77,15 @@ classdef (Abstract) Registry < handle
         function pinBottom(obj, id, path)
         %pinBottom Set or replace the bottom-priority source slot.
         %
-        %   pinBottom(id, path) assigns the bottom slot. If a different source
-        %   is already pinned at the bottom it is silently replaced.
+        %   pinBottom(id, path) assigns the bottom slot. A source already
+        %   pinned at the bottom is replaced. Errors if id names a source
+        %   in the top slot or the middle tier.
             arguments
                 obj
                 id   (1,1) string
                 path (1,1) string
             end
+            obj.assertSourceIdIsFree(id, obj.BottomSource)
             obj.BottomSource = struct('id', id, 'path', path);
             obj.IsStale = true;
         end
@@ -100,10 +108,7 @@ classdef (Abstract) Registry < handle
                 options.Position (1,1) string ...
                     {mustBeMember(options.Position, ["first", "last"])} = "last"
             end
-            if obj.hasSourceId(id)
-                error('NANSEN:Registry:DuplicateSourceId', ...
-                    'A source with id "%s" is already registered.', id)
-            end
+            obj.assertSourceIdIsFree(id)
 
             newSource = struct('id', id, 'path', path);
             if options.Position == "first"
@@ -281,6 +286,24 @@ classdef (Abstract) Registry < handle
             end
             if ~isempty(obj.MiddleSources) && any([obj.MiddleSources.id] == id)
                 tf = true;
+            end
+        end
+
+        function assertSourceIdIsFree(obj, id, replacedSource)
+        %assertSourceIdIsFree Error if id names a source other than replacedSource.
+        %
+        %   replacedSource is the source in the slot that is being assigned.
+        %   Reusing its id replaces it, which is allowed.
+            arguments
+                obj
+                id (1,1) string
+                replacedSource struct = struct('id', {}, 'path', {})
+            end
+            isReplacedId = ~isempty(replacedSource) && replacedSource.id == id;
+            if obj.hasSourceId(id) && ~isReplacedId
+                error('NANSEN:Registry:DuplicateSourceId', ...
+                    ['A source with id "%s" is already registered. ', ...
+                    'Remove it with removeSource before registering it again.'], id)
             end
         end
 

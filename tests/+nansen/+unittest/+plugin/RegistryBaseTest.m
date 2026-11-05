@@ -92,6 +92,42 @@ classdef RegistryBaseTest < matlab.unittest.TestCase
                 'NANSEN:Registry:DuplicateSourceId')
         end
 
+        function testPinTopErrorsOnIdUsedInMiddle(testCase)
+        %testPinTopErrorsOnIdUsedInMiddle An id in the middle tier cannot be pinned at the top
+            reg = nansen.unittest.plugin.helper.ConcreteRegistry();
+            dirA = testCase.makeSourceDir('A', {'Alpha'});
+            dirB = testCase.makeSourceDir('B', {'Beta'});
+            reg.addSource("shared-id", dirA);
+
+            testCase.verifyError(@() reg.pinTop("shared-id", dirB), ...
+                'NANSEN:Registry:DuplicateSourceId')
+            testCase.verifyEqual([reg.list().PluginId], "Alpha")
+        end
+
+        function testPinBottomErrorsOnIdPinnedAtTop(testCase)
+        %testPinBottomErrorsOnIdPinnedAtTop An id pinned at the top cannot be pinned at the bottom
+            reg = nansen.unittest.plugin.helper.ConcreteRegistry();
+            dirA = testCase.makeSourceDir('A', {'Alpha'});
+            dirB = testCase.makeSourceDir('B', {'Beta'});
+            reg.pinTop("shared-id", dirA);
+
+            testCase.verifyError(@() reg.pinBottom("shared-id", dirB), ...
+                'NANSEN:Registry:DuplicateSourceId')
+            testCase.verifyEqual([reg.list().PluginId], "Alpha")
+        end
+
+        function testPinTopReplacesSourceWithSameId(testCase)
+        %testPinTopReplacesSourceWithSameId Pinning the top source's id again replaces its path
+            reg = nansen.unittest.plugin.helper.ConcreteRegistry();
+            dirA = testCase.makeSourceDir('A', {'Alpha'});
+            dirB = testCase.makeSourceDir('B', {'Beta'});
+            reg.pinTop("top", dirA);
+            reg.list();
+
+            reg.pinTop("top", dirB);
+            testCase.verifyEqual([reg.list().PluginId], "Beta")
+        end
+
         function testRemoveSourceFromMiddle(testCase)
             reg = nansen.unittest.plugin.helper.ConcreteRegistry();
             dirA = testCase.makeSourceDir('A', {'Alpha'});
