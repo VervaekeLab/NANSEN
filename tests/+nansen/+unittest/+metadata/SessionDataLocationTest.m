@@ -3,7 +3,10 @@ classdef SessionDataLocationTest < matlab.unittest.TestCase
     %
     %   A new project has default data locations with no root path until
     %   they are configured. A session built while such a location exists
-    %   must still resolve the locations that do have a root.
+    %   must still resolve the locations that do have a root. Creating a
+    %   session folder in a location without a root path, directly or by
+    %   asking for the file path of a variable to save there, raises
+    %   NANSEN:Session:DataLocationNotConfigured.
     %
     %   Run tests:
     %       runtests('nansen.unittest.metadata.SessionDataLocationTest')
@@ -57,6 +60,30 @@ classdef SessionDataLocationTest < matlab.unittest.TestCase
             testCase.verifyEqual(raw.RootUid, testCase.Model.getDataLocation('Raw').RootPath.Key)
             processed = session.DataLocation(strcmp({session.DataLocation.Name}, 'Processed'));
             testCase.verifyEmpty(processed.RootUid)
+        end
+
+        function testCreateFolderWithoutRootPathErrors(testCase)
+            session = nansen.metadata.type.Session( ...
+                struct('Raw', testCase.SessionFolder, 'Processed', ''), ...
+                'DataLocationModel', testCase.Model);
+
+            testCase.verifyError(@() session.getSessionFolder("Processed", "create"), ...
+                "NANSEN:Session:DataLocationNotConfigured")
+        end
+
+        function testWritePathWithoutRootPathErrors(testCase)
+            import matlab.unittest.fixtures.TemporaryFolderFixture
+            modelFolder = testCase.applyFixture(TemporaryFolderFixture).Folder;
+            variableModel = nansen.config.varmodel.VariableModel( ...
+                fullfile(modelFolder, 'variable_model.mat'));
+            session = nansen.metadata.type.Session( ...
+                struct('Raw', testCase.SessionFolder, 'Processed', ''), ...
+                'DataLocationModel', testCase.Model, 'VariableModel', variableModel);
+
+            % getDataFilePath reads the mode only from a character vector
+            testCase.verifyError( ...
+                @() session.getDataFilePath('newVariable', '-w', 'DataLocation', 'Processed'), ...
+                "NANSEN:Session:DataLocationNotConfigured")
         end
     end
 end

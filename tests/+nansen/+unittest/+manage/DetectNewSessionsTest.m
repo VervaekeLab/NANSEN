@@ -38,6 +38,22 @@ classdef DetectNewSessionsTest < matlab.unittest.TestCase
             testCase.verifyClass(newSessions, 'nansen.unittest.manage.helper.LabeledSession')
         end
 
+        function testNewSessionsHaveItemClassOfSessionTable(testCase)
+            % The sessions are of the table's ItemClassName, even when its
+            % MetaTableClass is not a class on the path
+            [sessionTable, removedSessionId] = testCase.createSessionTableWithoutFirstSession( ...
+                @nansen.metadata.type.Session);
+            itemClassTable = nansen.metadata.MetaTable(sessionTable.entries, ...
+                MetaTableClass="Session", ...
+                ItemClassName="nansen.unittest.manage.helper.LabeledSession", ...
+                MetaTableIdVarname="sessionID");
+
+            newSessions = nansen.manage.detectNewSessions(itemClassTable, 'all');
+
+            testCase.verifyClass(newSessions, 'nansen.unittest.manage.helper.LabeledSession')
+            testCase.verifyEqual(string({newSessions.sessionID}), removedSessionId)
+        end
+
         function testDetectedSessionsCanBeAddedToTable(testCase)
             % The steps the app takes when the user detects new sessions
             [sessionTable, removedSessionId] = testCase.createSessionTableWithoutFirstSession( ...

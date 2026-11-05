@@ -1250,6 +1250,13 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
             % If not root path has been assigned, then assign the last
             % added rootpath (assuming this is the most current)
             if isempty(dlSession.RootIdx) || isnan(dlSession.RootIdx)
+                if isempty(dlModel.RootPath)
+                    error("NANSEN:Session:DataLocationNotConfigured", ...
+                        "Cannot create a session folder in the data location ""%s"" because it " + ...
+                        "has no root folder. Add a root folder for ""%s"" in the data location " + ...
+                        "settings (Nansen > Configure > Datalocations...) and try again.", ...
+                        dataLocationName, dataLocationName)
+                end
                 dlSession.RootUid = dlModel.RootPath(end).Key;
                 dlSession.RootPath = dlModel.RootPath(end).Value;
                 obj.DataLocation(dlIdx) = dlSession;

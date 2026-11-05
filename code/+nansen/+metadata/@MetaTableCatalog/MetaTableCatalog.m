@@ -250,12 +250,18 @@ classdef MetaTableCatalog < uim.handle
         %   This is the rule getMasterMetaTable uses to find the table, so
         %   a table of a project's own class, such as
         %   myproject.metadata.type.Subject, counts as a subject table.
+
+            arguments
+                obj (1,1) nansen.metadata.MetaTableCatalog
+                typeName (1,1) string {mustBeNonzeroLengthText}
+            end
+
             if isempty(obj.Table)
                 tf = false;
                 return
             end
             tf = any(obj.Table.IsMaster & ...
-                contains(obj.Table.MetaTableClass, typeName, 'IgnoreCase', true));
+                contains(obj.Table.MetaTableClass, typeName, IgnoreCase=true));
         end
 
         function metaTable = getMasterMetaTable(obj, typeName)
