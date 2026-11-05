@@ -14,9 +14,19 @@ end
 % 
 % end
 
-% Delete preference directory
-userDir = nansen.internal.user.NansenUserSession.getPrefdir(tutorialUserName);
-rmdir(userDir, "s")
+% The tutorial profile keeps its preferences in the preference directory of
+% this MATLAB release, and its catalog and configurations in its user data
+% directory under the userpath. Without a userpath the two are the same.
+preferenceDirectory = nansen.internal.user.NansenUserSession.getPrefdir(tutorialUserName);
+userDataDirectory = nansen.internal.user.NansenUserSession.getDefaultUserDataDirectory(tutorialUserName);
+
+if isfolder(userDataDirectory) && ~nansen.util.path.isSamePath(userDataDirectory, preferenceDirectory)
+    rmdir(userDataDirectory, "s")
+end
+
+if isfolder(preferenceDirectory)
+    rmdir(preferenceDirectory, "s")
+end
 
 
 % % % TEMP: 
