@@ -8,7 +8,8 @@ function newSessionArray = detectNewSessions(metaTable, dataLocationName)
 %   table is returned. The session objects are of the class that the
 %   metatable creates its entries with: its ItemClassName, or its
 %   MetaTableClass when ItemClassName is empty. This class must be
-%   nansen.metadata.type.Session or a subclass of it.
+%   nansen.metadata.type.Session or a subclass of it. It is checked only
+%   when session folders are found.
 %
 %   INPUTS:
 %       metaTable : a session metatable
@@ -16,15 +17,6 @@ function newSessionArray = detectNewSessions(metaTable, dataLocationName)
 
     import nansen.dataio.session.listSessionFolders
     import nansen.dataio.session.matchSessionFolders
-
-    % New sessions are of the class that the table creates its entries
-    % with, so that their columns match the rows of the table
-    sessionClassName = metaTable.ItemClassName;
-    if isempty(sessionClassName)
-        sessionClassName = metaTable.MetaTableClass;
-    end
-    validateSessionClass(sessionClassName, metaTable)
-    sessionSchema = str2func(sessionClassName);
 
     % Get current data location model. Todo: What if there are situations
     % where another datalocation model should be used?
@@ -47,6 +39,18 @@ function newSessionArray = detectNewSessions(metaTable, dataLocationName)
     if isempty(sessionFolders)
         return
     end
+
+    % New sessions are of the class that the table creates its entries
+    % with, so that their columns match the rows of the table. The class
+    % is checked only when there are folders to make sessions from, so a
+    % table of sessions that do not come from session folders still
+    % reports that no new sessions were found.
+    sessionClassName = metaTable.ItemClassName;
+    if isempty(sessionClassName)
+        sessionClassName = metaTable.MetaTableClass;
+    end
+    validateSessionClass(sessionClassName, metaTable)
+    sessionSchema = str2func(sessionClassName);
 
     args = {'DataLocationModel', dataLocationModel};
 

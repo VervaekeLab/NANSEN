@@ -12,6 +12,15 @@ classdef DetectNewSessionsTest < matlab.unittest.TestCase
         Project
     end
 
+    properties (TestParameter)
+        % Class names that cannot create sessions: an empty name, a name
+        % that is not a class on the path, and a class that is not a session
+        InvalidSessionClass = struct( ...
+            "Empty", "", ...
+            "NotOnPath", "Session", ...
+            "NotSessionClass", "nansen.metadata.type.Subject")
+    end
+
     methods (TestClassSetup)
         function setupProject(testCase)
             testCase.applyFixture(nansen.fixture.ProjectFixture)
@@ -52,6 +61,28 @@ classdef DetectNewSessionsTest < matlab.unittest.TestCase
 
             testCase.verifyClass(newSessions, 'nansen.unittest.manage.helper.LabeledSession')
             testCase.verifyEqual(string({newSessions.sessionID}), removedSessionId)
+        end
+
+        function testInvalidSessionClassIsRefused(testCase, InvalidSessionClass)
+            sessionTable = testCase.createSessionTableWithoutFirstSession( ...
+                @nansen.metadata.type.Session);
+            invalidClassTable = nansen.metadata.MetaTable(sessionTable.entries, ...
+                MetaTableClass=InvalidSessionClass, MetaTableIdVarname="sessionID");
+
+            testCase.verifyError(@() nansen.manage.detectNewSessions(invalidClassTable, 'all'), ...
+                "NANSEN:DetectNewSessions:InvalidSessionClass")
+        end
+
+        function testItemClassNameIsChecked(testCase)
+            sessionTable = testCase.createSessionTableWithoutFirstSession( ...
+                @nansen.metadata.type.Session);
+            itemClassTable = nansen.metadata.MetaTable(sessionTable.entries, ...
+                MetaTableClass="nansen.metadata.type.Session", ...
+                ItemClassName="nansen.metadata.type.Subject", ...
+                MetaTableIdVarname="sessionID");
+
+            testCase.verifyError(@() nansen.manage.detectNewSessions(itemClassTable, 'all'), ...
+                "NANSEN:DetectNewSessions:InvalidSessionClass")
         end
 
         function testDetectedSessionsCanBeAddedToTable(testCase)

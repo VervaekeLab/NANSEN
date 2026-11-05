@@ -12,7 +12,7 @@ function updateSubjectTable(metatableCatalog, subjectSchema)
 %   subjects with the class named by subjectSchema.
 %
 %   The class of the new subjects must be nansen.metadata.type.Subject or
-%   a subclass of it.
+%   a subclass of it. It is checked only when there are new subjects.
 
     % Find master session table from metatable catalog
     sessionTable = metatableCatalog.getMasterMetaTable('session');
@@ -24,18 +24,24 @@ function updateSubjectTable(metatableCatalog, subjectSchema)
             subjectSchema = subjectTable.MetaTableClass;
         end
     end
-    validateSubjectClass(subjectSchema, subjectTable)
-
     try
         uniqueSubjectIds = unique( sessionTable.entries.subjectID );
 
         existingSubjectIds = unique( subjectTable.entries.SubjectID );
 
         newSubjectIds = setdiff(uniqueSubjectIds, existingSubjectIds);
+    catch
+        return
+    end
 
-        numSubjects = numel(newSubjectIds);
-        if numSubjects == 0; return; end
+    numSubjects = numel(newSubjectIds);
+    if numSubjects == 0; return; end
 
+    % The class is checked only when there are subjects to create, so a
+    % subject table whose subjects all exist is left alone
+    validateSubjectClass(subjectSchema, subjectTable)
+
+    try
         % Create subjects.
         subjectArray(numSubjects) = feval(subjectSchema); %#ok<FVAL>
         for i = 1:numSubjects
