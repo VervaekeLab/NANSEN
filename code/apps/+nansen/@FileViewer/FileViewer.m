@@ -1286,7 +1286,7 @@ classdef FileViewer < nansen.AbstractTabPageModule
             fileAdapterName = src.Text;
             fileAdapterList = nansen.dataio.listFileAdapters();
 
-            isMatch = [fileAdapterList.FileAdapterName] == string(fileAdapterName);
+            isMatch = strcmp({fileAdapterList.FileAdapterName}, fileAdapterName);
             edit( sprintf('%s/read', fileAdapterList(isMatch).FunctionName) );
         end
 

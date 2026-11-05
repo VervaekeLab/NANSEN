@@ -7,9 +7,9 @@ function editFileAdapter(fileAdapterName)
     fileAdapterList = nansen.dataio.listFileAdapters();
 
     if contains(fileAdapterName, 'fileadapter.')
-        isMatch = [fileAdapterList.FunctionName] == fileAdapterName;
+        isMatch = strcmp(fileAdapterName, {fileAdapterList.FunctionName});
     elseif ~contains(fileAdapterName, '.')
-        isMatch = [fileAdapterList.FileAdapterName] == fileAdapterName;
+        isMatch = strcmp(fileAdapterName, {fileAdapterList.FileAdapterName});
     else
         error('"%s" is not the name of a file adapter', fileAdapterName)
     end

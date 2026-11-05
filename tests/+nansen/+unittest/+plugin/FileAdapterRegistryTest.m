@@ -148,6 +148,37 @@ classdef FileAdapterRegistryTest < matlab.unittest.TestCase
             testCase.verifyFalse(entries.IsDynamic)
         end
 
+        function testListFileAdaptersReturnsCharAndCellFields(testCase)
+        %testListFileAdaptersReturnsCharAndCellFields Text fields are char and file types a cell
+        %
+        %   Callers collect a field with braces and compare it with strcmp,
+        %   which matches char elements only.
+            srcDir = fullfile(testCase.TempDir, 'src');
+            testCase.makeSidecarSourceInDir(srcDir, 'TiffAdapter', ["tif", "tiff"]);
+            testCase.makeSidecarSourceInDir(srcDir, 'CsvAdapter', "csv");
+            projectStub = testCase.makeProjectStub(srcDir);
+
+            fileAdapterList = nansen.dataio.listFileAdapters(Project=projectStub);
+
+            testCase.verifySize(fileAdapterList, [2, 1])
+            testCase.verifyTrue(iscellstr({fileAdapterList.FileAdapterName}))
+            testCase.verifyTrue(iscellstr({fileAdapterList.FunctionName}))
+            testCase.verifyTrue(iscellstr({fileAdapterList.DataType}))
+            testCase.verifyTrue(all(arrayfun(@(s) iscellstr(s.SupportedFileTypes), fileAdapterList)))
+            testCase.verifyEqual(nnz(strcmp({fileAdapterList.FileAdapterName}, 'TiffAdapter')), 1)
+        end
+
+        function testListFileAdaptersReturnsPlaceholderWithoutMatch(testCase)
+        %testListFileAdaptersReturnsPlaceholderWithoutMatch No match gives one 'N/A' element
+            srcDir = testCase.makeSidecarSource('src', 'CsvAdapter', "csv");
+            projectStub = testCase.makeProjectStub(srcDir);
+
+            fileAdapterList = nansen.dataio.listFileAdapters("tif", Project=projectStub);
+
+            testCase.verifyEqual(fileAdapterList.FileAdapterName, 'N/A')
+            testCase.verifyEqual(fileAdapterList.SupportedFileTypes, {})
+        end
+
         function testModuleDeprecationWarning(testCase)
             module = nansen.module.Module.fromName( ...
                 nansen.common.constant.BaseModuleName);
@@ -166,6 +197,16 @@ classdef FileAdapterRegistryTest < matlab.unittest.TestCase
     end
 
     methods (Access = private)
+        function projectStub = makeProjectStub(~, sourceFolder)
+        %makeProjectStub Stand-in for a project whose registry has one source
+        %
+        %   listFileAdapters reads only the FileAdapterRegistry property of
+        %   the project it is given.
+            registry = nansen.plugin.fileadapter.Registry();
+            registry.pinTop("project", sourceFolder);
+            projectStub = struct('FileAdapterRegistry', registry);
+        end
+
         function [codeFolder, sourceFolder] = makeClassAdapterSource(testCase, adapterName, extension)
         %makeClassAdapterSource Create a source with one class-based adapter.
         %

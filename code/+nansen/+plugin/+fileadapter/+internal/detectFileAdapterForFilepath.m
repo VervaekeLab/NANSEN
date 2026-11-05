@@ -19,8 +19,15 @@ function [fileAdapterName, isDynamic] = detectFileAdapterForFilepath(filePath)
 
     if isempty(fileAdapterList)
         error('No file adapters exist that can open files of type "%s"', fileExtension)
-    end
+    elseif numel(fileAdapterList) > 1
+        fileAdapterNames = {fileAdapterList.FunctionName};
+        fileAdapterNames = nansen.util.text.strArrayToBulletList(fileAdapterNames);
 
+        % warning(...
+        %     ['Multiple matching file adapters: \n%s\n Using first one. ', ...
+        %     'To use another file adapter, please specify the file ', ...
+        %     'adapter using the "FileAdapter" input'], fileAdapterNames)
+    end
     fileAdapterName = fileAdapterList(1).FunctionName;
     isDynamic = fileAdapterList(1).IsDynamic;
 end

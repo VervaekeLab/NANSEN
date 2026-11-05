@@ -175,7 +175,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 [obj.Data(:).DataType] = deal('');
                 for i = 1:numel(obj.Data)
                     if ~strcmp(obj.Data(i).FileAdapter, 'Default')
-                        isMatch = [fileAdapterList.FileAdapterName] == string(obj.Data(i).FileAdapter);
+                        isMatch = strcmp({fileAdapterList.FileAdapterName}, obj.Data(i).FileAdapter);
                         if any(isMatch)
                             fileAdapterFcn = str2func(fileAdapterList(isMatch).FunctionName);
                             obj.Data(i).DataType = fileAdapterFcn().DataType;
@@ -336,7 +336,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             end
 
             % Find file adapter match for name
-            isMatch = [fileAdapterList.FileAdapterName] == string(variableInfo.FileAdapter);
+            isMatch = strcmp({fileAdapterList.FileAdapterName}, variableInfo.FileAdapter);
 
             if ~any(isMatch)
                 error('File adapter was not found')
@@ -809,7 +809,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
         function variableItem = updateVariableDataType(variableItem)
             fileAdapterList = nansen.dataio.listFileAdapters();
             if ~strcmp(variableItem.FileAdapter, 'Default')
-                isMatch = [fileAdapterList.FileAdapterName] == string(variableItem.FileAdapter);
+                isMatch = strcmp({fileAdapterList.FileAdapterName}, variableItem.FileAdapter);
                 if any(isMatch)
                     fileAdapterFcn = str2func(fileAdapterList(isMatch).FunctionName);
 
