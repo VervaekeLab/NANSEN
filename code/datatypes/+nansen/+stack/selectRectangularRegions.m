@@ -20,8 +20,9 @@ function [regions, wasAborted] = selectRectangularRegions(imageStack, options)
 %
 %   regions = selectRectangularRegions(imageStack,RegionSize=SIZE) sets the
 %   initial size of the region that is placed. SIZE is a scalar for a
-%   square region or a two-element vector [WIDTH, HEIGHT]. By default, the
-%   region is one sixth of the image size.
+%   square region or a two-element vector [WIDTH, HEIGHT], at least 4
+%   pixels in each direction. By default, the region is one sixth of the
+%   image size.
 %
 %   regions = selectRectangularRegions(imageStack,Regions=REGIONS) starts
 %   the selection with the regions in REGIONS already placed, so that an
@@ -43,15 +44,17 @@ function [regions, wasAborted] = selectRectangularRegions(imageStack, options)
     regionSize = resolveRegionSize(options.RegionSize, imageStack);
 
     % Caching makes browsing the stack in imviewer responsive while the
-    % regions are placed. Only a virtual stack has a dynamic cache.
-    useDynamicCache = imageStack.IsVirtual;
-    if useDynamicCache
+    % regions are placed. Only a virtual stack has a dynamic cache. The
+    % cleanup objects restore the cache and close the viewer also when an
+    % error or Ctrl+C ends the function early.
+    if imageStack.IsVirtual
         initialCacheState = imageStack.DynamicCacheEnabled;
         imageStack.DynamicCacheEnabled = 'on';
+        cacheCleanup = onCleanup(@() restoreCacheState(imageStack, initialCacheState));
     end
 
     hImviewer = imviewer(imageStack);
-    hImviewer.ImageDragAndDropEnabled = false;
+    viewerCleanup = onCleanup(@() quitViewer(hImviewer));
 
     hRegionSelector = hImviewer.openPlugin(@imviewer.plugin.RegionSelector, ...
         [], 'RegionSize', regionSize, 'Regions', options.Regions);
@@ -69,28 +72,45 @@ function [regions, wasAborted] = selectRectangularRegions(imageStack, options)
     end
 
     delete(hRegionSelector)
+    clear viewerCleanup cacheCleanup
+end
+
+function quitViewer(hImviewer)
+%quitViewer Close the image viewer unless the user closed it already
     if isvalid(hImviewer)
         hImviewer.quit()
     end
-    if useDynamicCache && isvalid(imageStack)
-        imageStack.DynamicCacheEnabled = initialCacheState;
+end
+
+function restoreCacheState(imageStack, cacheState)
+%restoreCacheState Set the dynamic cache of a stack back to its earlier state
+    if isvalid(imageStack)
+        imageStack.DynamicCacheEnabled = cacheState;
     end
 end
 
 function regionSize = resolveRegionSize(regionSize, imageStack)
 %resolveRegionSize Get the initial region size as [width, height]
 
+    minimumSize = roimanager.pointerTool.rectangleSelect.MIN_SIZE;
+
     if isempty(regionSize)
         % One sixth of the image in each direction is large enough to hold
         % structures for registration and small enough that several regions
         % fit in the field of view.
         regionSize = round( [imageStack.ImageWidth, imageStack.ImageHeight] ./ 6 );
+        regionSize = max(regionSize, minimumSize);
     elseif isscalar(regionSize)
         regionSize = [regionSize, regionSize];
     elseif numel(regionSize) > 2
         error('NANSEN:Stack:SelectRegions:InvalidRegionSize', ...
             ['RegionSize must be a scalar or a two-element vector ', ...
             '[width, height].'])
+    end
+
+    if any(regionSize < minimumSize)
+        error('NANSEN:Stack:SelectRegions:InvalidRegionSize', ...
+            'RegionSize must be at least %d pixels in each direction.', minimumSize)
     end
 
     regionSize = min(regionSize, [imageStack.ImageWidth, imageStack.ImageHeight]);

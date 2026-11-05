@@ -15,6 +15,7 @@ classdef rectangleSelect < uim.interface.abstractPointer & ...
 
     properties (Constant)
         exitMode = 'default';
+        MIN_SIZE = 4        % Smallest rectangle size (pixels) in each direction
     end
 
     properties % Properties related to displaying the rectangle during creation
@@ -24,7 +25,6 @@ classdef rectangleSelect < uim.interface.abstractPointer & ...
     end
 
     properties (Constant, Access = private)
-        MIN_SIZE = 4        % Smallest rectangle size (pixels) in each direction
         SIZE_INCREMENT = 4  % Change in size (pixels) per keypress
     end
 
@@ -156,7 +156,19 @@ classdef rectangleSelect < uim.interface.abstractPointer & ...
         %setRectangleSize Set the size of the rectangle tool
         %
         %   setRectangleSize(obj, newSize) sets the size of the rectangle
-        %   to newSize, given as [width, height].
+        %   to newSize, given as [width, height]. Each value must be at
+        %   least MIN_SIZE, the smallest size the tool can show.
+
+            arguments
+                obj (1,1) roimanager.pointerTool.rectangleSelect
+                newSize (1,2) double {mustBePositive}
+            end
+
+            if any(newSize < obj.MIN_SIZE)
+                error("NANSEN:RoiManager:RectangleSizeTooSmall", ...
+                    "The rectangle size must be at least %d pixels in " + ...
+                    "each direction.", obj.MIN_SIZE)
+            end
 
             obj.defaultSize = newSize;
 

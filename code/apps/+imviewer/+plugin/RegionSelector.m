@@ -75,9 +75,12 @@ classdef RegionSelector < imviewer.ImviewerPlugin
         %
         %   regions = getRegions(obj) returns an N-by-4 array of rectangles
         %   [xmin, ymin, width, height] of pixel indices, in the order the
-        %   regions were placed.
+        %   regions were placed. A region that was moved partly out of the
+        %   image is cut to the image, and a region outside the image is
+        %   left out.
 
-            regions = rois2rectangles(obj.RoiGroup.roiArray);
+            imageSize = [obj.ImviewerObj.imHeight, obj.ImviewerObj.imWidth];
+            regions = rois2rectangles(obj.RoiGroup.roiArray, imageSize);
         end
     end
 
@@ -98,13 +101,16 @@ classdef RegionSelector < imviewer.ImviewerPlugin
 
             imageSize = [obj.ImviewerObj.imHeight, obj.ImviewerObj.imWidth];
 
+            % The roi map plots the rois that are added to the group after
+            % it is created, not the ones the group holds already, so the
+            % map is created first.
             obj.RoiGroup = roimanager.roiGroup();
+            obj.RoiMap = roimanager.roiMap(obj.ImviewerObj, ...
+                obj.ImviewerObj.Axes, obj.RoiGroup);
+
             if ~isempty(obj.Regions)
                 obj.RoiGroup.addRois( rectangles2rois(obj.Regions, imageSize) )
             end
-
-            obj.RoiMap = roimanager.roiMap(obj.ImviewerObj, ...
-                obj.ImviewerObj.Axes, obj.RoiGroup);
         end
 
         function initializePointerTools(obj)
@@ -131,8 +137,13 @@ classdef RegionSelector < imviewer.ImviewerPlugin
     end
 end
 
-function rectangles = rois2rectangles(roiArray)
-%rois2rectangles Get the bounding rectangle of each roi
+function rectangles = rois2rectangles(roiArray, imageSize)
+%rois2rectangles Get the rectangle of pixels that each roi covers
+%
+%   The corners of a region lie on pixel edges, half a pixel outside the
+%   centres of its corner pixels. The arrow keys move a selected region
+%   without stopping at the image border, so each rectangle is cut to the
+%   image, and a region outside the image is left out.
 
     numRois = numel(roiArray);
     rectangles = zeros(numRois, 4);
@@ -141,17 +152,22 @@ function rectangles = rois2rectangles(roiArray)
         xCoordinates = roiArray(i).coordinates(:, 1);
         yCoordinates = roiArray(i).coordinates(:, 2);
 
-        xMin = round( min(xCoordinates) );
-        yMin = round( min(yCoordinates) );
-        width = round( max(xCoordinates) ) - xMin + 1;
-        height = round( max(yCoordinates) ) - yMin + 1;
+        xMin = max( round(min(xCoordinates) + 0.5), 1 );
+        yMin = max( round(min(yCoordinates) + 0.5), 1 );
+        xMax = min( round(max(xCoordinates) - 0.5), imageSize(2) );
+        yMax = min( round(max(yCoordinates) - 0.5), imageSize(1) );
 
-        rectangles(i, :) = [xMin, yMin, width, height];
+        rectangles(i, :) = [xMin, yMin, xMax - xMin + 1, yMax - yMin + 1];
     end
+
+    isOutsideImage = rectangles(:, 3) < 1 | rectangles(:, 4) < 1;
+    rectangles(isOutsideImage, :) = [];
 end
 
 function roiArray = rectangles2rois(rectangles, imageSize)
 %rectangles2rois Create one rectangular polygon roi per rectangle
+%
+%   The corners lie on pixel edges, as in roimanager.roiMap/createRectangularRoi.
 
     numRectangles = size(rectangles, 1);
     roiArray = RoI.empty;
@@ -162,8 +178,8 @@ function roiArray = rectangles2rois(rectangles, imageSize)
         xMax = xMin + rectangles(i, 3) - 1;
         yMax = yMin + rectangles(i, 4) - 1;
 
-        xCorners = [xMin, xMax, xMax, xMin];
-        yCorners = [yMin, yMin, yMax, yMax];
+        xCorners = [xMin, xMax, xMax, xMin] + [-0.5, 0.5, 0.5, -0.5];
+        yCorners = [yMin, yMin, yMax, yMax] + [-0.5, -0.5, 0.5, 0.5];
 
         roiArray(i) = RoI('Polygon', [xCorners; yCorners], imageSize);
     end

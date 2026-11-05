@@ -29,7 +29,38 @@ classdef RectangularRoiTest < matlab.unittest.TestCase
 
             roiMap.createRectangularRoi(100, 120, 64, 48);
 
-            testCase.verifyEqual(getRectangle(roiGroup, 1), [68, 96, 64, 48]);
+            testCase.verifyEqual(getRectangle(roiGroup, 1), [69, 97, 64, 48]);
+        end
+
+        function testCentreIsWithinHalfAPixelOfThePoint(testCase)
+            [roiMap, roiGroup] = testCase.createRoiMap();
+
+            roiMap.createRectangularRoi(100.4, 120.6, 64, 48);
+
+            rectangle = getRectangle(roiGroup, 1);
+            centre = rectangle(1:2) + (rectangle(3:4) - 1) / 2;
+            testCase.verifyLessThanOrEqual(abs(centre - [100.4, 120.6]), 0.5);
+        end
+
+        function testMaskHoldsExactlyThePixelsOfTheRectangle(testCase)
+            [roiMap, roiGroup] = testCase.createRoiMap();
+
+            roiMap.createRectangularRoi(100, 120, 64, 48);
+
+            rectangle = getRectangle(roiGroup, 1);
+            [rows, columns] = find(roiGroup.roiArray(1).mask);
+            testCase.verifyEqual(numel(rows), 64 * 48);
+            testCase.verifyEqual([min(columns), min(rows)], rectangle(1:2));
+            testCase.verifyEqual([max(columns), max(rows)], ...
+                rectangle(1:2) + rectangle(3:4) - 1);
+        end
+
+        function testMaskOfAFullImageRectangleHoldsEveryPixel(testCase)
+            [roiMap, roiGroup] = testCase.createRoiMap();
+
+            roiMap.createRectangularRoi(150, 100, 400, 300);
+
+            testCase.verifyTrue(all(roiGroup.roiArray(1).mask, "all"));
         end
 
         function testRectangleIsCreatedAsAPolygonWithFourCorners(testCase)
@@ -87,8 +118,8 @@ classdef RectangularRoiTest < matlab.unittest.TestCase
             roiMap.createRectangularRoi(200, 60, 32, 32);
 
             testCase.verifyEqual(roiGroup.roiCount, 2);
-            testCase.verifyEqual(getRectangle(roiGroup, 1), [68, 96, 64, 48]);
-            testCase.verifyEqual(getRectangle(roiGroup, 2), [184, 44, 32, 32]);
+            testCase.verifyEqual(getRectangle(roiGroup, 1), [69, 97, 64, 48]);
+            testCase.verifyEqual(getRectangle(roiGroup, 2), [185, 45, 32, 32]);
         end
 
         % ------------------------------------------------------------
@@ -134,15 +165,22 @@ classdef RectangularRoiTest < matlab.unittest.TestCase
             testCase.verifyEqual(hTool.rectangleToolCoords(3:4), testCase.RegionSize);
         end
 
+        function testToolRefusesASizeBelowTheMinimum(testCase)
+            hTool = testCase.createPointerTool();
+
+            testCase.verifyError(@() hTool.setRectangleSize([3, 3]), ...
+                "NANSEN:RoiManager:RectangleSizeTooSmall");
+        end
+
         function testRoiIsCreatedWithTheSizeOfTheTool(testCase)
-            % What the tool does on a click, without moving the mouse
+            % A click on the axes, which creates the roi at the pointer.
+            % The width and height differ, so a swap would be caught.
             [roiMap, roiGroup] = testCase.createRoiMap();
             hTool = testCase.createPointerTool(roiMap);
             hTool.setRectangleSize(testCase.RegionSize)
             hTool.changeRectangleSize([8, 8])
 
-            toolSize = hTool.rectangleToolCoords(3:4);
-            hTool.RoiDisplay.createRectangularRoi(150, 100, toolSize(1), toolSize(2));
+            hTool.onButtonDown([], [])
 
             rectangle = getRectangle(roiGroup, 1);
             testCase.verifyEqual(rectangle(3:4), testCase.RegionSize + 8);
@@ -191,14 +229,17 @@ classdef RectangularRoiTest < matlab.unittest.TestCase
 end
 
 function rectangle = getRectangle(roiGroup, roiNumber)
-%getRectangle Get the bounding rectangle of a roi as [x, y, width, height]
+%getRectangle Get the pixels a roi covers as [x, y, width, height]
+%
+%   The corners of a rectangular roi lie on pixel edges, half a pixel
+%   outside the centres of its corner pixels.
 
     coordinates = roiGroup.roiArray(roiNumber).coordinates;
 
-    xMin = min(coordinates(:, 1));
-    yMin = min(coordinates(:, 2));
-    width = max(coordinates(:, 1)) - xMin + 1;
-    height = max(coordinates(:, 2)) - yMin + 1;
+    xMin = min(coordinates(:, 1)) + 0.5;
+    yMin = min(coordinates(:, 2)) + 0.5;
+    width = max(coordinates(:, 1)) - min(coordinates(:, 1));
+    height = max(coordinates(:, 2)) - min(coordinates(:, 2));
 
     rectangle = [xMin, yMin, width, height];
 end
