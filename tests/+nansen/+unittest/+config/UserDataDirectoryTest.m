@@ -134,6 +134,35 @@ classdef UserDataDirectoryTest < matlab.unittest.TestCase
                 isfile(fullfile(testCase.DefaultDirectory, 'projects', testCase.CATALOG_FILENAME)))
         end
 
+        function testRefusesDirectoryWithUserDataFolder(testCase)
+        % A folder of the user's own, such as a Dropbox root, can hold a
+        % settings folder. Merging into it would mix the two.
+
+            newDirectory = testCase.createTemporaryDirectory('withsettings');
+            mkdir(fullfile(newDirectory, 'settings'))
+
+            testCase.verifyError( ...
+                @() testCase.UserSession.setUserDataDirectory(newDirectory), ...
+                'NANSEN:UserSession:UserDataDirectoryInUse')
+
+            testCase.verifyEqual(testCase.UserSession.getCurrentUserDataDirectory(), ...
+                testCase.DefaultDirectory)
+            testCase.verifyEmpty(dir(fullfile(newDirectory, 'settings', '*.mat')))
+        end
+
+        function testRefusesDirectoryInsideCurrent(testCase)
+        % Choosing <current>/local would move local into local/local
+
+            newDirectory = fullfile(testCase.DefaultDirectory, 'local');
+
+            testCase.verifyError( ...
+                @() testCase.UserSession.setUserDataDirectory(newDirectory), ...
+                'NANSEN:UserSession:NestedUserDataDirectory')
+
+            testCase.verifyTrue( ...
+                isfile(fullfile(testCase.DefaultDirectory, 'projects', testCase.CATALOG_FILENAME)))
+        end
+
         function testRejectsRelativePath(testCase)
         % A relative path would resolve against the current folder
 
