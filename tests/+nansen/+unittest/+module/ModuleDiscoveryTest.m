@@ -35,18 +35,31 @@ classdef ModuleDiscoveryTest < matlab.unittest.TestCase
             entry = moduleList(isMatch);
         end
 
-        function rootFolder = createModuleRoot(testCase, shortName, category)
-        %createModuleRoot Make a path root holding one flat module folder
+        function [rootFolder, moduleFolder] = createModuleRoot(testCase, shortName, category, options)
+        %createModuleRoot Make a path root holding one module folder
         %
         %   Writes <root>/+nansen/+module/+<shortName>/module.nansen.json
         %   with the given category and returns <root>, which the caller
-        %   puts on the path. Discovery keys off the specification file, so
-        %   no code files are needed.
+        %   puts on the path, and the module folder. With CategoryFolder
+        %   set, the module folder is
+        %   <root>/+nansen/+module/+<CategoryFolder>/+<shortName>.
+        %   Discovery reads only the specification file, so no code files
+        %   are needed.
+            arguments
+                testCase
+                shortName (1,1) string
+                category (1,1) string
+                options.CategoryFolder (1,1) string = ""
+            end
             import matlab.unittest.fixtures.TemporaryFolderFixture
 
             fixture = testCase.applyFixture(TemporaryFolderFixture);
             rootFolder = char(fixture.Folder);
-            moduleFolder = fullfile(rootFolder, '+nansen', '+module', ['+', char(shortName)]);
+            moduleFolder = fullfile(rootFolder, '+nansen', '+module');
+            if options.CategoryFolder ~= ""
+                moduleFolder = fullfile(moduleFolder, ['+', char(options.CategoryFolder)]);
+            end
+            moduleFolder = fullfile(moduleFolder, ['+', char(shortName)]);
             mkdir(moduleFolder)
 
             % Only the Properties block is read by discovery.
@@ -122,15 +135,48 @@ classdef ModuleDiscoveryTest < matlab.unittest.TestCase
         end
 
         function testDuplicateShortNamesAreRejected(testCase)
+            % nansen.module.discoverydupmod and
+            % nansen.module.beta.discoverydupmod are different packages
+            % with the same short name.
             import matlab.unittest.fixtures.PathFixture
 
-            firstRoot = testCase.createModuleRoot("discoverydupmod", "alpha");
-            secondRoot = testCase.createModuleRoot("discoverydupmod", "beta");
+            [firstRoot, firstModuleFolder] = testCase.createModuleRoot( ...
+                "discoverydupmod", "alpha");
+            [secondRoot, secondModuleFolder] = testCase.createModuleRoot( ...
+                "discoverydupmod", "beta", CategoryFolder="beta");
             testCase.applyFixture(PathFixture(firstRoot))
             testCase.applyFixture(PathFixture(secondRoot))
 
-            testCase.verifyError(@() nansen.config.module.ModuleManager(), ...
-                'NANSEN:ModuleManager:DuplicateModuleName')
+            try
+                nansen.config.module.ModuleManager();
+                testCase.verifyFail('Two packages with the same short name were accepted')
+            catch exception
+                testCase.verifyEqual(exception.identifier, ...
+                    'NANSEN:ModuleManager:DuplicateModuleName')
+                % The message names the folder of each clashing package.
+                testCase.verifySubstring(exception.message, firstModuleFolder)
+                testCase.verifySubstring(exception.message, secondModuleFolder)
+            end
+        end
+
+        function testSamePackageTwiceIsAccepted(testCase)
+            % A package found in two folders on the path, for example a
+            % cloned repository and an installed copy, is one module. The
+            % entry from the folder first on the path is kept.
+            import matlab.unittest.fixtures.PathFixture
+
+            laterRoot = testCase.createModuleRoot("discoverysamemod", "alpha");
+            [firstRoot, firstModuleFolder] = testCase.createModuleRoot( ...
+                "discoverysamemod", "alpha");
+            % PathFixture adds a folder to the top of the path, so the root
+            % applied last comes first on the path.
+            testCase.applyFixture(PathFixture(laterRoot))
+            testCase.applyFixture(PathFixture(firstRoot))
+
+            moduleManager = nansen.config.module.ModuleManager();
+            entry = testCase.getEntry("nansen.module.discoverysamemod", moduleManager.ModuleList);
+
+            testCase.verifyEqual(string(entry.FolderPath), string(firstModuleFolder))
         end
     end
 end
