@@ -199,7 +199,7 @@ classdef Preferences < matlab.mixin.CustomDisplay & handle
         end
 
         function propertyNames = getActivePreferenceGroup(obj)
-        %getCurrentPreferenceGroup Get current preference group
+        %getActivePreferenceGroup Get names of the active preferences
         %
         %   This method returns a cell array of names of preferences that
         %   are currently active. Some preference values are dependent on
