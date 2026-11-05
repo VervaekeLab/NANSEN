@@ -1184,6 +1184,14 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         %   using the data location model of the current project. When
         %   there is no project to ask, the fields stay absent and are
         %   filled in later, when a session object is made from a row.
+
+            % Building the model saves its file, so a table without a data
+            % location column, such as a subject table, does not ask for it.
+            if isempty(tableEntries) || ...
+                    ~ismember('DataLocation', tableEntries.Properties.VariableNames)
+                return
+            end
+
             dataLocationModel = obj.getDataLocationModel();
             if isempty(dataLocationModel)
                 return
@@ -1196,15 +1204,18 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         function dataLocationModel = getDataLocationModel(~)
         %getDataLocationModel Data location model of the current project
         %
-        %   Empty when no project is active. As elsewhere in the table
-        %   variables, this assumes the table being opened belongs to the
-        %   current project.
+        %   Empty when no project is active, or when no user session is
+        %   active, for example in a parallel worker. As elsewhere in the
+        %   table variables, this assumes the table being opened belongs to
+        %   the current project.
 
-            dataLocationModel = [];
             try
                 dataLocationModel = nansen.DataLocationModel();
-            catch
-                % Leave empty; there is no project to expand against.
+            catch ME
+                if ~strcmp(ME.identifier, 'NANSEN:NoActiveUserSession')
+                    rethrow(ME)
+                end
+                dataLocationModel = [];
             end
         end
 
@@ -1553,6 +1564,18 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             valueForComparison = newValue;
             if iscell(valueForComparison) && isscalar(valueForComparison)
                 valueForComparison = valueForComparison{1};
+            end
+
+            % A table opened without a data location model keeps its data
+            % locations in the stored form, without the fields that a
+            % session object derives. A struct column must keep one set of
+            % fields, so the session's value is reduced to that form.
+            if strcmp(propertyName, 'DataLocation') && isstruct(currentValue) ...
+                    && isstruct(valueForComparison) && ~isfield(currentValue, 'RootPath') ...
+                    && isfield(valueForComparison, 'RootPath')
+                reduceInfo = @nansen.config.dloc.DataLocationModel.reduceDataLocationInfo;
+                valueForComparison = reduceInfo(valueForComparison);
+                newValue = valueForComparison;
             end
 
             if isequaln(currentValue, valueForComparison)
