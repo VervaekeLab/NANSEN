@@ -161,6 +161,14 @@
       "source": "https://github.com/ehennestad/entity-table",
       "description": "Modern table component for Java-free table UIs in MATLAB R2025a and newer",
       "installCheck": "entitytable.EntityTableView"
+    },
+    {
+      "name": "NANSEN Two-Photon Module",
+      "dependencyType": "community-toolbox",
+      "requirementLevel": "required",
+      "source": "https://github.com/NansenModules/NANSEN-TwoPhoton",
+      "description": "Two-photon imaging module (nansen.module.twophoton): session methods, scanner readers, ROI signals, autosegmentation and motion correction. Required until NANSEN core no longer references it directly.",
+      "installCheck": "nansen.module.twophoton.roisignals.computeDff"
     }
   ]
 }

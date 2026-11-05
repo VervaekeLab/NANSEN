@@ -90,27 +90,26 @@ classdef TestDependencyManagement < matlab.unittest.TestCase
     methods (Test)
         function readModuleManifestWithWorkflowScopes(testCase)
         %readModuleManifestWithWorkflowScopes Verify per-entry scope overrides.
-            moduleManifestPath = fullfile(nansen.toolboxdir, 'modules', ...
-                '+nansen', '+module', '+twophoton', ...
-                'dependencies.nansen.json');
-            testCase.assumeTrue(isfile(moduleManifestPath), ...
-                'Two-photon module manifest not found')
+            moduleManifestPath = fullfile(nansen.toolboxdir, '..', 'tests', ...
+                '+nansen', '+fixture', 'manifests', ...
+                'test_module_dependencies.nansen.json');
 
             dependencies = nansen.internal.dependencies.readManifest( ...
                 moduleManifestPath);
-
-            % Find a workflow-scoped entry (e.g. EXTRACT)
             names = string({dependencies.Name});
-            extractIdx = find(names == "EXTRACT", 1);
-            testCase.assumeNotEmpty(extractIdx, 'EXTRACT dependency not found')
 
-            testCase.verifyEqual(string(dependencies(extractIdx).Scope), "workflow")
-            testCase.verifyTrue(contains(dependencies(extractIdx).ScopeId, "extract"))
+            % An entry with scope and scopeId overrides keeps both
+            workflowIdx = find(names == "TestWorkflowTool", 1);
+            testCase.assertNotEmpty(workflowIdx, 'TestWorkflowTool dependency not found')
+            testCase.verifyEqual(string(dependencies(workflowIdx).Scope), "workflow")
+            testCase.verifyEqual(string(dependencies(workflowIdx).ScopeId), ...
+                "test.module.alpha.workflow.beta")
 
-            % Entries without scope override should inherit "module"
-            iptIdx = find(names == "Image Processing Toolbox", 1);
-            testCase.assumeNotEmpty(iptIdx)
-            testCase.verifyEqual(string(dependencies(iptIdx).Scope), "module")
+            % Entries without scope override inherit the manifest's scope and scopeId
+            moduleIdx = find(names == "TestToolboxC", 1);
+            testCase.assertNotEmpty(moduleIdx, 'TestToolboxC dependency not found')
+            testCase.verifyEqual(string(dependencies(moduleIdx).Scope), "module")
+            testCase.verifyEqual(string(dependencies(moduleIdx).ScopeId), "test.module.alpha")
         end
     end
 
