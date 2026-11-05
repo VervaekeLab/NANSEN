@@ -113,6 +113,10 @@ classdef UserDataDirectoryTest < matlab.unittest.TestCase
             import nansen.internal.user.NansenUserSession
             import nansen.internal.user.UserDataRedirect
 
+            % Without a userpath the default is the preference directory,
+            % and no redirect file is written
+            testCase.assumeNotEmpty(userpath())
+
             newDirectory = testCase.moveUserDataDirectory('redirected');
 
             testCase.verifyEqual(UserDataRedirect.read(testCase.DefaultDirectory), ...
