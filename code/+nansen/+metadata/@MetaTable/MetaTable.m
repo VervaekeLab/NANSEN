@@ -1213,7 +1213,10 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                 end
                 rethrow(exception)
             end
-            if isempty(project) || ~startsWith(string(obj.filepath), string(project.FolderPath))
+            % The separator keeps a sibling folder whose name starts with the
+            % project folder's name from counting as the project folder.
+            if isempty(project) || ...
+                    ~startsWith(string(obj.filepath), string(project.FolderPath) + filesep)
                 return
             end
 
@@ -1980,13 +1983,21 @@ function pathTable = dataLocationPaths(dataLocations)
     paths = strings(numRows, 0);
     for i = 1:numRows
         for location = reshape(rows{i}, 1, [])
+            % A data location the model does not know has no name, and the
+            % format from before data locations had uuids is keyed by name
+            if ~isfield(location, 'Name') || isempty(location.Name)
+                continue
+            end
             columnIndex = find(names == string(location.Name), 1);
             if isempty(columnIndex)
                 names(end+1) = string(location.Name); %#ok<AGROW>
                 paths(:, end+1) = ""; %#ok<AGROW>
                 columnIndex = numel(names);
             end
-            if isfield(location, 'RootPath') && ~isempty(location.Subfolders)
+            % Without a root path on this computer only the subfolders are
+            % known, which is not a path, so the cell is left empty
+            if isfield(location, 'RootPath') && ~isempty(location.RootPath) ...
+                    && ~isempty(location.Subfolders)
                 paths(i, columnIndex) = fullfile(location.RootPath, location.Subfolders);
             end
         end
