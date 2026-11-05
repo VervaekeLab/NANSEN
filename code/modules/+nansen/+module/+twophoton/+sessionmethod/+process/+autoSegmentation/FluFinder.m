@@ -22,8 +22,8 @@ classdef FluFinder < nansen.session.SessionMethod & nansen.module.twophoton.auto
 %- FluFinder is tuned for a specific data style and may not generalize as
 %  well to other preparations, indicators, or imaging systems.
 %
-%Note: this method was previously named Quicky. `Quicky` remains available
-%as an alias so that stored pipelines and catalogs keep resolving.
+%Note: `Quicky` is an alias of this method, for stored pipelines and
+%catalogs that refer to the method by that name.
 
     properties (Constant) % SessionMethod attributes
         BatchMode = 'serial' % Move to data method?
