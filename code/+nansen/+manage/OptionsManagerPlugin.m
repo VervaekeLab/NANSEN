@@ -128,7 +128,7 @@ classdef OptionsManagerPlugin < handle
                 obj.OptionsManager.appendModifiedOptions(obj.Editor.Data, oldName)
             end
 
-            if obj.OptionsManager.isModified(newName)
+            if any(strcmp(obj.OptionsManager.EditedOptionNames, newName))
                 newOptions = obj.OptionsManager.getModifiedOptions(newName);
             else
                 newOptions = obj.OptionsManager.getOptions(newName);

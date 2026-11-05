@@ -56,6 +56,19 @@ classdef OptionsManagerPluginTest < matlab.unittest.TestCase
             testCase.verifyEqual(editor.OriginalData.Value, 1)
         end
 
+        function testSelectingModifiedOptionsRestoresEditedData(testCase)
+            [plugin, editor] = testCase.attachPlugin();
+            editor.Data = struct('Value', 5);
+            plugin.onDataChanged(editor, struct('Name', "Value"))
+
+            dropDown = findOptionsDropDown(editor);
+            selectOption(dropDown, 'Preset B')
+            selectOption(dropDown, 'Preset A (Modified)')
+
+            testCase.verifyEqual(editor.Data.Value, 5)
+            testCase.verifyEqual(plugin.CurrentOptionsName, 'Preset A (Modified)')
+        end
+
         function testSaveOptionsSavesEditorData(testCase)
             [plugin, editor, manager] = testCase.attachPlugin();
             editor.Data = struct('Value', 7);
@@ -68,7 +81,7 @@ classdef OptionsManagerPluginTest < matlab.unittest.TestCase
             testCase.verifyEqual(manager.SaveCustomOptionsCallCount, 1)
             testCase.verifyEqual(manager.SavedOptions.Value, 7)
             testCase.verifyEqual(plugin.CurrentOptionsName, 'Saved Custom')
-            testCase.verifyFalse(manager.isModified('Preset A (Modified)'))
+            testCase.verifyEmpty(manager.EditedOptionNames)
         end
 
         function testMakeDefaultSetsDefaultOptions(testCase)

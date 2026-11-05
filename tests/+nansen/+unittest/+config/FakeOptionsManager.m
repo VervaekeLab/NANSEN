@@ -1,4 +1,12 @@
 classdef FakeOptionsManager < handle
+%FakeOptionsManager In-memory fake of the nansen.manage.OptionsManager members used by OptionsManagerPlugin.
+%
+%   Holds the presets "Preset A" (Value 1) and "Preset B" (Value 2) and the
+%   custom options set "Custom A" (Value 10). saveCustomOptions stores the
+%   options as "Saved Custom" without a dialog, and the call counts and
+%   saved values are public for tests to inspect. Every method of this
+%   fake is public on nansen.manage.OptionsManager, so a plugin that calls
+%   a private method of the real class fails in tests too.
 
     properties
         OptionsName char = 'Preset A'
@@ -78,10 +86,6 @@ classdef FakeOptionsManager < handle
 
         function resetModifiedOptions(obj)
             obj.ModifiedMap = containers.Map();
-        end
-
-        function tf = isModified(obj, name)
-            tf = obj.ModifiedMap.isKey(char(name));
         end
 
         function givenName = saveCustomOptions(obj, opts, name)
