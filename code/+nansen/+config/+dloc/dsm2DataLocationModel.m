@@ -93,8 +93,8 @@ function [dataLocations, variables, report] = dsm2DataLocationModel(dsmConfig, o
             continue
         end
 
-        [item, sessionLevel, usedHere, levelsBelowSession] = convertLocation(location, where, definitions, ...
-            sessionEntity, subjectEntity, sessionKeys, subjectKeys, report);
+        [item, sessionLevel, usedHere, levelsBelowSession] = convertLocation(location, where, ...
+            definitions, sessionEntity, subjectEntity, sessionKeys, subjectKeys, report);
         if isempty(item)
             continue
         end
@@ -108,6 +108,13 @@ function [dataLocations, variables, report] = dsm2DataLocationModel(dsmConfig, o
     end
     variables = qualifyRepeatedVariableNames(variables, report);
 
+    % NANSEN matches the sessions of different data locations by their
+    % Session ID (matchSessionFolders)
+    report.add("dataLocations", "A Session ID joined from the names of several levels matches the " + ...
+        "sessions of another data location only where that location has the same folder names on " + ...
+        "those levels, in the same order.", ...
+        numel(dataLocations) > 1 && any(arrayfun(@hasJoinedSessionId, dataLocations)))
+
     for fieldName = string(fieldnames(definitions))'
         if ~ismember(fieldName, usedFields)
             report.add("metadataDefinitions[" + fieldName + "]", ...
@@ -120,8 +127,8 @@ end
 
 % -------------------------------------------------------------------------
 
-function [item, sessionLevel, usedFields, levelsBelowSession] = convertLocation(location, where, definitions, ...
-        sessionEntity, subjectEntity, sessionKeys, subjectKeys, report)
+function [item, sessionLevel, usedFields, levelsBelowSession] = convertLocation(location, where, ...
+        definitions, sessionEntity, subjectEntity, sessionKeys, subjectKeys, report)
 %convertLocation Convert one filesystem data location
 %
 %   levelsBelowSession are the layout levels under the session level. NANSEN
@@ -339,7 +346,8 @@ function [metaDataDef, usedFields] = convertMetadata(mapping, definitions, layou
         usedFields = [usedFields, sessionKeys];
         report.add(where + ".metadataMapping[" + strjoin(sessionKeys, ", ") + "]", ...
             "The session identity is composite; the Session ID joins the names of levels " + ...
-            strjoin(levelNames(compositeLevels), ", ") + " with '_', so it holds whole folder names rather than the extracted values.")
+            strjoin(levelNames(compositeLevels), ", ") + " with '_', so it holds whole folder names " + ...
+            "rather than the extracted values.")
     end
 end
 
@@ -360,36 +368,61 @@ function levels = compositeIdentityLevels(mapping, keys, layout, sessionIndex, s
 %
 %   A part given by a fixed rule is not in the path and is left out.
 %   Returns empty, with a report, when a part is read otherwise than from
-%   one level at or above the session level.
+%   one level at or above the session level, and when the session level
+%   is a level of files: the whole name of a file holds its extension and
+%   whatever tells the files of one session apart, so each file would
+%   become a session of its own.
 
     levels = [];
     levelNames = fieldValues(layout, 'name');
     levelTypes = fieldValues(layout, 'entityType');
 
+    if string(getOr(layout{sessionIndex}, 'fileSystemType', 'folder')) == "file"
+        report.add(where + ".metadataMapping[" + strjoin(keys, ", ") + "]", ...
+            "The session identity is composite and the session level is a level of files. Joining whole " + ...
+            "names would make each file a session of its own, with the extension in its Session ID, " + ...
+            "so the Session ID is left unset.")
+        return
+    end
+
     for key = keys
         here = where + ".metadataMapping[" + key + "]";
         rule = findRule(mapping, key);
         if isempty(rule)
-            report.add(here, "No extraction rule for this part of the composite session identity; the Session ID is left unset.")
+            report.add(here, "No extraction rule for this part of the composite session identity; " + ...
+                "the Session ID is left unset.")
             levels = [];
             return
         end
         method = string(rule.extraction.method);
         if method == "fixed"
-            report.add(here, "A fixed part of the session identity is not in the path; the Session ID leaves it out.")
+            report.add(here, "A fixed part of the session identity is not in the path; " + ...
+                "the Session ID leaves it out.")
             continue
         end
         levelIndex = levelIndexOf(rule.extraction, levelNames);
         if ~ismember(method, ["substring", "regex"]) || isempty(levelIndex) || levelIndex > sessionIndex
-            report.add(here, "This part of the composite session identity is not read from one level at or above the session level; the Session ID is left unset.")
+            report.add(here, "This part of the composite session identity is not read from one level " + ...
+                "at or above the session level; the Session ID is left unset.")
             levels = [];
             return
         end
         levels(end+1) = levelIndex; %#ok<AGROW>
     end
 
-    ancestorLevels = find(levelTypes(1:sessionIndex-1) ~= "" & levelTypes(1:sessionIndex-1) ~= sessionEntity);
+    ancestorTypes = levelTypes(1:sessionIndex-1);
+    ancestorLevels = find(ancestorTypes ~= "" & ancestorTypes ~= sessionEntity);
     levels = unique([levels, ancestorLevels]);
+end
+
+function tf = hasJoinedSessionId(item)
+%hasJoinedSessionId True when the Session ID of a data location item joins the names of several levels
+    arguments
+        item (1,1) struct
+    end
+
+    rule = item.MetaDataDef(strcmp({item.MetaDataDef.VariableName}, 'Session ID'));
+    tf = numel(rule.SubfolderLevel) > 1;
 end
 
 function levelIndex = levelIndexOf(extraction, levelNames)
@@ -429,8 +462,9 @@ function variables = convertFilePatternsBelowSession(levels, item, where, identi
             variables = appendItems(variables, convertFilePatterns(level, item, where, ...
                 identityKeys, report, strjoin(subfolders, "/")));
             report.add(levelWhere, "The files of this level are found in the session folder" + ...
-                subfolderText(subfolders) + ". Where a session has several of them, " + ...
-                "NANSEN uses the first.", isfield(level, 'entityType'))
+                subfolderText(subfolders) + ". Where several of them match a file pattern, loading " + ...
+                "its variable raises NANSEN:VariableModel:AmbiguousFileMatch.", ...
+                isfield(level, 'entityType') && ~isempty(asList(level, 'filePatterns')))
         else
             for k = j:numel(levels)
                 report.add(where + ".entityLayout[" + string(levels{k}.name) + "]", ...
@@ -483,8 +517,10 @@ function variables = convertFilePatterns(level, item, where, identityKeys, repor
         end
         report.add(patternWhere, "Approximated as '" + expression + "': a character class became *, " + ...
             "so NANSEN may find files the pattern does not match.", isApproximate)
-        report.add(patternWhere + ".cardinality", "A NANSEN variable is one file per session; " + ...
-            "where several files match, NANSEN uses the first.", string(getOr(filePattern, 'cardinality', 'one')) == "many")
+        [allowsSeveral, countField] = allowsSeveralFiles(filePattern);
+        report.add(patternWhere + "." + countField, "A NANSEN variable is one file per session; where " + ...
+            "several files match, loading the variable raises NANSEN:VariableModel:AmbiguousFileMatch.", ...
+            allowsSeveral)
 
         variable = nansen.config.varmodel.VariableModel.getBlankItem();
         variable.VariableName = char(matlab.lang.makeValidName(string(filePattern.name)));
@@ -499,6 +535,25 @@ function variables = convertFilePatterns(level, item, where, identityKeys, repor
         report.add(patternWhere + ".isRequired", "NANSEN does not check that required files are present.", ...
             isfield(filePattern, 'isRequired'))
         variables = appendItems(variables, variable);
+    end
+end
+
+function [tf, countField] = allowsSeveralFiles(filePattern)
+%allowsSeveralFiles True when a file pattern lets an entity have more than one matching file
+%
+%   maxCount gives the largest number of matching files. Without it,
+%   cardinality does: "one" is at most one file, and "many", its default,
+%   is any number. countField is the field that decides.
+    arguments
+        filePattern (1,1) struct
+    end
+
+    if isfield(filePattern, 'maxCount') && ~isempty(filePattern.maxCount)
+        countField = "maxCount";
+        tf = filePattern.maxCount > 1;
+    else
+        countField = "cardinality";
+        tf = string(getOr(filePattern, 'cardinality', 'many')) == "many";
     end
 end
 
@@ -539,8 +594,9 @@ function variables = qualifyRepeatedVariableNames(variables, report)
     newNames = matlab.lang.makeUniqueStrings(newNames);
 
     for i = find(newNames ~= names)
-        report.add("variables[" + names(i) + "]", "The file pattern name is used by several file patterns; " + ...
-            "renamed to '" + newNames(i) + "' in data location " + locations(i) + folderText(subfolders(i)) + ".")
+        report.add("variables[" + names(i) + "]", "The file pattern name is used by several file " + ...
+            "patterns; renamed to '" + newNames(i) + "' in data location " + locations(i) + ...
+            folderText(subfolders(i)) + ".")
         variables(i).VariableName = char(newNames(i));
     end
 end
@@ -555,26 +611,35 @@ function text = folderText(subfolder)
 end
 
 function adapterName = findFileAdapter(fileType, where, report)
-%findFileAdapter Name of a file adapter for a file type, or Default
-    adapterName = 'Default';
-    adapters = struct.empty;
+%findFileAdapter Name of the file adapter for a file type, or Default
+%
+%   A file type of several parts, such as .ome.tif, gets the adapter of
+%   its longest ending that has one (findFileAdapterName).
+    adapterName = "";
     if fileType ~= ""
-        try
-            adapters = nansen.dataio.listFileAdapters(char(fileType));
-        catch exception
-            % File adapters are listed from the current project, which
-            % needs a user session. Converting a model does not, so an
-            % absent session only means the adapter can not be looked up.
-            if ~strcmp(exception.identifier, 'NANSEN:NoActiveUserSession')
-                rethrow(exception)
-            end
-        end
+        adapterName = nansen.config.dloc.dsmconversion.findFileAdapterName( ...
+            fileType, listProjectFileAdapters());
     end
-    if isempty(adapters) || strcmp(adapters(1).FileAdapterName, 'N/A')
+    if adapterName == ""
+        adapterName = "Default";
         report.add(where + ".fileAdapter", "No file adapter supports '" + fileType + ...
             "' (or no project is active); set to Default, so the file can be found but not loaded.")
-    else
-        adapterName = adapters(1).FileAdapterName;
+    end
+    adapterName = char(adapterName);
+end
+
+function fileAdapterList = listProjectFileAdapters()
+%listProjectFileAdapters The file adapters of the current project, or none without a user session
+    try
+        fileAdapterList = nansen.dataio.listFileAdapters();
+    catch exception
+        % File adapters are listed from the current project, which
+        % needs a user session. Converting a model does not, so an
+        % absent session only means the adapter can not be looked up.
+        if ~strcmp(exception.identifier, 'NANSEN:NoActiveUserSession')
+            rethrow(exception)
+        end
+        fileAdapterList = struct.empty;
     end
 end
 
