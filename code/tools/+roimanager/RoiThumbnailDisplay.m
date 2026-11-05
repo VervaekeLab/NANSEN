@@ -514,7 +514,7 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
             IM = circshift( IM, round(centerOffset) );
             %IM = imtranslate(IM, fliplr( round(centerOffset) ));
 
-            roiMask = flufinder.binarize.findSomaMaskByEdgeDetection(IM, ...
+            roiMask = nansen.module.twophoton.autosegmentation.flufinder.binarize.findSomaMaskByEdgeDetection(IM, ...
             'us', 1);
             roiMask = circshift( roiMask, -round(centerOffset) );
 
@@ -525,7 +525,7 @@ classdef RoiThumbnailDisplay < applify.ModularApp & roimanager.roiDisplay
                 currentRoi = obj.RoiGroup.roiArray(i);
                 fovMask = false(currentRoi.imagesize);
                 roiMask = imresize(roiMask, 1/obj.SpatialUpsampling);
-                roiMask = flufinder.utility.placeLocalRoiMaskInFovMask(roiMask, currentRoi.center, fovMask);
+                roiMask = nansen.module.twophoton.autosegmentation.flufinder.utility.placeLocalRoiMaskInFovMask(roiMask, currentRoi.center, fovMask);
                 newRoi = RoI('Mask', roiMask);
 
                 obj.RoiGroup.modifyRois(newRoi, i)

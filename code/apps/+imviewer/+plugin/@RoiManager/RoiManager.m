@@ -523,8 +523,8 @@ classdef RoiManager < imviewer.ImviewerPlugin & applify.mixin.UserSettings & roi
         % Calls autodetection package from Pnevmatikakis et al (Paninski)
         % and adds detected rois to gui
 
-            import nansen.twophoton.autosegmentation.*
-            import nansen.wrapper.*
+            import nansen.module.twophoton.autosegmentation.*
+            import nansen.module.twophoton.integration.*
             global fprintf
             fprintf = @(varargin) obj.PrimaryApp.updateMessage(varargin{:});
 
@@ -550,15 +550,15 @@ classdef RoiManager < imviewer.ImviewerPlugin & applify.mixin.UserSettings & roi
             switch lower(methodName)
 
                 case 'quicky'
-                    opts = nansen.wrapper.quicky.Options.convert(methodOptions);
-                    foundRois = flufinder.runAutoSegmentation(Y, opts);
+                    opts = nansen.module.twophoton.autosegmentation.flufinder.Options.convert(methodOptions);
+                    foundRois = nansen.module.twophoton.autosegmentation.flufinder.runAutoSegmentation(Y, opts);
 
                 case 'suite2p'
                     opts = suite2p.Options.convert(methodOptions);
                     tic; foundRois = suite2p.run(Y, opts); toc
 
                 case 'extract'
-                    opts = nansen.wrapper.extract.Options.convert(methodOptions);
+                    opts = nansen.module.twophoton.integration.extract.Options.convert(methodOptions);
                     tic; [foundRois, im, stat] = extract.run(Y, opts); toc
 
                 case 'cnmf'
@@ -611,14 +611,14 @@ classdef RoiManager < imviewer.ImviewerPlugin & applify.mixin.UserSettings & roi
 
             switch lower(methodName)
                 case 'quicky'
-                    %h = nansen.OptionsManager('flufinder.getDefaultOptions');
-                    S = flufinder.getDefaultOptions();
+                    %h = nansen.OptionsManager('nansen.module.twophoton.autosegmentation.flufinder.getDefaultOptions');
+                    S = nansen.module.twophoton.autosegmentation.flufinder.getDefaultOptions();
 
                 case 'extract'
-                    S = nansen.wrapper.extract.Options.getDefaults();
+                    S = nansen.module.twophoton.integration.extract.Options.getDefaults();
 
                 case 'suite2p'
-                    S = nansen.twophoton.autosegmentation.suite2p.Options.getDefaultOptions;
+                    S = nansen.module.twophoton.autosegmentation.suite2p.Options.getDefaultOptions;
 
                %case 'cnmf'
 

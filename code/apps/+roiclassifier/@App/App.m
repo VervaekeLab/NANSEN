@@ -480,10 +480,10 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
 
             switch autodetectionMode
                 case 1
-                    roiMask_ = flufinder.binarize.findSomaMaskByEdgeDetection(IM);
+                    roiMask_ = nansen.module.twophoton.autosegmentation.flufinder.binarize.findSomaMaskByEdgeDetection(IM);
 
                 case {2, 3, 4}
-                    roiMask_ = flufinder.binarize.findSomaMaskByThresholding(IM, 'InnerDiameter', 0, 'OuterDiameter', r(1)*2);
+                    roiMask_ = nansen.module.twophoton.autosegmentation.flufinder.binarize.findSomaMaskByThresholding(IM, 'InnerDiameter', 0, 'OuterDiameter', r(1)*2);
             end
 
             roiMask_ = imtranslate(roiMask_, round(centerOffset)); % + correction);

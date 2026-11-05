@@ -209,7 +209,7 @@ classdef RoiGroup < nansen.dataio.FileAdapter
 
             switch roiFormat
                 case 'Suite2p'
-                    conversionFcn = @nansen.wrapper.suite2p.convertRois;
+                    conversionFcn = @nansen.module.twophoton.integration.suite2p.convertRois;
                 case 'CaImAn'
 
                 case 'Nansen'

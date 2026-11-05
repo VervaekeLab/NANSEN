@@ -1,4 +1,4 @@
-classdef suite2p < nansen.session.SessionMethod & nansen.wrapper.suite2p.Processor
+classdef suite2p < nansen.session.SessionMethod & nansen.module.twophoton.integration.suite2p.Processor
 %Detect ROIs automatically with suite2p.
 %
 %Use this when:
@@ -28,7 +28,7 @@ classdef suite2p < nansen.session.SessionMethod & nansen.wrapper.suite2p.Process
         function obj = suite2p(varargin)
 
             % Dont want this to be in charge, use session task/method instead.
-            obj@nansen.wrapper.suite2p.Processor()
+            obj@nansen.module.twophoton.integration.suite2p.Processor()
 
             % Call the SessionTask constructor last to make sure the
             % session's data I/O model is used.

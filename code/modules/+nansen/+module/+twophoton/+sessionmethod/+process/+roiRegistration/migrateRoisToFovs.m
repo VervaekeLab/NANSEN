@@ -126,7 +126,7 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
     fovImageArray = cat(3, fovImages{:});
 
     % Register images for each fov/session to reference fov/session
-    [fovShifts, ~] = flufinder.longitudinal.alignFovs(fovImageArray);
+    [fovShifts, ~] = nansen.module.twophoton.autosegmentation.flufinder.longitudinal.alignFovs(fovImageArray);
 
     % Load rois for reference session
     sessionData = sessionObject(1).Data;
@@ -143,7 +143,7 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
     % Shift rois for each session based on shifts from image registration
     roiArrayMigrated = cell(1, numSessions-1);
     for i = 1:numSessions-1
-        warpedRois = flufinder.longitudinal.warpRois(flatRoiArray, fovShifts(i));
+        warpedRois = nansen.module.twophoton.autosegmentation.flufinder.longitudinal.warpRois(flatRoiArray, fovShifts(i));
         roiArrayMigrated{i} = utility.cell.unflatten(warpedRois, numRois);
     end
 
@@ -217,7 +217,7 @@ function varargout = migrateRoisToFovs(sessionObject, varargin)
     numChannels = unique(numChannels);
 
     S = struct;
-    S.multiSessionRois = flufinder.longitudinal.MultiSessionRoiCollection.empty;
+    S.multiSessionRois = nansen.module.twophoton.autosegmentation.flufinder.longitudinal.MultiSessionRoiCollection.empty;
     %S.multiSessionRois = S.multiSessionRois.addEntry(sessionIDs{1}, fovImageArray(:,:,1), roiArray);
     %S.multiSessionRois = sortEntries(S.multiSessionRois);
 
