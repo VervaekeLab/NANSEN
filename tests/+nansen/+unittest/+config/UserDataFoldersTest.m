@@ -411,6 +411,83 @@ classdef UserDataFoldersTest < matlab.unittest.TestCase
         end
     end
 
+    methods (Test) % UserDataRedirect
+
+        function testRedirectNamesWrittenDirectory(testCase)
+            import nansen.internal.user.UserDataRedirect
+
+            [defaultDirectory, userDataDirectory] = testCase.createDirectoryPair();
+
+            UserDataRedirect.write(defaultDirectory, userDataDirectory)
+
+            testCase.verifyEqual(UserDataRedirect.read(defaultDirectory), userDataDirectory)
+            testCase.verifyEqual(UserDataRedirect.follow(defaultDirectory), userDataDirectory)
+        end
+
+        function testRedirectCreatesMissingDefaultDirectory(testCase)
+            import nansen.internal.user.UserDataRedirect
+
+            defaultDirectory = fullfile(testCase.RootFolder, "profiles", "default");
+
+            UserDataRedirect.write(defaultDirectory, testCase.RootFolder)
+
+            testCase.verifyTrue(isfile(UserDataRedirect.getFilePath(defaultDirectory)))
+        end
+
+        function testRedirectKeepsNonAsciiPath(testCase)
+        % Folder names can hold letters such as æ, ø and å
+            import nansen.internal.user.UserDataRedirect
+
+            defaultDirectory = fullfile(testCase.RootFolder, "default");
+            userDataDirectory = fullfile(testCase.RootFolder, "Blåbær Ørret");
+            mkdir(userDataDirectory)
+
+            UserDataRedirect.write(defaultDirectory, userDataDirectory)
+
+            testCase.verifyEqual(UserDataRedirect.follow(defaultDirectory), userDataDirectory)
+        end
+
+        function testRedirectToMissingFolderIsNotFollowed(testCase)
+        % For example a directory on a drive that is not connected
+            import nansen.internal.user.UserDataRedirect
+
+            defaultDirectory = fullfile(testCase.RootFolder, "default");
+            missingDirectory = fullfile(testCase.RootFolder, "missing");
+
+            UserDataRedirect.write(defaultDirectory, missingDirectory)
+
+            testCase.verifyEqual(UserDataRedirect.read(defaultDirectory), missingDirectory)
+            testCase.verifyEqual(UserDataRedirect.follow(defaultDirectory), "")
+        end
+
+        function testRedirectToRelativePathIsNotFollowed(testCase)
+        % A relative path would resolve against MATLAB's current folder
+            import nansen.internal.user.UserDataRedirect
+            import matlab.unittest.fixtures.CurrentFolderFixture
+
+            defaultDirectory = fullfile(testCase.RootFolder, "default");
+            mkdir(fullfile(testCase.RootFolder, "relative"))
+            testCase.applyFixture(CurrentFolderFixture(testCase.RootFolder));
+
+            UserDataRedirect.write(defaultDirectory, "relative")
+
+            testCase.verifyEqual(UserDataRedirect.follow(defaultDirectory), "")
+        end
+
+        function testRemovedRedirectIsNotRead(testCase)
+            import nansen.internal.user.UserDataRedirect
+
+            [defaultDirectory, userDataDirectory] = testCase.createDirectoryPair();
+            UserDataRedirect.write(defaultDirectory, userDataDirectory)
+
+            UserDataRedirect.remove(defaultDirectory)
+
+            testCase.verifyFalse(isfile(UserDataRedirect.getFilePath(defaultDirectory)))
+            testCase.verifyEqual(UserDataRedirect.read(defaultDirectory), "")
+            testCase.verifyWarningFree(@() UserDataRedirect.remove(defaultDirectory))
+        end
+    end
+
     methods (Access = private)
 
         function [firstDirectory, secondDirectory] = createDirectoryPair(testCase)

@@ -6,14 +6,16 @@ function userDataDirectory = userdatadir()
 %   current user.
 %
 %   Unlike nansen.prefdir, this location does not belong to a MATLAB
-%   release. It is the UserDataDirectory preference when one is set, and a
-%   default location under MATLAB's userpath otherwise.
+%   release. It is the UserDataDirectory preference when one is set, then
+%   the directory named by the redirect file in the default location, and
+%   the default location under MATLAB's userpath otherwise.
 %
 %   An active session answers from memory. Without one the preference file
 %   of the anonymous user is read instead.
 %
 %   See also nansen.prefdir, nansen.localdatadir,
-%   nansen.internal.user.NansenUserSession/getCurrentUserDataDirectory
+%   nansen.internal.user.NansenUserSession/getCurrentUserDataDirectory,
+%   nansen.internal.user.UserDataRedirect
 
     import nansen.internal.user.NansenUserSession
 
