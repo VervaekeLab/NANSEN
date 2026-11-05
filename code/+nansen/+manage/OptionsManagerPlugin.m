@@ -113,9 +113,11 @@ classdef OptionsManagerPlugin < handle
                 newOptions = obj.OptionsManager.getOptions(newName);
             end
 
+            % Set only Data: replaceData also resets OriginalData, and the
+            % editor returns OriginalData when the user cancels.
             obj.IsUpdating = true;
             cleanupObj = onCleanup(@() obj.clearUpdatingFlag());
-            obj.Editor.replaceData(newOptions);
+            obj.Editor.Data = newOptions;
             obj.CurrentOptionsName = newName;
             obj.refreshOptionsDropdown();
             delete(cleanupObj)
