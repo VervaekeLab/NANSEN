@@ -1,101 +1,122 @@
-classdef OptionsManagerPluginTest < matlab.uitest.TestCase
+classdef OptionsManagerPluginTest < matlab.unittest.TestCase
+%OptionsManagerPluginTest Unit tests for nansen.manage.OptionsManagerPlugin.
+%
+%   The plugin is attached to nansen.unittest.structeditor.helper.StructEditorAppStub,
+%   whose header panel is created in one hidden figure that all tests
+%   share, and to a nansen.unittest.config.FakeOptionsManager. The tests
+%   find the plugin's controls in the header panel and call their
+%   callbacks, because UI gestures need a visible figure.
 
-    methods (TestMethodSetup)
-        function assumeModernStructEditor(testCase)
-            testCase.assumeEqual(exist('structeditor.StructEditorApp', 'class'), 8, ...
-                'Standalone StructEditor must be on the MATLAB path.')
+    properties (Access = private)
+        Figure
+    end
+
+    methods (TestClassSetup)
+        function createSharedFigure(testCase)
+            testCase.Figure = uifigure('Visible', 'off');
+            testCase.addTeardown(@delete, testCase.Figure)
         end
     end
 
-    methods (Test)
-        function testPluginPopulatesDropdown(testCase)
-            manager = nansen.unittest.config.FakeOptionsManager();
-            [editor, plugin] = testCase.createEditor(manager);
+    methods (Test, TestTags="Graphical")
+        function testAttachListsOptionsSets(testCase)
+            [~, editor] = testCase.attachPlugin();
+            dropDown = findOptionsDropDown(editor);
 
-            testCase.verifyClass(plugin, 'nansen.manage.OptionsManagerPlugin')
-            dropDown = plugin.getTestControl('OptionsDropDown');
-
-            testCase.verifyEqual(dropDown.ItemsData, ...
-                {'Preset A', 'Preset B', 'Custom A'})
+            testCase.verifyEqual(dropDown.ItemsData, {'Preset A', 'Preset B', 'Custom A'})
             testCase.verifyEqual(dropDown.Value, 'Preset A')
             testCase.verifyEqual(dropDown.Items{1}, '[Preset A] (Default)')
-
-            delete(editor)
         end
 
-        function testEditingCreatesModifiedOptions(testCase)
-            manager = nansen.unittest.config.FakeOptionsManager();
-            [editor, plugin] = testCase.createEditor(manager);
-            controlContainer = editor.getComponent('UIControlContainers');
+        function testDataChangeCreatesModifiedOptions(testCase)
+            [plugin, editor, manager] = testCase.attachPlugin();
 
-            testCase.type(controlContainer.UIControls.Value, 5)
+            editor.Data = struct('Value', 5);
+            plugin.onDataChanged(editor, struct('Name', "Value"))
 
             testCase.verifyEqual(plugin.CurrentOptionsName, 'Preset A (Modified)')
-            testCase.verifyTrue(manager.isModified('Preset A (Modified)'))
             testCase.verifyEqual(manager.getModifiedOptions('Preset A (Modified)').Value, 5)
-
-            delete(editor)
+            testCase.verifyEqual(findOptionsDropDown(editor).Value, 'Preset A (Modified)')
         end
 
-        function testSelectingOptionsReplacesEditorData(testCase)
-            manager = nansen.unittest.config.FakeOptionsManager();
-            [editor, plugin] = testCase.createEditor(manager);
-            dropDown = plugin.getTestControl('OptionsDropDown');
+        function testSelectingOptionsSetsEditorData(testCase)
+            [plugin, editor] = testCase.attachPlugin();
 
-            testCase.choose(dropDown, '[Preset B]')
+            selectOption(findOptionsDropDown(editor), 'Preset B')
 
             testCase.verifyEqual(editor.Data.Value, 2)
             testCase.verifyEqual(plugin.CurrentOptionsName, 'Preset B')
-
-            delete(editor)
         end
 
-        function testSaveOptionsPersistsModifiedData(testCase)
-            manager = nansen.unittest.config.FakeOptionsManager();
-            [editor, plugin] = testCase.createEditor(manager);
-            controlContainer = editor.getComponent('UIControlContainers');
-            saveButton = plugin.getTestControl('SaveButton');
+        function testSelectingOptionsKeepsOriginalData(testCase)
+            [~, editor] = testCase.attachPlugin();
 
-            testCase.type(controlContainer.UIControls.Value, 7)
-            testCase.press(saveButton)
+            selectOption(findOptionsDropDown(editor), 'Preset B')
+
+            testCase.verifyEqual(editor.OriginalData.Value, 1)
+        end
+
+        function testSaveOptionsSavesEditorData(testCase)
+            [plugin, editor, manager] = testCase.attachPlugin();
+            editor.Data = struct('Value', 7);
+            plugin.onDataChanged(editor, struct('Name', "Value"))
+
+            saveButton = findButton(editor, 'Save Options');
+            testCase.assertEqual(char(saveButton.Enable), 'on')
+            pushButton(saveButton)
 
             testCase.verifyEqual(manager.SaveCustomOptionsCallCount, 1)
             testCase.verifyEqual(manager.SavedOptions.Value, 7)
             testCase.verifyEqual(plugin.CurrentOptionsName, 'Saved Custom')
             testCase.verifyFalse(manager.isModified('Preset A (Modified)'))
-
-            delete(editor)
         end
 
-        function testMakeDefaultUpdatesOptionsManager(testCase)
-            manager = nansen.unittest.config.FakeOptionsManager();
-            [editor, plugin] = testCase.createEditor(manager);
-            dropDown = plugin.getTestControl('OptionsDropDown');
-            defaultButton = plugin.getTestControl('DefaultButton');
+        function testMakeDefaultSetsDefaultOptions(testCase)
+            [~, editor, manager] = testCase.attachPlugin();
 
-            testCase.choose(dropDown, 'Custom A')
-            testCase.press(defaultButton)
+            selectOption(findOptionsDropDown(editor), 'Custom A')
+
+            defaultButton = findButton(editor, 'Make Default');
+            testCase.assertEqual(char(defaultButton.Enable), 'on')
+            pushButton(defaultButton)
 
             testCase.verifyEqual(manager.SetDefaultCallCount, 1)
             testCase.verifyEqual(manager.DefaultName, 'Custom A')
-
-            delete(editor)
         end
     end
 
     methods (Access = private)
-        function [editor, plugin] = createEditor(testCase, manager)
+        function [plugin, editor, manager] = attachPlugin(testCase)
+        %attachPlugin Attach a plugin for "Preset A" to a stub app.
+            manager = nansen.unittest.config.FakeOptionsManager();
             plugin = nansen.manage.OptionsManagerPlugin(manager, 'Preset A');
-            editor = structeditor(manager.getOptions('Preset A'), ...
-                'CloseOnExit', false, ...
-                'Plugin', plugin);
-            testCase.addTeardown(@() deleteValid(editor));
+            editor = nansen.unittest.structeditor.helper.StructEditorAppStub( ...
+                manager.getOptions('Preset A'), ...
+                Parent=testCase.Figure, ...
+                Plugin=plugin);
+            testCase.addTeardown(@delete, editor)
         end
     end
 end
 
-function deleteValid(obj)
-    if ~isempty(obj) && isvalid(obj)
-        delete(obj)
-    end
+function dropDown = findOptionsDropDown(editor)
+    dropDown = findobj(editor.getAttachmentContainer("header"), 'Type', 'uidropdown');
+end
+
+function button = findButton(editor, text)
+    button = findobj(editor.getAttachmentContainer("header"), ...
+        'Type', 'uibutton', 'Text', text);
+end
+
+function selectOption(dropDown, value)
+%selectOption Select a dropdown value and run its callback, as a user selection does.
+    previousValue = dropDown.Value;
+    dropDown.Value = value;
+    dropDown.ValueChangedFcn(dropDown, ...
+        struct('Value', value, 'PreviousValue', previousValue))
+end
+
+function pushButton(button)
+%pushButton Run the callback of a button, as a button push does.
+    button.ButtonPushedFcn(button, struct())
 end

@@ -88,10 +88,6 @@ classdef OptionsManagerPlugin < handle
             % Hook kept for the generic plugin lifecycle. OptionsManager
             % state is read by callers after editor.waitfor returns.
         end
-
-        function control = getTestControl(obj, controlName)
-            control = obj.(controlName);
-        end
     end
 
     methods (Access = private)
