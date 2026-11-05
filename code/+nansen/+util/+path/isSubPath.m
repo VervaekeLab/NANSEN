@@ -6,6 +6,9 @@ function tf = isSubPath(pathStr, parentPath)
 %   inside it, and a sibling whose name merely starts with the parent's
 %   name is not either.
 %
+%   Case is ignored on the platforms where nansen.util.path.isSamePath
+%   ignores it, Windows and macOS.
+%
 %   Example:
 %       nansen.util.path.isSubPath('/data/proj/a', '/data/proj')   % true
 %       nansen.util.path.isSubPath('/data/project', '/data/proj')  % false
@@ -17,7 +20,14 @@ function tf = isSubPath(pathStr, parentPath)
         parentPath (1,:) char
     end
 
+    pathStr = nansen.util.path.stripTrailingSeparator(pathStr);
     parentPath = nansen.util.path.stripTrailingSeparator(parentPath);
 
-    tf = startsWith(string(pathStr), strcat(parentPath, filesep), "IgnoreCase", ispc);
+    % A root, such as / or Z:\, keeps its separator
+    if ~endsWith(parentPath, filesep)
+        parentPath = [parentPath, filesep];
+    end
+
+    tf = numel(pathStr) > numel(parentPath) ...
+        && startsWith(pathStr, parentPath, "IgnoreCase", ispc || ismac);
 end
