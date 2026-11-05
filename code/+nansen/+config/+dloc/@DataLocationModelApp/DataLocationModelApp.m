@@ -276,6 +276,9 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
                 end
             end
         end
+    end
+
+    methods (Access = private) % Methods for saving the model
 
         function runCommitValidator(obj)
         %runCommitValidator Call CommitValidator with the model while a progress dialog is open.
@@ -292,9 +295,10 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
         end
 
         function alertCommitValidationFailed(obj, exception)
-            title = 'Data Location Update Aborted';
+        %alertCommitValidationFailed Show the error that cancelled a save of the model.
+            alertTitle = 'Data Location Update Aborted';
             if ~isempty(obj.Figure) && isvalid(obj.Figure)
-                uialert(obj.Figure, exception.message, title, 'Icon', 'warning')
+                uialert(obj.Figure, exception.message, alertTitle, 'Icon', 'warning')
             else
                 warning(exception.identifier, '%s', exception.message)
             end

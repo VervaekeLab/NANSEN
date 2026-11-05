@@ -157,7 +157,7 @@ function message = createDetectedFoldersMessage(dataLocationModel, sessionFolder
     end
 
     detectedDataLocationIdx = find(folderCounts > 0);
-    if numel(detectedDataLocationIdx) == 1
+    if isscalar(detectedDataLocationIdx)
         idx = detectedDataLocationIdx;
         message = sprintf(['Detected %d session folders for "%s", ', ...
             'but none matched the table session IDs.'], ...
@@ -175,7 +175,7 @@ function countList = formatDetectedFolderCounts(dataLocationNames, folderCounts)
         countLines{i} = sprintf('  %s: %d', ...
             dataLocationNames{i}, folderCounts(i));
     end
-    countList = strjoin(countLines, sprintf('\n'));
+    countList = strjoin(countLines, newline);
 end
 
 function preview = formatSessionIDPreview(sessionIDs)
@@ -189,5 +189,5 @@ function preview = formatSessionIDPreview(sessionIDs)
     for i = 1:numPreview
         previewLines{i} = sprintf('  %s', sessionIDs{i});
     end
-    preview = strjoin(previewLines, sprintf('\n'));
+    preview = strjoin(previewLines, newline);
 end
