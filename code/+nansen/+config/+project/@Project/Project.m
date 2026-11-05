@@ -686,8 +686,11 @@ classdef Project < nansen.module.Module
                     variableList = table2struct( module.getTable('DataVariables') );
                     obj.VariableModel.addDataVariableSet(variableList)
 
+                    % A new module goes first in IncludedModules, and the
+                    % registry's middle tier follows the same order.
                     moduleRoot = fileparts(module.getFileAdapterFolder());
-                    obj.FileAdapterRegistry.addSource(string(module.ID), moduleRoot);
+                    obj.FileAdapterRegistry.addSource(string(module.ID), moduleRoot, ...
+                        Position="first");
                 end
             end
         end

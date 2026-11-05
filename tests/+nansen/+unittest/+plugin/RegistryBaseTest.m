@@ -68,6 +68,21 @@ classdef RegistryBaseTest < matlab.unittest.TestCase
             testCase.verifyEqual(ids, ["Alpha", "Beta", "Gamma"])
         end
 
+        function testAddSourceFirstGoesBeforeMiddleSources(testCase)
+        %testAddSourceFirstGoesBeforeMiddleSources Position="first" gives the highest middle priority
+            reg = nansen.unittest.plugin.helper.ConcreteRegistry();
+            dirA = testCase.makeSourceDir('A', {'Alpha'});
+            dirB = testCase.makeSourceDir('B', {'Beta'});
+            dirC = testCase.makeSourceDir('C', {'Gamma', 'Alpha'});
+
+            reg.addSource("src-a", dirA);
+            reg.addSource("src-b", dirB);
+            reg.addSource("src-c", dirC, Position="first");
+
+            testCase.verifyEqual([reg.list().PluginId], ["Gamma", "Alpha", "Beta"])
+            testCase.verifyEqual(reg.get("Alpha").Source, "C")
+        end
+
         function testAddSourceErrorsOnDuplicateId(testCase)
             reg = nansen.unittest.plugin.helper.ConcreteRegistry();
             dir1 = testCase.makeSourceDir('X1', {'P1'});

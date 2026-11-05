@@ -3,7 +3,7 @@ classdef (Abstract) Registry < handle
 %
 %   Stores plugin entries from multiple sources with three precedence tiers:
 %     - Top (single pinned slot, highest priority)
-%     - Middle (ordered list of sources, appended with addSource)
+%     - Middle (ordered list of sources, added with addSource)
 %     - Bottom (single pinned slot, lowest priority)
 %
 %   The registry scans its sources on the first list, get or resolve after
@@ -82,20 +82,35 @@ classdef (Abstract) Registry < handle
             obj.IsStale = true;
         end
 
-        function addSource(obj, id, path)
-        %addSource Append a source to the middle tier.
+        function addSource(obj, id, path, options)
+        %addSource Add a source to the middle tier.
+        %
+        %   addSource(id, path) appends the source to the middle tier,
+        %   after the sources that are already there.
+        %
+        %   addSource(id, path, Position="first") inserts the source before
+        %   the other middle-tier sources, so that it has the highest
+        %   priority of the middle tier.
         %
         %   Errors if the id is already present in any slot.
             arguments
                 obj
                 id   (1,1) string
                 path (1,1) string
+                options.Position (1,1) string ...
+                    {mustBeMember(options.Position, ["first", "last"])} = "last"
             end
             if obj.hasSourceId(id)
                 error('NANSEN:Registry:DuplicateSourceId', ...
                     'A source with id "%s" is already registered.', id)
             end
-            obj.MiddleSources(end+1) = struct('id', id, 'path', path);
+
+            newSource = struct('id', id, 'path', path);
+            if options.Position == "first"
+                obj.MiddleSources = [newSource, obj.MiddleSources];
+            else
+                obj.MiddleSources(end+1) = newSource;
+            end
             obj.IsStale = true;
         end
 
