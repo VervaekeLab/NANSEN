@@ -88,6 +88,8 @@ classdef ModuleManager < handle
                 'OutputType', 'FilePath', ...
                 'FileType', 'json');
 
+            [moduleSpecFiles, packageNames] = obj.keepFirstFilePerPackage(moduleSpecFiles);
+
             numModules = numel(moduleSpecFiles);
             modules = cell(1, numModules);
 
@@ -96,7 +98,7 @@ classdef ModuleManager < handle
                 str = fileread(moduleSpecFiles{i});
                 moduleProperties = jsondecode(str).Properties;
 
-                modulePackageName = utility.path.pathstr2packagename(fileparts( moduleSpecFiles{i}) );
+                modulePackageName = packageNames{i};
                 splitPackage = strsplit(modulePackageName, '.');
 
                 % The category is module metadata. Modules that still live
@@ -131,23 +133,27 @@ classdef ModuleManager < handle
         end
 
         function assertUniqueShortNames(obj)
-        %assertUniqueShortNames Error if two modules share a short name
+        %assertUniqueShortNames Error if different packages share a short name
         %
-        %   Modules are keyed by their short name once category folders are
-        %   optional, so a collision would make one module unreachable.
+        %   A module's short name is the last part of its package name. Two
+        %   different module packages must not have the same short name,
+        %   also when they are in different category folders, for example
+        %   nansen.module.alpha.example and nansen.module.beta.example.
             if isempty(obj.ModuleList); return; end
             shortNames = string({obj.ModuleList.ShortName});
             [uniqueNames, ~, groupIndex] = unique(shortNames);
             isDuplicated = accumarray(groupIndex(:), 1) > 1;
             if any(isDuplicated)
                 duplicatedNames = uniqueNames(isDuplicated);
-                packageNames = string({obj.ModuleList.PackageName});
-                clashingPackages = packageNames(ismember(shortNames, duplicatedNames));
+                clashingEntries = obj.ModuleList(ismember(shortNames, duplicatedNames));
+                entryDescriptions = string({clashingEntries.PackageName}) ...
+                    + " in " + string({clashingEntries.FolderPath});
                 error('NANSEN:ModuleManager:DuplicateModuleName', ...
                     ['Module short names must be unique. The name(s) "%s" ', ...
-                     'are used by more than one module: %s. Rename or remove ', ...
-                     'one of them from the MATLAB path.'], ...
-                    strjoin(duplicatedNames, '", "'), strjoin(clashingPackages, ', '))
+                     'are used by more than one module package:\n    %s\n', ...
+                     'Rename or remove one of them from the MATLAB path.'], ...
+                    strjoin(duplicatedNames, '", "'), ...
+                    strjoin(entryDescriptions, newline + "    "))
             end
         end
 
@@ -157,6 +163,23 @@ classdef ModuleManager < handle
 
         function markClean(obj)
             obj.IsDirty = false;
+        end
+    end
+
+    methods (Static, Access = private)
+
+        function [specificationFiles, packageNames] = keepFirstFilePerPackage(specificationFiles)
+        %keepFirstFilePerPackage Keep one module specification file per package
+        %
+        %   The same package can be found in more than one folder on the
+        %   MATLAB path, for example in a cloned repository and in an
+        %   installed copy. specificationFiles is in path order, and only
+        %   the file from the folder that comes first on the path is kept.
+        %   packageNames holds the package name of each kept file.
+            packageNames = cellfun(@(filePath) utility.path.pathstr2packagename(fileparts(filePath)), ...
+                specificationFiles, 'UniformOutput', false);
+            [packageNames, firstIndices] = unique(packageNames, 'stable');
+            specificationFiles = specificationFiles(firstIndices);
         end
     end
 end

@@ -59,6 +59,7 @@ function loadProject(tutorial)
             repositoryUrl, "InstallationLocation", installationLocation, "Update", true);
 
         L = dir(fullfile(repoTargetFolder, '*', 'project.nansen.json'));
+        renameTwoPhotonModulePackage(L.folder)
         fprintf("Adding project ""%s"" to NANSEN...\n", tutorial.Title)
         projectManager.importProject(L.folder);
         projectManager.changeProject(tutorial.ProjectName);
@@ -85,4 +86,38 @@ function loadProject(tutorial)
 
     % Todo: Clone BrainObservatoryToolbox
     % Todo: Download manifests for selected dataset.
+end
+
+function renameTwoPhotonModulePackage(projectFolder)
+%renameTwoPhotonModulePackage Point a project's module list at nansen.module.twophoton
+%
+%   The two-photon tutorial project (repository NansenProjects/Nansen_Demo)
+%   lists the two-photon module in Preferences.DataModule of
+%   project.nansen.json as nansen.module.ophys.twophoton. The module's
+%   package is nansen.module.twophoton, and nansen.module.Module.fromName
+%   finds a module only by its package name, so the entry is rewritten
+%   before the project is imported. Other entries are left unchanged.
+
+    arguments
+        projectFolder (1,1) string {mustBeFolder}
+    end
+
+    oldPackageName = "nansen.module.ophys.twophoton";
+    newPackageName = "nansen.module.twophoton";
+
+    specificationFilePath = fullfile(projectFolder, "project.nansen.json");
+    projectSpecification = utility.io.loadjson(specificationFilePath);
+    if ~isfield(projectSpecification, "Preferences") ...
+            || ~isfield(projectSpecification.Preferences, "DataModule")
+        return
+    end
+
+    moduleNames = string(projectSpecification.Preferences.DataModule);
+    isOldPackageName = moduleNames == oldPackageName;
+    if any(isOldPackageName)
+        moduleNames(isOldPackageName) = newPackageName;
+        % A cell array is encoded as a JSON array for any number of names.
+        projectSpecification.Preferences.DataModule = cellstr(moduleNames);
+        utility.io.savejson(specificationFilePath, projectSpecification)
+    end
 end
