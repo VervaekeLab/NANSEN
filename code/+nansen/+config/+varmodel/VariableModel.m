@@ -389,7 +389,10 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             if isempty(variableList); return; end
 
             dataLocationModel = nansen.DataLocationModel(); % dependent prop?
-            defaultDataLocation = dataLocationModel.getDefaultDataLocation;
+
+            % A model without a writable data location has no default, so
+            % the default is only looked up for a variable that needs it.
+            defaultDataLocation = [];
 
             % Insert variable specifications to the model
             for j = 1:numel(variableList)
@@ -397,6 +400,9 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
 
                 if ~any(obj.containsItem(thisName))
                     if useDefaultDataLocation(variableList(j).DataLocation)     % Local function
+                        if isempty(defaultDataLocation)
+                            defaultDataLocation = dataLocationModel.getDefaultDataLocation();
+                        end
                         variableList(j).DataLocation = defaultDataLocation.Name;
                         variableList(j).DataLocationUuid = defaultDataLocation.Uuid;
                     end

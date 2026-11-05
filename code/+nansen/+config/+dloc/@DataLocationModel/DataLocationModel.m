@@ -556,7 +556,18 @@ classdef DataLocationModel < utility.data.StorableCatalog
 
         function dataLocationItem = getDefaultDataLocation(obj)
         %getDefaultDataLocation Get the default datalocation item
+        %
+        %   Throws NANSEN:DataLocationModel:NoDefaultDataLocation when the
+        %   model has no default, which is the case when every data location
+        %   can only be read from.
             dataLocationName = obj.DefaultDataLocation;
+            if isempty(dataLocationName)
+                error('NANSEN:DataLocationModel:NoDefaultDataLocation', ...
+                    ['The project has no default data location, so new data ', ...
+                    'has no place to be saved. Add a data location of type ', ...
+                    'processed, or set one as the default, in the data ', ...
+                    'location settings.'])
+            end
             dataLocationItem = obj.getDataLocation(dataLocationName);
         end
 

@@ -73,6 +73,18 @@ classdef DefaultDataLocationTest < matlab.unittest.TestCase
                 'No default is recorded, so one can be picked once a writable location exists.')
         end
 
+        function testAModelWithoutADefaultSaysHowToAddOne(testCase)
+            % New data needs a writable location. Asking for the default of
+            % a model that has none names the problem instead of failing in
+            % the name lookup.
+            model = testCase.modelWithTypes('recorded');
+
+            model = testCase.reload(model);
+
+            testCase.verifyError(@() model.getDefaultDataLocation(), ...
+                'NANSEN:DataLocationModel:NoDefaultDataLocation')
+        end
+
         function testADefaultIsPickedOnceAWritableLocationExists(testCase)
             model = testCase.modelWithTypes('recorded');
             model = testCase.reload(model);
