@@ -1426,10 +1426,11 @@ classdef FileViewer < nansen.AbstractTabPageModule
 
             [~, fileName, fileExtension] = fileparts(filePath);
 
-            % Look in the data variable model for items / elements that
-            % match the filename and file extension.
+            % Look in the data variable model for items that match the
+            % filename and file extension within the current data location.
             varModel = obj.CurrentSessionObj.VariableModel;
-            varName = varModel.findVariableByFilename([fileName, fileExtension], mode);
+            lookupScope = obj.getVariableLookupScope();
+            varName = varModel.findVariableByFilename([fileName, fileExtension], mode, lookupScope{:});
 
             % Wrap in cell to be compatible with loop below
             if ~isempty(varName) && ischar(varName)
@@ -1474,10 +1475,23 @@ classdef FileViewer < nansen.AbstractTabPageModule
         function varNames = detectVariablesForFile(obj, filePath)
             [~, fileName, fileExtension] = fileparts(filePath);
 
-            % Look in the data variable model for items / elements that
-            % match the filename and file extension.
+            % Look in the data variable model for items that match the
+            % filename and file extension within the current data location.
             varModel = obj.CurrentSessionObj.VariableModel;
-            varNames = varModel.findVariableByFilename([fileName, fileExtension], 'all');
+            lookupScope = obj.getVariableLookupScope();
+            varNames = varModel.findVariableByFilename([fileName, fileExtension], 'all', lookupScope{:});
+        end
+
+        function nvPairs = getVariableLookupScope(obj)
+        %getVariableLookupScope - Scope variable lookups to the current tab
+        %   Each tab shows one data location, so a file in the tab can only
+        %   belong to a variable stored in that data location.
+            nvPairs = {'DataLocation', obj.CurrentDataLocationName};
+
+            dataLocationModel = obj.CurrentSessionObj.DataLocationModel;
+            if ~isempty(dataLocationModel)
+                nvPairs = [nvPairs, {'DefaultDataLocation', dataLocationModel.DefaultDataLocation}];
+            end
         end
 
         function openFilePreview(obj, filePath)

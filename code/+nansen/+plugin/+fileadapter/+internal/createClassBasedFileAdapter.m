@@ -22,7 +22,7 @@ function templateTargetPath = createClassBasedFileAdapter(templateFolder, target
     movefile(oldFilePath, newFilepath)
 
     % Also rename read (and write) template files
-    oldTemplateFiles = utility.dir.recursiveDir(templateTargetPath, ...
+    oldTemplateFiles = recursiveDir(templateTargetPath, ...
         'Expression', '.m.template', 'OutputType', 'FilePath');
     newTemplateFiles = strrep(oldTemplateFiles, '.m.template', '.m');
     for i = 1:numel(oldTemplateFiles)
