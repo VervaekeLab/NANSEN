@@ -257,6 +257,22 @@ classdef RegistryBaseTest < matlab.unittest.TestCase
             function incr(); reconciledCount = reconciledCount + 1; end
         end
 
+        function testMarkStaleRescansOnNextList(testCase)
+        %testMarkStaleRescansOnNextList list finds plugin files changed after markStale
+            reg = nansen.unittest.plugin.helper.ConcreteRegistry();
+            dirA = testCase.makeSourceDir('A', {'Alpha'});
+            reg.addSource("src-a", dirA);
+            reg.list();
+
+            % Add a plugin to the source folder after the last scan
+            plugins = struct('PluginId', {"Alpha", "Beta"}, 'Source', "A");
+            save(fullfile(dirA, 'plugins.mat'), 'plugins')
+            testCase.verifyEqual([reg.list().PluginId], "Alpha")
+
+            reg.markStale();
+            testCase.verifyEqual([reg.list().PluginId], ["Alpha", "Beta"])
+        end
+
         function testRemovingUnknownSourceKeepsEntriesCurrent(testCase)
         %testRemovingUnknownSourceKeepsEntriesCurrent Removing no source needs no new scan
             reg = nansen.unittest.plugin.helper.ConcreteRegistry();

@@ -7,9 +7,9 @@ classdef (Abstract) Registry < handle
 %     - Bottom (single pinned slot, lowest priority)
 %
 %   The registry scans its sources on the first list, get or resolve after
-%   a source is pinned, added or removed. Until the next change, these
-%   methods return the entries of the last scan. reconcile scans the
-%   sources immediately.
+%   a change: pinning, adding or removing a source, or calling markStale.
+%   Until the next change, these methods return the entries of the last
+%   scan. reconcile scans the sources immediately.
 %
 %   Subclasses implement scanSource (what to parse) and primaryId (which
 %   field of the returned entry struct is the unique identifier).
@@ -119,6 +119,14 @@ classdef (Abstract) Registry < handle
                 isRemoved = [obj.MiddleSources.id] == id;
                 obj.MiddleSources(isRemoved) = [];
             end
+            obj.IsStale = true;
+        end
+
+        function markStale(obj)
+        %markStale Make the next list, get or resolve scan the sources.
+        %
+        %   Call markStale after plugin files are added, changed or removed
+        %   in a source folder, so that the next lookup finds the change.
             obj.IsStale = true;
         end
 

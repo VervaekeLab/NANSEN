@@ -4561,17 +4561,21 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             else
                 nansen.plugin.fileadapter.createFileAdapter(targetPath, S)
             end
-            % Todo: Trigger update?
+            currentProject.FileAdapterRegistry.markStale()
         end
 
         function menuCallback_ImportFileAdapterFromFile(app)
-            targetFolder = app.ProjectManager.getCurrentProject().getFileAdapterFolder();
-            nansen.plugin.fileadapter.importFileAdaptersFromFiles(targetFolder);
+            currentProject = app.ProjectManager.getCurrentProject();
+            nansen.plugin.fileadapter.importFileAdaptersFromFiles( ...
+                currentProject.getFileAdapterFolder());
+            currentProject.FileAdapterRegistry.markStale()
         end
 
         function menuCallback_ImportFileAdapterFromFolder(app)
-            targetFolder = app.ProjectManager.getCurrentProject().getFileAdapterFolder();
-            nansen.plugin.fileadapter.importFileAdaptersFromFolder(targetFolder);
+            currentProject = app.ProjectManager.getCurrentProject();
+            nansen.plugin.fileadapter.importFileAdaptersFromFolder( ...
+                currentProject.getFileAdapterFolder());
+            currentProject.FileAdapterRegistry.markStale()
         end
 
         function menuCallback_RefreshSessionMethod(app)
