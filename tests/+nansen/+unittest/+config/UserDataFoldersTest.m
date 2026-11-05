@@ -488,6 +488,44 @@ classdef UserDataFoldersTest < matlab.unittest.TestCase
         end
     end
 
+    methods (Test) % getMachineIdentifier
+
+        function testMachineIdentifierIsFilenameSafe(testCase)
+        % It names a folder, local/<identifier>, on every platform
+
+            machineIdentifier = nansen.internal.system.getMachineIdentifier();
+
+            testCase.verifyClass(machineIdentifier, 'string')
+            testCase.verifyEqual(strlength(machineIdentifier), 32)
+            testCase.verifyTrue(all(isstrprop(char(machineIdentifier), 'xdigit')))
+        end
+
+        function testMachineIdentifierOnMacUsesHardwareUuid(testCase)
+        % The en0 address that getComputerName hashes can change with the
+        % Wi-Fi network. The hardware UUID does not.
+
+            testCase.assumeTrue(ismac, 'The hardware UUID is read on macOS only.')
+
+            [status, output] = system('/usr/sbin/ioreg -rd1 -c IOPlatformExpertDevice');
+            testCase.assumeEqual(status, 0)
+            platformUuid = extractBetween(string(output), '"IOPlatformUUID" = "', '"');
+            testCase.assumeNotEmpty(platformUuid)
+
+            engine = java.security.MessageDigest.getInstance('MD5');
+            engine.update(typecast(uint16(char(platformUuid(1))), 'uint8'));
+            expected = string(sprintf('%.2x', double(typecast(engine.digest, 'uint8'))));
+
+            testCase.verifyEqual(nansen.internal.system.getMachineIdentifier(), expected)
+        end
+
+        function testMachineIdentifierElsewhereUsesComputerName(testCase)
+            testCase.assumeFalse(ismac, 'macOS uses the hardware UUID.')
+
+            testCase.verifyEqual(nansen.internal.system.getMachineIdentifier(), ...
+                string(utility.system.getComputerName(true)))
+        end
+    end
+
     methods (Access = private)
 
         function [firstDirectory, secondDirectory] = createDirectoryPair(testCase)
