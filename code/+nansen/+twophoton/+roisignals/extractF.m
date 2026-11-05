@@ -22,8 +22,9 @@ function [signalArray, params] = extractF(imageData, roiData, optionsStruct, opt
 %   signalArray = extractF(...,Name=VALUE) specifies options using one or
 %   more name-value arguments. An option given by name replaces the field
 %   of the same name in optionsStruct. An option that is not given takes
-%   its default value from
-%   nansen.twophoton.roisignals.extract.getDefaultParameters:
+%   the default value listed below. extractF sets the defaults of
+%   showTimer, verbose, signalDataType and channelNum, and the others
+%   come from nansen.twophoton.roisignals.extract.getDefaultParameters:
 %       roiInd                  - Indices of the rois to extract signals
 %                                 for, or "all" (default).
 %       imageMask               - Logical matrix of size

@@ -6,10 +6,10 @@ classdef EstimateNeuropilMasksTest < matlab.unittest.TestCase
     %   so that roi 2 lies where the neuropil mask of roi 1 grows. Roi 3
     %   has no neighbors.
     %
-    %   testMasksLeaveOutRoiPixels with the allTrue parameter is a
-    %   regression test: an image mask that includes all pixels used to
-    %   switch off excludeRoiFromNeuropil, and extractF always passes such
-    %   a mask.
+    %   extractF and SignalExtractor always pass an image mask, so
+    %   testMasksLeaveOutRoiPixels with the allTrue parameter checks that
+    %   a mask that includes all pixels keeps roi pixels out of the
+    %   neuropil masks.
     %
     %   Run tests:
     %       runtests('nansen.unittest.roisignals.EstimateNeuropilMasksTest')

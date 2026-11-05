@@ -5,8 +5,7 @@ classdef ExtractFTest < matlab.unittest.TestCase
     %   hand-made masks. Three square rois lie in a 48-by-64 image: roi 1
     %   and roi 2 overlap in three columns and roi 3 has no neighbors.
     %
-    %   Two tests are regression tests. In
-    %   testNeuropilSignalLeavesOutNeighboringRois the rois are brighter
+    %   In testNeuropilSignalLeavesOutNeighboringRois the rois are brighter
     %   than the background, so the neuropil signal only equals the
     %   background if no neuropil mask holds a pixel of any roi. The
     %   testSecondOutput* tests check that the second output holds the
@@ -153,14 +152,17 @@ classdef ExtractFTest < matlab.unittest.TestCase
         end
 
         function testNameValueArgumentReplacesStructField(testCase)
+            % The option given by name replaces the struct field of the
+            % same name, and the other fields of the struct are kept.
             rois = createRois(testCase.ImageSize);
             imageData = createRandomStack(testCase.ImageSize, testCase.NumFrames);
-            optionsStruct = struct('createNeuropilMask', true);
+            optionsStruct = struct('createNeuropilMask', true, 'roiInd', 2);
 
-            signalArray = nansen.twophoton.roisignals.extractF( ...
+            [signalArray, params] = nansen.twophoton.roisignals.extractF( ...
                 imageData, rois, optionsStruct, createNeuropilMask=false);
 
-            testCase.verifySize(signalArray, [testCase.NumFrames, 1, 3])
+            testCase.verifySize(signalArray, [testCase.NumFrames, 1])
+            testCase.verifyEqual(params.roiInd, 2)
         end
 
         function testDefaultParameterStructIsAccepted(testCase)
