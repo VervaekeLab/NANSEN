@@ -84,7 +84,7 @@ classdef SignalExtractor < nansen.stack.ImageStackProcessor
                         obj.Options.Extraction, obj.SourceStack, iRoiArray);
 
                     % Prepare array of RoIs for efficient signal extraction:
-                    obj.RoiDataArray{iZ, iC} = nansen.processing.roi.prepareRoiMasks( ...
+                    obj.RoiDataArray{iZ, iC} = nansen.module.twophoton.roi.prepareRoiMasks( ...
                         iRoiArray, obj.ExtractionParameters{iZ, iC});
 
                     % Signal extraction function depends on number of rois and is

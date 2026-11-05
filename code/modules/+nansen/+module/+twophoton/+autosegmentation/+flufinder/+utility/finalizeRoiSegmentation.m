@@ -63,11 +63,11 @@ function roiArray = finalizeRoiSegmentation(imArray, avgIm, roiArrayT, varargin)
 
     %%% Improve roi estimate for active cells.
     fprintf('Improving estimates for temporally active cells...\n')
-    roiImageArray = roimanager.autosegment.extractRoiImages(imArray, roiArrayT, dffT', 'ImageType', 'correlation');
+    roiImageArray = nansen.module.twophoton.roi.extractRoiImages(imArray, roiArrayT, dffT', 'ImageType', 'correlation');
     roiArrayT = roiArrayT.addImage(roiImageArray);
 
     % Todo: Check if including this improves results
-    % [roiArrayT, ~] = roimanager.binarize.improveMaskEstimate2(roiArrayT);
+    % [roiArrayT, ~] = nansen.module.twophoton.autosegmentation.improveMaskEstimate2(roiArrayT);
 
     % Merge overlapping rois in the activity based roi Array.
     roiArrayT = roimanager.utilities.mergeOverlappingRois(roiArrayT);

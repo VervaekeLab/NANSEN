@@ -3,8 +3,8 @@ classdef MotionCorrectionPreview < handle
 % correction imviewer plugins
 
 % Todo: Should this inherit from imviewer.ImviewerPlugin and have
-% nansen.plugin.imviewer.FlowRegistration and
-% nansen.plugin.imviewer.NoRMCorre as subclasses?
+% nansen.module.twophoton.ui.imviewer.FlowRegistration and
+% nansen.module.twophoton.ui.imviewer.NoRMCorre as subclasses?
 
     properties (Abstract)
         Options

@@ -37,7 +37,7 @@ function signalArray = serialExtract(imArray, roiMasks, varargin)
     if isa(roiMasks, 'RoI')
 
         params.RoiOutputFormat = 'struct';
-        roiMasks = nansen.processing.roi.prepareRoiMasks(roiMasks, params);
+        roiMasks = nansen.module.twophoton.roi.prepareRoiMasks(roiMasks, params);
     end
 
     numSamples = size(imArray, 3);

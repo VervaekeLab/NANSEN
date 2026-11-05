@@ -382,7 +382,7 @@ methods
 
     function roiBabies = split(obj, nPieces)
         tmpmask = obj.mask;
-        newRoiMasks = nansen.processing.roi.fissa.splitneuropilmask(tmpmask, tmpmask, nPieces);
+        newRoiMasks = nansen.module.twophoton.roi.fissa.splitneuropilmask(tmpmask, tmpmask, nPieces);
         nBabies = size(newRoiMasks, 3);
 
         roiBabies(nBabies, 1) = RoI;

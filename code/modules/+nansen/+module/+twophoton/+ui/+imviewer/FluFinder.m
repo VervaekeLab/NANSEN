@@ -6,9 +6,9 @@ classdef FluFinder < imviewer.ImviewerPlugin & applify.mixin.ModalMethodPreviewC
 %   image stack.
 %
 %   SYNTAX:
-%       flufinderPlugin = nansen.plugin.imviewer.FluFinder(imviewerHandle)
-%       flufinderPlugin = nansen.plugin.imviewer.FluFinder(imviewerHandle, options)
-%       flufinderPlugin = nansen.plugin.imviewer.FluFinder(imviewerHandle, options, Name, Value, ...)
+%       flufinderPlugin = nansen.module.twophoton.ui.imviewer.FluFinder(imviewerHandle)
+%       flufinderPlugin = nansen.module.twophoton.ui.imviewer.FluFinder(imviewerHandle, options)
+%       flufinderPlugin = nansen.module.twophoton.ui.imviewer.FluFinder(imviewerHandle, options, Name, Value, ...)
 
     properties (Constant)
        Name = 'FluFinder'
