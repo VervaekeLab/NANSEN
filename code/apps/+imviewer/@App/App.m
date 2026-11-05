@@ -4300,17 +4300,9 @@ methods % Misc, most can be outsourced
 
         h = structeditor(S, 'Title', 'ImageStack Properties', ...
             'Prompt', 'Set ImageStack Properties:');
-        h.waitfor()
+        [editedData, wasCanceled] = structeditor.waitForResult(h);
 
-        if isprop(h, 'FinishState')
-            if h.FinishState ~= "Finished"; return; end
-            editedData = h.Data;
-        else
-            if h.wasCanceled; return; end
-            editedData = h.dataEdit;
-        end
-
-        if ~isempty(editedData)
+        if ~wasCanceled
             obj.ImageStack.MetaData.SampleRate = editedData.SampleRate;
             obj.ImageStack.MetaData.SpatialPosition = editedData.SpatialPosition;
             physSize = editedData.PhysicalSize;

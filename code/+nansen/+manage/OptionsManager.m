@@ -383,26 +383,11 @@ classdef OptionsManager < handle
             %titleStr = sprintf('Edit options for %s', name);
 
             sEditor = structeditor(obj.Options, 'OptionsManager', obj, 'Title', name);
-            sEditor.waitfor()
+            [editedOptions, wasAborted] = structeditor.waitForResult(sEditor);
 
-            if isprop(sEditor, 'FinishState')
-                wasAborted = sEditor.FinishState ~= "Finished";
-                if wasAborted
-                    obj.Options = sEditor.OriginalData;
-                else
-                    obj.Options = sEditor.Data;
-                end
-            else
-                wasAborted = sEditor.wasCanceled;
-
-                if wasAborted
-                    obj.Options = sEditor.dataOrig;
-                else
-                    obj.Options = sEditor.dataEdit;
-                end
+            if ~wasAborted
+                obj.Options = editedOptions;
             end
-
-            delete(sEditor)
 
             if ~nargout
                 clear wasAborted
@@ -463,26 +448,12 @@ classdef OptionsManager < handle
             optsName = obj.unformatName(optsName);
 
             sEditor = obj.openOptionsEditor(optsName, optsStruct);
-            sEditor.waitfor()
+            [editedOptions, wasAborted, editedOptionsName] = ...
+                structeditor.waitForResult(sEditor);
 
-            if isprop(sEditor, 'FinishState')
-                wasAborted = sEditor.FinishState ~= "Finished";
-                plugin = sEditor.getPlugin("nansen.manage.OptionsManagerPlugin");
-                if wasAborted
-                    optsStruct = sEditor.OriginalData;
-                else
-                    optsStruct = sEditor.Data;
-                    optsName = plugin.CurrentOptionsName;
-                end
-            else
-                wasAborted = sEditor.wasCanceled;
-
-                if sEditor.wasCanceled
-                    optsStruct = sEditor.dataOrig;
-                else
-                    optsStruct = sEditor.dataEdit;
-                    optsName = sEditor.currentOptionsName;
-                end
+            if ~wasAborted
+                optsStruct = editedOptions;
+                optsName = editedOptionsName;
             end
 
             % Clear modified options!

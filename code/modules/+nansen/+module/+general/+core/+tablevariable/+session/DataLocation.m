@@ -250,7 +250,7 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable & nansen.metadata
                     % todo for the future
                     %S.(fieldName).Subfolder_ = @(x)uigetdir(rootPath);
                 end
-                
+
                 h = structeditor(S, 'AdjustFigureSize', true, ...
                     'Title', 'Edit Data Location Rootpaths', ...
                     'LabelPosition', 'over', ...
@@ -259,15 +259,7 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable & nansen.metadata
                     %'ValueChangedFcn', @obj.onDataLocationChanged );
                 h.Title = sprintf('Edit Data Locations for %s', metaObj.sessionID);
 
-                h.waitfor()
-                
-                if isprop(h, 'FinishState')
-                    wasCanceled = h.FinishState ~= "Finished";
-                    sNew = h.Data;
-                else
-                    wasCanceled = h.wasCanceled;
-                    sNew = h.dataEdit;
-                end
+                [sNew, wasCanceled] = structeditor.waitForResult(h);
 
                 if wasCanceled
                     return
@@ -308,22 +300,14 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable & nansen.metadata
                     end
                     S.(fieldName_) = allRootPaths;
                 end
-                
+
                 h = structeditor(S, 'AdjustFigureSize', true, ...
                     'Title', 'Edit Data Location Rootpaths', ...
                     'LabelPosition', 'over', ...
                     'Prompt', 'Select datalocation root directories');
                 h.Title = sprintf('Edit Data Locations for %s', metaObj.sessionID);
 
-                h.waitfor()
-                
-                if isprop(h, 'FinishState')
-                    wasCanceled = h.FinishState ~= "Finished";
-                    sNew = h.Data;
-                else
-                    wasCanceled = h.wasCanceled;
-                    sNew = h.dataEdit;
-                end
+                [sNew, wasCanceled] = structeditor.waitForResult(h);
 
                 if wasCanceled
                     return

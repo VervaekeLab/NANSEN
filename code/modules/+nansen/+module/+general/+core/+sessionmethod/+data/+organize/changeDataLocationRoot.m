@@ -91,15 +91,7 @@ function varargout = changeDataLocationRoot(sessionObject, varargin)
         'Prompt', sprintf('Select root directory for %s', dataLocName)); %, ...
 
     h.Title = sprintf('Edit Data Location Rootpath');
-    h.waitfor()
-
-    if isprop(h, 'FinishState')
-        wasCanceled = h.FinishState ~= "Finished";
-        sNew = h.Data;
-    else
-        wasCanceled = h.wasCanceled;
-        sNew = h.dataEdit;
-    end
+    [sNew, wasCanceled] = structeditor.waitForResult(h);
 
     if wasCanceled
         return

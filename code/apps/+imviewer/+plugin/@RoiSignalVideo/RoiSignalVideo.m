@@ -67,15 +67,7 @@ classdef RoiSignalVideo < uim.handle & applify.mixin.UserSettings
             obj.imviewerRef.displayMessage('Preparing video export')
 
             sEditor = structeditor(obj.settings, 'Title', 'Set preferences for video export');
-            sEditor.waitfor()
-
-            if isprop(sEditor, 'FinishState')
-                wasCanceled = sEditor.FinishState ~= "Finished";
-                editedSettings = sEditor.Data;
-            else
-                wasCanceled = sEditor.wasCanceled;
-                editedSettings = sEditor.dataEdit;
-            end
+            [editedSettings, wasCanceled] = structeditor.waitForResult(sEditor);
 
             if wasCanceled
                 obj.imviewerRef.clearMessage

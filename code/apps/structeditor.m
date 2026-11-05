@@ -22,7 +22,12 @@ function hApp = structeditor(varargin)
 %   calls with a parent container as the first input and calls with
 %   name-value arguments such as Visible, ValueChangedFcn or TestFunc.
 %
-%   See also structeditor.App, nansen.util.useModernStructEditor
+%   StructEditorApp is opened with CloseOnExit set to false, so the app
+%   stays valid after Ok or Cancel. To wait for the user, read the result
+%   and close the app, call structeditor.waitForResult(hApp).
+%
+%   See also structeditor.App, structeditor.waitForResult,
+%   nansen.util.useModernStructEditor
 
     if nargin > 0 && canUseModernEditor(varargin)
         hApp = openModernEditor(varargin{1}, varargin(2:end));
@@ -93,7 +98,10 @@ function editor = openModernEditor(data, nameValueArgs)
         nameValueArgs = [nameValueArgs, {'Plugin', plugin}];
     end
 
-    editor = structeditor.StructEditorApp(data, nameValueArgs{:});
+    % With CloseOnExit true, StructEditorApp deletes itself on Ok or
+    % Cancel, before the caller can read FinishState and Data.
+    editor = structeditor.StructEditorApp(data, nameValueArgs{:}, ...
+        'CloseOnExit', false);
 end
 
 function [nameValueArgs, value] = popNameValue(nameValueArgs, name)
