@@ -1,9 +1,44 @@
 function report = validateDataLocationRelink(sessionTable, dataLocationModel)
-%validateDataLocationRelink Validate in-place datalocation relinking.
+%validateDataLocationRelink Check session IDs before a session table is relinked.
 %
 %   report = validateDataLocationRelink(sessionTable, dataLocationModel)
-%   verifies that session ids extracted with the given DataLocationModel
-%   overlap with the immutable session ids in the existing session table.
+%   lists the session folders of every data location in dataLocationModel,
+%   extracts a session ID from each folder and compares these IDs with the
+%   sessionID column of sessionTable. nansen.manage.updateSessionDatalocations
+%   relinks a table row to the session folders with the same session ID, so
+%   the extracted IDs must include IDs that are in the table.
+%
+%   Errors:
+%       NANSEN:DataLocations:MissingSessionIDColumn - sessionTable has no
+%           sessionID column.
+%       NANSEN:DataLocations:SessionIdentityMismatch - session IDs were
+%           extracted, sessionTable has session IDs, and no ID is in both.
+%
+%   When no session ID is extracted, for example because the root folder of
+%   each data location is missing on this computer, there are no IDs to
+%   compare. The function then returns without an error, and
+%   report.ExtractedSessionIDs is empty.
+%
+%   Output:
+%       report - struct with the fields
+%           DetectedSessionFolders : struct with one field per data
+%               location, holding a cell array of session folder paths
+%           MatchedSessionFolders : 1xN struct of session folders matched
+%               across data locations, one element per extracted session ID
+%           ExtractedSessionIDs : 1xN cell array of the session IDs that
+%               were extracted from the session folders
+%           TableSessionIDs : cell array of the session IDs in sessionTable
+%           MatchingSessionIDs : extracted session IDs that are in
+%               sessionTable
+%           NumMatchingSessionIDs : number of MatchingSessionIDs
+%
+%   See also nansen.manage.updateSessionDatalocations,
+%   nansen.dataio.session.matchSessionFolders
+
+    arguments
+        sessionTable (1,1) nansen.metadata.MetaTable
+        dataLocationModel (1,1) nansen.config.dloc.DataLocationModel
+    end
 
     import nansen.dataio.session.listSessionFolders
     import nansen.dataio.session.matchSessionFolders
@@ -15,14 +50,13 @@ function report = validateDataLocationRelink(sessionTable, dataLocationModel)
         [sessionFolders, sessionIDs] = matchSessionFolders(...
             dataLocationModel, detectedSessionFolders);
     catch exception
-        switch exception.identifier
-            case 'NANSEN:DataIO:NoMatchingSessionFolders'
-                error('NANSEN:DataLocations:NoMatchingSessionFolders', ...
-                    ['No session folders were detected using the current ', ...
-                    'DataLocationModel. Please check the DataLocationModel configuration.'])
-            otherwise
-                rethrow(exception)
+        % matchSessionFolders throws this error when it extracts no session
+        % ID, which includes the case where no session folders are found.
+        if exception.identifier ~= "NANSEN:DataIO:NoMatchingSessionFolders"
+            rethrow(exception)
         end
+        sessionFolders = struct.empty(1, 0);
+        sessionIDs = {};
     end
 
     sessionIDs = normalizeSessionIDList(sessionIDs);

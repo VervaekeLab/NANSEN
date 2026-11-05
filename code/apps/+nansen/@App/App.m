@@ -2013,8 +2013,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             d = [];
             try
                 d = src.openProgressDialog('Update Model');
-                % Todo: Ask model app if config is valid, i.e session
-                % folders detected?
             catch
                 warning('Something went wrong')
             end
@@ -3394,21 +3392,22 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
 
         function validateDataLocationRelink(app, dataLocationModel)
-        %validateDataLocationRelink Guard in-place data location updates.
-            if isempty(app.MetaTable)
+        %validateDataLocationRelink Check that dataLocationModel keeps the session IDs of the current table.
+
+            % Only a table with a sessionID column has session IDs to
+            % compare. The subject table, for example, has none.
+            if isempty(app.MetaTable) || ~app.MetaTable.isVariable('sessionID')
                 return
             end
             nansen.manage.validateDataLocationRelink(app.MetaTable, dataLocationModel);
         end
 
         function setDataLocationEditorCommitValidator(app, dataLocationModelApp)
-        %setDataLocationEditorCommitValidator Set optional save guard.
-            if isprop(dataLocationModelApp, 'CommitValidator')
-                dataLocationModelApp.CommitValidator = ...
-                    @(dlm) app.validateDataLocationRelink(dlm);
-            end
+        %setDataLocationEditorCommitValidator Check session IDs before the editor saves the model.
+            dataLocationModelApp.CommitValidator = ...
+                @(dlm) app.validateDataLocationRelink(dlm);
         end
-        
+
         function openMetaTable(app, metaTableName)
         % openMetaTable - Open a metatable with the given name
 

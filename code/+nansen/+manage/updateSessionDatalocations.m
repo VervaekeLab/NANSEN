@@ -6,6 +6,13 @@ function sessionTable = updateSessionDatalocations(sessionTable, dataLocationMod
 
     report = nansen.manage.validateDataLocationRelink(...
         sessionTable, dataLocationModel);
+
+    if isempty(report.ExtractedSessionIDs)
+        error('NANSEN:DataLocations:NoMatchingSessionFolders', ...
+            ['No session folders were detected using the current ', ...
+            'DataLocationModel. Please check the DataLocationModel configuration.'])
+    end
+
     sessionFolders = report.MatchedSessionFolders;
     sessionIDs = report.ExtractedSessionIDs;
     tableSessionIDs = report.TableSessionIDs;

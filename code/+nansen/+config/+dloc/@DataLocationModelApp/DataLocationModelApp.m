@@ -41,7 +41,11 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
 
     properties
         DataLocationModel
-        CommitValidator = []
+
+        % CommitValidator - Function that is called with DataLocationModel
+        % before the model is saved. An error from the function cancels
+        % the save, and its message is shown to the user.
+        CommitValidator function_handle = function_handle.empty
     end
 
     properties (Access = private)
@@ -197,6 +201,11 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
             switch title
                 case 'Update Model'
                     message = 'Updating paths of session folders for data locations...';
+                case 'Check Session IDs'
+                    message = 'Comparing session IDs of session folders with the session table...';
+                otherwise
+                    error('NANSEN:DataLocationModelApp:UnknownProgressDialog', ...
+                        'No progress dialog is defined for the title "%s".', title)
             end
 
             d = uiprogressdlg(obj.Figure, 'Title', title,...
@@ -269,9 +278,16 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
         end
 
         function runCommitValidator(obj)
+        %runCommitValidator Call CommitValidator with the model while a progress dialog is open.
             if isempty(obj.CommitValidator)
                 return
             end
+
+            % A validator can list the session folders of every data
+            % location, which takes time.
+            progressDialog = obj.openProgressDialog('Check Session IDs');
+            closeProgressDialog = onCleanup(@() close(progressDialog));
+
             obj.CommitValidator(obj.DataLocationModel);
         end
 
