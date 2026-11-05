@@ -6,7 +6,8 @@ classdef FileNamePattern
 %
 %   An expression with a placeholder names the whole file name without
 %   its extension, and * stands for any characters. An expression
-%   without a placeholder is a part of the file name, as before.
+%   without a placeholder is a part of the file name, so rois matches
+%   m001_rois.mat.
 %
 %   FileNamePattern functions:
 %       listPlaceholders - List the placeholders and what they stand for
@@ -41,7 +42,12 @@ classdef FileNamePattern
         %hasPlaceholder - True when an expression contains a placeholder
         %   TF = hasPlaceholder(EXPRESSION) is true when EXPRESSION contains
         %   a name in curly braces, whether or not the name is known.
-            tf = ~isempty(regexp(char(expression), '\{\w+\}', 'once'));
+
+            arguments
+                expression (1,:) char
+            end
+
+            tf = ~isempty(regexp(expression, '\{\w+\}', 'once'));
         end
 
         function [tf, message] = isValid(expression)
@@ -160,12 +166,17 @@ classdef FileNamePattern
         %   fileName = toFileName(expandedExpression,fileType) appends
         %   fileType, with a leading dot, unless expandedExpression already
         %   ends with it.
-            fileType = char(fileType);
+
+            arguments
+                expandedExpression (1,:) char
+                fileType (1,:) char
+            end
+
             if ~isempty(fileType) && ~strncmp(fileType, '.', 1)
                 fileType = ['.', fileType];
             end
 
-            fileName = char(expandedExpression);
+            fileName = expandedExpression;
             if ~endsWith(fileName, fileType)
                 fileName = [fileName, fileType];
             end
@@ -175,7 +186,12 @@ classdef FileNamePattern
         %toRegexp - Regular expression matching an expanded file name
         %   PATTERN = toRegexp(fileName) matches the whole of fileName,
         %   where * stands for any characters.
-            pattern = ['^', regexptranslate('wildcard', char(fileName)), '$'];
+
+            arguments
+                fileName (1,:) char
+            end
+
+            pattern = ['^', regexptranslate('wildcard', fileName), '$'];
         end
     end
 end

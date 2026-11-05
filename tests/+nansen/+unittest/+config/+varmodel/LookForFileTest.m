@@ -84,7 +84,7 @@ classdef LookForFileTest < matlab.unittest.TestCase
             item = testCase.createItem('SessionNwb', '{sessionID}', '.nwb');
 
             fileName = model.lookForFile(testCase.Folder, item, ...
-                'PlaceholderValues', struct('sessionID', 'm001'));
+                PlaceholderValues=struct('sessionID', 'm001'));
 
             testCase.verifyEqual(fileName, 'm001.nwb')
         end
@@ -104,8 +104,8 @@ classdef LookForFileTest < matlab.unittest.TestCase
             item = testCase.createItem('SessionFiles', '{sessionID}*', '.nwb');
 
             fileName = model.lookForFile(testCase.Folder, item, ...
-                'PlaceholderValues', struct('sessionID', 'm001'), ...
-                'FilterFcn', @(names) contains(names, 'extra'));
+                PlaceholderValues=struct('sessionID', 'm001'), ...
+                FilterFcn=@(names) contains(names, 'extra'));
 
             testCase.verifyEqual(fileName, 'm001_extra.nwb')
         end

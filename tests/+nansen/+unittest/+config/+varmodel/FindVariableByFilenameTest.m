@@ -107,11 +107,11 @@ classdef FindVariableByFilenameTest < matlab.unittest.TestCase
             values = struct('sessionID', 'm001');
 
             testCase.verifyEqual( model.findVariableByFilename('m001.nwb', 'all', ...
-                'PlaceholderValues', values), 'SessionNwb')
+                PlaceholderValues=values), 'SessionNwb')
             testCase.verifyEmpty( model.findVariableByFilename('m001_extra.nwb', 'all', ...
-                'PlaceholderValues', values) )
+                PlaceholderValues=values) )
             testCase.verifyEmpty( model.findVariableByFilename('m002.nwb', 'all', ...
-                'PlaceholderValues', values) )
+                PlaceholderValues=values) )
         end
 
         function testPlaceholderWithWildcard(testCase)
@@ -121,9 +121,9 @@ classdef FindVariableByFilenameTest < matlab.unittest.TestCase
             values = struct('sessionID', 'm001');
 
             testCase.verifyEqual( model.findVariableByFilename('m001_extra.nwb', 'all', ...
-                'PlaceholderValues', values), 'SessionFiles')
+                PlaceholderValues=values), 'SessionFiles')
             testCase.verifyEmpty( model.findVariableByFilename('m002.nwb', 'all', ...
-                'PlaceholderValues', values) )
+                PlaceholderValues=values) )
         end
 
         function testPlaceholderNeedsValues(testCase)
@@ -133,7 +133,7 @@ classdef FindVariableByFilenameTest < matlab.unittest.TestCase
 
             testCase.verifyEmpty( model.findVariableByFilename('m001.nwb', 'all') )
             testCase.verifyEmpty( model.findVariableByFilename('m001.nwb', 'all', ...
-                'PlaceholderValues', struct('sessionID', '')) )
+                PlaceholderValues=struct('sessionID', '')) )
         end
 
         function testWholeNameMatchOutranksPartialMatch(testCase)
