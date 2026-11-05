@@ -78,7 +78,7 @@ classdef StorableCatalog < handle
         % SaveFormat - Format that save writes in, 'mat' or 'json'. It
         % follows the extension of FilePath. Setting it and saving converts
         % the catalog to the other format.
-        SaveFormat = 'mat';
+        SaveFormat {mustBeMember(SaveFormat, {'mat', 'json'})} = 'mat';
     end
 
     events % Tentative...
@@ -225,17 +225,29 @@ classdef StorableCatalog < handle
         %
         %   The extension of the file follows SaveFormat, so converting a
         %   catalog by setting SaveFormat and saving writes the new file
-        %   beside the old one and repoints the catalog at it. The old file
-        %   is left in place as a backup.
-            filePath = nansen.util.path.changeFilenameExtension(obj.FilePath, obj.SaveFormat);
+        %   beside the old one and repoints the catalog at it. A mat file
+        %   left beside a json catalog is kept as a backup. A json file is
+        %   loaded whenever it exists, so a json file beside a catalog that
+        %   is saved as mat is renamed to <name>.json.bak.
+            import nansen.util.path.changeFilenameExtension
+
+            filePath = changeFilenameExtension(obj.FilePath, obj.SaveFormat);
             obj.saveas(filePath)
             obj.FilePath = filePath;
+
+            jsonPath = changeFilenameExtension(filePath, 'json');
+            if strcmp(obj.SaveFormat, 'mat') && isfile(jsonPath)
+                movefile(jsonPath, [char(jsonPath), '.bak'], 'f')
+            end
         end
 
         function saveas(obj, filePath)
         %saveas Save data to a file, in the format its extension implies
         %
-        %   The catalog itself keeps pointing at its own file.
+        %   The catalog itself keeps pointing at its own file. A json file
+        %   written beside the catalog's mat file becomes the catalog the
+        %   next time it is loaded, because the json file is used whenever
+        %   it exists.
             S = obj.toStruct();
             S = obj.cleanStructOnSave(S);
 
@@ -329,7 +341,8 @@ classdef StorableCatalog < handle
         %   object and a struct array of several as an array, so a reader
         %   can not tell a list of one from a single value. Encoding struct
         %   arrays as cell arrays makes every list a json array. Reading
-        %   accepts either shape, so files written before this still load.
+        %   accepts either shape, so a file with a list written as an object
+        %   loads as well.
         %
         %   The rule is applied to every struct, so a scalar struct is
         %   written as a list of one as well.

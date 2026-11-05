@@ -228,6 +228,39 @@ classdef StorableCatalogJsonTest < matlab.unittest.TestCase
             testCase.verifyEqual({reloaded.Data.Name}, {'Alpha', 'OnlyInJson'});
         end
 
+        function testConvertingBackToMatKeepsLaterEdits(testCase)
+            % A json file is loaded whenever it exists, so converting back
+            % to mat renames the json file. Otherwise the edits saved to the
+            % mat file would be lost at the next load.
+            folderPath = testCase.createCatalogFolder('configs');
+            matPath = fullfile(folderPath, 'test_catalog.mat');
+            catalog = testCase.createCatalog(matPath);
+            catalog.SaveFormat = 'json';
+            catalog.save();
+
+            catalog.SaveFormat = 'mat';
+            catalog.save();
+            item = catalog.getBlankItem();
+            item.Name = 'Beta';
+            catalog.insertItem(item);
+
+            jsonPath = fullfile(folderPath, 'test_catalog.json');
+            testCase.verifyFalse(isfile(jsonPath));
+            testCase.verifyTrue(isfile([jsonPath, '.bak']));
+
+            reloaded = nansen.integrationtest.helper.StorableCatalogFake(matPath);
+            testCase.verifyEqual(reloaded.FilePath, matPath);
+            testCase.verifyEqual({reloaded.Data.Name}, {'Alpha', 'Beta'});
+        end
+
+        function testSaveFormatOtherThanMatOrJsonIsRefused(testCase)
+            folderPath = testCase.createCatalogFolder('configs');
+            catalog = testCase.createCatalog(fullfile(folderPath, 'test_catalog.mat'));
+
+            testCase.verifyError(@() setSaveFormat(catalog, 'csv'), ...
+                'MATLAB:validators:mustBeMember');
+        end
+
         function testSaveAsWritesInTheFormatOfTheGivenExtension(testCase)
             % saveas writes a copy where it is told, in the format the
             % extension implies, and leaves the catalog on its own file.
@@ -289,4 +322,9 @@ classdef StorableCatalogJsonTest < matlab.unittest.TestCase
             names = sort( setdiff({listing.name}, {'.', '..'}) );
         end
     end
+end
+
+function setSaveFormat(catalog, format)
+%setSaveFormat Assign SaveFormat, for use in a function handle
+    catalog.SaveFormat = format;
 end
