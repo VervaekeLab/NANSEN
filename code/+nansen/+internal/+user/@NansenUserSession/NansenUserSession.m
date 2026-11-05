@@ -458,68 +458,107 @@ classdef NansenUserSession < handle
         function migrateUserDataFromPreferenceDirectory(obj)
         %migrateUserDataFromPreferenceDirectory Move data out of the preference directory
         %
-        %   The project catalog, and the project configurations kept next
-        %   to it, used to live in the preference directory. That directory
-        %   belongs to a single MATLAB release, so the data was left behind
-        %   when MATLAB was upgraded. Move it to the release independent
-        %   user data directory.
+        %   The project catalog, the settings and the custom options used to
+        %   live in the preference directory. That directory belongs to a
+        %   single MATLAB release, so the data was left behind when MATLAB
+        %   was upgraded. Move it to the release independent user data
+        %   directory.
 
             preferenceDirectory = obj.getPrefdir(obj.CurrentUserName);
             userDataDirectory = obj.getCurrentUserDataDirectory();
 
             % There is no release independent location when userpath is
             % empty, in which case the preference directory is still used.
-            if nansen.util.path.isSamePath(preferenceDirectory, userDataDirectory)
-                return
+            if ~nansen.util.path.isSamePath(preferenceDirectory, userDataDirectory)
+                obj.moveUserDataOutOfPreferenceDirectory(preferenceDirectory, userDataDirectory)
             end
+
+            % Runs at every startup, in whichever directory this session
+            % uses, so that these files are where nansen.localpath looks
+            % for them also when the move above did not run or failed.
+            nansen.internal.user.moveMachineLocalSettings(obj.getCurrentUserDataDirectory())
+        end
+
+        function moveUserDataOutOfPreferenceDirectory(obj, preferenceDirectory, userDataDirectory)
+        %moveUserDataOutOfPreferenceDirectory Move the user data folders and report it
+        %
+        %   The user data directory can already hold data that another
+        %   MATLAB release or another machine moved there first. That data
+        %   is used, and this release's copy of each folder it holds is
+        %   renamed in the preference directory instead of merged into it.
+        %   The preference directory is then left without user data
+        %   folders, so the move is not attempted again at the next start.
+        %
+        %   See also nansen.internal.user.migrateUserDataFolders
 
             legacyFolders = fullfile(preferenceDirectory, obj.USER_DATA_FOLDER_NAMES);
             if ~any( isfolder(legacyFolders) ); return; end
 
             try
-                nansen.internal.user.moveUserDataFolders( ...
-                    preferenceDirectory, userDataDirectory, obj.USER_DATA_FOLDER_NAMES)
+                result = nansen.internal.user.migrateUserDataFolders( ...
+                    preferenceDirectory, userDataDirectory, obj.USER_DATA_FOLDER_NAMES);
             catch ME
                 % Use the old location for this session only. The preference
                 % stays unset, so the move is attempted again next startup.
                 obj.UserDataDirectoryOverride = preferenceDirectory;
 
                 warning('NANSEN:UserSession:UserDataMigrationFailed', ...
-                    ['NANSEN could not move its data out of MATLAB''s preference ' ...
-                     'directory and uses "%s" for this session. The move is ' ...
-                     'attempted again the next time NANSEN starts.\n%s'], ...
-                    preferenceDirectory, ME.message)
+                    ['NANSEN could not move its data from MATLAB''s preference ' ...
+                     'directory, "%s", to "%s", and uses the preference directory ' ...
+                     'for this session. The move is attempted again the next time ' ...
+                     'NANSEN starts.\nReason: %s'], ...
+                    preferenceDirectory, userDataDirectory, ME.message)
                 return
             end
 
-            obj.moveMachineLocalSettings(userDataDirectory)
-            obj.repointMigratedProjectPaths(preferenceDirectory, userDataDirectory)
+            % Only this release's own catalog can name project folders that
+            % were kept inside its preference directory
+            [~, catalogFolderName] = fileparts( ...
+                nansen.config.project.ProjectManager.getCatalogDirectory(userDataDirectory));
 
-            fprintf(['NANSEN''s project catalog and configurations were moved out ' ...
-                'of MATLAB''s preference directory to "%s", so that they are kept ' ...
-                'when MATLAB is upgraded.\n'], userDataDirectory)
+            if ismember(catalogFolderName, result.MovedFolderNames)
+                obj.repointMigratedProjectPaths(preferenceDirectory, userDataDirectory)
+            end
+
+            if isempty(result.RenamedFolderNames)
+                fprintf(['NANSEN''s project catalog and configurations were moved out ' ...
+                    'of MATLAB''s preference directory to "%s", so that they are kept ' ...
+                    'when MATLAB is upgraded.\n'], userDataDirectory)
+            else
+                obj.warnUserDataSetAside(result, userDataDirectory, catalogFolderName)
+            end
         end
 
-        function moveMachineLocalSettings(~, userDataDirectory)
-        %moveMachineLocalSettings Separate machine state from shared settings
-        %
-        %   The task list and the watched folder catalog were kept in the
-        %   settings folder, which is now shared. They name queued work and
-        %   paths on one machine, so they belong in the machine specific
-        %   folder instead.
+        function warnUserDataSetAside(~, result, userDataDirectory, catalogFolderName)
+        %warnUserDataSetAside Report the folders renamed instead of moved
 
-            machineLocalFileNames = ["task_list.mat", "watch_folder_catalog.mat"];
+            message = sprintf(['NANSEN uses the data in "%s", which another MATLAB ' ...
+                'release or another machine moved out of MATLAB''s preference ' ...
+                'directory first. This release''s copy of these folders was not ' ...
+                'merged into it, and was renamed instead:\n%s'], ...
+                userDataDirectory, strjoin("    " + result.RenamedFolderPaths, newline));
 
-            settingsFolder = fullfile(userDataDirectory, 'settings');
-            localFolder = nansen.localdatadir(userDataDirectory);
-
-            for i = 1:numel(machineLocalFileNames)
-                sourcePath = fullfile(settingsFolder, machineLocalFileNames(i));
-                if ~isfile(sourcePath); continue; end
-
-                if ~isfolder(localFolder); mkdir(localFolder); end
-                movefile(sourcePath, fullfile(localFolder, machineLocalFileNames(i)))
+            if ~isempty(result.MovedFolderNames)
+                message = [message, sprintf('\nThese folders were moved to "%s": %s.', ...
+                    userDataDirectory, strjoin(result.MovedFolderNames, ', '))];
             end
+
+            isCatalogRenamed = result.RenamedFolderNames == catalogFolderName;
+
+            if any(isCatalogRenamed)
+                [~, catalogFileName, catalogFileExtension] = fileparts( ...
+                    nansen.config.project.ProjectManager.getCatalogPath(userDataDirectory));
+                renamedCatalogPath = fullfile(result.RenamedFolderPaths(isCatalogRenamed), ...
+                    [catalogFileName, catalogFileExtension]);
+
+                message = [message, sprintf(['\nTo add a project of this release to ' ...
+                    'the catalog in use, select its project folder on the Add Existing ' ...
+                    'Project tab of the project manager, or call ' ...
+                    'nansen.ProjectManager().importProject(projectFolder). The project ' ...
+                    'folders of this release are listed in "%s".'], renamedCatalogPath)];
+            end
+
+            warning('NANSEN:UserSession:UserDataSetAside', '%s', message)
         end
 
         function repointMigratedProjectPaths(~, oldDirectory, newDirectory)

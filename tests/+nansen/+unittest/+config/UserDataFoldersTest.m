@@ -264,6 +264,153 @@ classdef UserDataFoldersTest < matlab.unittest.TestCase
         end
     end
 
+    methods (Test) % migrateUserDataFolders
+
+        function testMigrationMovesFoldersTheTargetLacks(testCase)
+            [sourceDirectory, targetDirectory] = testCase.createDirectoryPair();
+            testCase.createFile(fullfile(sourceDirectory, "projects"), "project_catalog.mat")
+            testCase.createFile(fullfile(sourceDirectory, "settings"), "app.mat")
+
+            result = nansen.internal.user.migrateUserDataFolders( ...
+                sourceDirectory, targetDirectory, testCase.FOLDER_NAMES);
+
+            testCase.verifyEqual(result.MovedFolderNames, ["projects", "settings"])
+            testCase.verifyEmpty(result.RenamedFolderNames)
+            testCase.verifyTrue(isfile(fullfile(targetDirectory, "projects", "project_catalog.mat")))
+            testCase.verifyEmpty(testCase.listEntries(sourceDirectory))
+        end
+
+        function testMigrationKeepsDataTheTargetHolds(testCase)
+        % Another release moved its catalog and settings first. Those are
+        % used, and this release's copies are renamed, not merged.
+
+            [sourceDirectory, targetDirectory] = testCase.createDirectoryPair();
+            testCase.createFile(fullfile(sourceDirectory, "projects"), "project_catalog.mat", "this release")
+            testCase.createFile(fullfile(sourceDirectory, "settings"), "app.mat", "this release")
+            testCase.createFile(fullfile(sourceDirectory, "custom_options"), "preset.mat")
+            testCase.createFile(fullfile(targetDirectory, "projects"), "project_catalog.mat", "other release")
+            testCase.createFile(fullfile(targetDirectory, "settings"), "app.mat", "other release")
+
+            result = nansen.internal.user.migrateUserDataFolders( ...
+                sourceDirectory, targetDirectory, testCase.FOLDER_NAMES);
+
+            testCase.verifyEqual(result.MovedFolderNames, "custom_options")
+            testCase.verifyEqual(result.RenamedFolderNames, ["projects", "settings"])
+            testCase.verifyEqual(result.RenamedFolderPaths, ...
+                fullfile(sourceDirectory, ["projects.unmigrated", "settings.unmigrated"]))
+
+            testCase.verifyEqual(testCase.readFile(targetDirectory, "projects", "project_catalog.mat"), ...
+                "other release")
+            testCase.verifyEqual(testCase.readFile(sourceDirectory, "projects.unmigrated", ...
+                "project_catalog.mat"), "this release")
+            testCase.verifyTrue(isfile(fullfile(targetDirectory, "custom_options", "preset.mat")))
+            testCase.verifyEqual(testCase.listEntries(sourceDirectory), ...
+                ["projects.unmigrated", "settings.unmigrated"])
+        end
+
+        function testMigrationRemovesEmptyCopyTheTargetHolds(testCase)
+        % An empty projects folder holds nothing to keep apart
+
+            [sourceDirectory, targetDirectory] = testCase.createDirectoryPair();
+            mkdir(fullfile(sourceDirectory, "projects"))
+            testCase.createFile(fullfile(targetDirectory, "projects"), "project_catalog.mat")
+
+            result = nansen.internal.user.migrateUserDataFolders( ...
+                sourceDirectory, targetDirectory, testCase.FOLDER_NAMES);
+
+            testCase.verifyEmpty(result.MovedFolderNames)
+            testCase.verifyEmpty(result.RenamedFolderNames)
+            testCase.verifyEmpty(testCase.listEntries(sourceDirectory))
+            testCase.verifyTrue(isfile(fullfile(targetDirectory, "projects", "project_catalog.mat")))
+        end
+
+        function testMigrationIsNotRepeated(testCase)
+        % After a migration that renamed folders, a second one finds
+        % nothing to do, so it does not run again at every startup.
+
+            [sourceDirectory, targetDirectory] = testCase.createDirectoryPair();
+            testCase.createFile(fullfile(sourceDirectory, "projects"), "project_catalog.mat")
+            testCase.createFile(fullfile(targetDirectory, "projects"), "project_catalog.mat")
+            nansen.internal.user.migrateUserDataFolders( ...
+                sourceDirectory, targetDirectory, testCase.FOLDER_NAMES);
+
+            legacyFolders = fullfile(sourceDirectory, testCase.FOLDER_NAMES);
+            testCase.verifyFalse(any(isfolder(legacyFolders)))
+        end
+
+        function testRenameChoosesUnusedName(testCase)
+            [sourceDirectory, targetDirectory] = testCase.createDirectoryPair();
+            testCase.createFile(fullfile(sourceDirectory, "projects"), "project_catalog.mat")
+            testCase.createFile(fullfile(sourceDirectory, "projects.unmigrated"), "earlier.mat")
+            testCase.createFile(fullfile(targetDirectory, "projects"), "project_catalog.mat")
+
+            result = nansen.internal.user.migrateUserDataFolders( ...
+                sourceDirectory, targetDirectory, testCase.FOLDER_NAMES);
+
+            testCase.verifyEqual(result.RenamedFolderPaths, ...
+                fullfile(sourceDirectory, "projects.unmigrated_2"))
+            testCase.verifyTrue(isfile(fullfile(sourceDirectory, "projects.unmigrated", "earlier.mat")))
+        end
+
+        function testFailedMigrationRestoresRenamedFolders(testCase)
+        % projects is renamed, then settings fails to move. The rename
+        % must be undone, so the preference directory is as it was.
+
+            [sourceDirectory, targetDirectory] = testCase.createDirectoryPair();
+            testCase.createFile(fullfile(sourceDirectory, "projects"), "project_catalog.mat")
+            testCase.createFile(fullfile(sourceDirectory, "settings"), "app.mat")
+            testCase.createFile(fullfile(targetDirectory, "projects"), "project_catalog.mat")
+
+            readOnlyFolder = fullfile(targetDirectory, "settings");
+            mkdir(readOnlyFolder)
+            testCase.makeReadOnly(readOnlyFolder)
+
+            testCase.verifyError( ...
+                @() nansen.internal.user.migrateUserDataFolders( ...
+                    sourceDirectory, targetDirectory, testCase.FOLDER_NAMES), ...
+                'NANSEN:UserSession:MoveUserDataFailed')
+
+            testCase.verifyEqual(testCase.listEntries(sourceDirectory), ["projects", "settings"])
+            testCase.verifyTrue(isfile(fullfile(sourceDirectory, "projects", "project_catalog.mat")))
+            testCase.verifyTrue(isfile(fullfile(sourceDirectory, "settings", "app.mat")))
+        end
+    end
+
+    methods (Test) % moveMachineLocalSettings
+
+        function testMachineLocalFilesMoveToLocalFolder(testCase)
+        % TaskList and WatchFolderCatalog resolve to the machine folder
+
+            userDataDirectory = fullfile(testCase.RootFolder, "userdata");
+            settingsFolder = fullfile(userDataDirectory, "settings");
+            testCase.createFile(settingsFolder, "task_list.mat")
+            testCase.createFile(settingsFolder, "watch_folder_catalog.mat")
+            testCase.createFile(settingsFolder, "app.mat")
+
+            nansen.internal.user.moveMachineLocalSettings(userDataDirectory)
+
+            localFolder = nansen.localdatadir(userDataDirectory);
+            testCase.verifyTrue(isfile(fullfile(localFolder, "task_list.mat")))
+            testCase.verifyTrue(isfile(fullfile(localFolder, "watch_folder_catalog.mat")))
+            testCase.verifyEqual(testCase.listEntries(settingsFolder), "app.mat")
+        end
+
+        function testMachineLocalFileIsNotOverwritten(testCase)
+            userDataDirectory = fullfile(testCase.RootFolder, "userdata");
+            localFolder = nansen.localdatadir(userDataDirectory);
+            testCase.createFile(fullfile(userDataDirectory, "settings"), "task_list.mat", "settings copy")
+            testCase.createFile(localFolder, "task_list.mat", "machine copy")
+
+            testCase.verifyWarning( ...
+                @() nansen.internal.user.moveMachineLocalSettings(userDataDirectory), ...
+                'NANSEN:UserSession:MachineLocalFileConflict')
+
+            testCase.verifyEqual(testCase.readFile(localFolder, "task_list.mat"), "machine copy")
+            testCase.verifyEqual(testCase.readFile(userDataDirectory, "settings", "task_list.mat"), ...
+                "settings copy")
+        end
+    end
+
     methods (Access = private)
 
         function [firstDirectory, secondDirectory] = createDirectoryPair(testCase)
@@ -275,11 +422,33 @@ classdef UserDataFoldersTest < matlab.unittest.TestCase
             mkdir(secondDirectory)
         end
 
-        function createFile(~, folderPath, fileName)
-        %createFile Create a small file, and the folder holding it
+        function createFile(~, folderPath, fileName, content)
+        %createFile Create a one line text file, and the folder holding it
+
+            arguments
+                ~
+                folderPath (1,1) string
+                fileName (1,1) string
+                content (1,1) string = "content"
+            end
 
             if ~isfolder(folderPath); mkdir(folderPath); end
-            writelines("content", fullfile(folderPath, fileName))
+            writelines(content, fullfile(folderPath, fileName))
+        end
+
+        function content = readFile(~, pathParts)
+        %readFile Read the first line of a file made by createFile
+
+            arguments
+                ~
+            end
+
+            arguments (Repeating)
+                pathParts (1,1) string
+            end
+
+            content = readlines(fullfile(pathParts{:}), "EmptyLineRule", "skip");
+            content = content(1);
         end
 
         function entryNames = listEntries(~, folderPath)
