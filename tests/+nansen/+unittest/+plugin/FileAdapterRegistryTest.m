@@ -187,6 +187,16 @@ classdef FileAdapterRegistryTest < matlab.unittest.TestCase
                 'NANSEN:DeprecatedPath:ModuleFileAdapters')
         end
 
+        function testModuleDisplayDoesNotWarn(testCase)
+        %testModuleDisplayDoesNotWarn Displaying a module does not read FileAdapters
+        %
+        %   The default display reads every visible property, and the get
+        %   method of FileAdapters warns that the property is deprecated.
+            module = nansen.module.Module.fromName( ...
+                nansen.common.constant.BaseModuleName);
+            testCase.verifyWarningFree(@() formattedDisplayText(module))
+        end
+
         function testGetTableFileAdapterDeprecationWarning(testCase)
             module = nansen.module.Module.fromName( ...
                 nansen.common.constant.BaseModuleName);

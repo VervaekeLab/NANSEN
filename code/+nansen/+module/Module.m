@@ -32,9 +32,14 @@ classdef Module < handle
     properties (Dependent, SetAccess = private)
         SessionMethods
         TableVariables
-        FileAdapters
         DataVariables % Rename to preset data variables.
         Pipelines
+    end
+
+    % FileAdapters is hidden because its get method warns that it is
+    % deprecated, and the default display reads every visible property.
+    properties (Dependent, SetAccess = private, Hidden)
+        FileAdapters
     end
 
     properties (Dependent)
