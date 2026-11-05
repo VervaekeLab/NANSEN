@@ -251,7 +251,7 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable & nansen.metadata
                     %S.(fieldName).Subfolder_ = @(x)uigetdir(rootPath);
                 end
 
-                h = structeditor.App(S, 'AdjustFigureSize', true, ...
+                h = structeditor(S, 'AdjustFigureSize', true, ...
                     'Title', 'Edit Data Location Rootpaths', ...
                     'LabelPosition', 'over', ...
                     'CustomFigureSize', [700, 300], ...
@@ -259,12 +259,11 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable & nansen.metadata
                     %'ValueChangedFcn', @obj.onDataLocationChanged );
                 h.Title = sprintf('Edit Data Locations for %s', metaObj.sessionID);
 
-                h.waitfor()
+                [sNew, wasCanceled] = structeditor.waitForResult(h);
 
-                if h.wasCanceled
+                if wasCanceled
                     return
                 else
-                    sNew = h.dataEdit;
                     if ~isequal(sNew, S)
                         metaObj.updateRootDir(sNew)
                     end
@@ -302,18 +301,17 @@ classdef DataLocation < nansen.metadata.abstract.TableVariable & nansen.metadata
                     S.(fieldName_) = allRootPaths;
                 end
 
-                h = structeditor.App(S, 'AdjustFigureSize', true, ...
+                h = structeditor(S, 'AdjustFigureSize', true, ...
                     'Title', 'Edit Data Location Rootpaths', ...
                     'LabelPosition', 'over', ...
                     'Prompt', 'Select datalocation root directories');
                 h.Title = sprintf('Edit Data Locations for %s', metaObj.sessionID);
 
-                h.waitfor()
+                [sNew, wasCanceled] = structeditor.waitForResult(h);
 
-                if h.wasCanceled
+                if wasCanceled
                     return
                 else
-                    sNew = h.dataEdit;
                     if ~isequal(sNew, S)
                         metaObj.updateRootDir(sNew)
                     end

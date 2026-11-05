@@ -66,14 +66,14 @@ classdef RoiSignalVideo < uim.handle & applify.mixin.UserSettings
             obj.loadSettings()
             obj.imviewerRef.displayMessage('Preparing video export')
 
-            sEditor = structeditor.App(obj.settings, 'Title', 'Set preferences for video export');
-            sEditor.waitfor()
+            sEditor = structeditor(obj.settings, 'Title', 'Set preferences for video export');
+            [editedSettings, wasCanceled] = structeditor.waitForResult(sEditor);
 
-            if sEditor.wasCanceled
+            if wasCanceled
                 obj.imviewerRef.clearMessage
                 return
             else
-                obj.settings = sEditor.dataEdit;
+                obj.settings = editedSettings;
                 obj.saveSettings()
             end
 
