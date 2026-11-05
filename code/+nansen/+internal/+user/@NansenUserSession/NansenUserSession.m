@@ -134,15 +134,19 @@ classdef NansenUserSession < handle
         function setUserDataDirectory(obj, newDirectory)
         %setUserDataDirectory Change where this user's NANSEN data is kept
         %
-        %   setUserDataDirectory(obj, newDirectory) moves the project
-        %   catalog, and the configurations kept alongside it, into
-        %   newDirectory and remembers the location for later sessions.
+        %   setUserDataDirectory(obj, newDirectory) moves the folders that
+        %   hold this user's NANSEN data, projects, settings,
+        %   custom_options and local, into newDirectory and remembers the
+        %   location for later sessions. Other files in the old and the new
+        %   directory stay where they are.
         %
-        %   setUserDataDirectory(obj, "") moves everything back to the
-        %   default location under MATLAB's userpath.
+        %   setUserDataDirectory(obj, "") moves the data back to the default
+        %   location, <userpath>/Nansen/profiles/<profile>.
         %
-        %   The move is refused when newDirectory already holds a project
-        %   catalog, so that an existing one is never overwritten.
+        %   The move is refused when newDirectory is inside the current
+        %   directory or contains it, and when newDirectory already
+        %   contains one of the folders named above. If a folder fails to
+        %   move, the entries moved before it are moved back.
         %
         %   Example:
         %       userSession = nansen.internal.user.NansenUserSession.instance();
@@ -160,7 +164,8 @@ classdef NansenUserSession < handle
 
             if nansen.util.path.isSamePath(newDirectory, oldDirectory); return; end
 
-            obj.assertNoCatalogAt(newDirectory)
+            nansen.internal.user.validateUserDataTarget( ...
+                newDirectory, oldDirectory, obj.USER_DATA_FOLDER_NAMES)
 
             % Cached project objects, and the current project's entries on
             % the search path, both point into the old directory. Restore
@@ -174,8 +179,18 @@ classdef NansenUserSession < handle
             end
             obj.ProjectManager.reset()
 
-            if ~isfolder(newDirectory); mkdir(newDirectory); end
-            obj.moveUserDataFolders(oldDirectory, newDirectory)
+            isNewFolder = ~isfolder(newDirectory);
+            if isNewFolder; mkdir(newDirectory); end
+
+            try
+                nansen.internal.user.moveUserDataFolders( ...
+                    oldDirectory, newDirectory, obj.USER_DATA_FOLDER_NAMES)
+            catch ME
+                if isNewFolder
+                    [~] = rmdir(newDirectory); % Removed only if empty; the output keeps rmdir from throwing
+                end
+                rethrow(ME)
+            end
 
             obj.Preferences.UserDataDirectory = obj.toPreferenceValue(newDirectory);
             obj.UserDataDirectoryOverride = '';
@@ -354,19 +369,6 @@ classdef NansenUserSession < handle
             end
         end
 
-        function assertNoCatalogAt(~, folderPath)
-        %assertNoCatalogAt Refuse a directory that already holds a catalog
-
-            catalogPath = nansen.config.project.ProjectManager.getCatalogPath(folderPath);
-
-            if isfile(catalogPath)
-                error('NANSEN:UserSession:UserDataDirectoryInUse', ...
-                    ['"%s" already holds a NANSEN project catalog. Select a ' ...
-                     'directory without one, or remove the existing catalog ' ...
-                     'first.'], folderPath)
-            end
-        end
-
         function preferenceValue = toPreferenceValue(obj, folderPath)
         %toPreferenceValue Convert a directory to the value stored in preferences
         %
@@ -395,49 +397,6 @@ classdef NansenUserSession < handle
                 folderPath = nansen.internal.user.NansenUserSession.getDefaultUserDataDirectory(userName);
             else
                 folderPath = char(preferenceValue);
-            end
-        end
-
-        function moveUserDataFolders(sourceDirectory, targetDirectory)
-        %moveUserDataFolders Move the folders that make up a user's data
-        %
-        %   Only the named folders move, never the directory itself. The
-        %   preference directory also holds the preference file that names
-        %   the user data directory, and a user chosen directory can hold
-        %   files that are not NANSEN's.
-        %
-        %   A folder that fails to move puts back the folders moved before
-        %   it, so the data is never left split across two directories.
-
-            import nansen.internal.system.moveFolderContents
-
-            folderNames = nansen.internal.user.NansenUserSession.USER_DATA_FOLDER_NAMES;
-            sourceFolders = fullfile(sourceDirectory, folderNames);
-            targetFolders = fullfile(targetDirectory, folderNames);
-
-            numMoved = 0;
-
-            try
-                for i = 1:numel(folderNames)
-                    if ~isfolder(sourceFolders(i)); continue; end
-
-                    moveFolderContents(char(sourceFolders(i)), char(targetFolders(i)))
-                    rmdir(sourceFolders(i))
-                    numMoved = i;
-                end
-            catch MECause
-                for i = numMoved:-1:1
-                    if ~isfolder(targetFolders(i)); continue; end
-
-                    moveFolderContents(char(targetFolders(i)), char(sourceFolders(i)))
-                    rmdir(targetFolders(i))
-                end
-
-                ME = MException('NANSEN:UserSession:MoveUserDataFailed', ...
-                    ['Failed to move NANSEN user data from "%s" to "%s", so it ' ...
-                     'was left in place.'], sourceDirectory, targetDirectory);
-                ME = ME.addCause(MECause);
-                throw(ME)
             end
         end
 
@@ -518,7 +477,8 @@ classdef NansenUserSession < handle
             if ~any( isfolder(legacyFolders) ); return; end
 
             try
-                obj.moveUserDataFolders(preferenceDirectory, userDataDirectory)
+                nansen.internal.user.moveUserDataFolders( ...
+                    preferenceDirectory, userDataDirectory, obj.USER_DATA_FOLDER_NAMES)
             catch ME
                 % Use the old location for this session only. The preference
                 % stays unset, so the move is attempted again next startup.
