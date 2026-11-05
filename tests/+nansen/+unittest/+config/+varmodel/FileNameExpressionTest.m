@@ -3,7 +3,8 @@ classdef FileNameExpressionTest < matlab.unittest.TestCase
     %
     %   When a variable is created from an existing file, the model proposes
     %   an expression from the file name and checks that the expression
-    %   finds the file. These tests cover both.
+    %   finds the file, with placeholders such as {sessionID} replaced by
+    %   the session's values. These tests cover both.
     %
     %   Constructing a model looks up file adapters through the current
     %   project, so the tests run inside a temporary project. Each test
@@ -84,6 +85,32 @@ classdef FileNameExpressionTest < matlab.unittest.TestCase
 
             testCase.verifyTrue( model.isFileNameMatch('rois_m001.mat', '^rois', '.mat') )
             testCase.verifyFalse( model.isFileNameMatch('m001_rois.mat', '^rois', '.mat') )
+        end
+
+        function testPlaceholderExpressionMatchesWholeName(testCase)
+        %testPlaceholderExpressionMatchesWholeName The expanded expression names the whole file
+            model = testCase.createModel();
+            values = struct('sessionID', 'm001', 'subjectID', 'sub01');
+
+            testCase.verifyTrue( model.isFileNameMatch('m001.nwb', '{sessionID}', '.nwb', ...
+                PlaceholderValues=values) )
+            testCase.verifyTrue( model.isFileNameMatch('sub01_m001_rois.mat', ...
+                '{subjectID}_{sessionID}_rois', '.mat', PlaceholderValues=values) )
+            testCase.verifyTrue( model.isFileNameMatch('m001_rois_v2.mat', '{sessionID}_rois*', ...
+                'mat', PlaceholderValues=values) )
+            testCase.verifyFalse( model.isFileNameMatch('m001_rois.mat', '{sessionID}', '.mat', ...
+                PlaceholderValues=values) )
+            testCase.verifyFalse( model.isFileNameMatch('m002.nwb', '{sessionID}', '.nwb', ...
+                PlaceholderValues=values) )
+        end
+
+        function testPlaceholderExpressionNeedsKnownPlaceholderWithValue(testCase)
+        %testPlaceholderExpressionNeedsKnownPlaceholderWithValue An expression that cannot be expanded matches nothing
+            model = testCase.createModel();
+
+            testCase.verifyFalse( model.isFileNameMatch('m001.nwb', '{sessionID}', '.nwb') )
+            testCase.verifyFalse( model.isFileNameMatch('m001.nwb', '{sessionId}', '.nwb', ...
+                PlaceholderValues=struct('sessionID', 'm001')) )
         end
     end
 

@@ -1052,8 +1052,16 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
                 end
             end
 
+            % A virtual session folder holds the files of several sessions,
+            % so a search keeps only the files whose names contain the
+            % session ID. An expression with placeholders and no wildcard
+            % names one file once expanded, and that name need not contain
+            % the session ID, as with {subjectID}_anat.
             isVirtualFolder = obj.isVirtualSessionFolder(dataLocationName);
-            if isVirtualFolder
+            namesOneFile = nansen.config.varmodel.FileNamePattern.hasPlaceholder(S.FileNameExpression) ...
+                && ~contains(S.FileNameExpression, "*");
+
+            if isVirtualFolder && ~namesOneFile
                 nvPairs = {'FilterFcn', @(names) contains(names, obj.sessionID)};
             else
                 nvPairs = {};

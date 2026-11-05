@@ -83,13 +83,13 @@ classdef VariableModelApp < nansen.config.abstract.ConfigurationApp
                     case 'Yes'
                         % setVariableList replaces the whole list without
                         % the checks single insertions get, so the names
-                        % are checked here. An invalid list keeps the
-                        % editor open so the names can be fixed.
-                        [isValid, validationMessage] = ...
-                            nansen.config.varmodel.VariableModel.validateVariableNames(newModel);
+                        % and file name expressions are checked here. An
+                        % invalid list keeps the editor open so the
+                        % problems can be fixed.
+                        [isValid, validationMessage] = validateVariableList(newModel); % Local function
                         if ~isValid
                             uialert(obj.Figure, sprintf('The variables were not saved.\n\n%s', ...
-                                validationMessage), 'Invalid Variable Names')
+                                validationMessage), 'Invalid Variables')
                             doCancel = true;
                             return
                         end
@@ -188,4 +188,25 @@ classdef VariableModelApp < nansen.config.abstract.ConfigurationApp
             obj.LoadingPanel.Visible = 'off';
         end
     end
+end
+
+function [isValid, message] = validateVariableList(variableList)
+%validateVariableList - Check the names and file name expressions of variables
+%   isValid is false when validateVariableNames or
+%   validateFileNameExpressions of VariableModel finds a problem. message
+%   lists the problems with names first, one per line.
+
+    arguments
+        variableList struct
+    end
+
+    import nansen.config.varmodel.VariableModel
+
+    [isNameValid, nameMessage] = VariableModel.validateVariableNames(variableList);
+    [isExpressionValid, expressionMessage] = VariableModel.validateFileNameExpressions(variableList);
+
+    isValid = isNameValid && isExpressionValid;
+
+    messages = {nameMessage, expressionMessage};
+    message = strjoin(messages(~cellfun(@isempty, messages)), newline);
 end

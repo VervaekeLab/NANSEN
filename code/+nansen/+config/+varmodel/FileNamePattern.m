@@ -11,6 +11,7 @@ classdef FileNamePattern
 %   FileNamePattern functions:
 %       listPlaceholders - List the placeholders and what they stand for
 %       hasPlaceholder   - True when an expression contains a placeholder
+%       isValid          - True when every placeholder in an expression is known
 %       assertValid      - Error when an expression has unknown placeholders
 %       canExpand        - True when every placeholder has a value
 %       expand           - Replace the placeholders with their values
@@ -43,36 +44,84 @@ classdef FileNamePattern
             tf = ~isempty(regexp(char(expression), '\{\w+\}', 'once'));
         end
 
+        function [tf, message] = isValid(expression)
+        %isValid - True when every placeholder in an expression is known
+        %   TF = isValid(EXPRESSION) is true when every name in curly braces
+        %   in EXPRESSION is a placeholder that listPlaceholders returns. An
+        %   expression without placeholders is valid.
+        %
+        %   [TF,MESSAGE] = isValid(EXPRESSION) also returns a message that
+        %   names the unknown placeholders and lists the valid ones, or ''
+        %   when TF is true.
+
+            arguments
+                expression (1,:) char
+            end
+
+            import nansen.config.varmodel.FileNamePattern
+
+            validNames = {FileNamePattern.Placeholders.Name};
+            names = listPlaceholderNames(expression); % Local function
+            isUnknown = ~ismember(names, validNames);
+
+            tf = ~any(isUnknown);
+            message = '';
+
+            if ~tf
+                unknownList = strjoin( strcat('{', names(isUnknown), '}'), ', ' );
+                validList = strjoin( strcat('{', validNames, '}'), ', ' );
+                message = sprintf(['The file name expression "%s" has an unknown ', ...
+                    'placeholder: %s. Use one of the following: %s.'], ...
+                    expression, unknownList, validList);
+            end
+        end
+
         function assertValid(expression)
         %assertValid - Error when an expression has unknown placeholders
         %   assertValid(EXPRESSION) throws an error that names the unknown
         %   placeholders and lists the valid ones.
-            import nansen.config.varmodel.FileNamePattern
 
-            names = listPlaceholderNames(expression); % Local function
-            isUnknown = ~ismember(names, {FileNamePattern.Placeholders.Name});
+            arguments
+                expression (1,:) char
+            end
 
-            if any(isUnknown)
-                unknownList = strjoin( strcat('{', names(isUnknown), '}'), ', ' );
-                validList = strjoin( strcat('{', {FileNamePattern.Placeholders.Name}, '}'), ', ' );
-                error('NANSEN:VariableModel:UnknownPlaceholder', ...
-                    ['The file name expression "%s" has an unknown placeholder: %s. ', ...
-                    'Use one of the following: %s'], char(expression), unknownList, validList)
+            [tf, message] = nansen.config.varmodel.FileNamePattern.isValid(expression);
+            if ~tf
+                error("NANSEN:VariableModel:UnknownPlaceholder", "%s", message)
             end
         end
 
-        function tf = canExpand(expression, values)
+        function [tf, message] = canExpand(expression, values)
         %canExpand - True when every placeholder has a value
         %   TF = canExpand(EXPRESSION,VALUES) is true when every placeholder
-        %   in EXPRESSION is known and has a non-empty field in the struct
-        %   VALUES.
+        %   in EXPRESSION is known and has a value in the struct VALUES. A
+        %   value is the field of the same name, and it counts only when it
+        %   converts to one string that is neither missing nor empty, so
+        %   "", '', [], NaN and <missing> are not values.
+        %
+        %   [TF,MESSAGE] = canExpand(EXPRESSION,VALUES) also returns a
+        %   message that names the unknown placeholders or the first
+        %   placeholder without a value, or '' when TF is true.
+
+            arguments
+                expression (1,:) char
+                values (1,1) struct
+            end
+
             import nansen.config.varmodel.FileNamePattern
 
-            names = listPlaceholderNames(expression); % Local function
+            [tf, message] = FileNamePattern.isValid(expression);
+            if ~tf; return; end
 
-            tf = all( ismember(names, {FileNamePattern.Placeholders.Name}) );
-            for i = 1:numel(names)
-                tf = tf && isfield(values, names{i}) && ~isempty(values.(names{i}));
+            names = listPlaceholderNames(expression); % Local function
+            hasValue = cellfun(@(name) ~ismissing(getPlaceholderText(values, name)), names);
+
+            if ~all(hasValue)
+                tf = false;
+                name = names{find(~hasValue, 1)};
+                message = sprintf(['The placeholder {%s} in the file name expression ', ...
+                    '"%s" has no value. Set the %s of the session, or remove {%s} ', ...
+                    'from the expression.'], name, expression, name, name);
             end
         end
 
@@ -80,22 +129,28 @@ classdef FileNamePattern
         %expand - Replace the placeholders with their values
         %   EXPANDED = expand(EXPRESSION,VALUES) replaces each placeholder
         %   in EXPRESSION with the field of the same name in the struct
-        %   VALUES. A placeholder whose field is missing or empty is an
-        %   error, and so is an unknown placeholder.
+        %   VALUES. An unknown placeholder is an error, and so is a
+        %   placeholder without a value as canExpand defines it.
+
+            arguments
+                expression (1,:) char
+                values (1,1) struct
+            end
+
             import nansen.config.varmodel.FileNamePattern
 
             FileNamePattern.assertValid(expression)
-            expanded = char(expression);
 
+            [isExpandable, message] = FileNamePattern.canExpand(expression, values);
+            if ~isExpandable
+                error("NANSEN:VariableModel:MissingPlaceholderValue", "%s", message)
+            end
+
+            expanded = expression;
             names = listPlaceholderNames(expression); % Local function
 
             for i = 1:numel(names)
-                if ~isfield(values, names{i}) || isempty(values.(names{i}))
-                    error('NANSEN:VariableModel:MissingPlaceholderValue', ...
-                        'No value is available for the placeholder {%s} in "%s"', ...
-                        names{i}, char(expression))
-                end
-                replacement = char( string(values.(names{i})) );
+                replacement = char( getPlaceholderText(values, names{i}) ); % Local function
                 expanded = strrep(expanded, ['{', names{i}, '}'], replacement);
             end
         end
@@ -132,4 +187,25 @@ function names = listPlaceholderNames(expression)
     tokens = regexp(char(expression), '\{(\w+)\}', 'tokens');
     names = cellfun(@(token) token{1}, tokens, 'UniformOutput', false);
     names = unique(names, 'stable');
+end
+
+function text = getPlaceholderText(values, name)
+%getPlaceholderText - The text that replaces a placeholder
+%   TEXT is the field NAME of the struct VALUES converted to a string. It
+%   is <missing> when the field is absent, or when the value does not
+%   convert to one string that is neither missing nor empty.
+
+    arguments
+        values (1,1) struct
+        name (1,:) char
+    end
+
+    text = string(missing);
+
+    if isfield(values, name)
+        value = string(values.(name));
+        if isscalar(value) && ~ismissing(value) && strlength(value) > 0
+            text = value;
+        end
+    end
 end

@@ -9,7 +9,8 @@ classdef SessionFilePathPlaceholderTest < matlab.unittest.TestCase
     %
     %   The tests run inside a temporary project and use its first session
     %   in the MockData data location, the one whose session folders exist
-    %   on disk.
+    %   on disk. The test of a virtual session folder creates its own
+    %   session, variable model and files in a temporary folder.
     %
     %   Run tests:
     %       runtests('nansen.unittest.session.SessionFilePathPlaceholderTest')
@@ -67,6 +68,42 @@ classdef SessionFilePathPlaceholderTest < matlab.unittest.TestCase
             testCase.verifyError( @() testCase.Session.getDataFilePath('SessionMissing'), ...
                 'NANSEN:Session:FileNotFound')
         end
+
+        function testPlaceholderFindsFileInVirtualSessionFolder(testCase)
+        %testPlaceholderFindsFileInVirtualSessionFolder A file named without the session ID is found
+        %   When the session level of a data location is a file, the session
+        %   folder holds the files of several sessions, and a search keeps
+        %   the files whose names contain the session ID. An expression with
+        %   placeholders and no wildcard names one file, so that file is
+        %   found even though its name lacks the session ID. A wildcard
+        %   expression still finds only the files of the session.
+            import matlab.unittest.fixtures.TemporaryFolderFixture
+
+            fixture = testCase.applyFixture(TemporaryFolderFixture);
+            subjectFolder = fullfile(fixture.Folder, 'sub01');
+            mkdir(subjectFolder)
+            fileNames = {'m001.nwb', 'm002.nwb', 'sub01_anat.nii'};
+            for i = 1:numel(fileNames)
+                fclose( fopen(fullfile(subjectFolder, fileNames{i}), 'w') );
+            end
+
+            model = nansen.config.varmodel.VariableModel( ...
+                fullfile(fixture.Folder, 'variable_model.mat'));
+            model.insertItem( testCase.createItem('Anatomy', 'Virtual', '{subjectID}_anat', '.nii') )
+            model.insertItem( testCase.createItem('SessionNwb', 'Virtual', '*', '.nwb') )
+
+            dataLocation = struct('Name', 'Virtual', 'RootPath', fixture.Folder, ...
+                'Subfolders', fullfile('sub01', 'm001.nwb'), ...
+                'Type', struct('Permission', 'read'));
+            session = nansen.metadata.type.Session(dataLocation, 'VariableModel', model);
+            session.sessionID = 'm001';
+            session.subjectID = 'sub01';
+
+            testCase.verifyEqual( session.getDataFilePath('Anatomy'), ...
+                fullfile(subjectFolder, 'sub01_anat.nii') )
+            testCase.verifyEqual( session.getDataFilePath('SessionNwb'), ...
+                fullfile(subjectFolder, 'm001.nwb') )
+        end
     end
 
     methods (Access = private)
@@ -84,6 +121,15 @@ classdef SessionFilePathPlaceholderTest < matlab.unittest.TestCase
             item.FileAdapter = 'Default';
 
             model.insertItem(item)
+        end
+    end
+
+    methods (Static, Access = private)
+        function item = createItem(variableName, dataLocationName, fileNameExpression, fileType)
+            item = nansen.config.varmodel.VariableModel.getDefaultItem(variableName);
+            item.DataLocation = dataLocationName;
+            item.FileNameExpression = fileNameExpression;
+            item.FileType = fileType;
         end
     end
 end

@@ -138,15 +138,31 @@ classdef FindVariableByFilenameTest < matlab.unittest.TestCase
 
         function testWholeNameMatchOutranksPartialMatch(testCase)
         %testWholeNameMatchOutranksPartialMatch A placeholder match wins over a part-of-name match
+        %   The part-of-name expression is longer than {sessionID}, so the
+        %   placeholder variable wins only because a whole-name match ranks
+        %   above every part-of-name match.
             model = testCase.createModel();
             model.insertItem( testCase.createItem('SessionNwb', 'Rawdata', '{sessionID}', '.nwb') )
-            model.insertItem( testCase.createItem('AnyNwb', 'Rawdata', 'm0', '.nwb') )
+            model.insertItem( testCase.createItem('DateNwb', 'Rawdata', '2021_01_01_m001', '.nwb') )
+            values = struct('sessionID', 'session_2021_01_01_m001');
+
+            testCase.verifyEqual( model.findVariableByFilename('session_2021_01_01_m001.nwb', ...
+                'all', PlaceholderValues=values), 'SessionNwb')
+            testCase.verifyEqual( model.findVariableByFilename('other_2021_01_01_m001.nwb', ...
+                'all', PlaceholderValues=values), 'DateNwb')
+        end
+
+        function testStringFilePathMatchesLikeCharacterVector(testCase)
+        %testStringFilePathMatchesLikeCharacterVector A string path gives the same matches
+            model = testCase.createModel();
+            model.insertItem( testCase.createItem('SessionNwb', 'Rawdata', '{sessionID}', '.nwb') )
+            model.insertItem( testCase.createItem('Rois', 'Rawdata', 'rois', '.nwb') )
             values = struct('sessionID', 'm001');
 
-            testCase.verifyEqual( model.findVariableByFilename('m001.nwb', 'all', ...
-                'PlaceholderValues', values), 'SessionNwb')
-            testCase.verifyEqual( model.findVariableByFilename('m002.nwb', 'all', ...
-                'PlaceholderValues', values), 'AnyNwb')
+            testCase.verifyEqual( model.findVariableByFilename("m002_rois.nwb", 'all', ...
+                PlaceholderValues=values), 'Rois')
+            testCase.verifyEqual( model.findVariableByFilename("m001.nwb", 'all', ...
+                PlaceholderValues=values), 'SessionNwb')
         end
     end
 
