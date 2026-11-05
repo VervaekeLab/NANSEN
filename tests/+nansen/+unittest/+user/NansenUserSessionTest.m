@@ -25,7 +25,7 @@ classdef NansenUserSessionTest < matlab.unittest.TestCase
 
             userNames = nansen.internal.user.NansenUserSession.listUserNames();
 
-            testCase.verifyClass(userNames, 'string');
+            testCase.verifyClass(userNames, "string");
             testCase.verifyTrue(any(userNames == userName));
         end
 
@@ -83,14 +83,47 @@ classdef NansenUserSessionTest < matlab.unittest.TestCase
         end
 
         function testIsExistingUserRejectsNameDifferingOnlyByCase(testCase)
-            % Regression: the check used isfolder, which matches names case
-            % insensitively on macOS and Windows. A capitalisation typo was
-            % therefore accepted as the existing profile, and the session
-            % ran under a name that did not match its own directory.
+            % isfolder matches names case insensitively on macOS and
+            % Windows, so a lookup by directory would accept a name that
+            % differs from a profile only by capitalisation. The lookup
+            % compares the names instead.
             userName = testCase.createProfileDirectory();
 
             testCase.verifyFalse( ...
                 nansen.internal.user.NansenUserSession.isExistingUser(upper(userName)));
+        end
+
+        % ----------------------------------------------------------------
+        % instance - names that differ from a profile only by case
+        % ----------------------------------------------------------------
+
+        function testNameDifferingOnlyByCaseIsRefused(testCase)
+            % On macOS and Windows a profile for this name would share the
+            % existing profile's directory. The name is refused before the
+            % active session is looked at, also when MATLAB runs with -batch.
+            import nansen.internal.user.NansenUserSession
+
+            userName = testCase.createProfileDirectory();
+
+            testCase.verifyError( ...
+                @() NansenUserSession.instance(upper(userName)), ...
+                "NANSEN:UserSession:UserNameCaseMismatch");
+        end
+
+        function testNocreateModeDoesNotCheckTheName(testCase)
+            % 'nocreate' creates no profile, so it has no reason to refuse
+            % a name in the wrong case.
+            import nansen.internal.user.NansenUserSession
+
+            userName = testCase.createProfileDirectory();
+
+            % A singleton left by an earlier test would be returned here
+            % instead of an empty result.
+            NansenUserSession.instance("", "reset");
+
+            userSession = NansenUserSession.instance(upper(userName), "nocreate");
+
+            testCase.verifyEmpty(userSession);
         end
 
         % ----------------------------------------------------------------
@@ -109,7 +142,7 @@ classdef NansenUserSessionTest < matlab.unittest.TestCase
             % "force" closes any session left open by another test. Under
             % "check" that situation is resolved by prompting, which fails
             % outright in a non-interactive session.
-            warnState = warning('off', 'NANSEN:UserSession:UserSessionActive');
+            warnState = warning("off", "NANSEN:UserSession:UserSessionActive");
             testCase.addTeardown(@() warning(warnState));
 
             % Teardown runs in reverse order: reset the session, and only
@@ -172,12 +205,16 @@ end
 
 function userName = buildUserName(prefix)
 % buildUserName - Build a name unlikely to collide with a real profile
+%
+%   The name ends with a uuid. Test processes that start at the same time
+%   share prefdir and start from the same random number seed, so a random
+%   number could give two of them the same profile.
 
     arguments
         prefix (1,1) string = "unittest_user_"
     end
 
-    userName = prefix + string(randi([1e8, 1e9-1]));
+    userName = prefix + string(nansen.util.getuuid());
 end
 
 function removeDirectoryIfPresent(directoryPath)

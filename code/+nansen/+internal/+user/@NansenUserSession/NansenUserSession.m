@@ -369,8 +369,9 @@ classdef NansenUserSession < handle
         function tf = askYesNo(message)
         % askYesNo - Ask the user a yes/no question in the command window
         %
-        %   tf = askYesNo(message) displays message followed by a "(y/n)"
-        %   prompt, and returns true for yes and false for no.
+        %   tf = askYesNo(message) displays message followed by a "(y/N)"
+        %   prompt, and returns true for yes and false for no. An empty
+        %   answer counts as no.
         %
         %   Throws NANSEN:UserSession:UnexpectedInput if the answer is
         %   neither.
@@ -380,13 +381,13 @@ classdef NansenUserSession < handle
             end
 
             fprintf(newline)
-            answer = string( input(char(message + newline + "(y/n): "), 's') );
+            answer = string( input(char(message + newline + "(y/N): "), 's') );
             fprintf(newline)
 
             switch lower(strtrim(answer))
                 case {"y", "yes"}
                     tf = true;
-                case {"n", "no"}
+                case {"n", "no", ""}
                     tf = false;
                 otherwise
                     error("NANSEN:UserSession:UnexpectedInput", ...
@@ -404,7 +405,9 @@ classdef NansenUserSession < handle
         %   misspelled name is easy to spot.
         %
         %   Throws NANSEN:UserSession:UserProfileCreationAborted if the user
-        %   declines to create the profile.
+        %   declines to create the profile, and
+        %   NANSEN:UserSession:UserNameCaseMismatch if a profile exists whose
+        %   name differs from userName only by capitalisation.
 
             arguments
                 userName (1,1) string
@@ -422,24 +425,30 @@ classdef NansenUserSession < handle
                 return
             end
 
+            existingUserNames = NansenUserSession.listUserNames();
+
+            % On macOS and Windows the file system matches names case
+            % insensitively, so a profile for a name that differs from an
+            % existing one only by capitalisation would share the existing
+            % profile's directory under another name. Such a name is
+            % refused, also in a non-interactive session.
+            similarUserNames = existingUserNames( ...
+                lower(existingUserNames) == lower(userName));
+            if ~isempty(similarUserNames)
+                error("NANSEN:UserSession:UserNameCaseMismatch", ...
+                    "No NANSEN user profile named '%s' exists, but the " + ...
+                    "profile '%s' differs from it only by capitalisation. " + ...
+                    "Profile names are case sensitive. Start the session " + ...
+                    "with the name '%s'.", userName, similarUserNames(1), ...
+                    similarUserNames(1))
+            end
+
             % Nobody is present to answer in a non-interactive session.
             if batchStartupOptionUsed
                 return
             end
 
-            existingUserNames = NansenUserSession.listUserNames();
-
             messageLines = "No NANSEN user profile named '" + userName + "' exists.";
-
-            % A name differing only by capitalisation is the most likely
-            % typo, and on macOS and Windows the new profile would share
-            % the existing profile's directory. Call it out separately.
-            similarUserNames = existingUserNames( ...
-                lower(existingUserNames) == lower(userName));
-            if ~isempty(similarUserNames)
-                messageLines(end+1) = "An existing profile differs only by " + ...
-                    "capitalisation: " + strjoin(similarUserNames, ", ");
-            end
 
             if isempty(existingUserNames)
                 messageLines(end+1) = "No user profiles exist on this computer yet.";

@@ -11,7 +11,13 @@ function obj = instance(userName, mode, skipProjectCheck, options)
 %   Name-value arguments:
 %       ConfirmNewUser - logical (default = true). Ask the user to confirm
 %           before a user profile is created for a name that does not exist
-%           yet. Set to false for programmatic use, e.g. in tests.
+%           yet. Set to false for programmatic use, e.g. in tests. There is
+%           no question for the "default" profile, for an existing profile,
+%           in the 'nocreate' and 'reset' modes, or when MATLAB was started
+%           with -batch, where the profile is created without asking. A
+%           name that differs from an existing profile only by
+%           capitalisation is refused with the error
+%           NANSEN:UserSession:UserNameCaseMismatch, also with -batch.
 
 %   Note: to achieve a persistent singleton instance that survives a "clear
 %   all" statement, the singleton instance is stored in the graphics root
