@@ -689,20 +689,20 @@ classdef Project < nansen.module.Module
                     moduleRoot = fileparts(module.getFileAdapterFolder());
                     obj.FileAdapterRegistry.addSource(string(module.ID), moduleRoot);
                 end
-
-                if ~isempty(addedModuleID) || ~isempty(removeIdx)
-                    obj.FileAdapterRegistry.reconcile();
-                end
             end
         end
 
         function initializeFileAdapterRegistry(obj)
-        %initializeFileAdapterRegistry Build and populate the FileAdapter registry.
+        %initializeFileAdapterRegistry Create the FileAdapter registry and add its sources.
         %
         %   Pinned source ordering (highest to lowest priority):
         %     top    - project's own +fileadapter/ folder
         %     middle - included optional modules (in IncludedModules order)
         %     bottom - core module
+        %
+        %   The registry scans the sources on the first lookup. A project is
+        %   constructed before its folder is added to the MATLAB path, and a
+        %   class-based adapter is found only when it is on the path.
 
             obj.FileAdapterRegistry = nansen.plugin.fileadapter.Registry();
 
@@ -723,8 +723,6 @@ classdef Project < nansen.module.Module
 
             projectModuleRoot = obj.getModuleFolder();
             obj.FileAdapterRegistry.pinTop(string(obj.ID), projectModuleRoot);
-
-            obj.FileAdapterRegistry.reconcile();
         end
 
         function initializeVariableModel(obj)

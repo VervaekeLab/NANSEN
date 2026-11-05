@@ -6,6 +6,11 @@ classdef (Abstract) Registry < handle
 %     - Middle (ordered list of sources, appended with addSource)
 %     - Bottom (single pinned slot, lowest priority)
 %
+%   The registry scans its sources on the first list, get or resolve after
+%   a source is pinned, added or removed. Until the next change, these
+%   methods return the entries of the last scan. reconcile scans the
+%   sources immediately.
+%
 %   Subclasses implement scanSource (what to parse) and primaryId (which
 %   field of the returned entry struct is the unique identifier).
 %
@@ -14,14 +19,19 @@ classdef (Abstract) Registry < handle
 %       reg.pinBottom("core", "/path/to/core");
 %       reg.addSource("mymod", "/path/to/module");
 %       reg.pinTop("project", "/path/to/project");
-%       reg.reconcile();
-%       entries = reg.list();
+%       entries = reg.list();   % Scans the three sources
 
     events
         PluginAdded
         PluginRemoved
         PluginChanged
         PluginRegistryReconciled
+    end
+
+    properties (SetAccess = private)
+        % IsStale - True when the sources changed since the last scan. The
+        % next list, get or resolve scans the sources when it is true.
+        IsStale (1,1) logical = true
     end
 
     properties (Access = private)
@@ -55,6 +65,7 @@ classdef (Abstract) Registry < handle
                 path (1,1) string
             end
             obj.TopSource = struct('id', id, 'path', path);
+            obj.IsStale = true;
         end
 
         function pinBottom(obj, id, path)
@@ -68,6 +79,7 @@ classdef (Abstract) Registry < handle
                 path (1,1) string
             end
             obj.BottomSource = struct('id', id, 'path', path);
+            obj.IsStale = true;
         end
 
         function addSource(obj, id, path)
@@ -84,6 +96,7 @@ classdef (Abstract) Registry < handle
                     'A source with id "%s" is already registered.', id)
             end
             obj.MiddleSources(end+1) = struct('id', id, 'path', path);
+            obj.IsStale = true;
         end
 
         function removeSource(obj, id)
@@ -94,27 +107,35 @@ classdef (Abstract) Registry < handle
                 obj
                 id (1,1) string
             end
+            if ~obj.hasSourceId(id)
+                return
+            end
+
             if ~isempty(obj.TopSource) && obj.TopSource.id == id
-                obj.TopSource = struct('id', {}, 'path', {}); return
+                obj.TopSource = struct('id', {}, 'path', {});
+            elseif ~isempty(obj.BottomSource) && obj.BottomSource.id == id
+                obj.BottomSource = struct('id', {}, 'path', {});
+            else
+                isRemoved = [obj.MiddleSources.id] == id;
+                obj.MiddleSources(isRemoved) = [];
             end
-            if ~isempty(obj.BottomSource) && obj.BottomSource.id == id
-                obj.BottomSource = struct('id', {}, 'path', {}); return
-            end
-            if ~isempty(obj.MiddleSources)
-                keep = [obj.MiddleSources.id] ~= id;
-                obj.MiddleSources = obj.MiddleSources(keep);
-            end
+            obj.IsStale = true;
         end
 
         function reconcile(obj)
         %reconcile Rescan all sources, diff against current entries, emit events.
         %
         %   Fires PluginAdded, PluginRemoved, or PluginChanged for each
-        %   changed entry, then fires PluginRegistryReconciled once at the end.
-            sources = obj.orderedSources();
-            newEntries = obj.buildEntries(sources);
+        %   changed entry, then fires PluginRegistryReconciled once at the
+        %   end. The new entries are stored before the events fire, so a
+        %   listener that calls list gets them without starting another scan.
+            oldEntries = obj.Entries;
+            newEntries = obj.buildEntries(obj.orderedSources());
 
-            oldIds = obj.entryIds(obj.Entries);
+            obj.Entries = newEntries;
+            obj.IsStale = false;
+
+            oldIds = obj.entryIds(oldEntries);
             newIds = obj.entryIds(newEntries);
 
             removedIds = setdiff(oldIds, newIds);
@@ -133,7 +154,7 @@ classdef (Abstract) Registry < handle
 
             sharedIds = intersect(oldIds, newIds);
             for i = 1:numel(sharedIds)
-                oldEntry = obj.findEntry(obj.Entries, sharedIds(i));
+                oldEntry = obj.findEntry(oldEntries, sharedIds(i));
                 newEntry = obj.findEntry(newEntries, sharedIds(i));
                 if ~isequal(oldEntry, newEntry)
                     evtData = nansen.plugin.base.PluginEventData(newEntry, sharedIds(i));
@@ -141,7 +162,6 @@ classdef (Abstract) Registry < handle
                 end
             end
 
-            obj.Entries = newEntries;
             notify(obj, 'PluginRegistryReconciled');
         end
     end
@@ -149,11 +169,17 @@ classdef (Abstract) Registry < handle
     methods % Read API
         function entries = list(obj)
         %list Return the resolved entry struct array.
+        %
+        %   Scans the sources first if they changed since the last scan.
+            obj.reconcileIfStale()
             entries = obj.Entries;
         end
 
         function entry = get(obj, id)
         %get Return the entry with the given id, or empty struct if not found.
+        %
+        %   Scans the sources first if they changed since the last scan.
+            obj.reconcileIfStale()
             entry = obj.findEntry(obj.Entries, id);
         end
 
@@ -180,6 +206,13 @@ classdef (Abstract) Registry < handle
     end
 
     methods (Access = private)
+        function reconcileIfStale(obj)
+        %reconcileIfStale Rescan the sources if they changed since the last scan.
+            if obj.IsStale
+                obj.reconcile()
+            end
+        end
+
         function sources = orderedSources(obj)
         %orderedSources Return all sources in precedence order (top > middle > bottom).
             sources = [obj.TopSource, obj.MiddleSources, obj.BottomSource];

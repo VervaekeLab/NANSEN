@@ -203,6 +203,92 @@ classdef RegistryBaseTest < matlab.unittest.TestCase
             entry = reg.get("DoesNotExist");
             testCase.verifyEmpty(entry)
         end
+
+        function testListScansSourcesAfterAddSource(testCase)
+        %testListScansSourcesAfterAddSource list scans a source added since the last lookup
+            reg = nansen.unittest.plugin.helper.ConcreteRegistry();
+            dirA = testCase.makeSourceDir('A', {'Alpha'});
+            dirB = testCase.makeSourceDir('B', {'Beta'});
+
+            reg.addSource("src-a", dirA);
+            testCase.verifyEqual([reg.list().PluginId], "Alpha")
+
+            reg.addSource("src-b", dirB);
+            testCase.verifyEqual([reg.list().PluginId], ["Alpha", "Beta"])
+        end
+
+        function testListScansSourcesAfterRemoveSource(testCase)
+        %testListScansSourcesAfterRemoveSource list drops a source removed since the last lookup
+            reg = nansen.unittest.plugin.helper.ConcreteRegistry();
+            dirA = testCase.makeSourceDir('A', {'Alpha'});
+            dirB = testCase.makeSourceDir('B', {'Beta'});
+            reg.addSource("src-a", dirA);
+            reg.addSource("src-b", dirB);
+            reg.list();
+
+            reg.removeSource("src-a");
+            testCase.verifyEqual([reg.list().PluginId], "Beta")
+        end
+
+        function testGetScansSourcesAfterChange(testCase)
+        %testGetScansSourcesAfterChange get scans a source added since the last lookup
+            reg = nansen.unittest.plugin.helper.ConcreteRegistry();
+            dirA = testCase.makeSourceDir('A', {'Alpha'});
+
+            reg.pinBottom("bottom", dirA);
+            alpha = reg.get("Alpha");
+            testCase.verifyEqual(alpha.PluginId, "Alpha")
+        end
+
+        function testLookupsScanOncePerChange(testCase)
+        %testLookupsScanOncePerChange Lookups without a change in between reuse the last scan
+            reg = nansen.unittest.plugin.helper.ConcreteRegistry();
+            dirA = testCase.makeSourceDir('A', {'Alpha'});
+            reconciledCount = 0;
+            addlistener(reg, 'PluginRegistryReconciled', @(~,~) incr());
+
+            reg.addSource("src-a", dirA);
+            reg.list();
+            reg.get("Alpha");
+            reg.resolve("Alpha");
+            testCase.verifyEqual(reconciledCount, 1)
+            testCase.verifyFalse(reg.IsStale)
+
+            function incr(); reconciledCount = reconciledCount + 1; end
+        end
+
+        function testRemovingUnknownSourceKeepsEntriesCurrent(testCase)
+        %testRemovingUnknownSourceKeepsEntriesCurrent Removing no source needs no new scan
+            reg = nansen.unittest.plugin.helper.ConcreteRegistry();
+            dirA = testCase.makeSourceDir('A', {'Alpha'});
+            reg.addSource("src-a", dirA);
+            reg.list();
+
+            reg.removeSource("nonexistent");
+            testCase.verifyFalse(reg.IsStale)
+        end
+
+        function testListenerThatListsGetsNewEntries(testCase)
+        %testListenerThatListsGetsNewEntries A PluginAdded listener can call list
+        %
+        %   The entries are stored before the events fire, so list in a
+        %   listener returns them and does not start another scan.
+            reg = nansen.unittest.plugin.helper.ConcreteRegistry();
+            dirA = testCase.makeSourceDir('A', {'Alpha'});
+            reg.addSource("src-a", dirA);
+
+            listedIds = string.empty;
+            reconciledCount = 0;
+            addlistener(reg, 'PluginAdded', @(~,~) recordListedIds());
+            addlistener(reg, 'PluginRegistryReconciled', @(~,~) incr());
+
+            reg.list();
+            testCase.verifyEqual(listedIds, "Alpha")
+            testCase.verifyEqual(reconciledCount, 1)
+
+            function recordListedIds(); listedIds = [reg.list().PluginId]; end
+            function incr(); reconciledCount = reconciledCount + 1; end
+        end
     end
 
     methods (Access = private)

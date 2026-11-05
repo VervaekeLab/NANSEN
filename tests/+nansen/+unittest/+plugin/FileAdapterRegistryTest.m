@@ -129,6 +129,25 @@ classdef FileAdapterRegistryTest < matlab.unittest.TestCase
             testCase.verifyEqual(entries.SupportedFileTypes(:), [".tif"; ".tiff"])
         end
 
+        function testClassAdapterOnPathAtFirstLookupIsFound(testCase)
+        %testClassAdapterOnPathAtFirstLookupIsFound Sources are scanned at the first lookup
+        %
+        %   A project adds its sources to the registry before its folder is
+        %   on the MATLAB path, and a class-based adapter is found only
+        %   when it is on the path.
+            import matlab.unittest.fixtures.PathFixture
+
+            [codeFolder, sourceFolder] = testCase.makeClassAdapterSource('ClassAdapter', 'tsv');
+            reg = nansen.plugin.fileadapter.Registry();
+            reg.pinTop("project", sourceFolder);
+
+            testCase.applyFixture(PathFixture(codeFolder));
+            entries = reg.list();
+
+            testCase.verifyEqual([entries.FileAdapterName], "ClassAdapter")
+            testCase.verifyFalse(entries.IsDynamic)
+        end
+
         function testModuleDeprecationWarning(testCase)
             module = nansen.module.Module.fromName( ...
                 nansen.common.constant.BaseModuleName);
@@ -147,6 +166,36 @@ classdef FileAdapterRegistryTest < matlab.unittest.TestCase
     end
 
     methods (Access = private)
+        function [codeFolder, sourceFolder] = makeClassAdapterSource(testCase, adapterName, extension)
+        %makeClassAdapterSource Create a source with one class-based adapter.
+        %
+        %   The source is a package folder in codeFolder, like the
+        %   code/+projectname folder of a project. The package is named
+        %   after the temporary folder, so that each test defines its own
+        %   class.
+            codeFolder = fullfile(testCase.TempDir, 'code');
+            [~, packageName] = fileparts(testCase.TempDir);
+            sourceFolder = fullfile(codeFolder, "+" + packageName);
+            adapterFolder = fullfile(sourceFolder, '+fileadapter');
+            mkdir(adapterFolder)
+
+            classDefinition = sprintf([ ...
+                'classdef %s < nansen.dataio.FileAdapter\n', ...
+                '    properties (Constant)\n', ...
+                '        DataType = ''table''\n', ...
+                '    end\n', ...
+                '    properties (Constant, Hidden, Access = protected)\n', ...
+                '        SUPPORTED_FILE_TYPES = {''%s''}\n', ...
+                '    end\n', ...
+                '    methods (Access = protected)\n', ...
+                '        function data = readData(obj, varargin)\n', ...
+                '            data = readtable(obj.Filename, ''FileType'', ''text'');\n', ...
+                '        end\n', ...
+                '    end\n', ...
+                'end\n'], adapterName, extension);
+            utility.filewrite(char(fullfile(adapterFolder, adapterName + ".m")), classDefinition)
+        end
+
         function srcDir = makeSidecarSource(testCase, name, adapterName, extensions)
         %makeSidecarSource Create a temp source dir with one sidecar adapter.
             srcDir = fullfile(testCase.TempDir, name);
