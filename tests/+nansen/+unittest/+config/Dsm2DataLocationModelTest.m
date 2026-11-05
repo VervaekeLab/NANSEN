@@ -27,12 +27,29 @@ classdef Dsm2DataLocationModelTest < matlab.unittest.TestCase
             {'^(\d{6}_\d+[a-z])\.ABF$', '170518_1a'}, ...
             {'^(\d{6}_\d+)[a-z]\.ABF$', '170518_1'}, ...
             {'^\d{6}_(\d+)[a-z]\.ABF$', '1'}, ...
-            {'^.*_(\d+)[a-z]\.ABF$', '1'}, ...
             {'\.(ABF|abf)$', 'ABF'}, ...
-            {'^\d{6}_\d+[a-z]', '170518_1a'}}
+            {'^\d{6}_\d+[a-z]', '170518_1a'}, ...
+            {'(?i)A(\.abf)$', '.ABF'}, ...
+            {'(?i)(abf|xyz)$', 'ABF'}}
+        % Patterns whose capture group can not be moved out of the pattern,
+        % or whose prefix a regex search repeats as often as it can, which
+        % a lookbehind does not reproduce. The second element is part of
+        % the reason the conversion gives.
+        refusedRegexCase = struct( ...
+            'quantifiedGroup', {{'^(\d)+_', "quantified"}}, ...
+            'groupInOptionalGroup', {{'^run(?:-(\d+))?$', "inside another group"}}, ...
+            'groupInGroup', {{'^(?:sub-(\w+))_', "inside another group"}}, ...
+            'starPrefix', {{'^.*_(\d+)[a-z]\.ABF$', "without an upper bound"}}, ...
+            'plusPrefix', {{'^\w+(\d{2})', "without an upper bound"}}, ...
+            'openRangePrefix', {{'^\d{2,}_(\d+)', "without an upper bound"}})
+        % Bounds past the end of the 13 characters of FileName give the
+        % characters that are there, as a Python slice does.
         sliceCase = { ...
             {'0:6', '170518'}, {':', '170518_1a.ABF'}, {'9:', '.ABF'}, ...
-            {':-4', '170518_1a'}, {'7:-4', '1a'}, {'-3:', 'ABF'}, {'-4:-3', '.'}}
+            {':-4', '170518_1a'}, {'7:-4', '1a'}, {'-3:', 'ABF'}, {'-4:-3', '.'}, ...
+            {'7:9', '1a'}, {'-4:-1', '.AB'}, {'0:20', '170518_1a.ABF'}, {'7:20', '1a.ABF'}, ...
+            {'15:20', ''}, {'20:', ''}, {'-20:', '170518_1a.ABF'}, {'-20:-4', '170518_1a'}, {':-20', ''}}
+        refusedSliceCase = {'5:3', '-1:-3', '0:0', '-3:5'}
     end
 
     methods (TestClassSetup)
@@ -61,6 +78,13 @@ classdef Dsm2DataLocationModelTest < matlab.unittest.TestCase
         function verifyNotReported(testCase, elementPart)
             testCase.verifyFalse(any(contains(testCase.Report.Element, elementPart)), ...
                 sprintf('%s was mapped and should not be in the report.', elementPart))
+        end
+
+        function model = garadModel(~)
+        %garadModel The decoded model of the Garad fixture, to modify in a test
+            fixture = fullfile(fileparts(fileparts(fileparts(mfilename('fullpath')))), ...
+                '+fixture', 'datasetstructure', 'garad-2022.json');
+            model = jsondecode(fileread(fixture));
         end
     end
 
@@ -93,7 +117,8 @@ classdef Dsm2DataLocationModelTest < matlab.unittest.TestCase
         function testRecordingDateUsesItsFormat(testCase)
             rule = testCase.DataLocations.MetaDataDef( ...
                 strcmp({testCase.DataLocations.MetaDataDef.VariableName}, 'Experiment Date'));
-            testCase.verifyEqual(rule.StringDetectMode, 'ind')
+            testCase.verifyEqual(rule.StringDetectMode, 'expr', ...
+                'A slice with a stop becomes an expr rule, which a shorter name can not overrun.')
             testCase.verifyEqual(rule.StringFormat, 'yyMMdd')
             testCase.verifyEqual(testCase.extract('Experiment Date'), '170518')
         end
@@ -133,6 +158,37 @@ classdef Dsm2DataLocationModelTest < matlab.unittest.TestCase
             testCase.verifyNotReported("entityTypes[")
         end
 
+        function testStructuralLevelIsUntypedWithoutASubjectEntity(testCase)
+            % Without the relationship, no entity type is the subject. A
+            % structural level has no entity type, and must not be taken
+            % for the level of the missing subject.
+            model = rmfield(testCase.garadModel(), 'entityRelationships');
+            layout = model.dataLocations.filesystemSource.entityLayout;
+            model.dataLocations.filesystemSource.entityLayout = ...
+                {struct('name', 'days', 'matchPattern', '^\d{6}$'), layout};
+
+            dataLocation = nansen.config.dloc.dsm2DataLocationModel(model);
+
+            testCase.verifyEqual({dataLocation.SubfolderStructure.Type}, {'', 'Session'})
+        end
+
+        function testSessionsMergedAcrossSubjectsAreReported(testCase)
+            % A folder per cell above the recording files: recordings with
+            % the same name in two cell folders get one Session ID.
+            model = testCase.garadModel();
+            layout = model.dataLocations.filesystemSource.entityLayout;
+            model.dataLocations.filesystemSource.entityLayout = ...
+                {struct('name', 'cells', 'entityType', 'cell', 'matchPattern', '^\d{6}_\d+$'), layout};
+
+            [dataLocation, ~, report] = nansen.config.dloc.dsm2DataLocationModel(model);
+
+            testCase.verifyEqual({dataLocation.SubfolderStructure.Type}, {'Subject', 'Session'})
+            isRow = report.Element == "dataLocations[garad].entityLayout[recording-files]";
+            testCase.verifyTrue(any(isRow & contains(report.Reason, "under different cell folders")))
+            testCase.verifyFalse(any(contains(testCase.Report.Reason, "Session IDs are taken")), ...
+                'A session level with no entity level above it has nothing to merge across.')
+        end
+
         function testSessionEntityWithoutALevelIsReported(testCase)
             % A cell has no folder or file of its own, so NANSEN could not
             % find it on disk as a session.
@@ -154,10 +210,26 @@ classdef Dsm2DataLocationModelTest < matlab.unittest.TestCase
             testCase.verifyEqual(value, regexCase{2})
         end
 
-        function testQuantifiedGroupIsNotConverted(testCase)
-            [~, isConverted] = ...
-                nansen.config.dloc.dsmconversion.convertRegexToWholeMatch('^(\d)+_');
+        function testRegexIsRefusedWithAReason(testCase, refusedRegexCase)
+            [pattern, isConverted, reason] = ...
+                nansen.config.dloc.dsmconversion.convertRegexToWholeMatch(refusedRegexCase{1});
             testCase.verifyFalse(isConverted)
+            testCase.verifyEqual(pattern, "")
+            testCase.verifySubstring(reason, refusedRegexCase{2})
+        end
+
+        function testRefusedRuleReportsWhy(testCase)
+            model = testCase.garadModel();
+            rules = model.dataLocations.filesystemSource.metadataMapping;
+            isRecordingId = strcmp({rules.metadataRef}, 'recording_id');
+            rules(isRecordingId).extraction.pattern = '^(?:(\d{6}_\d+[a-z]))\.ABF$';
+            model.dataLocations.filesystemSource.metadataMapping = rules;
+
+            [~, ~, report] = nansen.config.dloc.dsm2DataLocationModel(model);
+
+            isRow = report.Element == "dataLocations[garad].metadataMapping[recording_id]";
+            testCase.verifyTrue(any(isRow & contains(report.Reason, "inside another group") ...
+                & contains(report.Reason, "Session ID is left unset")))
         end
 
         function testSliceGivesThePythonValue(testCase, sliceCase)
@@ -167,6 +239,14 @@ classdef Dsm2DataLocationModelTest < matlab.unittest.TestCase
             value = nansen.config.dloc.DataLocationModel.applyExtractionPattern( ...
                 testCase.FileName, char(mode), char(input));
             testCase.verifyEqual(value, sliceCase{2})
+        end
+
+        function testSliceThatNoRuleReproducesIsRefused(testCase, refusedSliceCase)
+            [mode, input, isConverted, reason] = ...
+                nansen.config.dloc.dsmconversion.convertSliceToExtraction(refusedSliceCase);
+            testCase.verifyFalse(isConverted)
+            testCase.verifyEqual([mode, input], ["", ""])
+            testCase.verifyNotEqual(reason, "")
         end
 
         function testSliceNeverUsesEndOutsideTheWholeRange(testCase)
@@ -192,6 +272,29 @@ classdef Dsm2DataLocationModelTest < matlab.unittest.TestCase
 
             [~, ~, isConverted] = convert("^\d+\.ABF$");
             testCase.verifyFalse(isConverted, '\d has no wildcard equivalent.')
+        end
+
+        function testRegexQuantifierIsNotAWildcard(testCase)
+            % In a regex, * repeats what precedes it: ^ab*c\.txt$ matches
+            % ac.txt but not abxc.txt, which the wildcard ab*c.txt matches.
+            convert = @(p) nansen.config.dloc.dsmconversion.convertFilePatternToWildcard(p, "recording_id");
+            for pattern = ["^ab*c\.txt$", "^data_+\.csv$", "^{recording_id}*\.ABF$", "^a{2}\.txt$"]
+                [~, ~, isConverted] = convert(pattern);
+                testCase.verifyFalse(isConverted, pattern)
+            end
+        end
+
+        function testUnanchoredEndMatchesLongerNames(testCase)
+            % A file pattern is searched for anywhere in the name, so a
+            % pattern without $ matches names that continue after it.
+            convert = @(p) nansen.config.dloc.dsmconversion.convertFilePatternToWildcard(p, "recording_id");
+
+            [expression, fileType] = convert("^{recording_id}_raw");
+            testCase.verifyEqual(expression, "^*_raw*$")
+            testCase.verifyEqual(fileType, "")
+
+            testCase.verifyEqual(convert("\.ABF"), ".ABF*$")
+            testCase.verifyEqual(convert("^{recording_id}.*"), "^*$")
         end
     end
 end

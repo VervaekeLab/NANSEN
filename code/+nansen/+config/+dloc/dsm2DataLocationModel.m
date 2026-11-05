@@ -15,8 +15,9 @@ function [dataLocations, variables, report] = dsm2DataLocationModel(dsmConfig, o
 %
 %   Which entity becomes a NANSEN session:
 %       an entity type named session with a layout level, otherwise the
-%       entity type of the deepest layout level. A NANSEN session has to be
-%       found on disk, so it must be an entity with a folder or files.
+%       entity type of the deepest entity level of the first data location
+%       that has one. A NANSEN session has to be found on disk, so it must
+%       be an entity with a folder or files.
 %   Which entity becomes a NANSEN subject:
 %       an entity type named subject, otherwise the source of a
 %       relationship whose target is the session entity.
@@ -67,16 +68,18 @@ function [dataLocations, variables, report] = dsm2DataLocationModel(dsmConfig, o
     subjectKeys = identityKeys(entityTypes, subjectEntity);
     usedFields = string.empty(1, 0);
 
-    report.add("entityRelationships", "NANSEN has no relationships between entity types beyond subject and session.", ...
+    report.add("entityRelationships", ...
+        "NANSEN has no relationships between entity types beyond subject and session.", ...
         ~isempty(asList(dsmConfig, 'entityRelationships')))
     for i = 1:numel(entityTypes)
         name = string(entityTypes{i}.name);
         if ~ismember(name, [sessionEntity, subjectEntity])
-            report.add("entityTypes[" + name + "]", "Only the session and subject entity types have a NANSEN counterpart.")
+            report.add("entityTypes[" + name + "]", ...
+                "Only the session and subject entity types have a NANSEN counterpart.")
         end
     end
-    report.add("preferences", "Preferences belong to the data location model, not to its items; set DefaultDataLocation after importing.", ...
-        isfield(dsmConfig, 'preferences'))
+    report.add("preferences", "Preferences belong to the data location model, not to its items; " + ...
+        "set DefaultDataLocation after importing.", isfield(dsmConfig, 'preferences'))
 
     dataLocations = struct.empty;
     variables = struct.empty;
@@ -126,7 +129,8 @@ function [item, sessionLevel, usedFields] = convertLocation(location, where, def
     levelTypes = fieldValues(layout, 'entityType');
     sessionIndex = find(levelTypes == sessionEntity, 1);
     if isempty(sessionIndex)
-        report.add(where, "No layout level holds the session entity '" + sessionEntity + "', so NANSEN could not find sessions here.")
+        report.add(where, "No layout level holds the session entity '" + sessionEntity + ...
+            "', so NANSEN could not find sessions here.")
         return
     end
     for j = sessionIndex+1:numel(layout)
@@ -135,6 +139,8 @@ function [item, sessionLevel, usedFields] = convertLocation(location, where, def
     end
     layout = layout(1:sessionIndex);
     sessionLevel = layout{end};
+    reportSessionsMergedAcrossAncestors(levelTypes(1:sessionIndex-1), sessionEntity, ...
+        where + ".entityLayout[" + string(sessionLevel.name) + "]", report)
 
     item = nansen.config.dloc.DataLocationModel.getBlankItem();
     item.Name = char(matlab.lang.makeValidName(string(location.identifier)));
@@ -143,8 +149,8 @@ function [item, sessionLevel, usedFields] = convertLocation(location, where, def
     % A placeholder that links variables to this item until it is inserted;
     % inserting an item into a catalog assigns it a new uuid.
     item.Uuid = nansen.util.getuuid();
-    report.add(where + ".uuid", "NANSEN assigns its own uuid when a data location is added; the model's uuid is not kept.", ...
-        isfield(location, 'uuid'))
+    report.add(where + ".uuid", "NANSEN assigns its own uuid when a data location is added; " + ...
+        "the model's uuid is not kept.", isfield(location, 'uuid'))
     item = orderfields(item, ['Uuid'; setdiff(fieldnames(item), 'Uuid', 'stable')]);
     item.Type = convertType(location, where, report);
     item.RootPath = convertRootPaths(asList(source, 'rootStoragePaths'), where, report);
@@ -195,7 +201,8 @@ function rootPaths = convertRootPaths(storagePaths, where, report)
 
         report.add(here + ".storageType", "NANSEN distinguishes only local and external disks; mapped to External.", ...
             ~ismember(storageType, ["local", "external"]))
-        report.add(here + ".environment", "NANSEN keeps per-machine root paths in local settings rather than by environment.", ...
+        report.add(here + ".environment", ...
+            "NANSEN keeps per-machine root paths in local settings rather than by environment.", ...
             isfield(storagePath, 'environment'))
     end
 end
@@ -212,11 +219,12 @@ function structure = convertLayout(layout, where, definitions, sessionEntity, su
 
         if entityType == sessionEntity
             structure(j).Type = 'Session';
-        elseif entityType == subjectEntity
+        elseif subjectEntity ~= "" && entityType == subjectEntity
             structure(j).Type = 'Subject';
         else
             structure(j).Type = '';
-            report.add(here, "Entity type '" + entityType + "' has no NANSEN folder type; kept as an untyped level.", entityType ~= "")
+            report.add(here, "Entity type '" + entityType + "' has no NANSEN folder type; " + ...
+                "kept as an untyped level.", entityType ~= "")
         end
 
         if ~getOr(level, 'isVariable', true)
@@ -230,10 +238,11 @@ function structure = convertLayout(layout, where, definitions, sessionEntity, su
         structure(j).IsFolder = string(getOr(level, 'fileSystemType', 'folder')) ~= "file";
         structure(j).IgnoreList = {};
 
-        report.add(here + ".excludePatterns", "Not mapped: NANSEN's ignore list matches literal substrings, not patterns. " + ...
-            "The level's expression already restricts the names, and hidden files are skipped.", ...
+        report.add(here + ".excludePatterns", "Not mapped: NANSEN's ignore list matches literal substrings, " + ...
+            "not patterns. The level's expression already restricts the names, and hidden files are skipped.", ...
             ~isempty(asList(level, 'excludePatterns')))
-        report.add(here + ".pathComponentTemplate", "NANSEN generates folder names itself; the template is not used for writing.", ...
+        report.add(here + ".pathComponentTemplate", ...
+            "NANSEN generates folder names itself; the template is not used for writing.", ...
             isfield(level, 'pathComponentTemplate'))
     end
 end
@@ -261,7 +270,8 @@ function [metaDataDef, usedFields] = convertMetadata(mapping, definitions, level
         rule = findRule(mapping, field);
         here = where + ".metadataMapping[" + field + "]";
         if isempty(rule)
-            report.add(here, "No extraction rule for this field in this data location; " + targets(k).Variable + " is left unset.")
+            report.add(here, "No extraction rule for this field in this data location; " + ...
+                targets(k).Variable + " is left unset.")
             continue
         end
         extraction = rule.extraction;
@@ -275,21 +285,27 @@ function [metaDataDef, usedFields] = convertMetadata(mapping, definitions, level
             levelIndex = [];
         end
         if isempty(levelIndex) || levelIndex > sessionIndex
-            report.add(here, "The rule does not read a single level at or above the session level; " + targets(k).Variable + " is left unset.")
+            report.add(here, "The rule does not read a single level at or above the session level; " + ...
+                targets(k).Variable + " is left unset.")
             continue
         end
 
         method = string(extraction.method);
+        reason = "";
         if method == "regex"
-            [input, isConverted] = convertRegexToWholeMatch(string(extraction.pattern));
+            [input, isConverted, reason] = convertRegexToWholeMatch(string(extraction.pattern));
             mode = "expr";
         elseif method == "substring"
-            [mode, input, isConverted] = convertSliceToExtraction(string(extraction.pattern));
+            [mode, input, isConverted, reason] = convertSliceToExtraction(string(extraction.pattern));
         else
             isConverted = false;
         end
         if ~isConverted
-            report.add(here, "The " + method + " rule can not be expressed as a NANSEN ind or expr rule; " + targets(k).Variable + " is left unset.")
+            if reason ~= ""
+                reason = " (" + reason + ")";
+            end
+            report.add(here, "The " + method + " rule can not be expressed as a NANSEN ind or expr rule" + ...
+                reason + "; " + targets(k).Variable + " is left unset.")
             continue
         end
         report.add(here + ".normalize", "Normalisation is not applied by NANSEN; extracted values may differ.", ...
@@ -367,7 +383,7 @@ end
 % -------------------------------------------------------------------------
 
 function name = chooseSessionEntity(entityTypes, locations)
-%chooseSessionEntity An entity type named session with a level, else the deepest level's
+%chooseSessionEntity An entity type named session with a level, else the first location's deepest entity
     names = fieldValues(entityTypes, 'name');
     levelTypes = string.empty(1, 0);
     deepest = "";
@@ -425,8 +441,30 @@ function field = identityField(keys, role, where, report)
     if isscalar(keys)
         field = keys;
     elseif numel(keys) > 1
-        report.add(where, "The " + role + " identity is composite (" + strjoin(keys, ", ") + "); NANSEN needs a single id field.")
+        report.add(where, "The " + role + " identity is composite (" + strjoin(keys, ", ") + ...
+            "); NANSEN needs a single id field.")
     end
+end
+
+function reportSessionsMergedAcrossAncestors(ancestorTypes, sessionEntity, where, report)
+%reportSessionsMergedAcrossAncestors Report that a Session ID leaves out the ancestors of the session level
+%
+%   A model identifies a session by its own identity and the identities of
+%   the entities above it, so two subjects may each have a session d1. The
+%   Session ID is read from one name, and NANSEN keeps one folder per
+%   Session ID when it matches sessions (matchSessionFolders), so those
+%   sessions are merged.
+    arguments
+        ancestorTypes (1,:) string
+        sessionEntity (1,1) string
+        where (1,1) string
+        report (1,1) nansen.config.dloc.dsmconversion.Report
+    end
+
+    ancestorTypes = unique(ancestorTypes(ancestorTypes ~= "" & ancestorTypes ~= sessionEntity), 'stable');
+    report.add(where, "Session IDs are taken from the session level only. Sessions with the same name " + ...
+        "under different " + strjoin(ancestorTypes, " or ") + " folders get the same Session ID and are " + ...
+        "merged: NANSEN keeps one folder per Session ID.", ~isempty(ancestorTypes))
 end
 
 function field = temporalField(definitions, dataTypes, sessionEntity, subjectEntity)
@@ -462,7 +500,8 @@ function pattern = templateToPattern(template, definitions)
         tokenPattern = "[^/\\]+";
         if isfield(definitions, tokens{i}{1}) && isfield(definitions.(tokens{i}{1}), 'validation') ...
                 && isfield(definitions.(tokens{i}{1}).validation, 'pattern')
-            tokenPattern = "(?:" + regexprep(string(definitions.(tokens{i}{1}).validation.pattern), '^\^|\$$', '') + ")";
+            validationPattern = string(definitions.(tokens{i}{1}).validation.pattern);
+            tokenPattern = "(?:" + regexprep(validationPattern, '^\^|\$$', '') + ")";
         end
         pattern = pattern + tokenPattern + regexptranslate('escape', literals{i+1});
     end
