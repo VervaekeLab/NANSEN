@@ -1,4 +1,34 @@
 classdef OptionsManagerPlugin < handle
+%OptionsManagerPlugin Options set selector for structeditor.StructEditorApp.
+%
+%   plugin = nansen.manage.OptionsManagerPlugin(optionsManager) creates a
+%   plugin that lists the options sets of optionsManager, a
+%   nansen.manage.OptionsManager, in the header of a StructEditorApp.
+%   structeditor creates this plugin when it is called with an
+%   OptionsManager name-value argument.
+%
+%   plugin = nansen.manage.OptionsManagerPlugin(optionsManager, optionsName)
+%   selects optionsName. Without optionsName, the plugin selects
+%   optionsManager.OptionsName, or the preferred options set when that is
+%   empty.
+%
+%   The header holds a dropdown of the preset, custom and modified options
+%   sets, a Save Options button and a Make Default button:
+%     - Selecting an options set sets the Data of the editor. OriginalData
+%       does not change, so Cancel returns the data the editor was opened
+%       with.
+%     - Editing a value stores the edited data in the OptionsManager as a
+%       modified options set named "<name> (Modified)" and selects it.
+%     - Save Options, enabled for a modified options set, saves the data as
+%       a custom options set.
+%     - Make Default makes the selected options set the default. It is
+%       disabled for a modified options set and for the current default.
+%
+%   CurrentOptionsName is the name of the selected options set.
+%   structeditor.waitForResult returns it as its third output.
+%
+%   See also structeditor, structeditor.waitForResult,
+%   nansen.manage.OptionsManager
 
     properties (SetAccess = private)
         OptionsManager
