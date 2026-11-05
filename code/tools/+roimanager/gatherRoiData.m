@@ -15,10 +15,10 @@ function [roiImageData, roiStats] = gatherRoiData(imArray, roiData, varargin)
 
 % Todo: Split in two functions???
 
-    import nansen.twophoton.roisignals.extractF
-    import nansen.twophoton.roisignals.computeDff
+    import nansen.module.twophoton.roisignals.extractF
+    import nansen.module.twophoton.roisignals.computeDff
 
-    import nansen.twophoton.roi.compute.computeRoiImages
+    import nansen.module.twophoton.roi.compute.computeRoiImages
 
     import roimanager.autosegment.extractRoiImages
     import roimanager.autosegment.calculateRoiStats

@@ -11,19 +11,19 @@ function [roiImages, roiStats] = getRoiAppData(imArray, roiArray, varargin)
 %               'Diff Surround'
 %               'Top 99th Percentile'
 %               'Local Correlation'
-%           see nansen.twophoton.roi.compute.computeRoiImages for details
+%           see nansen.module.twophoton.roi.compute.computeRoiImages for details
 %
 %       roiStats  : 1 x numRois struct array where each value is a
 %           measurement on the roi's image or the roi's signal
-%           see nansen.twophoton.roi.stats.dffprops and
-%           nansen.twophoton.roi.stats.imageprops for details
+%           see nansen.module.twophoton.roi.stats.dffprops and
+%           nansen.module.twophoton.roi.stats.imageprops for details
 
     def = struct();
     def.RoiImageSize = [21, 21];
 
     opt = utility.parsenvpairs(def, [], varargin);
 
-    import nansen.twophoton.roi.compute.computeRoiImages
+    import nansen.module.twophoton.roi.compute.computeRoiImages
 
     global fprintf % Use global fprintf if available
     if isempty(fprintf); fprintf = str2func('fprintf'); end
@@ -31,7 +31,7 @@ function [roiImages, roiStats] = getRoiAppData(imArray, roiArray, varargin)
     % Compute rois signals for given image array
     fprintf('Extracting signals for computation of roi images...\n')
     signalOpts = struct('createNeuropilMask', true);
-    signalArray = nansen.twophoton.roisignals.extractF(imArray, roiArray, signalOpts);
+    signalArray = nansen.module.twophoton.roisignals.extractF(imArray, roiArray, signalOpts);
     fprintf('Finished signal extraction\n')
 
     % Compute rois images
@@ -39,9 +39,9 @@ function [roiImages, roiStats] = getRoiAppData(imArray, roiArray, varargin)
     roiImageStruct = computeRoiImages(imArray, roiArray, signalArray, 'ImageType', imageTypes, 'BoxSize', opt.RoiImageSize); % imported function
 
     % Compute roi stats
-    dff = nansen.twophoton.roisignals.computeDff(signalArray);
-    dffStats = nansen.twophoton.roi.stats.dffprops(dff);
-    imageStats = nansen.twophoton.roi.stats.imageprops(roiImageStruct, roiArray);
+    dff = nansen.module.twophoton.roisignals.computeDff(signalArray);
+    dffStats = nansen.module.twophoton.roi.stats.dffprops(dff);
+    imageStats = nansen.module.twophoton.roi.stats.imageprops(roiImageStruct, roiArray);
     stats = utility.struct.mergestruct(dffStats, imageStats);
 
     % Rearrange roi images to a (nRoi x 1) struct array

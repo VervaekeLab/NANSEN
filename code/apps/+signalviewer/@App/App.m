@@ -224,7 +224,7 @@ classdef App < applify.ModularApp & applify.AppWithPlugin & applify.mixin.HasDia
             end
 
             % Todo: Improve generalization of this class!
-            if isa(tsArray, 'nansen.roisignals.RoiSignalArray')
+            if isa(tsArray, 'nansen.module.twophoton.roisignals.RoiSignalArray')
                 return
             end
 

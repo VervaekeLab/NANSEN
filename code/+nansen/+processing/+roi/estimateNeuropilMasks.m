@@ -9,7 +9,7 @@ function neuropilMasks = estimateNeuropilMasks(roiMasksIn, varargin)
     %   [ ] add warning if mask can't be created (i.e not enough neuropil available)
 
     % Get default parameters and assertion functions.
-    [P, V] = nansen.twophoton.roisignals.extract.getDefaultParameters();
+    [P, V] = nansen.module.twophoton.roisignals.extract.getDefaultParameters();
 
     % Parse potential parameters from input arguments
     params = utility.parsenvpairs(P, V, varargin{:});

@@ -16,7 +16,7 @@ function dff = computeDff(signalArray, varargin)
 
     params = utility.parsenvpairs(P, [], varargin{:});
 
-    dffPackage = 'nansen.twophoton.roisignals.process.dff';
+    dffPackage = 'nansen.module.twophoton.roisignals.process.dff';
     dffFunction = str2func( strjoin({dffPackage, params.dffFcn}, '.') );
 
     dff = dffFunction(signalArray, params);
@@ -44,7 +44,7 @@ function choices = getDffMethodChoices()
 
     if isempty(fileNames)
 
-        dirPath = getPackagePath('nansen.twophoton.roisignals.process.dff');
+        dirPath = getPackagePath('nansen.module.twophoton.roisignals.process.dff');
 
         L = dir(fullfile(dirPath, '*.m'));
         fileNames = {L.name};

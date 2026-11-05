@@ -1,7 +1,7 @@
 classdef DffTest < matlab.unittest.TestCase
 %DffTest Pins the numerics of the two-photon dF/F computation
 %
-%   Characterization tests for nansen.twophoton.roisignals.computeDff and
+%   Characterization tests for nansen.module.twophoton.roisignals.computeDff and
 %   the dF/F methods it dispatches to by name. The expected values are the
 %   formulas the methods implement today, so a namespace move that changes
 %   a result, or that breaks the by-name method discovery, fails here.
@@ -36,7 +36,7 @@ classdef DffTest < matlab.unittest.TestCase
         end
 
         function dff = computeDff(~, signalArray, varargin)
-            dff = nansen.twophoton.roisignals.computeDff(signalArray, varargin{:});
+            dff = nansen.module.twophoton.roisignals.computeDff(signalArray, varargin{:});
         end
     end
 
@@ -45,7 +45,7 @@ classdef DffTest < matlab.unittest.TestCase
         function testDefaultParametersListTheThreeMethods(testCase)
             % The method list is discovered from the dff package folder, so
             % it doubles as a check that the package is on the path.
-            defaults = nansen.twophoton.roisignals.computeDff();
+            defaults = nansen.module.twophoton.roisignals.computeDff();
             testCase.verifyEqual(sort(string(defaults.dffFcn_)), ...
                 ["dffChenEtAl2013", "dffClassic", "dffRoiMinusDffNpil"])
             testCase.verifyEqual(string(defaults.dffFcn), "dffClassic")

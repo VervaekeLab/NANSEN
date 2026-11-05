@@ -23,7 +23,7 @@ classdef extractSignalsMultiChannel < nansen.session.SessionMethod
         IsManual = false
         IsQueueable = true
         OptionsManager nansen.manage.OptionsManager = ...
-            nansen.OptionsManager('nansen.processing.SignalExtractor')
+            nansen.OptionsManager('nansen.module.twophoton.roisignals.SignalExtractor')
     end
 
     properties (Constant)
@@ -37,7 +37,7 @@ classdef extractSignalsMultiChannel < nansen.session.SessionMethod
 
     methods (Static)
         function S = getDefaultOptions()
-            S = nansen.twophoton.roisignals.extract.getDefaultParameters();
+            S = nansen.module.twophoton.roisignals.extract.getDefaultParameters();
         end
     end
 
@@ -70,7 +70,7 @@ classdef extractSignalsMultiChannel < nansen.session.SessionMethod
 
             roiGroup = ensureRoiGroupMatchImageStack(roiGroup, imageStack);
 
-            nansen.processing.SignalExtractor(imageStack, obj.Options, roiGroup, obj.SessionObjects)
+            nansen.module.twophoton.roisignals.SignalExtractor(imageStack, obj.Options, roiGroup, obj.SessionObjects)
 
             % Reset channels
             imageStack.CurrentChannel = currentChannels;

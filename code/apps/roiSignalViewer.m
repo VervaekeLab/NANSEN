@@ -89,9 +89,9 @@ classdef roiSignalViewer < signalviewer.App
 
         Parameters % signal extraction.
 
-        SignalExtractionOptions = nansen.twophoton.roisignals.extract.getDefaultParameters();
-        DeconvolutionOptions = nansen.twophoton.roisignals.getDeconvolutionParameters();
-        DffOptions = nansen.twophoton.roisignals.computeDff();
+        SignalExtractionOptions = nansen.module.twophoton.roisignals.extract.getDefaultParameters();
+        DeconvolutionOptions = nansen.module.twophoton.roisignals.getDeconvolutionParameters();
+        DffOptions = nansen.module.twophoton.roisignals.computeDff();
 
         hLineObjects = struct()          % Line handle for signals in signal plot
 
@@ -117,7 +117,7 @@ classdef roiSignalViewer < signalviewer.App
 
             obj@signalviewer.App(varargin{:})
 
-            tf = cellfun(@(c) isa(c, 'nansen.roisignals.RoiSignalArray'), varargin);
+            tf = cellfun(@(c) isa(c, 'nansen.module.twophoton.roisignals.RoiSignalArray'), varargin);
             roiSignalArray = varargin{tf};
 
             obj.RoiSignalArray = roiSignalArray;
@@ -173,7 +173,7 @@ classdef roiSignalViewer < signalviewer.App
 
         function set.SignalsToDisplay(obj, newValue)
 
-            validNames = nansen.roisignals.RoiSignalArray.SIGNAL_NAMES;
+            validNames = nansen.module.twophoton.roisignals.RoiSignalArray.SIGNAL_NAMES;
             isValid = all(contains(newValue, validNames));
             assert(isValid, 'One or more signal names are not valid.')
 
@@ -240,7 +240,7 @@ classdef roiSignalViewer < signalviewer.App
 
         function setParameters(obj)
 
-            params = nansen.twophoton.roisignals.extract.getDefaultParameters;
+            params = nansen.module.twophoton.roisignals.extract.getDefaultParameters;
 
             obj.Parameters = params;
         end
@@ -258,7 +258,7 @@ classdef roiSignalViewer < signalviewer.App
 
         function editDeconvolutionParameters(obj, s, e)
 
-            [P, ~] = nansen.twophoton.roisignals.getDeconvolutionParameters();
+            [P, ~] = nansen.module.twophoton.roisignals.getDeconvolutionParameters();
             P = rmfield(P, 'modelParams');
 
             P = obj.DeconvolutionOptions;
@@ -288,7 +288,7 @@ classdef roiSignalViewer < signalviewer.App
 
         function createSignalSelectionDropdown(obj)
 
-            strings = nansen.roisignals.RoiSignalArray.SIGNAL_NAMES;
+            strings = nansen.module.twophoton.roisignals.RoiSignalArray.SIGNAL_NAMES;
 
             [obj.SignalSelectionDropdown, hButtons] = signalviewer.createDropdownListbox(obj.Panel, strings);
             obj.SignalSelectionDropdown.Visible = 'off';
@@ -719,7 +719,7 @@ classdef roiSignalViewer < signalviewer.App
 
 %             persistent signalNames
 %             if isempty(signalNames)
-%                 signalNames = nansen.roisignals.RoiSignalArray.SIGNAL_NAMES;
+%                 signalNames = nansen.module.twophoton.roisignals.RoiSignalArray.SIGNAL_NAMES;
 %             end
 
             resetInd = ismember(obj.DisplayedRoiIndices, roiInd);
@@ -768,7 +768,7 @@ classdef roiSignalViewer < signalviewer.App
 
         function initializeTimeSeriesObjects(obj)
 
-            signalNames = nansen.roisignals.RoiSignalArray.SIGNAL_NAMES;
+            signalNames = nansen.module.twophoton.roisignals.RoiSignalArray.SIGNAL_NAMES;
 
             STEP = 10;
 
@@ -804,7 +804,7 @@ classdef roiSignalViewer < signalviewer.App
 
             %Todo:Should be a super class method.
 
-            signalNames = nansen.roisignals.RoiSignalArray.SIGNAL_NAMES;
+            signalNames = nansen.module.twophoton.roisignals.RoiSignalArray.SIGNAL_NAMES;
 
             obj.tsNames = {};
             obj.tsArray = timeseries.empty;

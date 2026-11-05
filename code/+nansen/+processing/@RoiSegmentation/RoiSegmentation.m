@@ -281,7 +281,7 @@ classdef RoiSegmentation < nansen.stack.ImageStackProcessor
         %   Therefore, for very long stacks, the images and stats might not
         %   be created based on the full stack.
 
-            import nansen.twophoton.roi.getRoiAppData
+            import nansen.module.twophoton.roi.getRoiAppData
 
             [numZ, numC] = size(obj.RoiArray);
 

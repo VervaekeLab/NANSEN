@@ -1,10 +1,10 @@
 function [P, V] = getDefaultParameters()
 %getDefaultParameters Get default parameters for signal extraction
 %
-%   P = nansen.twophoton.roisignals.extract.getDefaultParameters() returns
+%   P = nansen.module.twophoton.roisignals.extract.getDefaultParameters() returns
 %       a struct (P) with default parameters for signal extraction
 %
-%   [P, V] = nansen.twophoton.roisignals.extract.getDefaultParameters()
+%   [P, V] = nansen.module.twophoton.roisignals.extract.getDefaultParameters()
 %       returns an additional struct (V) containing assertions for each
 %       parameter, for use with an input parser etc.
 %
@@ -25,7 +25,7 @@ function [P, V] = getDefaultParameters()
 %       Exclude rois from neuropil regions. Default = true
 %
 %   Note: for full list of parameters, run function without output, i.e
-%       nansen.twophoton.roisignals.extract.getDefaultParameters()
+%       nansen.module.twophoton.roisignals.extract.getDefaultParameters()
 
     % - - - - - - - - Specify parameters and default values - - - - - - - -
 

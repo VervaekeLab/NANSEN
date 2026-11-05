@@ -34,7 +34,7 @@ classdef Caiman < nansen.session.SessionMethod
     methods (Static)
         function options = getDefaultOptions()
         %GETDEFAULTOPTIONS Return default CaImAn deconvolution options.
-            options = nansen.twophoton.roisignals.getDeconvolutionParameters();
+            options = nansen.module.twophoton.roisignals.getDeconvolutionParameters();
         end
     end
 
@@ -55,7 +55,7 @@ classdef Caiman < nansen.session.SessionMethod
 
         function runMethod(obj)
 
-            import nansen.twophoton.roisignals.deconvolveDff
+            import nansen.module.twophoton.roisignals.deconvolveDff
 
             obj.SessionObjects.validateVariable('RoiSignals_Dff')
             signalArray = obj.loadData('RoiSignals_Dff');
@@ -120,7 +120,7 @@ function hDffPlugin = openDeconvolutionExplorer(sessionObj)
     hTableViewer.SelectionMode = 'single';
 
     % Create a roi signal array....
-    rs = nansen.roisignals.RoiSignalArrayExtracted(roiSignalTable, roiGroup);
+    rs = nansen.module.twophoton.roisignals.RoiSignalArrayExtracted(roiSignalTable, roiGroup);
 
     % Open roi signalviewer app
     hSignalviewer = roisignalviewer.App(rs);

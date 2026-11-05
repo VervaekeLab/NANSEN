@@ -20,7 +20,7 @@ opt = utility.parsenvpairs(def, [], varargin);
 % Get the roimanager as a local package (1 folder up)
 %rootPath = fileparts(fileparts(mfilename('fullpath')));
 %roitools = tools.path2module(rootPath);
-import nansen.twophoton.roi.compute.getPixelCorrelationImage
+import nansen.module.twophoton.roi.compute.getPixelCorrelationImage
 
 boxSize = opt.BoxSize;
 assert(all(mod(boxSize,2)==1), 'Boxsize should be odd')
@@ -169,15 +169,15 @@ for i = 1:nRois
 
             case {'correlation', 'enhanced correlation', 'enhancedcorrelation', 'enhanced_correlation', 'correlation image'}
 
-                %f = nansen.twophoton.roisignals.extractF(imArray, roiArray(i));
-                %f_ = nansen.twophoton.roisignals.extractF(imArray, roiArray(i), 'pixelComputationMethod', 'median');
+                %f = nansen.module.twophoton.roisignals.extractF(imArray, roiArray(i));
+                %f_ = nansen.module.twophoton.roisignals.extractF(imArray, roiArray(i), 'pixelComputationMethod', 'median');
 
                 % This is a really bad idea. Always shows correlation
 % %                 [rhoIm, ~] = getPixelCorrelationImage(dff(i, frameInd)', imArray(tmpY, tmpX, frameInd));
 % %                 rhoIm(isnan(rhoIm)) = 0;
 % %                 currentRoiIm = rhoIm.*255;
             case 'median correlation'
-                f_ = nansen.twophoton.roisignals.extractF(imArray, roiArray(i), 'pixelComputationMethod', 'median');
+                f_ = nansen.module.twophoton.roisignals.extractF(imArray, roiArray(i), 'pixelComputationMethod', 'median');
                 [rhoIm, ~] = getPixelCorrelationImage(f_(frameInd, 1), imArray(tmpY, tmpX, frameInd));
                 rhoIm(isnan(rhoIm)) = 0;
                 currentRoiIm = rhoIm.*255;
@@ -196,7 +196,7 @@ for i = 1:nRois
 
             case 'diff surround'
                 % NB : can show signal when there is none
-                f = nansen.twophoton.roisignals.extractF(imArray, roiArray(i));
+                f = nansen.module.twophoton.roisignals.extractF(imArray, roiArray(i));
                 froi = smoothdata(f(:,1));
                 fpil = smoothdata(f(:,2));
 
@@ -211,7 +211,7 @@ for i = 1:nRois
 
             case 'diff surround orig'
                 % NB : can show signal when there is none
-                f = nansen.twophoton.roisignals.extractF(imArray, roiArray(i));
+                f = nansen.module.twophoton.roisignals.extractF(imArray, roiArray(i));
 
                 f_ = (f - min(f)) ./ (max(f)-min(f));
                 W = getWeights(f_);

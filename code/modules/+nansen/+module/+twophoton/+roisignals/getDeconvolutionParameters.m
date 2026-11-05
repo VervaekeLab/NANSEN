@@ -1,10 +1,10 @@
 function [P, V] = getDeconvolutionParameters()
 %getDeconvolutionParameters Get parameters for signal deconvolution
 %
-%   P = nansen.twophoton.roisignals.getDeconvolutionParameters() returns
+%   P = nansen.module.twophoton.roisignals.getDeconvolutionParameters() returns
 %       a struct (P) with default parameters for signal deconvolution
 %
-%   [P, V] = nansen.twophoton.roisignals.getDeconvolutionParameters()
+%   [P, V] = nansen.module.twophoton.roisignals.getDeconvolutionParameters()
 %       returns an additional struct (V) containing assertions for each
 %       parameter, for use with an input parser etc.
 %
@@ -17,7 +17,7 @@ function [P, V] = getDeconvolutionParameters()
 %
 %
 %   Note: for full list of parameters, run function without output, i.e
-%       nansen.twophoton.roisignals.getDeconvolutionParameters()
+%       nansen.module.twophoton.roisignals.getDeconvolutionParameters()
 
 %   TODO:
 %    [ ] Rename to caiman.deconvolution.parameters

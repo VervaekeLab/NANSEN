@@ -44,8 +44,8 @@ function varargout = computeClassificationData(sessionObject, varargin)
 
 % % % % % % % % % % % % % CUSTOM CODE BLOCK % % % % % % % % % % % % % % %
 
-    import nansen.twophoton.roi.compute.computeRoiImages
-    import nansen.twophoton.roi.getRoiAppData
+    import nansen.module.twophoton.roi.compute.computeRoiImages
+    import nansen.module.twophoton.roi.getRoiAppData
     % - Load roi array
     roiArray = sessionObject.loadData('RoiArrayLongitudinal');
 

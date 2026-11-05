@@ -6,7 +6,7 @@ function signalArray = serialExtract(imArray, roiMasks, varargin)
 %   signalArray = serialExtract(imArray, roiData, options) performs the
 %   extraction using specified optional parameters. options can be a struct
 %   of parameters, or a list of name-value pairs. See
-%   nansen.twophoton.roisignals.extract.getDefaultParameters for a list of
+%   nansen.module.twophoton.roisignals.extract.getDefaultParameters for a list of
 %   available parameters
 %
 %   INPUTS:
@@ -18,7 +18,7 @@ function signalArray = serialExtract(imArray, roiMasks, varargin)
 %       Efficient for computing signals of fewer (~100) rois. If computing
 %       signals for more rois (>100) see batchExtract
 %
-%   See also nansen.twophoton.roisignals.extract.getDefaultParameters
+%   See also nansen.module.twophoton.roisignals.extract.getDefaultParameters
 
 % TODO:
 % [ ] Simplify roi mask format.
@@ -26,7 +26,7 @@ function signalArray = serialExtract(imArray, roiMasks, varargin)
     imArray = squeeze(imArray);
     assert( ndims(imArray) == 3, 'Image array must be 3D')
 
-    [P, V] = nansen.twophoton.roisignals.extract.getDefaultParameters();
+    [P, V] = nansen.module.twophoton.roisignals.extract.getDefaultParameters();
     if ~isempty(varargin)
         params = utility.parsenvpairs(P, V, varargin{:});
     else
@@ -50,7 +50,7 @@ function signalArray = serialExtract(imArray, roiMasks, varargin)
     for jRoi = 1:numRois
 
         signalArray(:, :, jRoi) = ...
-            nansen.twophoton.roisignals.extract.extractSingleRoi(...
+            nansen.module.twophoton.roisignals.extract.extractSingleRoi(...
             imArray, roiMasks(jRoi), params.pixelComputationMethod);
     end
 end

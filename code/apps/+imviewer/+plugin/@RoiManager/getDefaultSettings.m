@@ -9,9 +9,9 @@ function S = getDefaultSettings()
     S.ExperimentInfo = getExperimentSettings();
     S.RoiDisplayPreferences = roimanager.roiDisplayParameters();
     %S.RoiSelectionPreferences = getSelectionSettings();
-    S.SignalExtraction = nansen.twophoton.roisignals.extract.getDefaultParameters();
-    S.DffOptions = nansen.twophoton.roisignals.computeDff();
-    S.Autosegmentation = nansen.twophoton.roimasks.autosegmentationOptions();
+    S.SignalExtraction = nansen.module.twophoton.roisignals.extract.getDefaultParameters();
+    S.DffOptions = nansen.module.twophoton.roisignals.computeDff();
+    S.Autosegmentation = nansen.module.twophoton.autosegmentation.autosegmentationOptions();
     S.RoiCuration = roimanager.getCurationOptions();
 end
 

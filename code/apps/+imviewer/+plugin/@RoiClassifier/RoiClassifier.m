@@ -55,7 +55,7 @@ classdef RoiClassifier < applify.mixin.AppBridgePlugin
 
                     imviewerApp.displayMessage('Please wait. Creating thumbnail images of rois and calculating statistics. This might take a minute')
 
-                    import('nansen.twophoton.roi.getRoiAppData')
+                    import('nansen.module.twophoton.roi.getRoiAppData')
                     [roiImages, roiStats] = getRoiAppData(imageData, roiArray);       % Imported function
 
 % %                     imageTypes = {'enhancedAverage', 'peakDff', 'correlation', 'enhancedCorrelation'};

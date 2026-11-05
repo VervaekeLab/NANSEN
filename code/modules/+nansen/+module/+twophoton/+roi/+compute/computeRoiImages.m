@@ -33,8 +33,8 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
 %           each field is the name of the image and each value is a 3D
 %           array.
 
-    import nansen.twophoton.roi.compute.getPixelCorrelationImage
-    import nansen.twophoton.roisignals.extractF
+    import nansen.module.twophoton.roi.compute.getPixelCorrelationImage
+    import nansen.module.twophoton.roisignals.extractF
 
     global fprintf % Use global fprintf if available
     if isempty(fprintf); fprintf = str2func('fprintf'); end
@@ -98,7 +98,7 @@ function roiImageStack = computeRoiImages(imArray, roiArray, roiSignals, varargi
     % % Compute dffs
     %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     dffOpts = struct('dffFcn', opt.dffFcn);
-    dff = nansen.twophoton.roisignals.computeDff(roiSignals, dffOpts);
+    dff = nansen.module.twophoton.roisignals.computeDff(roiSignals, dffOpts);
 
     % % Loop through all images to compute and all provided rois
     %  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

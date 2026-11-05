@@ -178,7 +178,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 
         function finalizeResults(obj)
         %finalizeResults Finalize the results using flufinder's pipeline
-            import nansen.twophoton.roi.compute.computeRoiImages
+            import nansen.module.twophoton.roi.compute.computeRoiImages
             import flufinder.detect.findUniqueRoisFromComponents
 
             if isempty(obj.MergedResults)
@@ -208,7 +208,7 @@ classdef Processor < nansen.processing.RoiSegmentation & ...
 
                 imArray = obj.getImageArray();
 
-                fMean = nansen.twophoton.roisignals.extractF(imArray, roiArrayT);
+                fMean = nansen.module.twophoton.roisignals.extractF(imArray, roiArrayT);
                 [~, roiArrayT] = flufinder.utility.removeIsNanDff(fMean, roiArrayT);
 
                 % % Detect rois from a shape-based kernel convolution

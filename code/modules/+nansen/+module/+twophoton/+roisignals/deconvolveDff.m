@@ -1,6 +1,6 @@
 function [dec, den, opt] = deconvolveDff(dff, varargin)
 
-    [P, V] = nansen.twophoton.roisignals.getDeconvolutionParameters();
+    [P, V] = nansen.module.twophoton.roisignals.getDeconvolutionParameters();
     P.deconvolutionMethod = 'caiman';
 
     if ~nargin
@@ -9,7 +9,7 @@ function [dec, den, opt] = deconvolveDff(dff, varargin)
 
     params = utility.parsenvpairs(P, V, varargin{:});
 
-    deconvPackage = 'nansen.twophoton.roisignals.process.deconvolve';
+    deconvPackage = 'nansen.module.twophoton.roisignals.process.deconvolve';
     deconvFunction = str2func( strjoin({deconvPackage, params.deconvolutionMethod}, '.') );
 
     % dff must be nRois x nSamples for deconvolution method...

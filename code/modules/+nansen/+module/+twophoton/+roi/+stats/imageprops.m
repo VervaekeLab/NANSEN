@@ -31,7 +31,7 @@ function stats = imageprops(roiImageArray, roiArray, varargin)
     stats = struct;
 
     if getAll || get('RoiSalience')
-        salience = nansen.twophoton.roi.stats.roiSalience(roiArray, ...
+        salience = nansen.module.twophoton.roi.stats.roiSalience(roiArray, ...
             roiImageArray.Top99thPercentile);
         stats.RoiSalience = salience;
 
@@ -43,13 +43,13 @@ function stats = imageprops(roiImageArray, roiArray, varargin)
 
     if getAll || get('MeanImageSimilarity')
         IM = roiImageArray.ActivityWeightedMean;
-        similarity = nansen.twophoton.roi.stats.templateSimilarity(IM);
+        similarity = nansen.module.twophoton.roi.stats.templateSimilarity(IM);
         stats.MeanImageSimilarity = similarity;
     end
 
     if getAll || get('CorrelationSimilarity')
         IM = roiImageArray.LocalCorrelation;
-        similarity = nansen.twophoton.roi.stats.templateSimilarity(IM);
+        similarity = nansen.module.twophoton.roi.stats.templateSimilarity(IM);
         stats.CorrelationSimilarity = similarity;
     end
 end

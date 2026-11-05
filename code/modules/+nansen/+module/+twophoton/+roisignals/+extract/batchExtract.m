@@ -6,7 +6,7 @@ function signalArray = batchExtract(imArray, roiData, varargin)
 %
 %   signalArray = batchExtract(imArray, roiData, options) performs the
 %   extraction using specified optional parameters. See
-%   nansen.twophoton.roisignals.extract.getDefaultParameters for default
+%   nansen.module.twophoton.roisignals.extract.getDefaultParameters for default
 %   parameters and potential options. options can either be a struct
 %   containing a subset of parameters as fields, or a cell array of name
 %   value pairs. If parameters are missing in input, the default values are
@@ -41,7 +41,7 @@ function signalArray = batchExtract(imArray, roiData, varargin)
 %       Efficient for computing signals for 100s of rois. If computing
 %       signals for fewer rois (<100) see serialExtract
 %
-%   See also nansen.twophoton.roisignals.extract.getDefaultParameters
+%   See also nansen.module.twophoton.roisignals.extract.getDefaultParameters
 %            nansen.processing.roi.prepareRoiMasks
 %            nansen.processing.signal.serialExtract
 %
@@ -59,7 +59,7 @@ function signalArray = batchExtract(imArray, roiData, varargin)
 
     % If roidata is an array of RoIs, it must be prepared for extraction.
     if isa(roiData, 'RoI')
-        [P, V] = nansen.twophoton.roisignals.extract.getDefaultParameters();
+        [P, V] = nansen.module.twophoton.roisignals.extract.getDefaultParameters();
         params = utility.parsenvpairs(P, V, varargin{:});
         params.RoiOutputFormat = 'sparse';
         roiData = nansen.processing.roi.prepareRoiMasks(roiData, params);

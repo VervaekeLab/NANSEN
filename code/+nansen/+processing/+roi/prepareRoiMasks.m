@@ -27,7 +27,7 @@ function sOut = prepareRoiMasks(roiArray, varargin)
     import nansen.processing.roi.createMasks
 
     % Get default parameters and assertion functions.
-    [P, V] = nansen.twophoton.roisignals.extract.getDefaultParameters();
+    [P, V] = nansen.module.twophoton.roisignals.extract.getDefaultParameters();
 
     % Parse potential parameters from input arguments
     P = utility.parsenvpairs(P, V, varargin{:});
