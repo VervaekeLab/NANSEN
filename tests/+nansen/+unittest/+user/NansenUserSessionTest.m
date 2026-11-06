@@ -62,6 +62,17 @@ classdef NansenUserSessionTest < matlab.unittest.TestCase
             testCase.verifyFalse(any(userNames == ".."));
         end
 
+        function testListUserNamesIncludesProfileWithOnlyUserData(testCase)
+            % The preference directory belongs to one MATLAB release. A
+            % profile created in another release has only its user data
+            % directory here, and must still be listed.
+            userName = testCase.createUserDataDirectory();
+
+            userNames = nansen.internal.user.NansenUserSession.listUserNames();
+
+            testCase.verifyTrue(any(userNames == userName));
+        end
+
         % ----------------------------------------------------------------
         % isExistingUser
         % ----------------------------------------------------------------
@@ -104,6 +115,19 @@ classdef NansenUserSessionTest < matlab.unittest.TestCase
             import nansen.internal.user.NansenUserSession
 
             userName = testCase.createProfileDirectory();
+
+            testCase.verifyError( ...
+                @() NansenUserSession.instance(upper(userName)), ...
+                "NANSEN:UserSession:UserNameCaseMismatch");
+        end
+
+        function testNameDifferingOnlyByCaseFromUserDataIsRefused(testCase)
+            % The user data directory of a profile from another MATLAB
+            % release is matched case insensitively too, so a name that
+            % differs from it only by capitalisation would share it.
+            import nansen.internal.user.NansenUserSession
+
+            userName = testCase.createUserDataDirectory();
 
             testCase.verifyError( ...
                 @() NansenUserSession.instance(upper(userName)), ...
@@ -198,6 +222,26 @@ classdef NansenUserSessionTest < matlab.unittest.TestCase
             mkdir(profileDirectory)
             testCase.addTeardown( ...
                 @() removeDirectoryIfPresent(profileDirectory));
+        end
+
+        function userName = createUserDataDirectory(testCase)
+        % createUserDataDirectory - Create a throwaway user data directory
+        %
+        %   The directory is created in the default location under MATLAB's
+        %   real userpath, without a preference directory, which is what a
+        %   profile created in another MATLAB release leaves on disk.
+
+            import nansen.internal.user.NansenUserSession
+
+            testCase.assumeNotEmpty(userpath(), ...
+                "Without a userpath the user data directory is the preference directory.")
+
+            userName = buildUserName();
+            userDataDirectory = NansenUserSession.getDefaultUserDataDirectory(userName);
+
+            mkdir(userDataDirectory)
+            testCase.addTeardown( ...
+                @() removeDirectoryIfPresent(userDataDirectory));
         end
     end
 
