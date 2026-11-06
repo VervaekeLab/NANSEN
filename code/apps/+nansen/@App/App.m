@@ -57,6 +57,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         DLModelApp
         VariableModelApp
         MenuCustomizationDialogApp
+        ModuleManagerApp
     end
 
     properties (Access = private) % App / gui components
@@ -1057,6 +1058,40 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             mItem.MenuSelectedFcn = @(s, e) app.onConfigureDatalocationRootMenuClicked(s, e);
         end
 
+        function refreshProjectMenus(app, project)
+        % refreshProjectMenus - Rebuild the menus derived from the project's modules
+        %
+        %   Session methods, table variables and tools are collected from
+        %   the project's included modules, so the menus built from them are
+        %   rebuilt together whenever the project or its module selection
+        %   changes. Visibility preferences only reach menu items that exist
+        %   when they are applied, so they are applied again once the menus
+        %   are rebuilt. The menu customization dialog lists the menu tags
+        %   that existed when it opened, so an open dialog is closed.
+        %
+        %   The visibility pass reads the items of every menu, so menus that
+        %   depend on the project but not on its modules must be rebuilt
+        %   before this method is called.
+
+            arguments
+                app (1,1) nansen.App
+                project (1,1) nansen.config.project.Project
+            end
+
+            app.SessionTaskMenu.updateSource(project, app.CurrentItemType)
+            app.SessionContextMenu = app.createSessionTableContextMenu();
+            app.updateTableVariableMenuItems()
+            app.updateResetTableVariableMenuItems()
+            app.createMenu_Tools()
+
+            app.MenuVisibilityManager.applyVisibility()
+
+            if ~isempty(app.MenuCustomizationDialogApp) && isvalid(app.MenuCustomizationDialogApp)
+                delete(app.MenuCustomizationDialogApp);
+                app.MenuCustomizationDialogApp = [];
+            end
+        end
+
         function updateProjectList(app)
         %updateProjectList Update lists of projects in uicomponents
 
@@ -1900,6 +1935,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
 
         function onProjectChanged(app, varargin)
+            % Close Module Manager before this handler yields to the event
+            % queue (drawnow below). Its checked rows belong to the previous
+            % project, and a toggle writes them to the current project.
+            if ~isempty(app.ModuleManagerApp) && isvalid(app.ModuleManagerApp)
+                delete(app.ModuleManagerApp);
+                app.ModuleManagerApp = [];
+            end
+
             app.TableIsUpdating = true;
             returnToIdle = app.setBusy('Changing project'); %#ok<NASGU>
             [hDlg, dlgCleanup] = app.MessageDisplay.wait('Please wait, changing project...', ...
@@ -1953,19 +1996,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 app.BatchProcessor = nansen.TaskProcessor.empty;
             end
 
-            % Update menus
-            app.SessionTaskMenu.updateSource(currentProject, app.CurrentItemType)
-            app.SessionContextMenu = app.createSessionTableContextMenu();
+            % Update the menus that depend on the project but not on its
+            % modules. They are rebuilt first because the visibility pass in
+            % refreshProjectMenus reads the items of every menu.
             app.updateMenu_PipelineItems()
-            app.updateTableVariableMenuItems()
-            app.updateResetTableVariableMenuItems()
             app.updateMenu_DatalocationRootConfiguration()
 
-            app.createMenu_Tools()
-
-            % Reload and apply menu visibility for new project
+            % Reload the menu visibility preferences for the new project
+            % first: the session task menu update inside refreshProjectMenus
+            % applies them, and so does the method itself.
             app.MenuVisibilityManager.loadPreferences('project');
-            app.MenuVisibilityManager.applyVisibility();
+            app.refreshProjectMenus(currentProject)
 
             % Make sure project list is displayed correctly
             % Indicating current project
@@ -1983,12 +2024,6 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             end
             if ~isempty( app.VariableModelApp )
                 delete(app.VariableModelApp); app.VariableModelApp = [];
-            end
-
-            % Close Menu Customization Dialog if it is open:
-            if ~isempty(app.MenuCustomizationDialogApp) && isvalid(app.MenuCustomizationDialogApp)
-                delete(app.MenuCustomizationDialogApp);
-                app.MenuCustomizationDialogApp = [];
             end
 
             app.TableIsUpdating = false;
@@ -2028,13 +2063,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
 
         function onModuleSelectionChanged(app, ~, evtData)
-            % Get current project
+        %onModuleSelectionChanged Apply the module selection to the project
             p = app.ProjectManager.getCurrentProject();
 
             % Update the optional modules for the project
-            p.setOptionalModules( {evtData.SelectedData.PackageName} )
+            p.setOptionalModules({evtData.SelectedData.PackageName})
 
-            app.SessionTaskMenu.CurrentProject = p;
+            app.refreshProjectMenus(p)
         end
 
     %% Get meta objects from table selections
@@ -2240,6 +2275,14 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             app.createMenu_SessionTaskMode()
             app.createMenu_Help()
             app.updateMenu_SessionTaskMode()
+
+            % Visibility preferences only reach menu items that exist when
+            % they are applied, so they are re-applied to the recreated
+            % items. The manager is created after the menus in the
+            % constructor, so it may not exist yet.
+            if ~isempty(app.MenuVisibilityManager)
+                app.MenuVisibilityManager.applyVisibility()
+            end
         end
 
         function onSessionTaskModeChanged(app, ~, ~)
@@ -3237,15 +3280,17 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             p = app.ProjectManager.getCurrentProject();
             dataModules = p.Preferences.DataModule;
 
-            persistent hApp
-            if isempty(hApp) || ~isvalid(hApp) || ~hApp.Valid
+            % Open app by creating new instance or showing previous
+            if isempty(app.ModuleManagerApp) || ~isvalid(app.ModuleManagerApp) || ~app.ModuleManagerApp.Valid
                 hApp = nansen.config.module.ModuleManagerApp(dataModules);
                 hApp.transferOwnership(app)
+                app.ModuleManagerApp = hApp;
+
                 % hApp.changeWindowStyle('modal')
                 addlistener(hApp, 'ModuleSelectionChanged', @app.onModuleSelectionChanged);
             else
-                hApp.setSelectedModules(dataModules)
-                hApp.Visible = 'on';
+                app.ModuleManagerApp.setSelectedModules(dataModules)
+                app.ModuleManagerApp.Visible = 'on';
             end
         end
 
