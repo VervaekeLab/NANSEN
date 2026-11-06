@@ -1102,26 +1102,17 @@ methods % App initialization & creation
         obj.uiwidgets.BrightnessSlider = uim.widget.rangeslider.empty;
         obj.uiwidgets.BrightnessToolbar = uim.widget.toolbar.empty;
 
-        switch obj.ImageStack.DataType
-            case {'unit8'}
-                numTicks = 256+1;
-            case {'uint16', 'int16'}
-                numTicks = 2^16+1;
-            case {'single', 'double'}
-                numTicks = 256;
-            otherwise
-                numTicks = 256;
-        end
-        numTicks = 256;
         for i = 1:obj.ImageStack.NumChannels
 
             label = sprintf('Ch%d', i);
 
-            % Create brightness slider
+            % Create brightness slider. NumTicks is a starting value:
+            % setSliderExtremeLimits sets it from the intensity limits of
+            % the data type.
             obj.brightnessSlider(i) = uim.widget.rangeslider(uicc, ...
                 'Location', 'northeast', 'Margin', [0,0,30,yMargin(i)], ...
                 'Size', [120, 25], 'Visible', 'off', 'Padding', [10, 5, 10, 5], ...
-                'NumTicks', numTicks, 'Label', label);
+                'NumTicks', 256, 'Label', label);
 
             obj.uiwidgets.BrightnessSlider(i) = obj.brightnessSlider(i);
 
