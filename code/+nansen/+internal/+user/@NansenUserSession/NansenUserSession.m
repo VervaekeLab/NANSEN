@@ -527,6 +527,40 @@ classdef NansenUserSession < handle
             listing = listing( ~ismember({listing.name}, {'.', '..'}) );
             tf = isempty(listing);
         end
+
+        function folderPath = getDefaultUserDataRoot()
+        %getDefaultUserDataRoot Folder holding the default user data directories
+        %
+        %   Returns '' when MATLAB's userpath is empty. The default user
+        %   data directory is then the preference directory, see
+        %   getDefaultUserDataDirectory.
+
+            userPathFolder = userpath();
+
+            if isempty(userPathFolder)
+                folderPath = '';
+            else
+                folderPath = fullfile(userPathFolder, 'Nansen', 'profiles');
+            end
+        end
+
+        function folderNames = listFolderNames(folderPath)
+        %listFolderNames Names of the folders in a folder, as a row of strings
+        %
+        %   Names that start with a dot, such as "." and "..", are left out.
+        %   Returns an empty row when folderPath is empty or not a folder.
+
+            folderNames = string.empty(1, 0);
+            if isempty(folderPath) || ~isfolder(folderPath)
+                return
+            end
+
+            listing = dir(folderPath);
+            listing = listing([listing.isdir]);
+
+            folderNames = reshape(string({listing.name}), 1, []);
+            folderNames(startsWith(folderNames, ".")) = [];
+        end
     end
 
     methods (Access = private) % Callbacks
@@ -779,10 +813,12 @@ classdef NansenUserSession < handle
         end
 
         function userRootDirectory = getUserRootDirectory()
-        % getUserRootDirectory - Get the directory holding every user profile
+        % getUserRootDirectory - Get the directory holding the preference directories
         %
-        %   Each user profile is a subdirectory of this directory, named
-        %   after the user.
+        %   Each user profile has a subdirectory of this directory, named
+        %   after the user, which holds the profile's preferences for this
+        %   MATLAB release. The profile's projects and configurations are in
+        %   its user data directory, see getUserDataDirectory.
 
             userRootDirectory = fullfile(prefdir, 'Nansen');
         end
@@ -840,36 +876,35 @@ classdef NansenUserSession < handle
         %   directory is used instead. The session warns about that once
         %   when it starts.
 
-            userPathFolder = userpath();
+            import nansen.internal.user.NansenUserSession
 
-            if isempty(userPathFolder)
-                userDataDirectory = nansen.internal.user.NansenUserSession.getPrefdir(userName);
+            userDataRoot = NansenUserSession.getDefaultUserDataRoot();
+
+            if isempty(userDataRoot)
+                userDataDirectory = NansenUserSession.getPrefdir(userName);
                 return
             end
 
-            userDataDirectory = char( fullfile(userPathFolder, 'Nansen', 'profiles', userName) );
+            userDataDirectory = char( fullfile(userDataRoot, userName) );
         end
 
         function userNames = listUserNames()
         % listUserNames - List user profiles that exist on this computer
         %
         %   userNames = listUserNames() returns a sorted string array with
-        %   the name of every user profile which has a preference directory.
+        %   the name of every user profile which has a preference directory
+        %   in this MATLAB release or a user data directory in the default
+        %   location, <userpath>/Nansen/profiles. The preference directory
+        %   belongs to one MATLAB release, so a profile created in another
+        %   release is found by its user data directory.
 
-            userRootDirectory = ...
-                nansen.internal.user.NansenUserSession.getUserRootDirectory();
+            import nansen.internal.user.NansenUserSession
 
-            if ~isfolder(userRootDirectory)
-                userNames = string.empty(1, 0);
-                return
-            end
+            userNames = [ ...
+                NansenUserSession.listFolderNames(NansenUserSession.getUserRootDirectory()), ...
+                NansenUserSession.listFolderNames(NansenUserSession.getDefaultUserDataRoot()) ];
 
-            listing = dir(userRootDirectory);
-            listing = listing([listing.isdir]);
-
-            userNames = reshape(string({listing.name}), 1, []);
-            userNames(startsWith(userNames, ".")) = []; % Drop "." and ".."
-            userNames = sort(userNames);
+            userNames = reshape(unique(userNames), 1, []); % unique also sorts
         end
 
         function tf = isExistingUser(userName)
