@@ -21,16 +21,24 @@ classdef ProjectFixture < matlab.unittest.fixtures.Fixture
             F = fixture.applyFixture( TemporaryFolderFixture );
 
             % Create a user profile for testing. Todo: make fixture
-            userProfileName = sprintf('test%d', randi(999));
+            % The profile folder lives in prefdir, which all MATLAB processes
+            % on a machine share, and every fresh MATLAB process starts from
+            % the same default RNG seed, so a name drawn with randi can repeat
+            % across test processes that start together. A uuid is unique per
+            % process and per fixture instance. The "test" prefix keeps leftover
+            % profiles recognisable.
+            userProfileName = sprintf('test_%s', nansen.util.getuuid());
             fixture.addTeardown( ...
                 @() fixture.deleteUserProfile(userProfileName) )
             
             warnState = warning('off', 'Nansen:NoProjectsAvailable');
             warningCleanup = onCleanup(@() warning(warnState));
 
+            % ConfirmNewUser is disabled because the fixture creates a
+            % throwaway profile and must not block on user input.
             fixture.UserSession = ...
                 nansen.internal.user.NansenUserSession.instance(...
-                userProfileName, "force");
+                userProfileName, "force", ConfirmNewUser=false);
 
             datasetFolder = fullfile(F.Folder, 'mock_dataset');
             projectFolder = fullfile(F.Folder, 'mock_project');

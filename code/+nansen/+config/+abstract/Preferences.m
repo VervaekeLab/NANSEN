@@ -183,22 +183,23 @@ classdef Preferences < matlab.mixin.CustomDisplay & handle
         function fromStruct(obj, S)
         %fromStruct Assign saved preference values onto this object
         %
-        %   A preference file written by an older version can name
-        %   preferences that no longer exist. Those are skipped, so that
-        %   renaming or removing a preference does not make every existing
-        %   file unreadable.
+        %   A preference file written by another version of NANSEN can name
+        %   preferences that this class does not declare. Those are skipped,
+        %   so that renaming or removing a preference does not make every
+        %   existing file unreadable. The next save drops them, because it
+        %   writes the declared preferences only.
 
             savedNames = fieldnames(S);
             knownNames = properties(obj);
+            namesToAssign = intersect(savedNames, knownNames, 'stable');
 
-            for i = 1:numel(savedNames)
-                if ~any( strcmp(knownNames, savedNames{i}) ); continue; end
-                obj.(savedNames{i}) = S.(savedNames{i});
+            for i = 1:numel(namesToAssign)
+                obj.(namesToAssign{i}) = S.(namesToAssign{i});
             end
         end
 
         function propertyNames = getActivePreferenceGroup(obj)
-        %getCurrentPreferenceGroup Get current preference group
+        %getActivePreferenceGroup Get names of the active preferences
         %
         %   This method returns a cell array of names of preferences that
         %   are currently active. Some preference values are dependent on

@@ -683,6 +683,10 @@ classdef Project < nansen.module.Module
                     variableList = table2struct( module.getTable('DataVariables') );
                     obj.VariableModel.addDataVariableSet(variableList)
                 end
+
+                % The item tables are collected from the included modules,
+                % so tables cached before this change no longer match them.
+                obj.invalidateItemTableCache()
             end
         end
 
