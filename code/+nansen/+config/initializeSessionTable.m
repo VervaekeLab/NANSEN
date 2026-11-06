@@ -68,14 +68,25 @@ function wasAborted = initializeSessionTable(dataLocationModel, sessionConstruct
 
     sessionArray = cat(1, sessionArray{:});
 
+    % When the session level of a data location is a file, every file gives
+    % one session. Files in one folder with the same session ID give sessions
+    % with the same session folder, and only the first of these is kept.
+    % The count is printed because a session ID rule that reads the folder
+    % name instead of the file name also ends up here.
+    [sessionArray, excludedSessionTable] = ...
+        nansen.manage.excludeSameFolderDuplicates(sessionArray);
+    if height(excludedSessionTable) > 0
+        fprintf(['%d files were not added as separate sessions, because ', ...
+            'each has the same session ID and folder as a file that was added.\n'], ...
+            height(excludedSessionTable))
+    end
+
     if ~options.SkipInteractiveSteps
         % Check for duplicate session IDs
         sessionIDs = {sessionArray.sessionID};
         if numel(sessionIDs) ~= numel(unique(sessionIDs))
             [sessionArray, wasAborted] = nansen.manage.uiresolveDuplicateSessions(sessionArray, hFigure);
             numSessionPostExclusion = numel(sessionArray);
-
-            % Todo: Why are all duplicates excluded? I.e keep first one...
 
             if numSessionPostExclusion == 0
                 % Todo: Add more detailed how-to solution
