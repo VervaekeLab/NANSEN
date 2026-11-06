@@ -52,6 +52,22 @@ classdef FileNameExpressionTest < matlab.unittest.TestCase
             testCase.verifyEqual( VariableModel.suggestFileNameExpression('m001.nwb', 'm001'), '*' )
         end
 
+        function testSuggestionIsStarWhenSessionIdIncludesExtension(testCase)
+        %testSuggestionIsStarWhenSessionIdIncludesExtension An ID that is the whole file name gets a star
+        %   A session ID derived from a file name includes the extension.
+            import nansen.config.varmodel.VariableModel
+
+            testCase.verifyEqual( VariableModel.suggestFileNameExpression('m001.nwb', 'm001.nwb'), '*' )
+        end
+
+        function testSuggestionRemovesSessionIdWithExtension(testCase)
+        %testSuggestionRemovesSessionIdWithExtension The rest of the name is kept around such an ID
+            import nansen.config.varmodel.VariableModel
+
+            testCase.verifyEqual( ...
+                VariableModel.suggestFileNameExpression('sub01_m001.nwb', 'm001.nwb'), 'sub01')
+        end
+
         function testSuggestionKeepsNameWithoutSessionId(testCase)
         %testSuggestionKeepsNameWithoutSessionId A name without the ID is used as it is
             import nansen.config.varmodel.VariableModel
