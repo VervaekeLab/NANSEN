@@ -527,6 +527,40 @@ classdef NansenUserSession < handle
             listing = listing( ~ismember({listing.name}, {'.', '..'}) );
             tf = isempty(listing);
         end
+
+        function folderPath = getDefaultUserDataRoot()
+        %getDefaultUserDataRoot Folder holding the default user data directories
+        %
+        %   Returns '' when MATLAB's userpath is empty. The default user
+        %   data directory is then the preference directory, see
+        %   getDefaultUserDataDirectory.
+
+            userPathFolder = userpath();
+
+            if isempty(userPathFolder)
+                folderPath = '';
+            else
+                folderPath = fullfile(userPathFolder, 'Nansen', 'profiles');
+            end
+        end
+
+        function folderNames = listFolderNames(folderPath)
+        %listFolderNames Names of the folders in a folder, as a row of strings
+        %
+        %   Names that start with a dot, such as "." and "..", are left out.
+        %   Returns an empty row when folderPath is empty or not a folder.
+
+            folderNames = string.empty(1, 0);
+            if isempty(folderPath) || ~isfolder(folderPath)
+                return
+            end
+
+            listing = dir(folderPath);
+            listing = listing([listing.isdir]);
+
+            folderNames = reshape(string({listing.name}), 1, []);
+            folderNames(startsWith(folderNames, ".")) = [];
+        end
     end
 
     methods (Access = private) % Callbacks
@@ -779,34 +813,98 @@ classdef NansenUserSession < handle
         end
 
         function userRootDirectory = getUserRootDirectory()
-        % getUserRootDirectory - Get the directory holding every user profile
+        % getUserRootDirectory - Get the directory holding the preference directories
         %
-        %   Each user profile is a subdirectory of this directory, named
-        %   after the user.
+        %   Each user profile has a subdirectory of this directory, named
+        %   after the user, which holds the profile's preferences for this
+        %   MATLAB release. The profile's projects and configurations are in
+        %   its user data directory, see getUserDataDirectory.
 
             userRootDirectory = fullfile(prefdir, 'Nansen');
+        end
+
+        function userDataDirectory = getUserDataDirectory(userName)
+        %getUserDataDirectory Get the directory holding a user's NANSEN data
+        %
+        %   userDataDirectory = getUserDataDirectory(userName) returns the
+        %   directory that holds the project catalog and the configurations
+        %   belonging to the named user.
+        %
+        %   This is, in order of precedence:
+        %       1. the UserDataDirectory preference of this MATLAB release,
+        %       2. the directory named by the redirect file in the default
+        %          location, if that directory exists, see
+        %          nansen.internal.user.UserDataRedirect,
+        %       3. the default location, <userpath>/Nansen/profiles/<user>.
+        %   Unlike the preference directory it does not belong to a MATLAB
+        %   release, so it is not left behind when MATLAB is upgraded.
+        %
+        %   Note: The preference and the redirect file are read from file,
+        %   because this is used when there is no session to read them
+        %   from. An active session answers the same question from memory
+        %   with getCurrentUserDataDirectory.
+        %
+        %   See also nansen.internal.user.NansenUserSession/getPrefdir
+
+            import nansen.internal.user.NansenUserSession
+
+            if ~nargin || isempty(userName)
+                className = mfilename('class');
+                userName = nansen.internal.introspection.getConstantPropertyValue(className, 'DEFAULT_USER_NAME');
+            end
+
+            preferenceDirectory = NansenUserSession.getPrefdir(userName);
+            defaultDirectory = NansenUserSession.getDefaultUserDataDirectory(userName);
+
+            preferenceValue = nansen.internal.user.Preferences.readValue(...
+                preferenceDirectory, "UserDataDirectory");
+            redirectedDirectory = nansen.internal.user.UserDataRedirect.follow(defaultDirectory);
+
+            userDataDirectory = NansenUserSession.resolveUserDataDirectory( ...
+                preferenceValue, redirectedDirectory, defaultDirectory);
+        end
+
+        function userDataDirectory = getDefaultUserDataDirectory(userName)
+        %getDefaultUserDataDirectory Location used without a preference or redirect
+        %
+        %   The profiles are kept in their own folder, so that a profile
+        %   name can not collide with the Projects, Add-Ons and Backup
+        %   folders that NANSEN already keeps under the userpath.
+        %
+        %   MATLAB's userpath can be empty, in which case there is no
+        %   release independent location to fall back on and the preference
+        %   directory is used instead. The session warns about that once
+        %   when it starts.
+
+            import nansen.internal.user.NansenUserSession
+
+            userDataRoot = NansenUserSession.getDefaultUserDataRoot();
+
+            if isempty(userDataRoot)
+                userDataDirectory = NansenUserSession.getPrefdir(userName);
+                return
+            end
+
+            userDataDirectory = char( fullfile(userDataRoot, userName) );
         end
 
         function userNames = listUserNames()
         % listUserNames - List user profiles that exist on this computer
         %
         %   userNames = listUserNames() returns a sorted string array with
-        %   the name of every user profile which has a preference directory.
+        %   the name of every user profile which has a preference directory
+        %   in this MATLAB release or a user data directory in the default
+        %   location, <userpath>/Nansen/profiles. The preference directory
+        %   belongs to one MATLAB release, so a profile created in another
+        %   release is found by its user data directory.
 
-            userRootDirectory = ...
-                nansen.internal.user.NansenUserSession.getUserRootDirectory();
+            import nansen.internal.user.NansenUserSession
 
-            if ~isfolder(userRootDirectory)
-                userNames = string.empty(1, 0);
-                return
-            end
+            userNames = [ ...
+                NansenUserSession.listFolderNames(NansenUserSession.getUserRootDirectory()), ...
+                NansenUserSession.listFolderNames(NansenUserSession.getDefaultUserDataRoot()) ];
 
-            listing = dir(userRootDirectory);
-            listing = listing([listing.isdir]);
-
-            userNames = reshape(string({listing.name}), 1, []);
-            userNames(startsWith(userNames, ".")) = []; % Drop "." and ".."
-            userNames = sort(userNames);
+            userNames = reshape(unique(userNames), 1, []); % unique also sorts
         end
 
         function tf = isExistingUser(userName)
@@ -932,69 +1030,6 @@ classdef NansenUserSession < handle
                     "Start a session using the name of an existing user profile.", ...
                     userName)
             end
-        end
-
-        function userDataDirectory = getUserDataDirectory(userName)
-        %getUserDataDirectory Get the directory holding a user's NANSEN data
-        %
-        %   userDataDirectory = getUserDataDirectory(userName) returns the
-        %   directory that holds the project catalog and the configurations
-        %   belonging to the named user.
-        %
-        %   This is, in order of precedence:
-        %       1. the UserDataDirectory preference of this MATLAB release,
-        %       2. the directory named by the redirect file in the default
-        %          location, if that directory exists, see
-        %          nansen.internal.user.UserDataRedirect,
-        %       3. the default location, <userpath>/Nansen/profiles/<user>.
-        %   Unlike the preference directory it does not belong to a MATLAB
-        %   release, so it is not left behind when MATLAB is upgraded.
-        %
-        %   Note: The preference and the redirect file are read from file,
-        %   because this is used when there is no session to read them
-        %   from. An active session answers the same question from memory
-        %   with getCurrentUserDataDirectory.
-        %
-        %   See also nansen.internal.user.NansenUserSession/getPrefdir
-
-            import nansen.internal.user.NansenUserSession
-
-            if ~nargin || isempty(userName)
-                className = mfilename('class');
-                userName = nansen.internal.introspection.getConstantPropertyValue(className, 'DEFAULT_USER_NAME');
-            end
-
-            preferenceDirectory = NansenUserSession.getPrefdir(userName);
-            defaultDirectory = NansenUserSession.getDefaultUserDataDirectory(userName);
-
-            preferenceValue = nansen.internal.user.Preferences.readValue(...
-                preferenceDirectory, "UserDataDirectory");
-            redirectedDirectory = nansen.internal.user.UserDataRedirect.follow(defaultDirectory);
-
-            userDataDirectory = NansenUserSession.resolveUserDataDirectory( ...
-                preferenceValue, redirectedDirectory, defaultDirectory);
-        end
-
-        function userDataDirectory = getDefaultUserDataDirectory(userName)
-        %getDefaultUserDataDirectory Location used without a preference or redirect
-        %
-        %   The profiles are kept in their own folder, so that a profile
-        %   name can not collide with the Projects, Add-Ons and Backup
-        %   folders that NANSEN already keeps under the userpath.
-        %
-        %   MATLAB's userpath can be empty, in which case there is no
-        %   release independent location to fall back on and the preference
-        %   directory is used instead. The session warns about that once
-        %   when it starts.
-
-            userPathFolder = userpath();
-
-            if isempty(userPathFolder)
-                userDataDirectory = nansen.internal.user.NansenUserSession.getPrefdir(userName);
-                return
-            end
-
-            userDataDirectory = char( fullfile(userPathFolder, 'Nansen', 'profiles', userName) );
         end
     end
 end
