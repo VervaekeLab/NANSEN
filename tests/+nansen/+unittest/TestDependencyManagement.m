@@ -26,7 +26,7 @@ classdef TestDependencyManagement < matlab.unittest.TestCase
             testCase.verifyTrue(isstruct(dependencies), ...
                 'readManifest should return a struct array')
 
-            expectedFields = ["Name", "DependencyType", "Scope", "ScopeId", ...
+            expectedFields = ["Name", "Id", "DependencyType", "Scope", "ScopeId", ...
                 "RequirementLevel", "Source", "DocsSource", "Description", ...
                 "Reason", "WorkflowNotes", "SetupHook", "StartupHook", ...
                 "InstallCheck", "VersionConstraint"];
@@ -66,6 +66,30 @@ classdef TestDependencyManagement < matlab.unittest.TestCase
                         dependencies(i).Name))
                 end
             end
+        end
+
+        function communityToolboxesHaveUniqueIds(testCase)
+        %communityToolboxesHaveUniqueIds Every core community toolbox can be installed by id.
+            testCase.assumeTrue(isfile(testCase.CoreManifestPath))
+            testCase.assumeTrue(isfile(testCase.SchemaPath), 'Schema file not found')
+
+            dependencies = nansen.internal.dependencies.readManifest( ...
+                testCase.CoreManifestPath);
+            isCommunityToolbox = [dependencies.DependencyType] == "community-toolbox";
+            dependencyIds = [dependencies(isCommunityToolbox).Id];
+
+            testCase.verifyTrue(all(dependencyIds ~= ""), ...
+                'Every community toolbox in the core manifest should have an id')
+            testCase.verifyNumElements(unique(dependencyIds), numel(dependencyIds), ...
+                'Ids in the core manifest should be unique')
+
+            % jsondecode renames "$defs" to "x_defs"
+            schemaData = jsondecode(fileread(testCase.SchemaPath));
+            idPattern = schemaData.x_defs.dependency.properties.id.pattern;
+            isValidId = matches(dependencyIds, regexpPattern(idPattern));
+            testCase.verifyTrue(all(isValidId), sprintf( ...
+                'Ids should match the schema pattern %s: %s', idPattern, ...
+                strjoin(dependencyIds(~isValidId), ', ')))
         end
 
         function mathworksProductsHaveNoSource(testCase)

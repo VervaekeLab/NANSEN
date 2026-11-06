@@ -5,9 +5,18 @@ function setup(userName)
 
     userName = char(userName);
 
+    abortIdentifiers = ["NANSEN:UserSession:UserProfileCreationAborted", ...
+        "NANSEN:UserSession:UnexpectedInput", ...
+        "NANSEN:UserSession:UserNameCaseMismatch"];
+
     try
         nansen.internal.user.NansenUserSession.instance(userName);
     catch ME
+        if any(strcmp(ME.identifier, abortIdentifiers))
+            % No profile was opened, so there is nothing to set up.
+            disp(ME.message)
+            return
+        end
         warning(ME.identifier, '%s', ME.message)
     end
 

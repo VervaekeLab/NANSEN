@@ -31,6 +31,7 @@
     },
     {
       "name": "TIFFStack",
+      "id": "tiffstack",
       "dependencyType": "community-toolbox",
       "requirementLevel": "required",
       "source": "https://github.com/DylanMuir/TIFFStack",
@@ -39,6 +40,7 @@
     },
     {
       "name": "CaImAn-MATLAB",
+      "id": "caiman",
       "dependencyType": "community-toolbox",
       "scope": "workflow",
       "scopeId": "nansen.module.ophys.twophoton.workflow.caiman",
@@ -50,6 +52,7 @@
     },
     {
       "name": "Suite2P-MATLAB",
+      "id": "suite2p",
       "dependencyType": "community-toolbox",
       "scope": "workflow",
       "scopeId": "nansen.module.ophys.twophoton.workflow.suite2p",
@@ -61,6 +64,7 @@
     },
     {
       "name": "EXTRACT",
+      "id": "extract",
       "dependencyType": "community-toolbox",
       "scope": "workflow",
       "scopeId": "nansen.module.ophys.twophoton.workflow.extract",
@@ -99,6 +103,7 @@
     },
     {
       "name": "NoRMCorre",
+      "id": "normcorre",
       "dependencyType": "community-toolbox",
       "scope": "workflow",
       "scopeId": "nansen.module.ophys.twophoton.workflow.normcorre",
@@ -110,6 +115,7 @@
     },
     {
       "name": "Flow Registration",
+      "id": "flowreg",
       "dependencyType": "community-toolbox",
       "scope": "workflow",
       "scopeId": "nansen.module.ophys.twophoton.workflow.flowreg",
@@ -118,10 +124,11 @@
       "docsSource": "https://github.com/phflot/flow_registration",
       "description": "Optical flow based motion correction for calcium imaging data",
       "setupHook": "nansen.wrapper.flowreg.install",
-      "installCheck": "OF_Options"
+      "installCheck": "OF_options"
     },
     {
       "name": "SEUDO",
+      "id": "seudo",
       "dependencyType": "community-toolbox",
       "scope": "workflow",
       "scopeId": "nansen.module.ophys.twophoton.workflow.seudo",
@@ -134,6 +141,7 @@
     },
     {
       "name": "Neurodata Without Borders",
+      "id": "matnwb",
       "dependencyType": "community-toolbox",
       "requirementLevel": "optional",
       "source": "https://github.com/ehennestad/matnwb",
@@ -144,6 +152,7 @@
     },
     {
       "name": "Brain Observatory Toolbox",
+      "id": "brain-observatory-toolbox",
       "dependencyType": "community-toolbox",
       "requirementLevel": "optional",
       "source": "https://github.com/emeyers/Brain-Observatory-Toolbox",
