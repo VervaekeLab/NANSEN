@@ -2040,13 +2040,27 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         end
 
         function onModuleSelectionChanged(app, ~, evtData)
-            % Get current project
+        %onModuleSelectionChanged Apply the module selection to the project
             p = app.ProjectManager.getCurrentProject();
 
             % Update the optional modules for the project
-            p.setOptionalModules( {evtData.SelectedData.PackageName} )
+            p.setOptionalModules({evtData.SelectedData.PackageName})
 
-            app.SessionTaskMenu.CurrentProject = p;
+            % Session methods and tools are collected from the project's
+            % modules, so both menus are rebuilt from the updated project.
+            % Visibility preferences only reach menu items that exist when
+            % they are applied, so they are re-applied to the new items.
+            app.SessionTaskMenu.updateSource(p, app.CurrentItemType)
+            app.createMenu_Tools()
+            app.MenuVisibilityManager.applyVisibility()
+
+            % The menu customization dialog lists the menu tags that
+            % existed when it was opened, so it is closed as on project
+            % change.
+            if ~isempty(app.MenuCustomizationDialogApp) && isvalid(app.MenuCustomizationDialogApp)
+                delete(app.MenuCustomizationDialogApp);
+                app.MenuCustomizationDialogApp = [];
+            end
         end
 
     %% Get meta objects from table selections
