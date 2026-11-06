@@ -124,7 +124,7 @@
       "docsSource": "https://github.com/phflot/flow_registration",
       "description": "Optical flow based motion correction for calcium imaging data",
       "setupHook": "nansen.wrapper.flowreg.install",
-      "installCheck": "OF_Options"
+      "installCheck": "OF_options"
     },
     {
       "name": "SEUDO",

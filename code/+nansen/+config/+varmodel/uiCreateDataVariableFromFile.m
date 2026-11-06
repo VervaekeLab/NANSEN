@@ -46,7 +46,7 @@ function varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sess
     S = struct();
     S.VariableName = '';
     S.FileNameExpression = variableModel.suggestFileNameExpression( ...
-        fileName, sessionObject.sessionID);
+        [fileName, ext], sessionObject.sessionID);
     S.FileAdapter = fileAdapterList(1).FileAdapterName;
     S.FileAdapter_ = {fileAdapterList.FileAdapterName};
     S.Favorite = false;
