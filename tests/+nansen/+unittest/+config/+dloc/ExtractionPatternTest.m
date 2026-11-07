@@ -4,8 +4,9 @@ classdef ExtractionPatternTest < matlab.unittest.TestCase
     %   A metadata definition extracts its value from a folder name with a
     %   character index pattern (mode 'ind') or a regular expression (mode
     %   'expr'). These tests cover the index patterns a user can type in the
-    %   metadata table, in particular 'end' combined with arithmetic, and the
-    %   errors reported for patterns that cannot be applied.
+    %   metadata table, in particular 'end' combined with arithmetic, the
+    %   pattern of the shipped BIDS template, and the errors reported for
+    %   patterns that cannot be applied.
     %
     %   Run tests:
     %       runtests('nansen.unittest.config.dloc.ExtractionPatternTest')
@@ -38,6 +39,22 @@ classdef ExtractionPatternTest < matlab.unittest.TestCase
         %testStepsAndMultipleRanges Any MATLAB index expression is accepted
             testCase.verifyEqual(testCase.extract('1:2:end'), 'm0_04150')
             testCase.verifyEqual(testCase.extract('1:4,end-1:end'), 'm00101')
+        end
+
+        function testBidsTemplateReadsTheSubject(testCase)
+        %testBidsTemplateReadsTheSubject The BIDS template reads the subject id after "sub-"
+            import nansen.config.dloc.DataLocationModel
+
+            templateFile = fullfile(nansen.rootpath(), 'code', 'modules', '+nansen', ...
+                '+module', '+general', '+core', 'resources', 'datalocations', 'bids.json');
+            template = jsondecode(fileread(templateFile));
+
+            isSubjectRule = strcmp({template.MetaDataDef.VariableName}, 'Subject ID');
+            subjectRule = template.MetaDataDef(isSubjectRule);
+            testCase.assertEqual(subjectRule.StringDetectInput, '5:end')
+
+            testCase.verifyEqual(DataLocationModel.applyExtractionPattern( ...
+                'sub-01', 'ind', subjectRule.StringDetectInput), '01')
         end
 
         function testInvalidPatternIsReported(testCase)
