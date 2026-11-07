@@ -1042,6 +1042,43 @@ classdef roiMap < roimanager.roiDisplay
             obj.addRois(newRoi)
         end
 
+        % Todo: move to roi editor
+        function createRectangularRoi(obj, x, y, width, height)
+        %createRectangularRoi Create a rectangular roi centered on a point
+        %
+        %   createRectangularRoi(obj, x, y, width, height) creates an
+        %   axis-aligned rectangular roi that covers width-by-height
+        %   pixels, centered on the point (x, y) to within half a pixel.
+        %   The rectangle is created as a polygon roi whose corners lie on
+        %   pixel edges, half a pixel outside the centres of its corner
+        %   pixels, so that its mask holds exactly these pixels. A
+        %   rectangle that extends outside the image is moved inside it,
+        %   and keeps the requested size unless the size exceeds the image.
+
+            imageHeight = obj.displayApp.imHeight;
+            imageWidth = obj.displayApp.imWidth;
+
+            width = min(round(width), imageWidth);
+            height = min(round(height), imageHeight);
+
+            xMin = min( max(round(x - (width-1)/2), 1), imageWidth - width + 1 );
+            yMin = min( max(round(y - (height-1)/2), 1), imageHeight - height + 1 );
+            xMax = xMin + width - 1;
+            yMax = yMin + height - 1;
+
+            % Polygon corners are ordered counterclockwise, starting at the
+            % upper left corner of the rectangle. poly2mask counts a pixel
+            % whose centre lies on the polygon's left or upper edge as
+            % outside, so corners on pixel centres would leave out the first
+            % column and row.
+            xCorners = [xMin, xMax, xMax, xMin] + [-0.5, 0.5, 0.5, -0.5];
+            yCorners = [yMin, yMin, yMax, yMax] + [-0.5, -0.5, 0.5, 0.5];
+
+            newRoi = RoI('Polygon', [xCorners; yCorners], ...
+                [imageHeight, imageWidth]);
+            obj.addRois(newRoi)
+        end
+
         function createFreehandRoi(obj, x, y, thickness)
 
             if nargin < 4

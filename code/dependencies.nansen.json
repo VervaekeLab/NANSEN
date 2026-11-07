@@ -19,6 +19,7 @@
     },
     {
       "name": "Widgets Toolbox - Compatibility Support",
+      "id": "widgets-toolbox",
       "dependencyType": "community-toolbox",
       "requirementLevel": "required",
       "source": "fex://66235-widgets-toolbox-compatibility-support/1.3.330",
@@ -27,6 +28,7 @@
     },
     {
       "name": "Recursively list files and folders",
+      "id": "recursive-dir",
       "dependencyType": "community-toolbox",
       "requirementLevel": "required",
       "source": "fex://160058-recursively-list-files-and-folders",
@@ -35,6 +37,7 @@
     },
     {
       "name": "Scalebar for images and plots",
+      "id": "scalebar",
       "dependencyType": "community-toolbox",
       "requirementLevel": "required",
       "source": "fex://109114-scalebar-for-images-and-plots",
@@ -43,6 +46,7 @@
     },
     {
       "name": "Limit figure size",
+      "id": "limit-fig-size",
       "dependencyType": "community-toolbox",
       "requirementLevel": "required",
       "source": "fex://38527-limit-figure-size",
@@ -51,6 +55,7 @@
     },
     {
       "name": "cmocean - Perceptually-uniform colormaps",
+      "id": "cmocean",
       "dependencyType": "community-toolbox",
       "requirementLevel": "required",
       "source": "fex://57773-cmocean-perceptually-uniform-colormaps",
@@ -59,6 +64,7 @@
     },
     {
       "name": "Spectral and XYZ Color Functions",
+      "id": "spectrum-rgb",
       "dependencyType": "community-toolbox",
       "requirementLevel": "required",
       "source": "fex://7021-spectral-and-xyz-color-functions",
@@ -67,6 +73,7 @@
     },
     {
       "name": "Drag & Drop functionality for Java GUI components",
+      "id": "dndcontrol",
       "dependencyType": "community-toolbox",
       "requirementLevel": "required",
       "source": "fex://53511-drag-drop-functionality-for-java-gui-components",
@@ -75,6 +82,7 @@
     },
     {
       "name": "Get structure field names in recursive manner",
+      "id": "fieldnamesr",
       "dependencyType": "community-toolbox",
       "requirementLevel": "required",
       "source": "fex://33262-get-structure-field-names-in-recursive-manner",
@@ -83,6 +91,7 @@
     },
     {
       "name": "plotboxpos",
+      "id": "plotboxpos",
       "dependencyType": "community-toolbox",
       "requirementLevel": "required",
       "source": "fex://9615-plotboxpos",
@@ -91,6 +100,7 @@
     },
     {
       "name": "findjobj - Find java handles of Matlab graphic objects",
+      "id": "findjobj",
       "dependencyType": "community-toolbox",
       "requirementLevel": "required",
       "source": "fex://14317-findjobj-find-java-handles-of-matlab-graphic-objects",
@@ -99,6 +109,7 @@
     },
     {
       "name": "getjframe - Retrieves a figure's underlying Java frame",
+      "id": "getjframe",
       "dependencyType": "community-toolbox",
       "requirementLevel": "required",
       "source": "fex://15830-getjframe-retrieves-a-figure-s-underlying-java-frame",
@@ -107,6 +118,7 @@
     },
     {
       "name": "undecorateFig",
+      "id": "undecorate-fig",
       "dependencyType": "community-toolbox",
       "requirementLevel": "required",
       "source": "fex://50111-undecoratefig-remove-restore-figure-border-and-title-bar",
@@ -115,6 +127,7 @@
     },
     {
       "name": "Catalog",
+      "id": "catalog",
       "dependencyType": "community-toolbox",
       "requirementLevel": "required",
       "source": "fex://158241-catalog",
@@ -123,6 +136,7 @@
     },
     {
       "name": "File downloader/uploader with progress monitor",
+      "id": "download-file",
       "dependencyType": "community-toolbox",
       "requirementLevel": "required",
       "source": "fex://118460-file-downloader-uploader-with-progress-monitor",
@@ -131,6 +145,7 @@
     },
     {
       "name": "MatBox",
+      "id": "matbox",
       "dependencyType": "community-toolbox",
       "requirementLevel": "required",
       "source": "fex://180185-matbox",
@@ -139,6 +154,7 @@
     },
     {
       "name": "Hierarchical Data Tree",
+      "id": "hierarchical-data-tree",
       "dependencyType": "community-toolbox",
       "requirementLevel": "required",
       "source": "https://github.com/ehennestad/hierarchical-data-tree-matlab",
@@ -147,6 +163,7 @@
     },
     {
       "name": "YAML-Matlab",
+      "id": "yamlmatlab",
       "dependencyType": "community-toolbox",
       "requirementLevel": "required",
       "source": "https://github.com/ehennestad/yamlmatlab",
@@ -156,6 +173,7 @@
     },
     {
       "name": "Entity Table",
+      "id": "entity-table",
       "dependencyType": "community-toolbox",
       "requirementLevel": "required",
       "source": "https://github.com/ehennestad/entity-table",

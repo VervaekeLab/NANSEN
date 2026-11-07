@@ -548,14 +548,24 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
         function expression = suggestFileNameExpression(fileName, sessionID)
         %suggestFileNameExpression - Propose an expression for a session's file
         %   EXPRESSION = suggestFileNameExpression(fileName,sessionID)
-        %   returns fileName without its extension, with sessionID removed
-        %   and separators trimmed from both ends, or * when nothing is
-        %   left. The result finds the file again in any session folder
-        %   that holds one file of its type.
-            [~, expression] = fileparts(char(fileName));
+        %   returns fileName with sessionID and the extension removed and
+        %   separators trimmed from both ends, or * when nothing is left.
+        %   The session ID is removed from the whole file name, since a
+        %   session ID derived from a file name can include the extension.
+        %   The result finds the file again in any session folder that
+        %   holds one file of its type.
+            fileName = char(fileName);
+            [~, ~, extension] = fileparts(fileName);
 
+            expression = fileName;
             if ~isempty(sessionID)
                 expression = strrep(expression, char(sessionID), '');
+            end
+
+            % Lookups append the file type themselves, so the extension
+            % stays out of the expression.
+            if ~isempty(extension) && endsWith(expression, extension)
+                expression = expression(1:end-numel(extension));
             end
             expression = regexprep(expression, '^[_-]+|[_-]+$', '');
 
