@@ -48,6 +48,27 @@ classdef DefaultDataLocationTest < matlab.unittest.TestCase
             model.save()
             model = nansen.config.dloc.DataLocationModel(model.FilePath);
         end
+
+        function model = reloadWithoutTypes(testCase, model)
+        %reloadWithoutTypes Read the model back from a file without types
+        %
+        %   Writes the model as a mat file without the Type field and
+        %   without a default data location, which is how models were
+        %   saved before data locations had a type. The file name has no
+        %   json file beside it, because a json file would be read instead.
+
+            filePath = fullfile(fileparts(testCase.ModelPath), 'untyped_settings.mat');
+            model.saveas(filePath)
+
+            S = load(filePath, 'Data', 'Preferences');
+            S.Data = rmfield(S.Data, 'Type');
+            if isfield(S.Preferences, 'DefaultDataLocation')
+                S.Preferences = rmfield(S.Preferences, 'DefaultDataLocation');
+            end
+            save(filePath, '-struct', 'S')
+
+            model = nansen.config.dloc.DataLocationModel(filePath);
+        end
     end
 
     methods (Test)
@@ -98,6 +119,29 @@ classdef DefaultDataLocationTest < matlab.unittest.TestCase
             model = testCase.reload(model);
 
             testCase.verifyEqual(model.DefaultDataLocation, 'Location2')
+        end
+
+        function testUntypedModelMakesTheSecondLocationTheDefault(testCase)
+            % A model saved before data locations had a type kept its
+            % processed data in the second location.
+            model = testCase.modelWithTypes('recorded', 'recorded', 'recorded');
+
+            model = testCase.reloadWithoutTypes(model);
+
+            testCase.verifyEqual(arrayfun(@(item) item.Type.Name, model.Data, ...
+                'UniformOutput', false), {'recorded', 'processed', 'recorded'})
+            testCase.verifyEqual(model.DefaultDataLocation, 'Location2')
+        end
+
+        function testUntypedModelWithOneLocationMakesItTheDefault(testCase)
+            % The only location held the processed data too, so it has to
+            % be writable to be the default.
+            model = testCase.modelWithTypes('recorded');
+
+            model = testCase.reloadWithoutTypes(model);
+
+            testCase.verifyEqual(model.Data(1).Type.Name, 'processed')
+            testCase.verifyEqual(model.DefaultDataLocation, 'Location1')
         end
 
         function testTypesAreNotOverwritten(testCase)

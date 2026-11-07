@@ -749,6 +749,17 @@ classdef DataLocationModel < utility.data.StorableCatalog
 
     methods (Static, Access = private)
 
+        function tf = namesDataLocationTypes(dataLocations)
+        %namesDataLocationTypes Check whether saved data locations name a type
+        %
+        %   A json file has every field of the item template, so a missing
+        %   type arrives there as an empty value rather than a missing
+        %   field.
+
+            tf = isfield(dataLocations, 'Type') ...
+                && ~all(arrayfun(@(item) isempty(item.Type), dataLocations));
+        end
+
         function dlStruct = setDerivedFieldsToDefault(dlStruct)
         %setDerivedFieldsToDefault Make every derived field present but empty
         %
@@ -877,6 +888,16 @@ classdef DataLocationModel < utility.data.StorableCatalog
         function S = modifyStructOnLoad(obj, S)
         %modifyStructOnLoad DataLocationModel specific changes when loading
         %
+        %   A data location without a type is recorded. A model saved
+        %   before data locations had a type (December 2022) names neither
+        %   a type nor a default data location. For such a model the
+        %   location that received processed data, the second one or the
+        %   only one, becomes processed, so that fixDefaultDataLocation
+        %   chooses it as the default.
+
+            isUntypedModel = ~isempty(S.Data) ...
+                && ~obj.namesDataLocationTypes(S.Data) ...
+                && ~(isfield(S, 'Preferences') && isfield(S.Preferences, 'DefaultDataLocation'));
 
             % Create type object instance.
 
@@ -886,6 +907,11 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 else
                     S.Data(i).Type = nansen.config.dloc.DataLocationType(S.Data(i).Type);
                 end
+            end
+
+            if isUntypedModel
+                processedIndex = min(2, numel(S.Data));
+                S.Data(processedIndex).Type = nansen.config.dloc.DataLocationType('processed');
             end
 
             if ~isfield(S.Preferences, 'SourceID')
