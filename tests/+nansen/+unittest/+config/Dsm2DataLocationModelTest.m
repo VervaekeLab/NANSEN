@@ -50,6 +50,14 @@ classdef Dsm2DataLocationModelTest < matlab.unittest.TestCase
             {'7:9', '1a'}, {'-4:-1', '.AB'}, {'0:20', '170518_1a.ABF'}, {'7:20', '1a.ABF'}, ...
             {'15:20', ''}, {'20:', ''}, {'-20:', '170518_1a.ABF'}, {'-20:-4', '170518_1a'}, {':-20', ''}}
         refusedSliceCase = {'5:3', '-1:-3', '0:0', '-3:5'}
+        % Count fields of a file pattern, the field that decides, and
+        % whether they let a session have several matching files
+        countCase = struct( ...
+            'noCardinality', {{{}, "cardinality", true}}, ...
+            'cardinalityOne', {{{'cardinality', 'one'}, "cardinality", false}}, ...
+            'cardinalityMany', {{{'cardinality', 'many'}, "cardinality", true}}, ...
+            'maxCountThree', {{{'maxCount', 3}, "maxCount", true}}, ...
+            'maxCountOne', {{{'maxCount', 1}, "maxCount", false}})
     end
 
     methods (TestClassSetup)
@@ -73,6 +81,14 @@ classdef Dsm2DataLocationModelTest < matlab.unittest.TestCase
         function verifyReported(testCase, elementPart)
             testCase.verifyTrue(any(contains(testCase.Report.Element, elementPart)), ...
                 sprintf('Expected the report to mention %s.', elementPart))
+        end
+
+        function sessionId = sessionIdOf(~, rule, sessionFolder, numLevels)
+        %sessionIdOf Run a converted Session ID rule the way NANSEN does
+            joinedNames = nansen.config.dloc.DataLocationModel.combineFolderNamesFromPath( ...
+                sessionFolder, rule.SubfolderLevel, numLevels, rule.Separator);
+            sessionId = nansen.config.dloc.DataLocationModel.applyExtractionPattern( ...
+                joinedNames, rule.StringDetectMode, rule.StringDetectInput);
         end
 
         function verifyNotReported(testCase, elementPart)
@@ -260,18 +276,110 @@ classdef Dsm2DataLocationModelTest < matlab.unittest.TestCase
         end
 
         function testFilePatternsBecomeWildcards(testCase)
-            convert = @(p) nansen.config.dloc.dsmconversion.convertFilePatternToWildcard(p, "recording_id");
+            convert = @(p) nansen.config.dloc.dsmconversion.convertFilePatternToWildcard( ...
+                p, ["recording_id", "cell_id"]);
 
-            [expression, fileType, isConverted] = convert("^{recording_id}_meta\.json$");
+            [expression, fileType, isConverted, isApproximate] = convert("^{recording_id}_meta\.json$");
             testCase.verifyTrue(isConverted)
+            testCase.verifyFalse(isApproximate)
             testCase.verifyEqual(expression, "^*_meta.json$")
             testCase.verifyEqual(fileType, ".json")
 
-            [~, ~, isConverted] = convert("^{other_id}\.ABF$");
-            testCase.verifyFalse(isConverted, 'Only tokens naming the session identity become *.')
+            [expression, ~, isConverted] = convert("^{cell_id}_{recording_id}\.ABF$");
+            testCase.verifyTrue(isConverted, 'A token naming an ancestor identity becomes * too.')
+            testCase.verifyEqual(expression, "^*_*.ABF$")
 
-            [~, ~, isConverted] = convert("^\d+\.ABF$");
-            testCase.verifyFalse(isConverted, '\d has no wildcard equivalent.')
+            [~, ~, isConverted] = convert("^{other_id}\.ABF$");
+            testCase.verifyFalse(isConverted, 'Tokens naming other fields have no wildcard equivalent.')
+
+            [expression, ~, ~, isApproximate] = convert("^.*\.ABF$");
+            testCase.verifyEqual(expression, "^*.ABF$")
+            testCase.verifyFalse(isApproximate, '.* is any text, as * is.')
+        end
+
+        function testCharacterClassesAreApproximated(testCase)
+            % NANSEN passes the expression to dir, whose only wildcard is *.
+            convert = @(p) nansen.config.dloc.dsmconversion.convertFilePatternToWildcard(p, "session_id");
+            cases = { ...
+                "^TT\d+\.ntt$", "^TT*.ntt$"; ...
+                "_ch\d+_\d+\.dat$", "_ch*_*.dat$"; ...
+                "_feature_[A-Za-z0-9]+\.fd$", "_feature_*.fd$"; ...
+                "_{session_id}__\d{4}-\d{2}-\d{2}\.pkl$", "_*__*-*-*.pkl$"; ...
+                "^{session_id}\.eeg\d?$", "^*.eeg*$"};
+            for i = 1:height(cases)
+                [expression, ~, isConverted, isApproximate] = convert(cases{i, 1});
+                testCase.verifyTrue(isConverted, cases{i, 1})
+                testCase.verifyTrue(isApproximate, cases{i, 1})
+                testCase.verifyEqual(expression, cases{i, 2}, cases{i, 1})
+            end
+        end
+
+        function testApproximationMatchingEveryFileIsRefused(testCase)
+            [expression, ~, isConverted] = nansen.config.dloc.dsmconversion.convertFilePatternToWildcard( ...
+                "^{session_id}\.\d$", "session_id");
+            testCase.verifyFalse(isConverted, '^*.*$ would match every file in the folder.')
+            testCase.verifyEqual(expression, "")
+        end
+
+        function testRepeatedPatternNamesAreQualifiedByLocation(testCase)
+            % A file pattern name is unique within a level, but a NANSEN
+            % variable name is unique within a project. Two locations that
+            % hold the same recording in two formats both name their
+            % pattern "original".
+            [~, variables, report] = nansen.config.dloc.dsm2DataLocationModel( ...
+                jsondecode(twoFormatModel()));
+
+            names = string({variables.VariableName});
+            testCase.verifyEqual(sort(names), ["igor_original", "notes", "nwb_original"])
+            testCase.verifyEqual(variables(names == "igor_original").DataLocation, 'igor')
+            testCase.verifyEqual(variables(names == "nwb_original").FileNameExpression, '.nwb$')
+            testCase.verifyTrue(any(contains(report.Element, "variables[original]")))
+            testCase.verifyFalse(any(contains(report.Element, "variables[notes]")), ...
+                'A name used in one location keeps its name.')
+        end
+
+        function testCompositeSessionIdJoinsLevelNames(testCase)
+            % Day numbers restart in each experiment, so a scanning day is
+            % identified by the experiment and the day, within its monkey.
+            [dataLocations, ~, report] = nansen.config.dloc.dsm2DataLocationModel( ...
+                jsondecode(scanningDayModel()), SessionEntity="scanning_day");
+            association = dataLocations(strcmp({dataLocations.Name}, 'association'));
+
+            rule = association.MetaDataDef(strcmp({association.MetaDataDef.VariableName}, 'Session ID'));
+            testCase.verifyEqual(rule.SubfolderLevel, [1 2 3], ...
+                'The experiment level, the monkey level (an ancestor) and the day level.')
+            testCase.verifyEqual(rule.Separator, '_')
+
+            sessionId = testCase.sessionIdOf(rule, '/data/association/PRE_stim/m1/d1', 3);
+            testCase.verifyEqual(sessionId, 'PRE_stim_m1_d1')
+            testCase.verifyTrue(any(contains(report.Reason, "the Session ID joins the names of levels")))
+            testCase.verifyFalse(any(contains(report.Reason, "NANSEN needs a single id field")))
+        end
+
+        function testFixedPartOfCompositeIdentityIsLeftOut(testCase)
+            % The localizer has no experiment level; a fixed rule gives the
+            % experiment, and the Session ID is made of the other levels.
+            [dataLocations, ~, report] = nansen.config.dloc.dsm2DataLocationModel( ...
+                jsondecode(scanningDayModel()), SessionEntity="scanning_day");
+            localizer = dataLocations(strcmp({dataLocations.Name}, 'localizer'));
+
+            rule = localizer.MetaDataDef(strcmp({localizer.MetaDataDef.VariableName}, 'Session ID'));
+            testCase.verifyEqual(rule.SubfolderLevel, [1 2])
+            testCase.verifyEqual(testCase.sessionIdOf(rule, '/data/localizer/m2/d1', 2), 'm2_d1')
+            testCase.verifyTrue(any(contains(report.Element, "dataLocations[localizer].metadataMapping[experiment]")))
+        end
+
+        function testUnreadablePartOfCompositeIdentityIsReportedOnce(testCase)
+            % Without a rule for the experiment, the Session ID is left
+            % unset, and the report gives that reason only
+            model = replace(scanningDayModel(), '"metadataRef":"experiment"', '"metadataRef":"protocol"');
+
+            [~, ~, report] = nansen.config.dloc.dsm2DataLocationModel(jsondecode(model), ...
+                SessionEntity="scanning_day");
+
+            isAssociation = startsWith(report.Element, "dataLocations[association]");
+            testCase.verifyTrue(any(isAssociation & contains(report.Reason, "No extraction rule for this part")))
+            testCase.verifyFalse(any(contains(report.Reason, "NANSEN needs a single id field")))
         end
 
         function testRegexQuantifierIsNotAWildcard(testCase)
@@ -282,6 +390,75 @@ classdef Dsm2DataLocationModelTest < matlab.unittest.TestCase
                 [~, ~, isConverted] = convert(pattern);
                 testCase.verifyFalse(isConverted, pattern)
             end
+        end
+
+        function testFileTypeIsTheExtensionOfThePattern(testCase)
+            convert = @(p) nansen.config.dloc.dsmconversion.convertFilePatternToWildcard(p, "session_id");
+            cases = { ...
+                "\.7z$", ".7z"; ...
+                "^{session_id}\.ome\.tif$", ".ome.tif"; ...
+                "\.nii\.gz$", ".nii.gz"; ...
+                "^v1\.2\.txt$", ".txt"};
+            for i = 1:height(cases)
+                [~, fileType] = convert(cases{i, 1});
+                testCase.verifyEqual(fileType, cases{i, 2}, cases{i, 1})
+            end
+        end
+
+        function testFileAdapterOfTheLongestSupportedEnding(testCase)
+            adapters = struct( ...
+                'FileAdapterName', {'Tiff', 'Gzip', 'NIfTI', 'SevenZip'}, ...
+                'SupportedFileTypes', {{'tif', 'tiff'}, {'gz'}, {'nii', 'nii.gz'}, {'.7z'}});
+            adapterFor = @(fileType) nansen.config.dloc.dsmconversion.findFileAdapterName(fileType, adapters);
+
+            testCase.verifyEqual(adapterFor(".ome.tif"), "Tiff", 'No adapter has ome.tif, so tif decides.')
+            testCase.verifyEqual(adapterFor(".nii.gz"), "NIfTI", 'nii.gz is a longer ending than gz.')
+            testCase.verifyEqual(adapterFor(".TIF"), "Tiff")
+            testCase.verifyEqual(adapterFor(".7z"), "SevenZip")
+            testCase.verifyEqual(adapterFor(".ap.bin"), "")
+            testCase.verifyEqual(adapterFor(""), "")
+        end
+
+        function testPatternThatAllowsSeveralFilesIsReported(testCase, countCase)
+            [countFields, decidingField, isReported] = countCase{:};
+            model = testCase.garadModel();
+            abf = rmfield(model.dataLocations.filesystemSource.entityLayout.filePatterns, 'cardinality');
+            for j = 1:2:numel(countFields)
+                abf.(countFields{j}) = countFields{j+1};
+            end
+            model.dataLocations.filesystemSource.entityLayout.filePatterns = abf;
+
+            [~, ~, report] = nansen.config.dloc.dsm2DataLocationModel(model);
+
+            element = "dataLocations[garad].entityLayout[recording-files].filePatterns[abf]." + decidingField;
+            testCase.verifyEqual(any(report.Element == element), isReported)
+        end
+
+        function testCompositeIdentityOfFilesIsRefused(testCase)
+            % Joining whole file names would make each file a session, with
+            % its extension in the Session ID.
+            model = jsondecode(scanningDayModel());
+            model.dataLocations(1).filesystemSource.entityLayout{3}.fileSystemType = 'file';
+
+            [dataLocations, ~, report] = nansen.config.dloc.dsm2DataLocationModel(model, ...
+                SessionEntity="scanning_day");
+            association = dataLocations(strcmp({dataLocations.Name}, 'association'));
+
+            rule = association.MetaDataDef(strcmp({association.MetaDataDef.VariableName}, 'Session ID'));
+            testCase.verifyEmpty(rule.SubfolderLevel)
+            isAssociation = startsWith(report.Element, "dataLocations[association].metadataMapping");
+            testCase.verifyTrue(any(isAssociation & contains(report.Reason, "level of files")))
+        end
+
+        function testJoinedSessionIdsMatchAcrossLocationsOnlyOnTheSameLevels(testCase)
+            % The association joins experiment, monkey and day, and the
+            % localizer joins monkey and day, so their Session IDs differ.
+            [~, ~, report] = nansen.config.dloc.dsm2DataLocationModel( ...
+                jsondecode(scanningDayModel()), SessionEntity="scanning_day");
+
+            testCase.verifyTrue(any(report.Element == "dataLocations" & contains(report.Reason, "same order")))
+            testCase.verifyFalse(any(testCase.Report.Element == "dataLocations"), ...
+                'A model with one data location has no sessions to match across locations.')
         end
 
         function testUnanchoredEndMatchesLongerNames(testCase)
@@ -297,4 +474,55 @@ classdef Dsm2DataLocationModelTest < matlab.unittest.TestCase
             testCase.verifyEqual(convert("^{recording_id}.*"), "^*$")
         end
     end
+end
+
+function text = scanningDayModel()
+%scanningDayModel Scanning days of monkeys in two experiments, numbered from 1 in each
+    mapping = @(key, extraction) struct('metadataRef', key, 'extraction', extraction);
+    fromLevel = @(method, pattern, level) struct('method', method, 'pattern', pattern, 'entityLayoutLevel', level);
+    level = @(name, entityType, pattern) struct('name', name, 'entityType', entityType, 'matchPattern', pattern);
+    location = @(name, layout, rules) struct( ...
+        'identifier', name, 'displayName', name, 'dataCategory', 'raw', 'sourceType', 'filesystem', ...
+        'filesystemSource', struct( ...
+            'rootStoragePaths', {{struct('identifier', 'main', 'path', ['/data/' name])}}, ...
+            'entityLayout', {layout}, 'metadataMapping', {rules}));
+    dayRules = {mapping('subject_id', fromLevel('substring', ':', 'monkeys')), ...
+                mapping('day_number', fromLevel('regex', '^d(\d+)$', 'days'))};
+    association = location('association', ...
+        {struct('name', 'experiments', 'matchPattern', '^(PRE|POST)_stim$'), ...
+         level('monkeys', 'subject', '^m\d+$'), level('days', 'scanning_day', '^d\d+$')}, ...
+        [{mapping('experiment', fromLevel('substring', ':', 'experiments'))}, dayRules]);
+    localizer = location('localizer', ...
+        {level('monkeys', 'subject', '^m\d+$'), level('days', 'scanning_day', '^d\d+$')}, ...
+        [{mapping('experiment', struct('method', 'fixed', 'value', 'localizer'))}, dayRules]);
+    model = struct( ...
+        'schemaVersion', '0.1.0', ...
+        'entityTypes', {{struct('name', 'subject', 'identifierRef', 'subject_id'), ...
+                         struct('name', 'scanning_day', 'identifierRefs', {{'experiment'; 'day_number'}})}}, ...
+        'metadataDefinitions', struct( ...
+            'subject_id', struct('name', 'subject_id', 'dataType', 'string', 'ofEntity', 'subject'), ...
+            'experiment', struct('name', 'experiment', 'dataType', 'string', 'ofEntity', 'scanning_day'), ...
+            'day_number', struct('name', 'day_number', 'dataType', 'integer', 'ofEntity', 'scanning_day')), ...
+        'dataLocations', {{association, localizer}});
+    text = jsonencode(model);
+end
+
+function text = twoFormatModel()
+%twoFormatModel A cell folder per location, the recording as Igor Pro in one and NWB in the other
+    location = @(name, extension, extraPattern) struct( ...
+        'identifier', name, 'displayName', name, 'dataCategory', 'raw', 'sourceType', 'filesystem', ...
+        'filesystemSource', struct( ...
+            'rootStoragePaths', {{struct('identifier', 'main', 'path', ['/data/' name])}}, ...
+            'entityLayout', {{struct('name', 'cells', 'entityType', 'cell', 'matchPattern', '^cell\d+$', ...
+                'filePatterns', {[{struct('name', 'original', 'pattern', ['\.' extension '$'])}, extraPattern]})}}, ...
+            'metadataMapping', {{struct('metadataRef', 'cell_id', ...
+                'extraction', struct('method', 'substring', 'pattern', ':', 'entityLayoutLevel', 'cells'))}}));
+    model = struct( ...
+        'schemaVersion', '0.1.0', ...
+        'entityTypes', {{struct('name', 'cell', 'identifierRef', 'cell_id')}}, ...
+        'metadataDefinitions', struct('cell_id', ...
+            struct('name', 'cell_id', 'dataType', 'string', 'ofEntity', 'cell')), ...
+        'dataLocations', {{location('igor', 'pxp', {}), ...
+                           location('nwb', 'nwb', {struct('name', 'notes', 'pattern', '\.txt$')})}});
+    text = jsonencode(model);
 end

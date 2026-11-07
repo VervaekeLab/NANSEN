@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "0.1.0",
+  "entityTypes": [
+    { "name": "subject", "description": "One monkey.", "isPrimary": true, "identifierRef": "subject_id" },
+    { "name": "session", "description": "One scanning day. Day numbers restart in each experiment.", "identifierRefs": ["experiment", "day_number"] }
+  ],
+  "entityRelationships": [
+    { "sourceEntity": "subject", "targetEntity": "session", "relationType": "oneToMany", "relationName": "hasSessions" }
+  ],
+  "metadataDefinitions": {
+    "subject_id": { "name": "subject_id", "dataType": "string", "ofEntity": "subject", "validation": { "pattern": "^m\\d+$" } },
+    "experiment": { "name": "experiment", "dataType": "string", "ofEntity": "session", "validation": { "enum": ["PRE_stim", "POST_stim"] } },
+    "day_number": { "name": "day_number", "dataType": "integer", "ofEntity": "session" }
+  },
+  "dataLocations": [
+    {
+      "identifier": "scanning",
+      "displayName": "Scanning days",
+      "description": "<experiment>/<monkey>/d<N>/, laid out like the raw fMRI of the EBRAINS dataset of Murris et al. (2021).",
+      "dataCategory": "raw",
+      "access": "read",
+      "sourceType": "filesystem",
+      "filesystemSource": {
+        "rootStoragePaths": [ { "identifier": "main", "path": "/data/scanning" } ],
+        "entityLayout": [
+          { "name": "experiments", "matchPattern": "^(PRE|POST)_stim$" },
+          { "name": "monkeys", "entityType": "subject", "matchPattern": "^m\\d+$" },
+          { "name": "days", "entityType": "session", "matchPattern": "^d\\d+$" }
+        ],
+        "metadataMapping": [
+          { "metadataRef": "experiment", "extraction": { "method": "substring", "pattern": ":", "entityLayoutLevel": "experiments" } },
+          { "metadataRef": "subject_id", "extraction": { "method": "substring", "pattern": ":", "entityLayoutLevel": "monkeys" } },
+          { "metadataRef": "day_number", "extraction": { "method": "regex", "pattern": "^d(\\d+)$", "entityLayoutLevel": "days" } }
+        ]
+      }
+    }
+  ]
+}
