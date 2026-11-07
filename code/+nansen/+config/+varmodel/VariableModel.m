@@ -139,6 +139,11 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
 
         function load(obj)
         %load Load list (csv or xml) with required/supported variables
+
+            % The legacy rename reads the catalog file, so FilePath must
+            % point at the file that is loaded, which can be the mat file
+            % beside a requested json path.
+            obj.resolveFilePath()
             obj.tempFixVariableNameInFile()
             load@utility.data.StorableCatalog(obj)
         end
@@ -737,7 +742,11 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
 
         function tempFixVariableNameInFile(obj)
         %tempFixVariableNameInFile Rename VariableList to Data...
-            if isfile(obj.FilePath)
+        %
+        %   Only a mat file can carry the legacy variable name, and whos
+        %   can not read anything else, so a catalog stored as json is
+        %   skipped.
+            if isfile(obj.FilePath) && strcmp(obj.getFormatFromPath(obj.FilePath), 'mat')
                 S = whos('-file', obj.FilePath);
 
                 if any(strcmp({S.name}, 'VariableList'))
