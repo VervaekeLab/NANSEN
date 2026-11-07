@@ -48,7 +48,7 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 'DataLocation', '', ...         % todo: rename DataLocationName? Name of datalocation where variable is stored.
                 'DataLocationUuid', '', ...     % uuid of datalocation variable belongs to (internal)
                 'Subfolder', '', ...            % Subfolder within sessionfolder where variable is saved to file (optional)
-                'FileNameExpression', '', ...   % Part of filename to reckognize variable from (optional)
+                'FileNameExpression', '', ...   % Part of filename, or whole name with {placeholders} (optional)
                 'FileType', '', ...             % File type of variable
                 'FileAdapter', '', ...          % File adapter to use for loading and saving variable
                 'DataType', '', ...             % Datatype of variable: Will depend on file adapter
@@ -232,9 +232,9 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
         %   and whose FileNameExpression occurs in the file name, or '' when
         %   no variable matches. When the expressions of several variables
         %   occur in the name, only the variables with the longest expression
-        %   match. When no expression occurs in the name, a variable matches
-        %   on FileType alone, provided it is the only one with that file
-        %   type among the variables considered.
+        %   match. When no expression occurs in the name, a variable without
+        %   placeholders matches on FileType alone, provided it is the only
+        %   such variable with that file type among the variables considered.
         %
         %   varName = findVariableByFilename(OBJ,filePath,MODE) also
         %   specifies what to return when several variables match. MODE
@@ -252,13 +252,20 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
         %   an empty or 'DEFAULT' data location belongs to the default data
         %   location. When this name is not given, such a variable is
         %   considered whatever DataLocation is.
+        %
+        %   varName = findVariableByFilename(...,PlaceholderValues=VALUES)
+        %   supplies the values for placeholders such as {sessionID} in a
+        %   FileNameExpression, as a struct with one field per placeholder.
+        %   An expression with placeholders must match the whole file name
+        %   once expanded, and is skipped when its values are not given.
 
             arguments
                 obj
-                filePath
+                filePath (1,:) char
                 mode (1,1) string {mustBeMember(mode, ["first", "all"])} = "first"
                 options.DataLocation (1,1) string = missing
                 options.DefaultDataLocation (1,1) string = missing
+                options.PlaceholderValues (1,1) struct = struct()
             end
 
             variables = obj.Data;
@@ -268,19 +275,22 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 variables = variables(isInDataLocation);
             end
 
-            [~, ~, ext] = fileparts(filePath);
+            [~, name, ext] = fileparts(filePath);
+            fileName = [name, ext];
 
             filenameExpressions = {variables.FileNameExpression};
             fileTypes = {variables.FileType};
 
             isEmpty = cellfun(@isempty, filenameExpressions);
             matchesFiletype = strcmp(fileTypes, ext);
-            matchesFilename = cellfun(@(expr) ~isempty(regexp(filePath, expr, 'once')), ...
-                filenameExpressions);
+            [matchesFilename, isWholeNameMatch] = matchFileName(fileName, filePath, ...
+                filenameExpressions, fileTypes, options.PlaceholderValues); % Local function
 
-            % Find the longest match
+            % Find the longest match. An expression with placeholders names
+            % the whole file, so it outranks any part-of-name match.
             matchedFilenameExpressions = filenameExpressions(matchesFilename);
             matchLength = cellfun(@numel, matchedFilenameExpressions);
+            matchLength(isWholeNameMatch(matchesFilename)) = inf;
             maxLength = max(matchLength);
             matchedFilenameExpressions = unique( matchedFilenameExpressions(matchLength == maxLength) );
 
@@ -293,7 +303,9 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
 
             warnMultiple = false;
             if ~any(isMatch)
-                isMatch = matchesFiletype;
+                % An expression with placeholders is a complete specification
+                % of the file name, so it takes no part in the type-only fallback.
+                isMatch = matchesFiletype & ~isWholeNameMatch;
                 if sum(isMatch) == 1
                     matchedIdx = find(isMatch);
                 else
@@ -465,7 +477,10 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 folderPath (1,1) string
                 variableInfo
                 options.FilterFcn = []
+                options.PlaceholderValues (1,1) struct = struct()
             end
+
+            import nansen.config.varmodel.FileNamePattern
 
             if isa(variableInfo, 'char')
                 variableInfo = obj.getVariableStructure(variableInfo);
@@ -477,7 +492,16 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 fileType = ['.', fileType];
             end
 
-            expression = obj.patternToWildcardExpression(variableInfo.FileNameExpression, fileType);
+            % An expression with placeholders names the whole file, so it is
+            % used as it is once expanded. Any other expression is a part of
+            % the file name and is wrapped in wildcards.
+            if FileNamePattern.hasPlaceholder(variableInfo.FileNameExpression)
+                expression = FileNamePattern.expand(variableInfo.FileNameExpression, ...
+                    options.PlaceholderValues);
+                expression = FileNamePattern.toFileName(expression, fileType);
+            else
+                expression = obj.patternToWildcardExpression(variableInfo.FileNameExpression, fileType);
+            end
 
             L = dir(fullfile(folderPath, expression));
             L = L(~strncmp({L.name}, '.', 1));
@@ -533,19 +557,40 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             end
         end
 
-        function tf = isFileNameMatch(obj, fileName, expression, fileType)
+        function tf = isFileNameMatch(obj, fileName, expression, fileType, options)
         %isFileNameMatch - True when a file name expression finds a file
         %   TF = isFileNameMatch(OBJ,fileName,EXPRESSION,fileType) is true
         %   when the wildcard search that lookForFile runs for EXPRESSION
         %   and fileType would match the whole of fileName.
-            fileType = char(fileType);
+        %
+        %   TF = isFileNameMatch(...,PlaceholderValues=VALUES) supplies the
+        %   values for placeholders such as {sessionID} in EXPRESSION, as a
+        %   struct with one field per placeholder. An expression with
+        %   placeholders must match the whole of fileName once expanded, as
+        %   in lookForFile. It does not match when a placeholder is unknown
+        %   or has no value in VALUES.
+
+            arguments
+                obj (1,1) nansen.config.varmodel.VariableModel
+                fileName (1,:) char
+                expression (1,:) char
+                fileType (1,:) char
+                options.PlaceholderValues (1,1) struct = struct()
+            end
+
+            import nansen.config.varmodel.FileNamePattern
+
             if ~isempty(fileType) && ~strncmp(fileType, '.', 1)
                 fileType = ['.', fileType];
             end
 
-            wildcard = obj.patternToWildcardExpression(expression, fileType);
-            pattern = ['^', regexptranslate('wildcard', char(wildcard)), '$'];
-            tf = ~isempty( regexp(char(fileName), pattern, 'once') );
+            if FileNamePattern.hasPlaceholder(expression)
+                tf = isExpandedNameMatch(fileName, expression, fileType, ...
+                    options.PlaceholderValues); % Local function
+            else
+                wildcard = obj.patternToWildcardExpression(expression, fileType);
+                tf = ~isempty( regexp(fileName, FileNamePattern.toRegexp(wildcard), 'once') );
+            end
         end
     end
 
@@ -694,12 +739,54 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
                 message = strjoin(problems, newline);
             end
         end
+
+        function [isValid, message] = validateFileNameExpressions(variableList)
+        %validateFileNameExpressions Check the placeholders in file name expressions
+        %
+        %   [isValid, message] = validateFileNameExpressions(variableList)
+        %   checks the FileNameExpression of every variable in variableList,
+        %   a struct array of variable items. isValid is false if an
+        %   expression has a placeholder that FileNamePattern does not list,
+        %   such as {sessionId}. message then describes each problem on a
+        %   line of its own and is empty otherwise.
+        %
+        %   Every variable is checked, because the variable model app lets
+        %   users edit the file name expression of preset variables too. A
+        %   variable is referred to by its position among the preset, custom
+        %   or internal variables, as in validateVariableNames.
+        %
+        %   See also nansen.config.varmodel.FileNamePattern.isValid
+
+            arguments
+                variableList struct
+            end
+
+            isValid = true;
+            message = '';
+
+            problems = {};
+
+            for i = 1:numel(variableList)
+                [isExpressionValid, problem] = nansen.config.varmodel.FileNamePattern.isValid( ...
+                    variableList(i).FileNameExpression);
+                if ~isExpressionValid
+                    label = getVariableLabel(variableList, i);
+                    problems{end+1} = sprintf('%s%s: %s', upper(label(1)), label(2:end), problem); %#ok<AGROW>
+                end
+            end
+
+            if ~isempty(problems)
+                isValid = false;
+                message = strjoin(problems, newline);
+            end
+        end
     end
 
     methods (Access = protected)
 
         function item = validateItem(obj, item)
             item = validateItem@utility.data.StorableCatalog(obj, item);
+            nansen.config.varmodel.FileNamePattern.assertValid(item.FileNameExpression)
 
             % Session objects expose each variable as a dynamic property, so
             % the name has to be a valid MATLAB identifier.
@@ -844,6 +931,53 @@ end
 % Local utility functions
 function tf = useDefaultDataLocation(dataLocationName)
     tf = strcmp(dataLocationName, 'DEFAULT') || isempty(dataLocationName);
+end
+
+function [isMatch, isWholeName] = matchFileName(fileName, filePath, expressions, fileTypes, values)
+%matchFileName - Test each file name expression against a file name
+%   An expression with placeholders must match the whole file name once
+%   expanded, and cannot match while a value is missing. Any other
+%   expression matches when it occurs anywhere in filePath.
+    import nansen.config.varmodel.FileNamePattern
+
+    isMatch = false(size(expressions));
+    isWholeName = false(size(expressions));
+
+    for i = 1:numel(expressions)
+        expression = expressions{i};
+
+        if FileNamePattern.hasPlaceholder(expression)
+            isWholeName(i) = true;
+            isMatch(i) = isExpandedNameMatch(fileName, expression, fileTypes{i}, values);
+        else
+            isMatch(i) = ~isempty(regexp(filePath, expression, 'once'));
+        end
+    end
+end
+
+function tf = isExpandedNameMatch(fileName, expression, fileType, values)
+%isExpandedNameMatch - True when an expression with placeholders names a file
+%   The expression is expanded with the struct VALUES and given the
+%   extension fileType. It must then match the whole of fileName, where *
+%   stands for any characters. It cannot match while a placeholder is
+%   unknown or has no value.
+
+    arguments
+        fileName (1,:) char
+        expression (1,:) char
+        fileType (1,:) char
+        values (1,1) struct
+    end
+
+    import nansen.config.varmodel.FileNamePattern
+
+    tf = FileNamePattern.canExpand(expression, values);
+
+    if tf
+        expectedName = FileNamePattern.toFileName( ...
+            FileNamePattern.expand(expression, values), fileType);
+        tf = ~isempty( regexp(fileName, FileNamePattern.toRegexp(expectedName), 'once') );
+    end
 end
 
 function tf = isVariableInDataLocation(variables, dataLocationName, defaultDataLocationName)

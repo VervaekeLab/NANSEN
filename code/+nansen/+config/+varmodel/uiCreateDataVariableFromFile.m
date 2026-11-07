@@ -20,7 +20,9 @@ function varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sess
 %   The file name expression is pre-filled with the file name without the
 %   session ID, or * when nothing else remains. A variable created from a
 %   file has to search for it, so the expression cannot be left empty and
-%   must match the file. Otherwise the form reopens as well.
+%   must match the file. Otherwise the form reopens as well. Placeholders
+%   such as {sessionID} in the expression are replaced with the values of
+%   sessionObject before the expression is matched.
 
 %   Todo:
 %       [ ] Make dataLocationName and sessionObject optional inputs?
@@ -79,7 +81,8 @@ function varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sess
             continue
         end
 
-        expressionProblem = getExpressionProblem(S, variableModel, [fileName, ext]); % Local function
+        expressionProblem = getExpressionProblem(S, variableModel, [fileName, ext], ...
+            sessionObject.getFileNamePlaceholderValues()); % Local function
         if ~isempty(expressionProblem)
             uiwait( errordlg(expressionProblem, 'Invalid File Name Expression', 'modal') )
             continue
@@ -128,22 +131,38 @@ function varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sess
     varItem.DataType = char( fileAdapterList(fileAdapterIdx).DataType );
 end
 
-function problem = getExpressionProblem(S, variableModel, fileName)
+function problem = getExpressionProblem(S, variableModel, fileName, placeholderValues)
 %getExpressionProblem - Why the entered expression cannot find the file
 %   The result is empty when the expression is absent from the form, or
-%   when it is non-empty and matches the file.
+%   when it is non-empty and matches the file. Placeholders such as
+%   {sessionID} take their values from the struct placeholderValues.
+    import nansen.config.varmodel.FileNamePattern
+
     problem = '';
     if ~isfield(S, 'FileNameExpression'); return; end
 
     [~, ~, fileType] = fileparts(fileName);
+    expression = S.FileNameExpression;
+    [isExpandable, expansionProblem] = FileNamePattern.canExpand(expression, placeholderValues);
 
-    if isempty(S.FileNameExpression)
+    if isempty(expression)
         problem = ['Enter a file name expression. A variable created from a ', ...
             'file has to search for it, so the expression cannot be empty. ', ...
             'Use * to match any file of this type.'];
-    elseif ~variableModel.isFileNameMatch(fileName, S.FileNameExpression, fileType)
-        problem = sprintf(['The file name expression "%s" does not match the ', ...
-            'file "%s". Enter a part of the file name, or * to match any ', ...
-            'file of this type.'], S.FileNameExpression, fileName);
+    elseif ~isExpandable
+        problem = expansionProblem;
+    elseif ~variableModel.isFileNameMatch(fileName, expression, fileType, ...
+            PlaceholderValues=placeholderValues)
+        if FileNamePattern.hasPlaceholder(expression)
+            problem = sprintf(['The file name expression "%s" does not match the ', ...
+                'file "%s". Once its placeholders are replaced with the values of ', ...
+                'this session, an expression with placeholders must match the whole ', ...
+                'file name apart from the extension. Use * to match any characters.'], ...
+                expression, fileName);
+        else
+            problem = sprintf(['The file name expression "%s" does not match the ', ...
+                'file "%s". Enter a part of the file name, or * to match any ', ...
+                'file of this type.'], expression, fileName);
+        end
     end
 end
