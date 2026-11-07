@@ -41,6 +41,11 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
 
     properties
         DataLocationModel
+
+        % CommitValidator - Function that is called with DataLocationModel
+        % before the model is saved. An error from the function cancels
+        % the save, and its message is shown to the user.
+        CommitValidator function_handle = function_handle.empty
     end
 
     properties (Access = private)
@@ -196,6 +201,11 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
             switch title
                 case 'Update Model'
                     message = 'Updating paths of session folders for data locations...';
+                case 'Check Session IDs'
+                    message = 'Comparing session IDs of session folders with the session table...';
+                otherwise
+                    error('NANSEN:DataLocationModelApp:UnknownProgressDialog', ...
+                        'No progress dialog is defined for the title "%s".', title)
             end
 
             d = uiprogressdlg(obj.Figure, 'Title', title,...
@@ -228,17 +238,31 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
 
                 switch selection
                     case 'Yes'
+                        updatedModuleIdx = [];
                         for i = 2:3
                             if ~isempty(obj.UIModule{i})
-                                d = uiprogressdlg(obj.Figure, 'Title','Updading Model',...
+                                d = uiprogressdlg(obj.Figure, 'Title','Updating Model',...
                                     'Message', 'Updating paths for session folders of Datalocations...', ...
                                     'Indeterminate','on');
+                                closeDialog = onCleanup(@() close(d));
                                 obj.UIModule{i}.updateDataLocationModel()
-                                close(d)
-                                obj.UIModule{i}.markClean()
+                                updatedModuleIdx = [updatedModuleIdx, i]; %#ok<AGROW>
+                                clear closeDialog
                             end
                         end
+
+                        try
+                            obj.runCommitValidator()
+                        catch exception
+                            obj.alertCommitValidationFailed(exception)
+                            doAbort = true;
+                            return
+                        end
+
                         obj.DataLocationModel.save()
+                        for i = updatedModuleIdx
+                            obj.UIModule{i}.markClean()
+                        end
                         obj.UIModule{1}.markClean()
                         evtData = event.EventData;
                         obj.notify('DataLocationModelChanged', evtData)
@@ -250,6 +274,33 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
                         doAbort = true; % User decided to abort.
                         return
                 end
+            end
+        end
+    end
+
+    methods (Access = private) % Methods for saving the model
+
+        function runCommitValidator(obj)
+        %runCommitValidator Call CommitValidator with the model while a progress dialog is open.
+            if isempty(obj.CommitValidator)
+                return
+            end
+
+            % A validator can list the session folders of every data
+            % location, which takes time.
+            progressDialog = obj.openProgressDialog('Check Session IDs');
+            closeProgressDialog = onCleanup(@() close(progressDialog));
+
+            obj.CommitValidator(obj.DataLocationModel);
+        end
+
+        function alertCommitValidationFailed(obj, exception)
+        %alertCommitValidationFailed Show the error that cancelled a save of the model.
+            alertTitle = 'Data Location Update Aborted';
+            if ~isempty(obj.Figure) && isvalid(obj.Figure)
+                uialert(obj.Figure, exception.message, alertTitle, 'Icon', 'warning')
+            else
+                warning(exception.identifier, '%s', exception.message)
             end
         end
     end
