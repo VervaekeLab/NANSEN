@@ -21,9 +21,9 @@ classdef MetaTableDataLocationStorageTest < matlab.unittest.TestCase
 
     methods (TestMethodSetup)
         function createTestDirectory(testCase)
-            testCase.TestDir = tempname;
-            mkdir(testCase.TestDir);
-            testCase.addTeardown(@() rmdir(testCase.TestDir, 's'));
+            import matlab.unittest.fixtures.TemporaryFolderFixture
+            folderFixture = testCase.applyFixture(TemporaryFolderFixture);
+            testCase.TestDir = folderFixture.Folder;
         end
     end
 

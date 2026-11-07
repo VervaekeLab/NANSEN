@@ -38,9 +38,9 @@ classdef MetaTableAdvancedTest < matlab.unittest.TestCase
     methods (TestMethodSetup)
         function createTestDirectory(testCase)
             % Create temporary directory for test files
-            testCase.TestDir = tempname;
-            mkdir(testCase.TestDir);
-            testCase.addTeardown(@() rmdir(testCase.TestDir, 's'));
+            import matlab.unittest.fixtures.TemporaryFolderFixture
+            folderFixture = testCase.applyFixture(TemporaryFolderFixture);
+            testCase.TestDir = folderFixture.Folder;
         end
         
         function createTestEntries(testCase)
