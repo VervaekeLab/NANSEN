@@ -152,8 +152,13 @@ function [item, sessionLevel, usedFields, levelsBelowSession] = convertLocation(
     levelsBelowSession = layout(sessionIndex+1:end);
     layout = layout(1:sessionIndex);
     sessionLevel = layout{end};
-    reportSessionsMergedAcrossAncestors(levelTypes(1:sessionIndex-1), sessionEntity, ...
-        where + ".entityLayout[" + string(sessionLevel.name) + "]", report)
+    % A composite Session ID joins the names of the ancestor levels too
+    % (compositeIdentityLevels), so only a single identity field leaves
+    % them out.
+    if numel(sessionKeys) <= 1
+        reportSessionsMergedAcrossAncestors(levelTypes(1:sessionIndex-1), sessionEntity, ...
+            where + ".entityLayout[" + string(sessionLevel.name) + "]", report)
+    end
 
     item = nansen.config.dloc.DataLocationModel.getBlankItem();
     item.Name = char(matlab.lang.makeValidName(string(location.identifier)));
