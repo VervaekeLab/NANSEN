@@ -311,7 +311,11 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
                     case {'SavePath', 'FileName', 'IsDefault'}
                         % These are also not assigned
                     case 'MetaTableEntries'
-                        obj.entries = S.MetaTableEntries;
+                        % Entries arrive here from the table's own file and
+                        % from its master, in the stored form. Expanding at
+                        % this one point keeps every path that fills the
+                        % table from a file consistent.
+                        obj.entries = obj.expandDataLocationColumn(S.MetaTableEntries);
                     otherwise
                         obj.(varNames{i}) = S.(varNames{i});
                 end
@@ -1157,6 +1161,90 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         end
     end
 
+    methods (Access = protected) % Data location column
+
+        function tableEntries = reduceDataLocationColumn(obj, tableEntries)
+        %reduceDataLocationColumn Drop the machine specific data location fields
+        %
+        %   A metatable records where a session's data is as the uuid of
+        %   the data location, the uid of its root path, and the subfolders
+        %   below that root. The absolute root path, and the name, type,
+        %   root index and disk name that go with it, are properties of the
+        %   data location model on the computer that opens the table. They
+        %   are rebuilt when the table is read, so storing them would tie
+        %   the file to the computer that wrote it.
+            tableEntries = obj.applyToDataLocationColumn(tableEntries, ...
+                @nansen.config.dloc.DataLocationModel.reduceDataLocationInfo);
+        end
+
+        function tableEntries = expandDataLocationColumn(obj, tableEntries)
+        %expandDataLocationColumn Rebuild data location paths for this computer
+        %
+        %   Fills in the fields that reduceDataLocationColumn removed,
+        %   using the data location model of the current project. When
+        %   there is no project to ask, the fields stay absent and are
+        %   filled in later, when a session object is made from a row.
+
+            % Building the model saves its file, so a table without a data
+            % location column, such as a subject table, does not ask for it.
+            if isempty(tableEntries) || ...
+                    ~ismember('DataLocation', tableEntries.Properties.VariableNames)
+                return
+            end
+
+            dataLocationModel = obj.getDataLocationModel();
+            if isempty(dataLocationModel)
+                return
+            end
+
+            tableEntries = obj.applyToDataLocationColumn(tableEntries, ...
+                @(value) dataLocationModel.expandDataLocationInfo(value));
+        end
+
+        function dataLocationModel = getDataLocationModel(~)
+        %getDataLocationModel Data location model of the current project
+        %
+        %   Empty when no project is active, or when no user session is
+        %   active, for example in a parallel worker. As elsewhere in the
+        %   table variables, this assumes the table being opened belongs to
+        %   the current project.
+
+            try
+                dataLocationModel = nansen.DataLocationModel();
+            catch ME
+                if ~strcmp(ME.identifier, 'NANSEN:NoActiveUserSession')
+                    rethrow(ME)
+                end
+                dataLocationModel = [];
+            end
+        end
+
+        function tableEntries = applyToDataLocationColumn(~, tableEntries, fcn)
+        %applyToDataLocationColumn Apply a function to each entry's data location struct
+        %
+        %   The column holds either a cell with one struct array per entry
+        %   or a struct array with one row per entry. Only structs carrying
+        %   a Uuid are touched. Entries written before data locations had a
+        %   uuid store a struct keyed by data location name; those are left
+        %   for the legacy handling in the DataLocation table variable.
+            if isempty(tableEntries) || ...
+                    ~ismember('DataLocation', tableEntries.Properties.VariableNames)
+                return
+            end
+
+            columnValues = tableEntries.DataLocation;
+
+            if iscell(columnValues)
+                columnValues = cellfun(@(value) applyIfDataLocationStruct(fcn, value), ...
+                    columnValues, 'UniformOutput', false);
+            else
+                columnValues = applyIfDataLocationStruct(fcn, columnValues);
+            end
+
+            tableEntries.DataLocation = columnValues;
+        end
+    end
+
     methods (Access = protected)
         function S = toFileStruct(obj)
         %toFileStruct Serialize MetaTable state to struct for saving
@@ -1174,12 +1262,19 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
         end
 
         function S = processFileStruct(obj, S)
-        %processFileStruct Synchronize to master before saving (if dummy)
+        %processFileStruct Synchronize to master, then reduce data locations, before saving
+
+            % The master holds expanded entries in memory and compares the
+            % incoming entries against them to decide what changed, so it
+            % receives them expanded. Reducing happens after, for this
+            % table's own file; the master reduces when it writes its own.
             if ~obj.IsMaster && ~isempty(S.MetaTableEntries)
                 catalog = nansen.metadata.MetaTableCatalog();
                 catalog.synchronizeToMaster(obj, S)
                 S.MetaTableEntries = S.MetaTableEntries([], :);
             end
+
+            S.MetaTableEntries = obj.reduceDataLocationColumn(S.MetaTableEntries);
         end
 
         function onAfterLoad(obj)
@@ -1469,6 +1564,18 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             valueForComparison = newValue;
             if iscell(valueForComparison) && isscalar(valueForComparison)
                 valueForComparison = valueForComparison{1};
+            end
+
+            % A table opened without a data location model keeps its data
+            % locations in the stored form, without the fields that a
+            % session object derives. A struct column must keep one set of
+            % fields, so the session's value is reduced to that form.
+            if strcmp(propertyName, 'DataLocation') && isstruct(currentValue) ...
+                    && isstruct(valueForComparison) && ~isfield(currentValue, 'RootPath') ...
+                    && isfield(valueForComparison, 'RootPath')
+                reduceInfo = @nansen.config.dloc.DataLocationModel.reduceDataLocationInfo;
+                valueForComparison = reduceInfo(valueForComparison);
+                newValue = valueForComparison;
             end
 
             if isequaln(currentValue, valueForComparison)
@@ -1761,4 +1868,11 @@ classdef MetaTable < handle & nansen.metadata.mixin.VersionedFile
             filePath = fullfile(catalogFolder, entry.FileName{1});
         end
     end
+end
+
+function value = applyIfDataLocationStruct(fcn, value)
+%applyIfDataLocationStruct Apply fcn to a data location struct, pass anything else through
+    if ~isstruct(value) || isempty(value) || ~isfield(value, 'Uuid'); return; end
+
+    value = fcn(value);
 end
