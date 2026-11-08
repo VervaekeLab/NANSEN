@@ -3,8 +3,9 @@ function obj = instance(userName, mode, skipProjectCheck, options)
 %
 %   Input arguments:
 %       userName    - string, name of the user profile to open. Each
-%           profile keeps its own preferences and projects in its own
-%           preference directory. Defaults to the "default" profile.
+%           profile keeps its preferences in its own preference directory,
+%           and its projects and configurations in its own user data
+%           directory. Defaults to the "default" profile.
 %       mode        - char, 'check' (default) | 'force' | 'nocreate' | 'reset'
 %       skipProjectCheck - logical (default = false)
 %
