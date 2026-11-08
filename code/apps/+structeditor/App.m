@@ -52,12 +52,29 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 %       LabelPosition
 %       TabMode
 %       Callback
+%       ValidationFcn
+%           Function handle that checks the entered values when Save is
+%           pressed. It takes the values in the form the editor returns them
+%           and returns text giving the reason they cannot be saved, or empty
+%           text if they can be saved. A string array gives several reasons.
+%           When there is a reason, the editor shows it in an error dialog
+%           and stays open. Cancel does not call the function.
+%
+%           Example:
+%               h = structeditor(S, 'ValidationFcn', @getNameProblem);
+%
+%               function problem = getNameProblem(S)
+%                   problem = "";
+%                   if ~isvarname(S.Name)
+%                       problem = "The name must be a valid variable name.";
+%                   end
+%               end
 
 %   Todo list:
 %
 %      *[ ] Implement dependable fields...
-%       [ ] Implement validation of inputs. Each field should have a
-%           validation function to test that the entered value is valid.
+%       [ ] Mark required fields in the form, and support validation
+%           functions for individual fields.
 %       [ ] Implement transient fields
 %           Q: 1) How are these updated? Is there any way of making that
 %           simple, or not? True/false, enable/disable...
@@ -131,7 +148,7 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
         Callback
         TestFunc % Why is there a second one????
 
-        ValidationFcn % todo
+        ValidationFcn function_handle = function_handle.empty % Checks the entered values when Save is pressed
         ValueChangedFcn
     end
 
@@ -3010,6 +3027,15 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
         function quit(obj, action)
 
+            if strcmp(action, 'Save')
+                problem = obj.getInputProblem();
+                if ~isempty(problem)
+                    % The editor stays open so the user can correct the values.
+                    obj.showInputProblem(problem)
+                    return
+                end
+            end
+
             switch action
                 case 'Cancel'
                     obj.wasCanceled = true;
@@ -3034,6 +3060,38 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
     end
 
     methods (Access = protected) % Saving
+
+        function problem = getInputProblem(obj)
+        %getInputProblem Get the reasons the entered values cannot be saved
+        %
+        %   problem is a string array without empty elements. It is empty if
+        %   the values can be saved.
+
+            arguments
+                obj (1,1) structeditor.App
+            end
+
+            problem = string.empty;
+
+            if isempty(obj.ValidationFcn)
+                return
+            end
+
+            enteredValues = obj.convertToOutputFormat(obj.dataEdit);
+            problem = string(obj.ValidationFcn(enteredValues));
+            problem = problem(strlength(problem) > 0);
+        end
+
+        function showInputProblem(~, problem)
+        %showInputProblem Tell the user why the entered values cannot be saved
+
+            arguments
+                ~
+                problem string
+            end
+
+            errordlg(cellstr(problem), 'Invalid Input', 'modal')
+        end
 
         function output = convertToOutputFormat(obj, pages)
         %convertToOutputFormat Convert per-page data to the form the editor returns
