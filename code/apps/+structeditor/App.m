@@ -3017,16 +3017,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                     obj.wasCanceled = false;
             end
 
-            % make sure output is not a cell if only 1 panel...
-            if obj.numTabs == 1
-                obj.dataOrig = obj.dataOrig{1};
-                obj.dataEdit = obj.dataEdit{1};
-            end
-
-            if obj.ConvertOutputToStruct
-                obj.dataOrig = cell2struct(obj.dataOrig, obj.Name);
-                obj.dataEdit = cell2struct(obj.dataEdit, obj.Name);
-            end
+            obj.dataOrig = obj.convertToOutputFormat(obj.dataOrig);
+            obj.dataEdit = obj.convertToOutputFormat(obj.dataEdit);
 
             uiresume(obj.Figure)
 
@@ -3038,6 +3030,28 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
             drawnow
 
             obj.notify('AppDestroyed', event.EventData)
+        end
+    end
+
+    methods (Access = protected) % Saving
+
+        function output = convertToOutputFormat(obj, pages)
+        %convertToOutputFormat Convert per-page data to the form the editor returns
+
+            arguments
+                obj (1,1) structeditor.App
+                pages cell
+            end
+
+            output = pages;
+
+            if obj.numTabs == 1
+                output = output{1};
+            end
+
+            if obj.ConvertOutputToStruct
+                output = cell2struct(output, obj.Name);
+            end
         end
     end
 
