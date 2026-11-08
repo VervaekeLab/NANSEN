@@ -9,3 +9,4 @@
 %   addUiwidgetsJarToJavaClassPath  - Add the Widgets Toolbox jar to the Java class path
 %   isUiwidgetsOnJavapath           - True if the Widgets Toolbox jar is on the Java class path
 %   checkWidgetsToolboxVersion      - Verify the installed Widgets Toolbox version
+%   findInstallationProblems        - List what is missing from this installation of NANSEN
