@@ -8,11 +8,7 @@ function createFileAdapter()
     if wasAborted
         return
     else
-        % Convert attributes collected via user interaction to a
-        % FileAttributes meta object
-        opts = S;
-        opts = rmfield(opts, "AdapterType");
-        fileAdapterMeta = nansen.plugin.fileadapter.FileAdapterMeta(opts);
-        nansen.plugin.fileadapter.createFileAdapter(targetPath, fileAdapterMeta, S.AdapterType)
+        [fileAdapterMeta, adapterType] = nansen.plugin.fileadapter.internal.attributes2meta(S);
+        nansen.plugin.fileadapter.createFileAdapter(targetPath, fileAdapterMeta, adapterType)
     end
 end
