@@ -35,7 +35,7 @@ function wasSuccess = createNewSessionMethod(itemType, options)
     titleStr = sprintf('Create %s Method', itemType);
     messageStr = sprintf('Configure new %s method:', itemType);
 
-    methodsFolder = nansen.session.methods.getProjectsSessionMethodsDirectory(itemType);
+    methodsFolder = nansen.session.methods.template.internal.getProjectsSessionMethodsDirectory(itemType);
     getProblem = @(values) nansen.session.methods.template.internal.getInputProblem(values, methodsFolder);
 
     [S, wasAborted] = tools.editStruct(S, '', titleStr, ...

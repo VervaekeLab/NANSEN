@@ -142,7 +142,7 @@ classdef CreateNewSessionMethodTest < matlab.unittest.TestCase
         end
 
         function folderPath = getMethodsFolder(~)
-            folderPath = string(nansen.session.methods.getProjectsSessionMethodsDirectory("Session"));
+            folderPath = string(nansen.session.methods.template.internal.getProjectsSessionMethodsDirectory("Session"));
         end
 
         function [menuLocation, methodName] = findModuleMethod(testCase)
