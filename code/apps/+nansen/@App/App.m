@@ -4582,7 +4582,13 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             if wasAborted
                 return
             else
-                nansen.plugin.fileadapter.createFileAdapter(targetPath, S)
+                [fileAdapterMeta, adapterType] = nansen.plugin.fileadapter.internal.attributes2meta(S);
+
+                % A data variable creates its file adapter by calling the
+                % adapter's class, so the file adapter must be class-based.
+                fileAdapterMeta.ImplementationType = "Class";
+
+                nansen.plugin.fileadapter.createFileAdapter(targetPath, fileAdapterMeta, adapterType)
             end
             % Todo: Trigger update?
         end
