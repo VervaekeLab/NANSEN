@@ -1,8 +1,8 @@
 classdef NewSessionMethodInputTest < matlab.unittest.TestCase
 %NewSessionMethodInputTest Which values can be used to create a session method
 %
-%   Covers nansen.session.methods.template.getInputProblem and
-%   nansen.session.methods.template.getTargetFilePath, which the dialog of
+%   Covers nansen.session.methods.template.internal.getInputProblem and
+%   nansen.session.methods.template.internal.getTargetFilePath, which the dialog of
 %   createNewSessionMethod relies on. Everything happens in a temporary
 %   folder that stands in for the method folder of a project.
 %
@@ -83,7 +83,7 @@ classdef NewSessionMethodInputTest < matlab.unittest.TestCase
         end
 
         function testFileIsInNestedNamespaces(testCase)
-            filePath = nansen.session.methods.template.getTargetFilePath( ...
+            filePath = nansen.session.methods.template.internal.getTargetFilePath( ...
                 testCase.createValues('newMethod', 'analysis, stats'), testCase.MethodsFolder);
 
             expectedPath = fullfile(testCase.MethodsFolder, ...
@@ -95,7 +95,7 @@ classdef NewSessionMethodInputTest < matlab.unittest.TestCase
     methods (Access = private)
 
         function problem = getProblem(testCase, methodName, subLocation)
-            problem = nansen.session.methods.template.getInputProblem( ...
+            problem = nansen.session.methods.template.internal.getInputProblem( ...
                 testCase.createValues(methodName, subLocation), testCase.MethodsFolder);
         end
 
@@ -106,7 +106,7 @@ classdef NewSessionMethodInputTest < matlab.unittest.TestCase
         end
 
         function createMethodFile(testCase, methodName, subLocation)
-            filePath = nansen.session.methods.template.getTargetFilePath( ...
+            filePath = nansen.session.methods.template.internal.getTargetFilePath( ...
                 testCase.createValues(methodName, subLocation), testCase.MethodsFolder);
             mkdir(fileparts(filePath))
             writelines("% code the user wrote", filePath)

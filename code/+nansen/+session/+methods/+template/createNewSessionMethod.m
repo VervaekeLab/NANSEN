@@ -5,8 +5,6 @@ function wasSuccess = createNewSessionMethod(itemType, options)
 %   new method template in the method folder of the current project. The
 %   dialog stays open until its values can be used for a new method, or
 %   until the dialog is cancelled. wasSuccess is false if it was cancelled.
-%
-%   See also nansen.session.methods.template.getInputProblem
 
 % Todo: generalize to apply to any item type
 
@@ -38,7 +36,7 @@ function wasSuccess = createNewSessionMethod(itemType, options)
     messageStr = sprintf('Configure new %s method:', itemType);
 
     methodsFolder = nansen.session.methods.getProjectsSessionMethodsDirectory(itemType);
-    getProblem = @(values) nansen.session.methods.template.getInputProblem(values, methodsFolder);
+    getProblem = @(values) nansen.session.methods.template.internal.getInputProblem(values, methodsFolder);
 
     [S, wasAborted] = tools.editStruct(S, '', titleStr, ...
                 'Prompt', messageStr, ...
@@ -106,7 +104,7 @@ function wasSuccess = createNewSessionMethod(itemType, options)
     end
 
     % Save template
-    filePath = nansen.session.methods.template.getTargetFilePath(S, methodsFolder);
+    filePath = nansen.session.methods.template.internal.getTargetFilePath(S, methodsFolder);
 
     targetFolder = fileparts(filePath);
     if ~isfolder(targetFolder)

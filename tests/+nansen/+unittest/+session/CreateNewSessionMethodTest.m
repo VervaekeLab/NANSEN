@@ -115,6 +115,17 @@ classdef CreateNewSessionMethodTest < matlab.unittest.TestCase
 
             testCase.verifyEqual(getProblem(testCase.createValues('newMethod')), "")
         end
+
+        function testDialogAcceptsNameOfModuleMethod(testCase)
+        %testDialogAcceptsNameOfModuleMethod A project can override a module method
+            [menuLocation, methodName] = testCase.findModuleMethod();
+            getProblem = testCase.getDialogValidationFcn();
+
+            values = struct('MethodName', methodName, ...
+                'MenuLocation', menuLocation, 'MenuSubLocation', '');
+
+            testCase.verifyEqual(getProblem(values), "")
+        end
     end
 
     methods (Access = private)
@@ -132,6 +143,21 @@ classdef CreateNewSessionMethodTest < matlab.unittest.TestCase
 
         function folderPath = getMethodsFolder(~)
             folderPath = string(nansen.session.methods.getProjectsSessionMethodsDirectory("Session"));
+        end
+
+        function [menuLocation, methodName] = findModuleMethod(testCase)
+        %findModuleMethod Get the location of a method from a module of the project
+            folderPaths = nansen.getCurrentProject().getObjectMethodFolder("Session");
+            moduleFolders = folderPaths(2:end);
+
+            listings = cellfun(@(folderPath) dir(fullfile(folderPath, "+*", "*.m")), ...
+                moduleFolders, 'UniformOutput', false);
+            listing = vertcat(listings{:});
+            testCase.assumeNotEmpty(listing, 'Expected the project to include a module with methods.')
+
+            [~, menuFolderName] = fileparts(listing(1).folder);
+            menuLocation = extractAfter(menuFolderName, '+');
+            [~, methodName] = fileparts(listing(1).name);
         end
     end
 

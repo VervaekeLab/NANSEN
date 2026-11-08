@@ -9,8 +9,9 @@ function problem = getInputProblem(values, methodsFolder)
 %   The method name becomes the name of a function or class, and each name
 %   in MenuSubLocation becomes the name of a namespace, so they have to be
 %   valid MATLAB identifiers. MenuSubLocation may be empty. A method must
-%   not already exist at the same location, because the template would
-%   replace its file.
+%   not already exist at the same location in methodsFolder, because the
+%   template would replace its file. Modules keep their methods in other
+%   folders, so a project can override a method from a module.
 %
 %   Input Arguments:
 %       values : Struct with the fields MethodName, MenuLocation and
@@ -18,7 +19,7 @@ function problem = getInputProblem(values, methodsFolder)
 %       methodsFolder : Root folder of the methods of the project.
 %
 %   See also nansen.session.methods.template.createNewSessionMethod
-%   nansen.session.methods.template.getTargetFilePath
+%   nansen.session.methods.template.internal.getTargetFilePath
 
     arguments
         values (1,1) struct
@@ -26,7 +27,7 @@ function problem = getInputProblem(values, methodsFolder)
     end
 
     [filePath, subLocationNames] = ...
-        nansen.session.methods.template.getTargetFilePath(values, methodsFolder);
+        nansen.session.methods.template.internal.getTargetFilePath(values, methodsFolder);
     methodName = string(values.MethodName);
 
     problem = "";
