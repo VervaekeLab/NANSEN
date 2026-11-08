@@ -1451,7 +1451,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                         y = y + obj.RowSpacing;
                         yInit = y - obj.RowSpacing;
 
-                        for i = 1:numel(propertyFields)
+                        % Rows are placed upward, so the last subfield comes first.
+                        for i = numel(propertyFields):-1:1
                             currentField = propertyFields{i};
                             if endsWith(currentField, "_")
                                 continue
