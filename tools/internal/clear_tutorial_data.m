@@ -16,11 +16,11 @@ end
 
 % The tutorial profile keeps its preferences in the preference directory of
 % this MATLAB release, and its catalog and configurations in its user data
-% directory under the userpath. Without a userpath the two are the same.
+% directory under the userpath.
 preferenceDirectory = nansen.internal.user.NansenUserSession.getPrefdir(tutorialUserName);
 userDataDirectory = nansen.internal.user.NansenUserSession.getDefaultUserDataDirectory(tutorialUserName);
 
-if isfolder(userDataDirectory) && ~nansen.util.path.isSamePath(userDataDirectory, preferenceDirectory)
+if isfolder(userDataDirectory)
     rmdir(userDataDirectory, "s")
 end
 

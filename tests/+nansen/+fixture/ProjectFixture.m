@@ -83,9 +83,7 @@ classdef ProjectFixture < matlab.unittest.fixtures.Fixture
 
             NansenUserSession.instance(profileName, "reset");
 
-            % The two coincide when userpath is empty
-            if ~nansen.util.path.isSamePath(userDataDirectory, preferenceDirectory) ...
-                    && isfolder(userDataDirectory)
+            if isfolder(userDataDirectory)
                 rmdir(userDataDirectory, "s")
             end
             if isfolder(preferenceDirectory)
