@@ -1,5 +1,10 @@
 function wasSuccess = createNewSessionMethod(itemType, options)
 %createNewSessionMethod Let user interactively create a new session method template
+%
+%   wasSuccess = createNewSessionMethod(itemType) opens a dialog and saves a
+%   new method template in the method folder of the current project. The
+%   dialog stays open until its values can be used for a new method, or
+%   until the dialog is cancelled. wasSuccess is false if it was cancelled.
 
 % Todo: generalize to apply to any item type
 
@@ -25,18 +30,20 @@ function wasSuccess = createNewSessionMethod(itemType, options)
     S.MenuLocation = options.GroupNames{1}; % use {} to ensure char type
     S.MenuLocation_ = cellstr(options.GroupNames); % add as cell array
 
-    S.MenuSubLocation = ''; % Free text...
+    S.MenuSubLocation = ''; % Optional. Comma-separated names of nested submenus
 
     titleStr = sprintf('Create %s Method', itemType);
     messageStr = sprintf('Configure new %s method:', itemType);
 
+    methodsFolder = nansen.session.methods.template.internal.getProjectsSessionMethodsDirectory(itemType);
+    getProblem = @(values) nansen.session.methods.template.internal.getInputProblem(values, methodsFolder);
+
     [S, wasAborted] = tools.editStruct(S, '', titleStr, ...
                 'Prompt', messageStr, ...
                 'ReferencePosition', options.WindowReferencePosition, ...
-                'ValueChangedFcn', @onValueChanged );
+                'ValidationFcn', getProblem);
 
     if wasAborted; return; end
-    if isempty(S.MethodName); return; end
     wasSuccess = true;
 
     switch S.Type
@@ -97,39 +104,18 @@ function wasSuccess = createNewSessionMethod(itemType, options)
     end
 
     % Save template
-    sMethodDir = nansen.session.methods.getProjectsSessionMethodsDirectory(itemType);
+    filePath = nansen.session.methods.template.internal.getTargetFilePath(S, methodsFolder);
 
-    if ~isempty(S.MenuSubLocation)
-        S.MenuLocation = [S.MenuLocation, strsplit(S.MenuSubLocation, ', ')];
-    else
-        S.MenuLocation = {S.MenuLocation};
+    targetFolder = fileparts(filePath);
+    if ~isfolder(targetFolder)
+        mkdir(targetFolder)
     end
 
-    subfolderNames = cellfun(@(c) ['+', c], S.MenuLocation, 'uni', 0);
-    fcnTargetPath = fullfile(sMethodDir, subfolderNames{:});
-    fcnFilename = [ S.MethodName, '.m' ];
-
-    if ~isfolder(fcnTargetPath); mkdir(fcnTargetPath); end
-
     % Create a new m-file and add the function template to the file.
-    fid = fopen(fullfile(fcnTargetPath, fcnFilename), 'w');
+    fid = fopen(filePath, 'w');
     fwrite(fid, fcnContentStr);
     fclose(fid);
 
     % Finally, open the function in the matlab editor.
-    edit(fullfile(fcnTargetPath, fcnFilename))
-end
-
-function onValueChanged(~, evt)
-
-    switch evt.Name
-        case {'MethodName', 'MenuSubLocation'}
-            if ~isvarname(evt.NewValue)
-                msg = sprintf('%s must be a valid matlab variable name', evt.Name);
-                formattedMsg = strcat('\fontsize{12}', msg);
-                opts = struct('WindowStyle', 'modal', 'Interpreter', 'tex');
-                errordlg(formattedMsg, 'Invalid Value', opts)
-                evt.UIControls.(evt.Name).String = evt.OldValue;
-            end
-    end
+    edit(char(filePath))
 end
