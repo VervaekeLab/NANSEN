@@ -29,8 +29,10 @@ function nansen_install(dependencyIds, options)
 %
 %   nansen_install(...,AddonFolder=FOLDER) installs the toolboxes in
 %   FOLDER instead of the default add-on folder of NANSEN. When the
-%   default folder is used and userpath is empty, nansen_install sets
-%   userpath first.
+%   default folder is used and userpath is empty, nansen_install asks for
+%   a folder and sets userpath to its MATLAB subfolder, which MATLAB keeps
+%   for later sessions. In batch mode, where MATLAB can not ask,
+%   nansen_install throws an error that says what to run.
 %
 %   Example: Install a toolbox that an error message says is missing
 %       nansen_install("flowreg")
