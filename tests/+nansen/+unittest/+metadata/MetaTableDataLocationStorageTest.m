@@ -100,6 +100,22 @@ classdef MetaTableDataLocationStorageTest < matlab.unittest.TestCase
                 'The remaining data locations should still be expanded.')
         end
 
+        function testValidatingPathsToleratesARemovedDataLocation(testCase)
+            % The app refreshes every entry's root path from the model
+            % through validateDataLocationPaths. An entry for a removed
+            % data location keeps its place and is marked unresolved.
+            model = nansen.DataLocationModel();
+            stored = testCase.makeStoredDataLocation(model);
+            stored(1).Uuid = 'not-a-data-location-in-this-model';
+
+            validated = model.validateDataLocationPaths(stored);
+
+            testCase.verifyTrue(isnan(validated(1).RootIdx))
+            testCase.verifyEqual(validated(1).Diskname, 'N/A')
+            testCase.verifyEqual(validated(end).RootIdx, 1, ...
+                'The remaining data locations should still be resolved.')
+        end
+
         function testSavedFileHoldsNoLocalPath(testCase)
             model = nansen.DataLocationModel();
             stored = testCase.makeStoredDataLocation(model);

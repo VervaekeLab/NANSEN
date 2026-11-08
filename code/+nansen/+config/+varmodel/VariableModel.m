@@ -108,7 +108,11 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
 
         function [S, isExistingEntry] = getVariableStructure(obj, varName)
 
-            S = obj.getItem(varName);
+            % An unknown name is expected here: it may be an alias, a file
+            % name expression, or a variable that does not exist yet, so the
+            % lookup must give an empty result instead of raising.
+            idx = obj.getItemIndex(varName);
+            S = obj.Data(idx);
 
             % Check if varname exists as alias:
             if isempty(S)
@@ -385,7 +389,10 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             if isempty(variableList); return; end
 
             dataLocationModel = nansen.DataLocationModel(); % dependent prop?
-            defaultDataLocation = dataLocationModel.getDefaultDataLocation;
+
+            % A model without a writable data location has no default, so
+            % the default is only looked up for a variable that needs it.
+            defaultDataLocation = [];
 
             % Insert variable specifications to the model
             for j = 1:numel(variableList)
@@ -393,6 +400,9 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
 
                 if ~any(obj.containsItem(thisName))
                     if useDefaultDataLocation(variableList(j).DataLocation)     % Local function
+                        if isempty(defaultDataLocation)
+                            defaultDataLocation = dataLocationModel.getDefaultDataLocation();
+                        end
                         variableList(j).DataLocation = defaultDataLocation.Name;
                         variableList(j).DataLocationUuid = defaultDataLocation.Uuid;
                     end
