@@ -26,7 +26,7 @@ function [updatedVariableNames, failureMessage] = updateSessionMetadata(sessionT
 %   failureMessage is "" when no extraction raised an error.
 %
 %   See also nansen.manage.updateSessionDatalocations,
-%            nansen.config.dloc.DataLocationModel
+%            nansen.config.dloc.DataLocationModel/getMetadataValue
 
     arguments
         sessionTable (1,1) nansen.metadata.MetaTable
@@ -42,9 +42,13 @@ function [updatedVariableNames, failureMessage] = updateSessionMetadata(sessionT
     end
 
     variableNames = ["subjectID", "Date", "Time"];
-    variableNames = variableNames(ismember(variableNames, entries.Properties.VariableNames));
+    definitionNames = ["Subject ID", "Experiment Date", "Experiment Time"];
 
-    sessionFolders = getSessionFolderPaths(entries.DataLocation, dataLocationModel);
+    isInTable = ismember(variableNames, entries.Properties.VariableNames);
+    variableNames = variableNames(isInTable);
+    definitionNames = definitionNames(isInTable);
+
+    dataLocationColumn = entries.DataLocation;
 
     numSessions = height(entries);
     numVariables = numel(variableNames);
@@ -54,7 +58,6 @@ function [updatedVariableNames, failureMessage] = updateSessionMetadata(sessionT
 
     for iVariable = 1:numVariables
         variableName = variableNames(iVariable);
-        extractValue = getValueExtractor(dataLocationModel, variableName);
 
         currentValues = getColumnValues(entries, variableName);
         newValues = currentValues;
@@ -62,7 +65,8 @@ function [updatedVariableNames, failureMessage] = updateSessionMetadata(sessionT
 
         for iSession = 1:numSessions
             try
-                value = extractFirstValue(extractValue, sessionFolders{iSession});
+                value = dataLocationModel.getMetadataValue(definitionNames(iVariable), ...
+                    getDataLocations(dataLocationColumn, iSession));
             catch exception
                 hasFailed(iSession, iVariable) = true;
                 if firstErrorMessages(iVariable) == ""
@@ -71,7 +75,7 @@ function [updatedVariableNames, failureMessage] = updateSessionMetadata(sessionT
                 continue
             end
 
-            if ~isMissingValue(value) && ...
+            if ~isempty(value) && ...
                     ~isSameValue(variableName, currentValues{iSession}, value)
                 newValues{iSession} = value;
                 isChanged(iSession) = true;
@@ -93,99 +97,20 @@ function [updatedVariableNames, failureMessage] = updateSessionMetadata(sessionT
     end
 end
 
-function sessionFolders = getSessionFolderPaths(dataLocationColumn, dataLocationModel)
-%getSessionFolderPaths Folder paths of each session, in the order of the model
+function dataLocations = getDataLocations(dataLocationColumn, rowIndex)
+%getDataLocations Data locations of a row of the table
 %
-%   sessionFolders{i} is a struct array with the fields Path and
-%   DataLocationIndex. It holds one element for each data location in
-%   which session i has a folder, sorted by the position of the data
-%   location in dataLocationModel. A data location whose root path is not
-%   known on this computer gives no path, and is left out.
-
-    numSessions = size(dataLocationColumn, 1);
-    sessionFolders = cell(numSessions, 1);
-
-    for iSession = 1:numSessions
-        if iscell(dataLocationColumn)
-            dataLocations = dataLocationColumn{iSession};
-        else
-            dataLocations = dataLocationColumn(iSession, :);
-        end
-
-        % A struct without a uuid is in the format used before data
-        % locations had one, and can not be matched to the model.
-        if ~isstruct(dataLocations) || ~isfield(dataLocations, 'Uuid')
-            sessionFolders{iSession} = struct('Path', {}, 'DataLocationIndex', {});
-            continue
-        end
-
-        dataLocations = dataLocationModel.expandDataLocationInfo(dataLocations);
-
-        numDataLocations = numel(dataLocations);
-        folders = struct('Path', repmat({''}, 1, numDataLocations), ...
-            'DataLocationIndex', NaN);
-
-        for iDataLocation = 1:numDataLocations
-            thisDataLocation = dataLocations(iDataLocation);
-            if isempty(thisDataLocation.RootPath) || isempty(thisDataLocation.Subfolders)
-                continue
-            end
-
-            dataLocationIndex = dataLocationModel.getItemIndex(thisDataLocation.Uuid);
-            if isscalar(dataLocationIndex)
-                folders(iDataLocation).Path = fullfile( ...
-                    thisDataLocation.RootPath, thisDataLocation.Subfolders);
-                folders(iDataLocation).DataLocationIndex = dataLocationIndex;
-            end
-        end
-
-        folders = folders(~isnan([folders.DataLocationIndex]));
-        [~, sortOrder] = sort([folders.DataLocationIndex]);
-        sessionFolders{iSession} = folders(sortOrder);
-    end
-end
-
-function extractValue = getValueExtractor(dataLocationModel, variableName)
-%getValueExtractor Function that extracts the value of a column from a folder path
-    switch variableName
-        case "subjectID"
-            extractValue = @(pathStr, index) dataLocationModel.getSubjectID(pathStr, index);
-        case "Date"
-            extractValue = @(pathStr, index) dataLocationModel.getDate(pathStr, index);
-        case "Time"
-            extractValue = @(pathStr, index) dataLocationModel.getTime(pathStr, index);
-        otherwise
-            error('NANSEN:SessionMetadata:UnsupportedVariable', ...
-                'Values of the column "%s" are not extracted from folder paths.', variableName)
-    end
-end
-
-function value = extractFirstValue(extractValue, folders)
-%extractFirstValue Value from the first folder that gives one
-%
-%   Returns an empty value when no folder gives a value.
-    value = '';
-    for iFolder = 1:numel(folders)
-        value = extractValue(folders(iFolder).Path, folders(iFolder).DataLocationIndex);
-        if ~isMissingValue(value)
-            break
-        end
-    end
-
-    % Text columns of a session table hold character vectors.
-    if isstring(value) && isscalar(value)
-        value = char(value);
-    end
-end
-
-function tf = isMissingValue(value)
-%isMissingValue True for the values that extraction gives when nothing is found
-    if isdatetime(value)
-        tf = isempty(value) || all(isnat(value));
-    elseif ischar(value) || isstring(value)
-        tf = all(strlength(value) == 0);
+%   A struct without a uuid is in the format used before data locations
+%   had one, and can not be matched to a data location model. Such a row
+%   gives an empty struct, like a row without data locations.
+    if iscell(dataLocationColumn)
+        dataLocations = dataLocationColumn{rowIndex};
     else
-        tf = isempty(value);
+        dataLocations = dataLocationColumn(rowIndex, :);
+    end
+
+    if ~isstruct(dataLocations) || ~isfield(dataLocations, 'Uuid')
+        dataLocations = struct.empty;
     end
 end
 
