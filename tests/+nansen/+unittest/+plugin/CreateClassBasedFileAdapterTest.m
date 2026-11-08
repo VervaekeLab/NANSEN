@@ -17,6 +17,13 @@ classdef CreateClassBasedFileAdapterTest < matlab.unittest.TestCase
         AdapterVariant = struct( ...
             'ReadOnly', struct('AdapterType', "R", 'ClassName', "GeneratedReadOnlyFileAdapter"), ...
             'ReadWrite', struct('AdapterType', "RW", 'ClassName', "GeneratedReadWriteFileAdapter"))
+
+        % A class name per case keeps one case from loading the class that
+        % another case generated.
+        DescriptionCase = struct( ...
+            'PlainText', struct('Text', 'Recordings from the example rig', 'ClassSuffix', "Plain"), ...
+            'QuoteCharacters', struct('Text', 'Don''t use the "raw" channel', 'ClassSuffix', "Quoted"), ...
+            'Empty', struct('Text', '', 'ClassSuffix', "Empty"))
     end
 
     methods (Access = private)
@@ -33,10 +40,18 @@ classdef CreateClassBasedFileAdapterTest < matlab.unittest.TestCase
             testCase.applyFixture(PathFixture(folderPath));
         end
 
-        function generateFileAdapter(testCase, variant, dataType)
+        function generateFileAdapter(testCase, variant, dataType, description)
         %generateFileAdapter Generate an adapter class in a temporary folder
+            arguments
+                testCase
+                variant (1,1) struct
+                dataType (1,1) string
+                description (1,1) string = ""
+            end
+
             metaProperties = struct( ...
                 'Name', variant.ClassName, ...
+                'Description', description, ...
                 'SupportedFileTypes', ["dat", "bin"], ...
                 'DataType', dataType);
             fileAdapterMeta = nansen.plugin.fileadapter.FileAdapterMeta(metaProperties);
@@ -48,6 +63,16 @@ classdef CreateClassBasedFileAdapterTest < matlab.unittest.TestCase
                 templateFolder, testCase.createTargetFolderOnPath(), ...
                 fileAdapterMeta, variant.AdapterType);
         end
+
+        function value = getPropertyDefault(testCase, className, propertyName)
+        %getPropertyDefault Read the default value of a generated class property
+            classInfo = meta.class.fromName(className);
+            testCase.assertNotEmpty(classInfo)
+            isProperty = string({classInfo.PropertyList.Name}) == propertyName;
+            testCase.assertTrue(any(isProperty), ...
+                sprintf('Expected class "%s" to have property "%s"', className, propertyName))
+            value = classInfo.PropertyList(isProperty).DefaultValue;
+        end
     end
 
     methods (Test)
@@ -57,10 +82,19 @@ classdef CreateClassBasedFileAdapterTest < matlab.unittest.TestCase
 
             testCase.generateFileAdapter(AdapterVariant, dataType)
 
-            classInfo = meta.class.fromName(AdapterVariant.ClassName);
-            testCase.assertNotEmpty(classInfo)
-            isDataType = string({classInfo.PropertyList.Name}) == "DataType";
-            testCase.verifyEqual(classInfo.PropertyList(isDataType).DefaultValue, dataType)
+            testCase.verifyEqual( ...
+                testCase.getPropertyDefault(AdapterVariant.ClassName, "DataType"), dataType)
+        end
+
+        function testDescriptionIsTheGivenText(testCase, AdapterVariant, DescriptionCase)
+            variant = AdapterVariant;
+            variant.ClassName = variant.ClassName + DescriptionCase.ClassSuffix;
+
+            testCase.generateFileAdapter(variant, "double", DescriptionCase.Text)
+
+            % Expected as char because the metadata file writer rejects strings.
+            testCase.verifyEqual( ...
+                testCase.getPropertyDefault(variant.ClassName, "Description"), DescriptionCase.Text)
         end
     end
 end

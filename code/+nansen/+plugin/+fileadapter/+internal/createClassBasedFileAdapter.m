@@ -34,6 +34,11 @@ function templateTargetPath = createClassBasedFileAdapter(templateFolder, target
 
     fileAdapterInfo.SupportedFileTypes = cellstr(fileAdapterInfo.SupportedFileTypes);
 
+    % The templates write the description as a char literal, the text type
+    % that the YAML metadata file writer accepts. A quote character in a
+    % char literal must be doubled.
+    fileAdapterInfo.Description = replace(fileAdapterInfo.Description, "'", "''");
+
     % Read file contents
     classdefStr = fileread(newFilepath);
 
