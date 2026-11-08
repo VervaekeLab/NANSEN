@@ -13,11 +13,17 @@ function reorganizeProjectFolder(projectFolderPath, projectManager)
 %       session methods
 %       table variables
 %       configs
+%
+%   If a step fails, the project folder is restored from the backup, a
+%   project that was in the catalog is put back there, and the error is
+%   rethrown. The folder then still has the old layout, so the upgrade can
+%   be tried again.
 
     % Make backup
     projectFolderPathBackup = backupProjectFolder(projectFolderPath);
 
-    % If something fails, move backup back to original location
+    removedCatalogEntry = struct.empty;
+
     try
         % Load old project configuration file
         S = loadOldConfigurations(projectFolderPathBackup);
@@ -33,6 +39,7 @@ function reorganizeProjectFolder(projectFolderPath, projectManager)
 
         % Remove project from projectManager
         if projectManager.containsProject(name)
+            removedCatalogEntry = projectManager.getProject(name);
             projectManager.removeProject(name)
         end
 
@@ -82,12 +89,31 @@ function reorganizeProjectFolder(projectFolderPath, projectManager)
                 movefile(thisFilePath, newFilePath)
             end
         end
-    catch ME %#ok<NASGU>
+    catch ME
+        % The catalog entry comes first, so that a project whose folder can
+        % not be restored is still listed and reported as missing.
+        restoreCatalogEntry(projectManager, removedCatalogEntry)
+
         if isfolder(projectFolderPath)
             rmdir(projectFolderPath, 'S')
         end
         copyfile(projectFolderPathBackup, projectFolderPath);
+
+        rethrow(ME)
     end
+end
+
+function restoreCatalogEntry(projectManager, catalogEntry)
+%restoreCatalogEntry Add a removed project back to the catalog
+%
+%   createProject adds the project to the catalog before the later steps of
+%   the upgrade run, so the entry is already there if one of those failed.
+
+    if isempty(catalogEntry) || projectManager.containsProject(catalogEntry.Name)
+        return
+    end
+
+    projectManager.addProject(catalogEntry.Name, catalogEntry.Description, catalogEntry.Path)
 end
 
 function backupFolderPath = backupProjectFolder(projectFolderPath)

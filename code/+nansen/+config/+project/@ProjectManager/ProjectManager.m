@@ -1082,7 +1082,7 @@ classdef ProjectManager < handle
                         nansen.internal.refactor.reorganizeProjectFolder(thisProjectDir, obj)
                         nansen.internal.refactor.updateVariableCatalog(thisProjectDir)
                     catch ME
-                        disp(getReport(ME, 'extended'))
+                        showProjectUpgradeWarning(thisProjectDir, ME)
                     end
                 end
             end
@@ -1115,6 +1115,26 @@ end
 function throwProjectNotFoundError(projectName)
     error('NANSEN:ProjectManager:ProjectNotFound', ...
         'Project with name "%s" does not exist.', projectName)
+end
+
+function showProjectUpgradeWarning(projectFolder, exception)
+%showProjectUpgradeWarning Report a project folder that failed to upgrade
+
+    % createProject reports what went wrong as the cause of a general error
+    rootCause = exception;
+    while ~isempty(rootCause.cause)
+        rootCause = rootCause.cause{1};
+    end
+
+    nansen.common.tracelesswarning( ...
+        'NANSEN:ProjectManager:ProjectUpgradeFailed', ...
+        ['Updating the project folder "%s" to this version of NANSEN failed.\n', ...
+        'Reason: %s\n', ...
+        'A folder that was not updated is left as it was, and the update is ', ...
+        'tried again the next time NANSEN starts. If the reason names a ', ...
+        'function or class that can not be found, run nansen_install to ', ...
+        'install what NANSEN needs and add it to the search path.'], ...
+        projectFolder, rootCause.message)
 end
 
 function showProjectMissingWarning(projectName, projectFolder)
