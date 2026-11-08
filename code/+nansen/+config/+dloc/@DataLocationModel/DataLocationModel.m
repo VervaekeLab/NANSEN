@@ -652,6 +652,77 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 value = substring;
             end
         end
+
+        function value = getMetadataValue(obj, variableName, dataLocations)
+        % getMetadataValue - Extract a metadata value from a session's folders
+        %
+        %   value = getMetadataValue(obj, variableName, dataLocations)
+        %   extracts the value of a metadata variable from the folders of
+        %   a session. The data locations are tried in the order of this
+        %   model, and the first value found is returned. value is '' when
+        %   no data location gives one. A data location is passed over when
+        %   the session has no folder in it, when this model does not hold
+        %   it, or when its root path is not known on this computer.
+        %
+        %   An error raised by an extraction rule is not handled here, so
+        %   it reaches the caller.
+        %
+        %   Inputs:
+        %       variableName  : "Subject ID", "Session ID", "Experiment
+        %                       Date" or "Experiment Time"
+        %       dataLocations : Struct array describing the session's data
+        %                       locations, with the fields Uuid, RootUid
+        %                       and Subfolders
+        %
+        %   Output:
+        %       value : Text as a character vector, or a datetime value for
+        %               a date or time whose definition has a format
+
+            arguments
+                obj (1,1) nansen.config.dloc.DataLocationModel
+                variableName (1,1) string
+                dataLocations struct
+            end
+
+            switch variableName
+                case "Subject ID"
+                    extractValue = @obj.getSubjectID;
+                case "Session ID"
+                    extractValue = @obj.getSessionID;
+                case "Experiment Date"
+                    extractValue = @obj.getDate;
+                case "Experiment Time"
+                    extractValue = @obj.getTime;
+                otherwise
+                    error('NANSEN:DataLocationModel:UnknownMetadataVariable', ...
+                        '"%s" is not a metadata variable of a data location.', variableName)
+            end
+
+            value = '';
+
+            if isempty(dataLocations); return; end
+
+            dataLocations = obj.expandDataLocationInfo(dataLocations);
+            sessionUuids = {dataLocations.Uuid};
+
+            for iDataLocation = 1:obj.NumDataLocations
+                isThisDataLocation = strcmp(sessionUuids, obj.Data(iDataLocation).Uuid);
+                thisDataLocation = dataLocations(isThisDataLocation);
+
+                if ~isscalar(thisDataLocation) || isempty(thisDataLocation.RootPath) ...
+                        || isempty(thisDataLocation.Subfolders)
+                    continue
+                end
+
+                pathStr = fullfile(thisDataLocation.RootPath, thisDataLocation.Subfolders);
+                extractedValue = extractValue(pathStr, iDataLocation);
+
+                if ~isMissingValue(extractedValue)
+                    value = convertStringsToChars(extractedValue);
+                    return
+                end
+            end
+        end
     end
 
     methods % Utility methods
@@ -1245,5 +1316,16 @@ classdef DataLocationModel < utility.data.StorableCatalog
                     substring = '';
             end
         end
+    end
+end
+
+function tf = isMissingValue(value)
+%isMissingValue True for what an extraction rule gives when it finds no value
+    if isdatetime(value)
+        tf = isempty(value) || all(isnat(value));
+    elseif ischar(value) || isstring(value)
+        tf = all(strlength(value) == 0);
+    else
+        tf = isempty(value);
     end
 end
