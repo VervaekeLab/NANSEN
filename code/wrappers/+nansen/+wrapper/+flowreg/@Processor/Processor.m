@@ -405,7 +405,7 @@ classdef Processor < nansen.processing.MotionCorrection & ...
         pathList = getDependentPaths() % Method in external file.
 
         function assertAddonInstalled()
-            if ~exist('OF_Options', 'file')
+            if ~exist('OF_options', 'file')
                 error('FlowRegistration was not found on MATLAB''s search path')
             end
         end

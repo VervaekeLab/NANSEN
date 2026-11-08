@@ -100,8 +100,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
 
             % Add default data location to preferences
             if ~isfield(obj.Preferences, 'DefaultDataLocation')
-                obj.fixDefaultDataLocation()
-                dirty = true;
+                dirty = obj.fixDefaultDataLocation() || dirty;
             end
 
             % Rootpath field changed from cell array with 2 cells to root
@@ -199,8 +198,15 @@ classdef DataLocationModel < utility.data.StorableCatalog
         end
 
         function defaultDataLocation = get.DefaultDataLocation(obj)
+        %get.DefaultDataLocation Name of the default data location, or ''
+        %
+        %   A model whose data locations can only be read from has no
+        %   default, so the preference may be absent.
 
-            if isempty(obj.Data); defaultDataLocation = ''; return; end
+            defaultDataLocation = '';
+
+            if isempty(obj.Data); return; end
+            if ~isfield(obj.Preferences, 'DefaultDataLocation'); return; end
 
             dataLocationUuid = obj.Preferences.DefaultDataLocation;
             defaultDataLocation = obj.getNameFromUuid(dataLocationUuid);
@@ -358,8 +364,15 @@ classdef DataLocationModel < utility.data.StorableCatalog
 
             for i = 1:numDatalocations
 
-                dlUuid = dataLocationStructArray(1,i).Uuid;
-                dlInfo = obj.getItem(dlUuid);
+                % A table may refer to a data location that has since been
+                % removed from the model. Its entries are kept, with the
+                % root path marked as unresolved below.
+                dlIdx = obj.getItemIndex(dataLocationStructArray(1,i).Uuid);
+                if isempty(dlIdx)
+                    dlInfo = obj.getBlankItem();
+                else
+                    dlInfo = obj.Data(dlIdx);
+                end
 
                 for j = 1:numItems
 
@@ -543,7 +556,18 @@ classdef DataLocationModel < utility.data.StorableCatalog
 
         function dataLocationItem = getDefaultDataLocation(obj)
         %getDefaultDataLocation Get the default datalocation item
+        %
+        %   Throws NANSEN:DataLocationModel:NoDefaultDataLocation when the
+        %   model has no default, which is the case when every data location
+        %   can only be read from.
             dataLocationName = obj.DefaultDataLocation;
+            if isempty(dataLocationName)
+                error('NANSEN:DataLocationModel:NoDefaultDataLocation', ...
+                    ['The project has no default data location, so new data ', ...
+                    'has no place to be saved. Add a data location of type ', ...
+                    'processed, or set one as the default, in the data ', ...
+                    'location settings.'])
+            end
             dataLocationItem = obj.getDataLocation(dataLocationName);
         end
 
@@ -633,13 +657,24 @@ classdef DataLocationModel < utility.data.StorableCatalog
     methods % Utility methods
 
         function dlStruct = expandDataLocationInfo(obj, dlStruct)
-        %expandDataLocation Expand information of data location structure
+        %expandDataLocationInfo Expand information of data location structure
         %
-        %   dlStruct = dlm_obj.expandDataLocationInfo(dlStruct) add the
-        %   following fields to a data location structure:
-        %       Name : Name of datalocation
-        %       Type : Datalocation type
-        %       RootPath : Key, Value pair of local rootpath.
+        %   dlStruct = dlm_obj.expandDataLocationInfo(dlStruct) adds the
+        %   fields that this model derives for a data location:
+        %       Name     : Name of datalocation
+        %       Type     : Datalocation type
+        %       RootPath : Local root path for the RootUid of the struct
+        %       RootIdx  : Index of that root path in the model
+        %       Diskname : Disk name of that root path
+        %
+        %   The expanded fields describe this machine, so they are derived
+        %   on demand rather than stored. This is the inverse of
+        %   reduceDataLocationInfo.
+        %
+        %   A data location that the model no longer holds, or a root uid
+        %   it does not know, leaves the derived fields empty rather than
+        %   raising, so that a metatable referring to a removed data
+        %   location can still be opened.
 
             % Todo: Why is this sometimes a cell?
 
@@ -648,11 +683,20 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 warning('Data is in an unexpected format. This is not critical, but should be investigated.')
             end
 
+            if isempty(dlStruct); return; end
+
+            % Add the derived fields to every element up front, so that
+            % assigning into the array below can not fail on dissimilar
+            % structures.
+            dlStruct = obj.setDerivedFieldsToDefault(dlStruct);
+
             for iDl = 1:numel(dlStruct) %obj.NumDataLocations
 
-                dlUuid = dlStruct(iDl).Uuid;
-
-                thisDlItem = obj.getItem(dlUuid);
+                dlIdx = obj.getItemIndex(dlStruct(iDl).Uuid);
+                if isempty(dlIdx)
+                    continue % Data location is not in this model
+                end
+                thisDlItem = obj.Data(dlIdx);
 
                 % Add name and type fields
                 fields = {'Name', 'Type'};
@@ -660,23 +704,74 @@ classdef DataLocationModel < utility.data.StorableCatalog
                     dlStruct(iDl).(fields{k}) = thisDlItem.(fields{k});
                 end
 
-                % Add rootpath field
+                % Add the fields describing the root path on this machine
                 rootUid = dlStruct(iDl).RootUid;
                 rootIdx = find( strcmp( {thisDlItem.RootPath.Key}, rootUid ));
 
                 if ~isempty(rootIdx)
                     dlStruct(iDl).RootPath = thisDlItem.RootPath(rootIdx).Value;
+                    dlStruct(iDl).RootIdx = rootIdx;
+                    dlStruct(iDl).Diskname = thisDlItem.RootPath(rootIdx).DiskName;
                 end
             end
         end
+    end
 
-        function dlStruct = reduceDataLocationInfo(~, dlStruct)
+    methods (Static)
 
-            fieldsToRemove = {'Name', 'Type', 'RootPath'};
+        function fieldNames = getDerivedFieldNames()
+        %getDerivedFieldNames Data location fields derived from this model
+        %
+        %   These describe the model and the computer it is used on, not
+        %   the session, so they are not stored with a session's metadata.
+            fieldNames = {'Name', 'Type', 'RootPath', 'RootIdx', 'Diskname'};
+        end
+
+        function dlStruct = reduceDataLocationInfo(dlStruct)
+        %reduceDataLocationInfo Remove the fields the model derives
+        %
+        %   dlStruct = DataLocationModel.reduceDataLocationInfo(dlStruct)
+        %   removes the fields that expandDataLocationInfo adds, leaving
+        %   the Uuid of the data location, the uid of its root path and the
+        %   subfolders below that root. That is the part which identifies
+        %   where data is without naming a path on any particular computer.
+        %   The fields to remove are the same for every model, so no model
+        %   instance is needed.
+
+            fieldsToRemove = nansen.config.dloc.DataLocationModel.getDerivedFieldNames();
             for i = 1:numel(fieldsToRemove)
                 if isfield(dlStruct, fieldsToRemove{i})
                     dlStruct = rmfield(dlStruct, fieldsToRemove{i});
                 end
+            end
+        end
+    end
+
+    methods (Static, Access = private)
+
+        function tf = namesDataLocationTypes(dataLocations)
+        %namesDataLocationTypes Check whether saved data locations name a type
+        %
+        %   A json file has every field of the item template, so a missing
+        %   type arrives there as an empty value rather than a missing
+        %   field.
+
+            tf = isfield(dataLocations, 'Type') ...
+                && ~all(arrayfun(@(item) isempty(item.Type), dataLocations));
+        end
+
+        function dlStruct = setDerivedFieldsToDefault(dlStruct)
+        %setDerivedFieldsToDefault Make every derived field present but empty
+        %
+        %   Assigns across the whole struct array, so that every element
+        %   carries the field even when the model can not resolve it.
+
+            defaults = struct('Name', '', ...
+                'Type', nansen.config.dloc.DataLocationType.empty, ...
+                'RootPath', '', 'RootIdx', [], 'Diskname', '');
+
+            for fieldName = fieldnames(defaults)'
+                [dlStruct.(fieldName{1})] = deal(defaults.(fieldName{1}));
             end
         end
     end
@@ -793,6 +888,16 @@ classdef DataLocationModel < utility.data.StorableCatalog
         function S = modifyStructOnLoad(obj, S)
         %modifyStructOnLoad DataLocationModel specific changes when loading
         %
+        %   A data location without a type is recorded. A model saved
+        %   before data locations had a type (December 2022) names neither
+        %   a type nor a default data location. For such a model the
+        %   location that received processed data, the second one or the
+        %   only one, becomes processed, so that fixDefaultDataLocation
+        %   chooses it as the default.
+
+            isUntypedModel = ~isempty(S.Data) ...
+                && ~obj.namesDataLocationTypes(S.Data) ...
+                && ~(isfield(S, 'Preferences') && isfield(S.Preferences, 'DefaultDataLocation'));
 
             % Create type object instance.
 
@@ -802,6 +907,11 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 else
                     S.Data(i).Type = nansen.config.dloc.DataLocationType(S.Data(i).Type);
                 end
+            end
+
+            if isUntypedModel
+                processedIndex = min(2, numel(S.Data));
+                S.Data(processedIndex).Type = nansen.config.dloc.DataLocationType('processed');
             end
 
             if ~isfield(S.Preferences, 'SourceID')
@@ -918,15 +1028,26 @@ classdef DataLocationModel < utility.data.StorableCatalog
 
     methods (Access = private)
 
-        function fixDefaultDataLocation(obj)
+        function wasSet = fixDefaultDataLocation(obj)
+        %fixDefaultDataLocation Pick a default for a model that has none
+        %
+        %   Chooses the first data location whose type may be a default,
+        %   which excludes read only types such as recorded. When no data
+        %   location qualifies the preference is left unset, so that a
+        %   default is picked once a qualifying data location is added.
+        %   The output says whether a default was set, so that the caller
+        %   only marks the model dirty when there is something to save.
 
             % Todo: Add uuid, not name
 
-            if obj.NumDataLocations == 1
-                obj.DefaultDataLocation = obj.Data(1).Name;
-            elseif obj.NumDataLocations > 1
-                obj.Data(2).Type = nansen.config.dloc.DataLocationType('PROCESSED');
-                obj.DefaultDataLocation = obj.Data(2).Name;
+            wasSet = false;
+
+            for i = 1:obj.NumDataLocations
+                if obj.Data(i).Type.AllowAsDefault
+                    obj.DefaultDataLocation = obj.Data(i).Name;
+                    wasSet = true;
+                    return
+                end
             end
         end
 
@@ -1079,7 +1200,8 @@ classdef DataLocationModel < utility.data.StorableCatalog
         %applyExtractionPattern Apply an ind or expr extraction rule to text
         %
         %   mode 'ind'  — evaluates pattern as a character index expression
-        %                 (e.g. '1:5', '3:end')
+        %                 where 'end' is the last character
+        %                 (e.g. '1:5', '3:end', '1:end-3', 'end-5:end')
         %   mode 'expr' — treats pattern as a regexp and returns first match
 
             arguments
@@ -1090,20 +1212,21 @@ classdef DataLocationModel < utility.data.StorableCatalog
 
             switch lower(mode)
                 case 'ind'
-
-                    if strcmp(pattern, '1:end') % Special case
-                        pattern = sprintf('1:%d', strlength(text));
-                    end
+                    % 'end' has a value only inside an indexing expression,
+                    % so it is replaced by the text length before the
+                    % pattern is evaluated as a plain numeric expression.
+                    numChars = strlength(text);
+                    numericPattern = regexprep(pattern, '\<end\>', num2str(numChars));
                     try
-                        indices = eval(['[' pattern ']']);
+                        indices = eval(['[' numericPattern ']']);
                     catch
                         error('NANSEN:DataLocationModel:InvalidIndexPattern', ...
                             'Index pattern "%s" is not valid MATLAB index syntax.', pattern)
                     end
-                    if any(indices > strlength(text))
+                    if any(indices < 1) || any(indices > numChars)
                         error('NANSEN:DataLocationModel:IndexOutOfRange', ...
-                            'Index range [%s] exceeds the string length (%d characters).', ...
-                            pattern, strlength(text))
+                            'Index range [%s] is outside the string length (%d characters).', ...
+                            pattern, numChars)
                     end
                     substring = text(indices);
                 case 'expr'

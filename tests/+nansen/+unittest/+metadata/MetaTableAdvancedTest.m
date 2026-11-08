@@ -38,9 +38,9 @@ classdef MetaTableAdvancedTest < matlab.unittest.TestCase
     methods (TestMethodSetup)
         function createTestDirectory(testCase)
             % Create temporary directory for test files
-            testCase.TestDir = tempname;
-            mkdir(testCase.TestDir);
-            testCase.addTeardown(@() rmdir(testCase.TestDir, 's'));
+            import matlab.unittest.fixtures.TemporaryFolderFixture
+            folderFixture = testCase.applyFixture(TemporaryFolderFixture);
+            testCase.TestDir = folderFixture.Folder;
         end
         
         function createTestEntries(testCase)
@@ -134,15 +134,14 @@ classdef MetaTableAdvancedTest < matlab.unittest.TestCase
             % Save
             wasSaved = mt.save();
             
-            % Verify file exists and temp file was cleaned up
+            % Verify file exists and temp file was renamed to a backup
             testCase.verifyTrue(wasSaved);
             testCase.verifyTrue(isfile(testFilePath));
-            
-            tempSavePath = strrep(testFilePath, '.mat', '.tempsave.mat');
-            %testCase.verifyFalse(isfile(tempSavePath), 'Temp save file should be cleaned up');
 
-            % Currently the temp file is not cleaned up
-            testCase.verifyTrue(isfile(tempSavePath), 'Temp save file should not be cleaned up');
+            tempSavePath = fullfile(testCase.TestDir, 'integrity_test.tempsave.mat');
+            backupPath = fullfile(testCase.TestDir, 'integrity_test.backup.mat');
+            testCase.verifyFalse(isfile(tempSavePath), 'Temp save file should be renamed');
+            testCase.verifyTrue(isfile(backupPath), 'Backup file should exist');
         end
         
         function testSaveCopy(testCase)

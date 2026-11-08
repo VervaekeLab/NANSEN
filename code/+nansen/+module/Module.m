@@ -270,6 +270,17 @@ classdef Module < handle
             end
         end
 
+        function invalidateItemTableCache(obj)
+        %invalidateItemTableCache Re-list item files on the next table request
+        %
+        %   rehash serves the cached item table for one second after the
+        %   files were last listed, so a change to the set of files a table
+        %   is collected from is not seen within that interval. Forgetting
+        %   when each table was last checked makes the next request list the
+        %   files again and rebuild the tables whose file list changed.
+            obj.LastUpdateTimeForItemTable = containers.Map();
+        end
+
         function readConfigurationFile(obj, filePath)
         % readConfigFile - Read a module config file and assign properties
             fileStr = fileread(filePath);

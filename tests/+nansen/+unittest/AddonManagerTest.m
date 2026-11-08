@@ -491,6 +491,21 @@ classdef AddonManagerTest < matlab.unittest.TestCase
                 'ManagedAddons table should have Name column')
         end
 
+        function addonNamesSelectsManagedAddons(testCase)
+        %addonNamesSelectsManagedAddons AddonNames restricts the add-ons to the given names.
+            manager = testCase.Fixture.AddonManager;
+            % getManagedAddonsForModules resolves the core manifest of
+            % NANSEN, so the add-on list must hold its entries
+            manager.refreshManagedAddons();
+            allAddonEntries = manager.getManagedAddonsForModules();
+            testCase.assumeGreaterThan(numel(allAddonEntries), 1)
+
+            selectedAddonEntries = manager.getManagedAddonsForModules( ...
+                string.empty, "AddonNames", "MatBox");
+
+            testCase.verifyEqual(string({selectedAddonEntries.Name}), "MatBox")
+        end
+
         function moduleRefreshIncludesWorkflowScopedDeps(testCase)
         %moduleRefreshIncludesWorkflowScopedDeps Module installs include workflow deps.
             manager = testCase.Fixture.AddonManager;

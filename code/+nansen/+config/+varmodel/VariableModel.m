@@ -108,7 +108,11 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
 
         function [S, isExistingEntry] = getVariableStructure(obj, varName)
 
-            S = obj.getItem(varName);
+            % An unknown name is expected here: it may be an alias, a file
+            % name expression, or a variable that does not exist yet, so the
+            % lookup must give an empty result instead of raising.
+            idx = obj.getItemIndex(varName);
+            S = obj.Data(idx);
 
             % Check if varname exists as alias:
             if isempty(S)
@@ -139,6 +143,11 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
 
         function load(obj)
         %load Load list (csv or xml) with required/supported variables
+
+            % The legacy rename reads the catalog file, so FilePath must
+            % point at the file that is loaded, which can be the mat file
+            % beside a requested json path.
+            obj.resolveFilePath()
             obj.tempFixVariableNameInFile()
             load@utility.data.StorableCatalog(obj)
         end
@@ -380,7 +389,10 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
             if isempty(variableList); return; end
 
             dataLocationModel = nansen.DataLocationModel(); % dependent prop?
-            defaultDataLocation = dataLocationModel.getDefaultDataLocation;
+
+            % A model without a writable data location has no default, so
+            % the default is only looked up for a variable that needs it.
+            defaultDataLocation = [];
 
             % Insert variable specifications to the model
             for j = 1:numel(variableList)
@@ -388,6 +400,9 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
 
                 if ~any(obj.containsItem(thisName))
                     if useDefaultDataLocation(variableList(j).DataLocation)     % Local function
+                        if isempty(defaultDataLocation)
+                            defaultDataLocation = dataLocationModel.getDefaultDataLocation();
+                        end
                         variableList(j).DataLocation = defaultDataLocation.Name;
                         variableList(j).DataLocationUuid = defaultDataLocation.Uuid;
                     end
@@ -548,14 +563,24 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
         function expression = suggestFileNameExpression(fileName, sessionID)
         %suggestFileNameExpression - Propose an expression for a session's file
         %   EXPRESSION = suggestFileNameExpression(fileName,sessionID)
-        %   returns fileName without its extension, with sessionID removed
-        %   and separators trimmed from both ends, or * when nothing is
-        %   left. The result finds the file again in any session folder
-        %   that holds one file of its type.
-            [~, expression] = fileparts(char(fileName));
+        %   returns fileName with sessionID and the extension removed and
+        %   separators trimmed from both ends, or * when nothing is left.
+        %   The session ID is removed from the whole file name, since a
+        %   session ID derived from a file name can include the extension.
+        %   The result finds the file again in any session folder that
+        %   holds one file of its type.
+            fileName = char(fileName);
+            [~, ~, extension] = fileparts(fileName);
 
+            expression = fileName;
             if ~isempty(sessionID)
                 expression = strrep(expression, char(sessionID), '');
+            end
+
+            % Lookups append the file type themselves, so the extension
+            % stays out of the expression.
+            if ~isempty(extension) && endsWith(expression, extension)
+                expression = expression(1:end-numel(extension));
             end
             expression = regexprep(expression, '^[_-]+|[_-]+$', '');
 
@@ -727,7 +752,11 @@ classdef VariableModel < utility.data.StorableCatalog %& utility.data.mixin.Cata
 
         function tempFixVariableNameInFile(obj)
         %tempFixVariableNameInFile Rename VariableList to Data...
-            if isfile(obj.FilePath)
+        %
+        %   Only a mat file can carry the legacy variable name, and whos
+        %   can not read anything else, so a catalog stored as json is
+        %   skipped.
+            if isfile(obj.FilePath) && strcmp(obj.getFormatFromPath(obj.FilePath), 'mat')
                 S = whos('-file', obj.FilePath);
 
                 if any(strcmp({S.name}, 'VariableList'))
