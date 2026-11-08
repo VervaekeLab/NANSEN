@@ -63,6 +63,8 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
     end
 
     events
+        % DataLocationModelChanged - The edited model was saved. Event data
+        % is a nansen.config.dloc.event.DataLocationModelChangedEventData.
         DataLocationModelChanged
     end
 
@@ -240,7 +242,9 @@ classdef DataLocationModelApp < nansen.config.abstract.ConfigurationApp
                         end
                         obj.DataLocationModel.save()
                         obj.UIModule{1}.markClean()
-                        evtData = event.EventData;
+                        isMetadataPage = strcmp(obj.MODULE_NAMES, 'MetadataInit');
+                        evtData = nansen.config.dloc.event.DataLocationModelChangedEventData( ...
+                            isDirty(isMetadataPage));
                         obj.notify('DataLocationModelChanged', evtData)
 
                     case 'No'

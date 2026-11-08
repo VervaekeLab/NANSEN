@@ -2030,7 +2030,7 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             clear returnToIdle
         end
 
-        function onDataLocationModelChanged(app, src, ~)
+        function onDataLocationModelChanged(app, src, evt)
         %onDataLocationModelChanged Event callback for datalocation model
 
             try
@@ -2046,6 +2046,22 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                     app.MetaTable, app.DataLocationModel);
             catch exception
                 app.MessageDisplay.alert(exception.message)
+            end
+
+            % The Refresh Data Locations menu item also calls this method,
+            % with menu event data.
+            if isa(evt, 'nansen.config.dloc.event.DataLocationModelChangedEventData') ...
+                    && evt.HasMetadataDefinitionChanges
+                try
+                    [~, failureMessage] = nansen.manage.updateSessionMetadata(...
+                        app.MetaTable, app.DataLocationModel);
+                    if failureMessage ~= ""
+                        app.MessageDisplay.warn(failureMessage, ...
+                            'Title', 'Some Sessions Were Not Updated')
+                    end
+                catch exception
+                    app.MessageDisplay.alert(exception.message)
+                end
             end
 
             app.saveMetaTable()
