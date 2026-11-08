@@ -5,7 +5,7 @@ classdef VersionedFile < handle
 %   Optionally override processFileStruct(S) and onAfterLoad().
 %
 %   The save() method writes to a temp file, verifies that it loads, copies
-%   it over the target file, and leaves the temp file as a backup. It also
+%   it over the target file, and renames the temp file to a backup. It also
 %   increments a version number on each save. isLatestVersion() compares
 %   the in-memory version to the one on disk, allowing detection of
 %   external modifications.
@@ -42,13 +42,25 @@ classdef VersionedFile < handle
 
     methods
         function wasSaved = save(obj, force)
-        %save Save object to file atomically
+        %save Save object to file through a verified temporary file
         %
         %   wasSaved = save(obj) saves if the object is modified.
         %   wasSaved = save(obj, true) forces a save even if unmodified.
         %
-        %   Uses a temp-file pattern: writes to a .tempsave file, verifies
-        %   it loads correctly, then copies it over the target file.
+        %   For a target file <name>.mat, the data is written to
+        %   <name>.tempsave.mat in the same folder. That file is loaded to
+        %   verify it, copied over the target file, and renamed to
+        %   <name>.backup.mat, replacing an earlier backup.
+        %
+        %   <name>.backup.mat exists after the first successful save and
+        %   holds a copy of the data from the latest successful save.
+        %
+        %   <name>.tempsave.mat exists while a save is running. A file left
+        %   on disk afterwards holds the data of a save that stopped after
+        %   writing it. save throws NANSEN:VersionedFile:SaveFailed if the
+        %   verification or the copy fails. If only the rename fails, the
+        %   save has succeeded and save issues the warning
+        %   NANSEN:VersionedFile:BackupNotUpdated.
 
             if nargin < 2; force = false; end
             wasSaved = false;
@@ -77,7 +89,10 @@ classdef VersionedFile < handle
             obj.VersionNumber = versionNumber + 1;
             S.VersionNumber = obj.VersionNumber;
 
-            tempPath = strrep(obj.filepath, '.mat', '.tempsave.mat');
+            [folderPath, fileName, fileExtension] = fileparts(obj.filepath);
+            tempPath = fullfile(folderPath, fileName + ".tempsave" + fileExtension);
+            backupPath = fullfile(folderPath, fileName + ".backup" + fileExtension);
+
             save(tempPath, '-struct', 'S');
 
             try
@@ -85,11 +100,21 @@ classdef VersionedFile < handle
                 copyfile(tempPath, obj.filepath)
                 wasSaved = true;
                 obj.markClean();
-            catch
-                error('NANSEN:VersionedFile:SaveFailed', ...
-                    ['Something went wrong when saving. ' ...
-                     'A backup should exist with a ''.tempsave'' postfix: %s'], ...
-                    tempPath)
+            catch ME
+                error("NANSEN:VersionedFile:SaveFailed", ...
+                    "Could not save '%s'. The data of this save is kept in '%s'. Cause: %s", ...
+                    obj.filepath, tempPath, ME.message)
+            end
+
+            % The target file is written at this point, so a failed rename
+            % must not surface as an error. With output arguments, movefile
+            % returns a failure in its status instead of throwing it. The
+            % "f" option also replaces a read-only backup.
+            [wasRenamed, renameMessage] = movefile(tempPath, backupPath, "f");
+            if ~wasRenamed
+                warning("NANSEN:VersionedFile:BackupNotUpdated", ...
+                    "Saved '%s', but could not rename '%s' to a backup: %s", ...
+                    obj.filepath, tempPath, renameMessage)
             end
 
             if ~nargout; clear wasSaved; end
