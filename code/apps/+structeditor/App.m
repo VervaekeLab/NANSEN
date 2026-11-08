@@ -1527,6 +1527,8 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
 
             obj.moveElementsToTop()
 
+            obj.orderControlsForTabbing(panelNum)
+
             obj.isTabCreated(panelNum) = true;
 
             if obj.AdjustFigureSize
@@ -1537,6 +1539,30 @@ classdef App < applify.ModularApp & uiw.mixin.AssignPVPairs
                 obj.moveElementsToRight()
                 obj.adjustFigureWidthToComponents()
             end
+        end
+
+        function orderControlsForTabbing(obj, panelNum)
+        %orderControlsForTabbing Make the Tab key follow the layout of a panel
+        %
+        %   The Tab key visits a panel's controls from the last to the first
+        %   element of Children. Sorting Children by position makes it visit
+        %   rows from top to bottom and each row from left to right.
+
+            % A browse button sits one pixel above the input field in its row.
+            rowTolerance = 2;
+
+            hPanel = obj.main.hPanel(panelNum);
+            children = hPanel.Children;
+            isControl = isgraphics(children, 'uicontrol');
+            controls = children(isControl);
+            if isempty(controls); return; end
+
+            positions = vertcat(controls.Position);
+            [~, ~, rowIndex] = uniquetol(positions(:, 2), rowTolerance, 'DataScale', 1);
+            [~, tabOrder] = sortrows([rowIndex, -positions(:, 1)]);
+
+            children(isControl) = controls(tabOrder);
+            hPanel.Children = children;
         end
 
         function tf = isConfigField(~, currentField, allFields)
