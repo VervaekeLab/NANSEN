@@ -1053,6 +1053,15 @@ classdef ProjectManager < handle
 
             configFileName = nansen.common.constant.ProjectConfigFilename;
 
+            % An upgrade creates each project again, which needs all of
+            % NANSEN and its toolboxes. Without them every upgrade below
+            % fails, after the dialogs and a backup of the project folder.
+            installationProblems = nansen.internal.setup.findInstallationProblems();
+            if ~isempty(installationProblems)
+                showProjectsNotUpgradedWarning(installationProblems)
+                return
+            end
+
             msg = sprintf( ...
                 "\nProject folders will be updated to work with the latest code changes. " + ...
                 "If any project folder is on a cloud location it is important " + ...
@@ -1115,6 +1124,17 @@ end
 function throwProjectNotFoundError(projectName)
     error('NANSEN:ProjectManager:ProjectNotFound', ...
         'Project with name "%s" does not exist.', projectName)
+end
+
+function showProjectsNotUpgradedWarning(installationProblems)
+%showProjectsNotUpgradedWarning Report that project upgrades need a complete installation
+
+    nansen.common.tracelesswarning( ...
+        'NANSEN:ProjectManager:ProjectUpgradeSkipped', ...
+        ['Project folders that need an update for this version of NANSEN ', ...
+        'were left as they are, because this installation is not complete:\n%s\n', ...
+        'Run nansen_install, and the update is done the next time NANSEN starts.'], ...
+        strjoin("  " + installationProblems, newline))
 end
 
 function showProjectUpgradeWarning(projectFolder, exception)

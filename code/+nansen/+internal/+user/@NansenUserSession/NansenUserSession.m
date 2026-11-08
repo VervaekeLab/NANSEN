@@ -253,12 +253,37 @@ classdef NansenUserSession < handle
             % MATLAB's pref dir in order to avoid having preferences saved
             % in the reposiory folder.
             if isfolder(fullfile(nansen.rootpath, '_userdata'))
+                obj.assertInstallationIsComplete()
                 nansen.internal.refactor.migrateUserdata(obj)
             end
 
             if contains( getpref('NansenSetup', 'DefaultProjectPath', ''), fullfile(nansen.rootpath, '_userdata'))
                 rmpref('NansenSetup', 'DefaultProjectPath')
             end
+        end
+
+        function assertInstallationIsComplete(~)
+        %assertInstallationIsComplete Stop a migration before it changes anything
+        %
+        %   The migration deletes the _userdata folder, and the project
+        %   upgrade that follows it needs all of NANSEN and its toolboxes.
+        %
+        %   Throws:
+        %       NANSEN:Setup:InstallationIncomplete
+
+            % The add-on manager puts the toolboxes that it tracks on the
+            % search path, and the session has not created it yet.
+            nansen.config.addons.AddonManager.instance();
+
+            problems = nansen.internal.setup.findInstallationProblems();
+            if isempty(problems); return; end
+
+            error('NANSEN:Setup:InstallationIncomplete', ...
+                ['NANSEN has to move your user data out of its "_userdata" folder, ' ...
+                 'but this installation is not complete:\n%s\nYour data has not ' ...
+                 'been changed. Run nansen_install, which is in "%s", and start ' ...
+                 'NANSEN again.'], ...
+                strjoin("  " + problems, newline), nansen.rootpath)
         end
 
         function runPostConstructionUpdateActions(obj)
