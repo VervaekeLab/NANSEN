@@ -348,8 +348,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
         %       2) Ensure the file separator of subfolders is matched to
         %          the operating system
 
-        %   % Todo: Consolidate with session/fixDataLocations
-
             if isempty(dataLocationStructArray); return; end
 
             if isa(dataLocationStructArray, 'cell')
@@ -381,21 +379,14 @@ classdef DataLocationModel < utility.data.StorableCatalog
                     rootIdx = find( strcmp( {dlInfo.RootPath.Key}, rootUid ) );
 
                     if ~isempty(rootIdx)
-                        rootPathStr = dlInfo.RootPath(rootIdx).Value;
-
-                        if ispc
-                            % Todo: % Assign correct drive letter.
-                            % Check and assign correct drive letter
-                        end
-
-                        dataLocationStructArray(j, i).RootPath = rootPathStr;
-                        diskName = dlInfo.RootPath(rootIdx).DiskName;
+                        % Todo: Assign correct drive letter on Windows
+                        dataLocationStructArray = obj.setRootPathFields( ...
+                            dataLocationStructArray, ...
+                            sub2ind([numItems, numDatalocations], j, i), dlInfo, rootIdx);
                     else
-                        rootIdx = nan;
-                        diskName = 'N/A';
+                        dataLocationStructArray(j, i).RootIdx = nan;
+                        dataLocationStructArray(j, i).Diskname = 'N/A';
                     end
-                    dataLocationStructArray(j, i).RootIdx = rootIdx;
-                    dataLocationStructArray(j, i).Diskname = diskName;
 
                     % Make sure file separators match the file system.
                     iSubfolder = dataLocationStructArray(j,i).Subfolders;
@@ -709,9 +700,7 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 rootIdx = find( strcmp( {thisDlItem.RootPath.Key}, rootUid ));
 
                 if ~isempty(rootIdx)
-                    dlStruct(iDl).RootPath = thisDlItem.RootPath(rootIdx).Value;
-                    dlStruct(iDl).RootIdx = rootIdx;
-                    dlStruct(iDl).Diskname = thisDlItem.RootPath(rootIdx).DiskName;
+                    dlStruct = obj.setRootPathFields(dlStruct, iDl, thisDlItem, rootIdx);
                 end
             end
         end
@@ -725,6 +714,33 @@ classdef DataLocationModel < utility.data.StorableCatalog
         %   These describe the model and the computer it is used on, not
         %   the session, so they are not stored with a session's metadata.
             fieldNames = {'Name', 'Type', 'RootPath', 'RootIdx', 'Diskname'};
+        end
+
+        function dlStruct = setRootPathFields(dlStruct, index, dataLocationItem, rootIdx)
+        %setRootPathFields Set the fields describing a data location's root path
+        %
+        %   dlStruct = DataLocationModel.setRootPathFields(dlStruct, index, ...
+        %   dataLocationItem, rootIdx) copies root path number rootIdx of
+        %   the model item dataLocationItem to element index of dlStruct,
+        %   as the fields RootUid, RootPath, RootIdx and Diskname.
+        %
+        %   Takes the whole array and an index because assigning a field
+        %   through an index adds a missing field to every element, so the
+        %   array stays one set of fields.
+
+            arguments
+                dlStruct struct
+                index (1,1) {mustBeInteger, mustBePositive}
+                dataLocationItem (1,1) struct
+                rootIdx (1,1) {mustBeInteger, mustBePositive}
+            end
+
+            rootPath = dataLocationItem.RootPath(rootIdx);
+
+            dlStruct(index).RootUid = rootPath.Key;
+            dlStruct(index).RootPath = rootPath.Value;
+            dlStruct(index).RootIdx = rootIdx;
+            dlStruct(index).Diskname = rootPath.DiskName;
         end
 
         function dlStruct = reduceDataLocationInfo(dlStruct)

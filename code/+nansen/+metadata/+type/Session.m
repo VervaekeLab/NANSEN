@@ -367,11 +367,12 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
 
                     dlUuid = obj(iObj).DataLocation(jDl).Uuid;
 
-                    [S(jDl)] = obj(iObj).DataLocationModel.getItem(dlUuid); %#ok<AGROW>
+                    dataLocationModel = obj(iObj).DataLocationModel;
+                    dataLocationItem = dataLocationModel.getItem(dlUuid);
 
                     fields = {'Name', 'Type'};
                     for k = 1:numel(fields)
-                        obj(iObj).DataLocation(jDl).(fields{k}) = S(jDl).(fields{k});
+                        obj(iObj).DataLocation(jDl).(fields{k}) = dataLocationItem.(fields{k});
                     end
 
                     rootUid = obj(iObj).DataLocation(jDl).RootUid;
@@ -379,24 +380,21 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
                         % If the rootUid is empty, use the last available
                         % rootpath from the model, using this as the
                         % automatic location.
-                        rootUid = S(jDl).RootPath(end).Key;
+                        rootUid = dataLocationItem.RootPath(end).Key;
                         obj(iObj).DataLocation(jDl).RootUid = rootUid;
                     end
 
-                    rootIdx = find( strcmp( {S(jDl).RootPath.Key}, rootUid ) );
+                    rootIdx = find( strcmp( {dataLocationItem.RootPath.Key}, rootUid ) );
 
                     if ~isempty(rootIdx)
-                        obj(iObj).DataLocation(jDl).RootPath = S(jDl).RootPath(rootIdx).Value;
-                        obj(iObj).DataLocation(jDl).RootIdx = rootIdx;
-                        obj(iObj).DataLocation(jDl).Diskname = S(jDl).RootPath(rootIdx).DiskName;
+                        obj(iObj).DataLocation = dataLocationModel.setRootPathFields( ...
+                            obj(iObj).DataLocation, jDl, dataLocationItem, rootIdx);
                     end
                 end
             end
         end
 
         function fixDataLocations(obj)
-
-        %   % Todo: Consolidate with DataLocationModel/validateDataLocationPaths
 
             if isfield(obj(1).DataLocation, 'Uuid'); return; end
 
@@ -437,10 +435,8 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
                     % matched from the DataLocationModel
                     S(i).Uuid = dataLocation.Uuid;
                     if ~isempty(rootPaths) && isMatched
-                        S(i).RootUid = dataLocation.RootPath(rootIdx).Key;
+                        S = obj(j).DataLocationModel.setRootPathFields(S, i, dataLocation, rootIdx);
                         S(i).Subfolders = strrep(obj(j).DataLocation.(name), root, '');
-                        S(i).RootIdx = rootIdx;
-                        S(i).Diskname = dataLocation.RootPath(rootIdx).DiskName;
                     else
                         S(i).RootIdx = nan;
                         S(i).Diskname = 'N/A';
@@ -601,10 +597,8 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
                     error('NANSEN:Session:InvalidRootPath', ...
                         'The specified rootpath does not match any rootpaths in the data location model')
                 end
-                obj.DataLocation(i).RootUid = dlItem.RootPath(isMatch).Key;
-                obj.DataLocation(i).RootPath = newRootPath;
-                obj.DataLocation(i).RootIdx = find(isMatch);
-                obj.DataLocation(i).Diskname = dlItem.RootPath(isMatch).DiskName;
+                obj.DataLocation = obj.DataLocationModel.setRootPathFields( ...
+                    obj.DataLocation, find(i), dlItem, find(isMatch));
 
                 eventData = uiw.event.EventData('Property', 'DataLocation', 'NewValue', obj.DataLocation);
                 obj.notify('PropertyChanged', eventData)
@@ -640,11 +634,9 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
                             thisModel = obj.DataLocationModel.getItem(i);
 
                             % Find the uid of the new root directory
-                            rootIdx = strcmp({thisModel.RootPath.Value}, newRootDir);
-                            obj.DataLocation(i).RootUid = thisModel.RootPath(rootIdx).Key;
-                            obj.DataLocation(i).RootPath = newRootDir;
-                            obj.DataLocation(i).RootIdx = rootIdx;
-                            obj.DataLocation(i).Diskname = thisModel.RootPath(rootIdx).DiskName;
+                            rootIdx = find(strcmp({thisModel.RootPath.Value}, newRootDir));
+                            obj.DataLocation = obj.DataLocationModel.setRootPathFields( ...
+                                obj.DataLocation, i, thisModel, rootIdx);
 
                             wasModified = true;
                         end
