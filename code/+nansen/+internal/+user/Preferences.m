@@ -19,21 +19,8 @@ classdef Preferences < nansen.config.abstract.Preferences
         % with setUserDataDirectory of nansen.internal.user.NansenUserSession,
         % which moves the data and updates the redirect file.
         UserDataDirectory (1,1) string = ""
-
-        % LastUserDataDirectory - User data directory of the last session
-        % that kept the data outside this release's preference directory.
-        % The session records it, and names it when MATLAB's userpath is
-        % empty and the data is looked for in the preference directory.
-        LastUserDataDirectory (1,1) string = ""
         %PreferredDateFormat = "yyyy.mm.dd"
         %PreferredTimeFormat = "HH:MM:SS"
-    end
-
-    methods
-        function propertyNames = getPropertiesToHide(~)
-        %getPropertiesToHide Hide the preferences that the session sets itself
-            propertyNames = {'LastUserDataDirectory'};
-        end
     end
 
     methods (Access = ?nansen.internal.user.NansenUserSession)
