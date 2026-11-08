@@ -175,6 +175,33 @@ classdef SessionMetadataExtractionTest < matlab.unittest.TestCase
 
             testCase.verifyEqual(value, '01')
         end
+
+        function testTimeThatDoesNotMatchItsFormatRaises(testCase)
+            % These characters of the folder name hold the date.
+            testCase.setDefinition('Experiment Time', 2, 'ind', '1:10', 'HH-mm-ss')
+            dataLocations = testCase.createDataLocations();
+
+            testCase.verifyError(@() testCase.DataLocationModel.getMetadataValue( ...
+                "Experiment Time", dataLocations), 'MATLAB:datetime:ParseErr')
+        end
+
+        function testNewSessionGetsNaTForUnreadableTime(testCase)
+            testCase.setDefinition('Experiment Time', 2, 'ind', '1:10', 'HH-mm-ss')
+            model = testCase.DataLocationModel;
+            rootPath = model.getItem(testCase.MockDataIndex).RootPath(1).Value;
+            sessionFolders = struct('Processed', '', 'MockData', ...
+                fullfile(rootPath, testCase.SubjectFolderName, testCase.SessionFolderName));
+
+            sessionObj = testCase.verifyWarning( ...
+                @() nansen.metadata.type.Session(sessionFolders, 'DataLocationModel', model), ...
+                'MATLAB:datetime:ParseErr');
+
+            testCase.verifyTrue(isnat(sessionObj.Time), ...
+                'A time that can not be read should give NaT.')
+            testCase.verifyEqual(sessionObj.subjectID, '01', ...
+                'A time that can not be read should not stop the other values.')
+            testCase.verifyEqual(sessionObj.Date, datetime(2024, 1, 15))
+        end
     end
 
     methods (Access = private)

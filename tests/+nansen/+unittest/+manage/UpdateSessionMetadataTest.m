@@ -144,6 +144,22 @@ classdef UpdateSessionMetadataTest < matlab.unittest.TestCase
             testCase.verifySubstring(failureMessage, "outside the string length")
         end
 
+        function testWrongTimeFormatIsReportedAndKeepsValue(testCase)
+            % These characters of the folder name hold the date.
+            testCase.setDefinition('Experiment Time', 2, 'ind', '1:10', 'HH-mm-ss')
+            sessionTable = testCase.createSessionTable();
+            timesBefore = sessionTable.entries.Time;
+
+            [updatedVariableNames, failureMessage] = ...
+                nansen.manage.updateSessionMetadata(sessionTable, testCase.DataLocationModel);
+
+            testCase.verifyEqual(sessionTable.entries.Time, timesBefore)
+            testCase.verifyEmpty(updatedVariableNames)
+            testCase.verifySubstring(failureMessage, "Time")
+            testCase.verifySubstring(failureMessage, "ses-01, ses-02")
+            testCase.verifySubstring(failureMessage, "HH-mm-ss")
+        end
+
         function testFirstDataLocationThatGivesValueIsUsed(testCase)
             testCase.assertLessThan(testCase.ProcessedIndex, testCase.MockDataIndex, ...
                 'The test expects the Processed data location to come first in the model.')

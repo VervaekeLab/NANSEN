@@ -193,7 +193,18 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
                 pathStr = fullfile(obj.DataLocation(1).Subfolders);
             end
             if ~isempty(obj.Time); return; end
-            obj.Time = obj.DataLocationModel.getTime(pathStr, dataLocationIndex);
+
+            try
+                obj.Time = obj.DataLocationModel.getTime(pathStr, dataLocationIndex);
+            catch exception
+                % A time that can not be read should not stop the session
+                % from being added.
+                if ~startsWith(exception.identifier, 'MATLAB:datetime:')
+                    rethrow(exception)
+                end
+                obj.Time = NaT;
+                warning(exception.identifier, '%s', exception.message)
+            end
 
             if nargout == 1
                 time = obj.Time;

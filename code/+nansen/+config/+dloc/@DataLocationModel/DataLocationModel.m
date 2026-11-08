@@ -622,13 +622,8 @@ classdef DataLocationModel < utility.data.StorableCatalog
 
             % Convert to datetime type.
             if isfield(S, 'StringFormat') && ~isempty(S.StringFormat)
-                try
-                    value = datetime(substring, 'InputFormat', S.StringFormat);
-                    value.Format = 'HH:mm:ss'; % Format output as a time.
-                catch ME
-                    value = NaT;
-                    warning(ME.message)
-                end
+                value = datetime(substring, 'InputFormat', S.StringFormat);
+                value.Format = 'HH:mm:ss'; % Format output as a time.
             else
                 value = substring;
             end
