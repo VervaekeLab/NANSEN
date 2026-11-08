@@ -6,6 +6,7 @@ classdef {{Name}} < nansen.dataio.FileAdapter
 
     properties (Constant)
         DataType = "{{DataType}}"
+        Description = '{{Description}}'
     end
     
     methods (Access = protected)
