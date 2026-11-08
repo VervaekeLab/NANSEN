@@ -99,9 +99,53 @@ classdef ProjectFolderUpgradeTest < matlab.unittest.TestCase
             testCase.verifyEqual(testCase.ProjectManager.ProjectNames, string(projectName))
             testCase.verifyTrue(testCase.hasOldLayout(projectFolder))
         end
+
+        function testFailedRollbackRestoresFolder(testCase)
+        %testFailedRollbackRestoresFolder Each step of the rollback runs
+        %
+        %   A catalog that refuses the entry must not cost the project its
+        %   folder, and the error has to say where the backup is.
+
+            [projectName, projectFolder] = testCase.createOldFormatProject("not-an-identifier");
+            testCase.ProjectManager.addProject(projectName, 'A project', projectFolder)
+            testCase.addFieldThatNewEntriesLack()
+
+            exception = testCase.captureUpgradeError(projectFolder);
+
+            testCase.verifyEqual(string(exception.identifier), ...
+                "NANSEN:ProjectManager:ProjectRollbackFailed")
+            testCase.verifySubstring(string(exception.message), fullfile("Nansen", "Backup"))
+            testCase.verifyEqual(string(exception.cause{1}.identifier), ...
+                "Nansen:CreateProjectFailed")
+            testCase.verifyTrue(testCase.hasOldLayout(projectFolder))
+        end
     end
 
     methods (Access = private)
+
+        function addFieldThatNewEntriesLack(testCase)
+        %addFieldThatNewEntriesLack Make the catalog refuse any new entry
+        %
+        %   A struct array only accepts an element with the same fields as
+        %   its own.
+
+            catalog = testCase.ProjectManager.Catalog;
+            [catalog.UnknownField] = deal([]);
+            testCase.ProjectManager.Catalog = catalog;
+        end
+
+        function exception = captureUpgradeError(testCase, projectFolder)
+        %captureUpgradeError Run the upgrade and return the error it raises
+
+            exception = [];
+            try
+                nansen.internal.refactor.reorganizeProjectFolder( ...
+                    projectFolder, testCase.ProjectManager)
+            catch exception
+                % The error is the result that the caller inspects
+            end
+            testCase.fatalAssertNotEmpty(exception, "The upgrade did not fail")
+        end
 
         function [projectName, projectFolder] = createOldFormatProject(testCase, namePrefix)
         %createOldFormatProject Create a project folder with the old layout
