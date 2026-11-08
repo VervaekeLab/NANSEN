@@ -1385,11 +1385,12 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
         %       Used by the table variable update machinery to determine the
         %       expected data type before processing any session objects.
         %
-        %   value = extractSubjectId(sessionObj) reconstructs the full folder
-        %       path from the session's stored (reduced) DataLocation struct and
-        %       re-extracts the subject ID using the current DataLocationModel.
-        %       Iterates data locations in order and returns the first non-empty
-        %       result. Returns '' if extraction fails for all data locations.
+        %   value = extractSubjectId(sessionObj) re-extracts the subject ID
+        %       from the folders of the session using the current
+        %       DataLocationModel. Returns '' if no data location gives a
+        %       value.
+        %
+        %   See also nansen.config.dloc.DataLocationModel/getMetadataValue
             if nargin < 1
                 value = '';
                 return
@@ -1401,30 +1402,8 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
                 return
             end
 
-            for i = 1:numel(sessionObj.DataLocation)
-                dl = sessionObj.DataLocation(i);
-
-                if ~isfield(dl, 'RootPath') || isempty(dl.RootPath)
-                    continue
-                end
-
-                if ~isempty(dl.Subfolders)
-                    pathStr = fullfile(dl.RootPath, dl.Subfolders);
-                else
-                    pathStr = dl.RootPath;
-                end
-
-                dlIndex = sessionObj.DataLocationModel.getItemIndex(dl.Name);
-                if isempty(dlIndex)
-                    continue
-                end
-
-                extracted = sessionObj.DataLocationModel.getSubjectID(pathStr, dlIndex);
-                if ~isempty(extracted)
-                    value = extracted;
-                    return
-                end
-            end
+            value = sessionObj.DataLocationModel.getMetadataValue( ...
+                "Subject ID", sessionObj.DataLocation);
         end
 
         function assertValidFileAdapter(variableInfo, action)

@@ -161,9 +161,31 @@ classdef SessionMetadataExtractionTest < matlab.unittest.TestCase
                 "Weight", testCase.createDataLocations()), ...
                 'NANSEN:DataLocationModel:UnknownMetadataVariable')
         end
+
+        function testSessionIgnoresRootPathWithoutSessionFolder(testCase)
+            % A session of the mock project has a folder in MockData only.
+            % This rule would give a value for the folders above the root
+            % path of Processed.
+            testCase.setDefinition('Subject ID', 1, 'ind', '1:2', '', ...
+                DataLocationIndex=testCase.ProcessedIndex)
+            sessionObj = testCase.createProjectSession();
+            testCase.assertEmpty(sessionObj.DataLocation(testCase.ProcessedIndex).Subfolders)
+
+            value = nansen.metadata.type.Session.extractSubjectId(sessionObj);
+
+            testCase.verifyEqual(value, '01')
+        end
     end
 
     methods (Access = private)
+
+        function sessionObj = createProjectSession(testCase)
+        %createProjectSession Session object for the first session of the mock project
+            project = nansen.getCurrentProject();
+            sessionTable = project.MetaTableCatalog.getMetaTable('Session');
+            sessionObj = nansen.metadata.type.Session(sessionTable.entries(1,:), ...
+                'DataLocationModel', testCase.DataLocationModel);
+        end
 
         function setDefinition(testCase, variableName, subfolderLevel, mode, pattern, stringFormat, options)
         %setDefinition Set how a data location extracts a metadata variable
