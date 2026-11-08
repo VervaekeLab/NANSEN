@@ -119,6 +119,22 @@ classdef ProjectFolderUpgradeTest < matlab.unittest.TestCase
                 "Nansen:CreateProjectFailed")
             testCase.verifyTrue(testCase.hasOldLayout(projectFolder))
         end
+
+        function testFailedUpgradeWarnsWithReason(testCase)
+        %testFailedUpgradeWarnsWithReason The warning names cause and remedy
+
+            testCase.stubUpgradeDialogs()
+            [projectName, projectFolder] = testCase.createOldFormatProject("not-an-identifier");
+            testCase.ProjectManager.addProject(projectName, 'A project', projectFolder)
+
+            testCase.verifyWarning(@() testCase.ProjectManager.upgradeProjects(), ...
+                "NANSEN:ProjectManager:ProjectUpgradeFailed")
+
+            warningMessage = string(lastwarn());
+            testCase.verifySubstring(warningMessage, "at line")
+            testCase.verifySubstring(warningMessage, "If the folder still has the old layout")
+            testCase.verifySubstring(warningMessage, string(nansen.rootpath()))
+        end
     end
 
     methods (Access = private)
@@ -145,6 +161,29 @@ classdef ProjectFolderUpgradeTest < matlab.unittest.TestCase
                 % The error is the result that the caller inspects
             end
             testCase.fatalAssertNotEmpty(exception, "The upgrade did not fail")
+        end
+
+        function stubUpgradeDialogs(testCase)
+        %stubUpgradeDialogs Replace the dialogs that confirm an upgrade
+        %
+        %   upgradeProjects waits for an answer in modal dialogs.
+
+            import matlab.unittest.fixtures.PathFixture
+
+            stubFolder = fullfile(testCase.RootFolder, "dialog_stubs");
+            mkdir(stubFolder)
+
+            stubNames = ["msgbox", "uiwait", "questdlg"];
+            stubCode = [ ...
+                "function handle = msgbox(varargin)" + newline + "    handle = [];" + newline + "end", ...
+                "function uiwait(varargin)" + newline + "end", ...
+                "function answer = questdlg(varargin)" + newline + "    answer = 'Confirm';" + newline + "end"];
+
+            for i = 1:numel(stubNames)
+                utility.filewrite(char(fullfile(stubFolder, stubNames(i) + ".m")), char(stubCode(i)))
+            end
+
+            testCase.applyFixture(PathFixture(char(stubFolder)));
         end
 
         function [projectName, projectFolder] = createOldFormatProject(testCase, namePrefix)
