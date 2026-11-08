@@ -1483,12 +1483,15 @@ classdef FileViewer < nansen.AbstractTabPageModule
         end
 
         function nvPairs = getVariableLookupScope(obj)
-        %getVariableLookupScope - Scope variable lookups to the current tab
+        %getVariableLookupScope - Scope variable lookups to the tab and session
         %   Each tab shows one data location, so a file in the tab can only
-        %   belong to a variable stored in that data location.
-            nvPairs = {'DataLocation', obj.CurrentDataLocationName};
+        %   belong to a variable stored in that data location. Placeholders
+        %   in file name expressions take their values from the session.
+            sessionObject = obj.CurrentSessionObj;
+            nvPairs = {'DataLocation', obj.CurrentDataLocationName, ...
+                'PlaceholderValues', sessionObject.getFileNamePlaceholderValues()};
 
-            dataLocationModel = obj.CurrentSessionObj.DataLocationModel;
+            dataLocationModel = sessionObject.DataLocationModel;
             if ~isempty(dataLocationModel)
                 nvPairs = [nvPairs, {'DefaultDataLocation', dataLocationModel.DefaultDataLocation}];
             end
