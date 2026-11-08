@@ -14,13 +14,14 @@ function varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sess
 %       varItem          : Structure with specifications for new data variable.
 %                          Empty if the dialog was cancelled.
 %
-%   The variable name must be a valid MATLAB identifier. If it is not, an
-%   error dialog is shown and the form reopens with the entered values.
+%   The form stays open until its values can be used, or until the dialog
+%   is cancelled. The variable name must be a valid MATLAB identifier that
+%   no other variable uses.
 %
 %   The file name expression is pre-filled with the file name without the
 %   session ID, or * when nothing else remains. A variable created from a
 %   file has to search for it, so the expression cannot be left empty and
-%   must match the file. Otherwise the form reopens as well.
+%   must match the file.
 
 %   Todo:
 %       [ ] Make dataLocationName and sessionObject optional inputs?
@@ -61,32 +62,16 @@ function varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sess
         nvPairs = {'Prompt', options.Prompt};
     end
 
-    % Open user dialog. A name that is not a valid MATLAB identifier can
-    % not become a data variable, and a variable created from a file has
-    % to find that file, so the dialog reopens with the entered values
-    % until both are valid or the dialog is cancelled.
-    isInputValid = false;
-    while ~isInputValid
-        [S, wasAborted] = tools.editStruct(S, [], 'Create New Variable', nvPairs{:});
-        if wasAborted; return; end
+    % Open user dialog
+    getProblems = @(values) getInputProblems(values, variableModel, [fileName, ext]); % Local function
 
-        isNameValid = ~isfield(S, 'VariableName') || isvarname(S.VariableName);
-        if ~isNameValid
-            message = sprintf(['"%s" is not a valid data variable name. ', ...
-                'A name must start with a letter and contain only letters, ', ...
-                'numbers and underscores.'], S.VariableName);
-            uiwait( errordlg(message, 'Invalid Variable Name', 'modal') )
-            continue
-        end
+    [S, wasAborted] = tools.editStruct(S, [], 'Create New Variable', nvPairs{:}, ...
+        'ValidationFcn', getProblems);
 
-        expressionProblem = getExpressionProblem(S, variableModel, [fileName, ext]); % Local function
-        if ~isempty(expressionProblem)
-            uiwait( errordlg(expressionProblem, 'Invalid File Name Expression', 'modal') )
-            continue
-        end
-
-        isInputValid = true;
+    if wasAborted
+        return
     end
+
     S = rmfield(S, 'FileAdapter_');
 
     % Add other fields that are required for the variable model.
@@ -126,6 +111,51 @@ function varItem = uiCreateDataVariableFromFile(filePath, dataLocationName, sess
 
     % Normalize to char. Todo: Should support string type
     varItem.DataType = char( fileAdapterList(fileAdapterIdx).DataType );
+end
+
+function problems = getInputProblems(S, variableModel, fileName)
+%getInputProblems - Why the entered values cannot be used for a new variable
+%   The result has one element for each checked field, which is empty
+%   text when the value of that field can be used.
+
+    arguments
+        S (1,1) struct
+        variableModel
+        fileName
+    end
+
+    problems = [getNameProblem(S, variableModel), ...
+        string(getExpressionProblem(S, variableModel, fileName))];
+end
+
+function problem = getNameProblem(S, variableModel)
+%getNameProblem - Why the entered name cannot be used for a new variable
+%   Session objects expose each variable as a dynamic property, so a name
+%   has to be a valid MATLAB identifier. The result is "" when the name
+%   is absent from the form, or when it is valid and no other variable
+%   uses it.
+
+    arguments
+        S (1,1) struct
+        variableModel
+    end
+
+    problem = "";
+
+    if ~isfield(S, 'VariableName')
+        return
+    end
+
+    if isempty(S.VariableName)
+        problem = "Enter a name for the data variable.";
+
+    elseif ~isvarname(S.VariableName)
+        problem = sprintf("'%s' is not a valid data variable name. A name must " + ...
+            "start with a letter and contain only letters, numbers and underscores.", S.VariableName);
+
+    elseif any(variableModel.containsItem(S.VariableName))
+        problem = sprintf("A data variable named '%s' already exists. Choose another name.", S.VariableName);
+    end
 end
 
 function problem = getExpressionProblem(S, variableModel, fileName)
