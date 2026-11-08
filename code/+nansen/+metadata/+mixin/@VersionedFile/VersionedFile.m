@@ -147,11 +147,27 @@ classdef VersionedFile < handle
 
         function saveCopy(obj, savePath)
         %saveCopy Save a copy of this object to the given file path
+        %
+        %   The copy has its own version count: VersionNumber in the copy
+        %   is one higher than in an existing file at savePath, and 1 for
+        %   a new file. The object stays associated with its own file, so
+        %   filepath and VersionNumber keep their values, also if the save
+        %   fails. A savePath equal to filepath is a forced save.
+
+            % Writing the object's own file changes its version, so the
+            % number in memory has to follow it.
+            if strcmp(savePath, obj.filepath)
+                obj.save(true);
+                return
+            end
 
             originalPath = obj.filepath;
+            originalVersionNumber = obj.VersionNumber;
+            stateCleanupObj = onCleanup( ...
+                @() obj.restoreFileState(originalPath, originalVersionNumber));
+
             obj.filepath = savePath;
             obj.save(true);
-            obj.filepath = originalPath;
         end
 
         function tf = isLatestVersion(obj)
@@ -187,6 +203,15 @@ classdef VersionedFile < handle
             else
                 versionNumber = int64(0);
             end
+        end
+    end
+
+    methods (Access = private)
+        function restoreFileState(obj, filePath, versionNumber)
+        %restoreFileState Set the file path and the version number of that file
+
+            obj.filepath = filePath;
+            obj.VersionNumber = versionNumber;
         end
     end
 

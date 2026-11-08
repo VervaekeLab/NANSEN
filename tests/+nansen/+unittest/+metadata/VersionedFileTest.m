@@ -146,6 +146,57 @@ classdef VersionedFileTest < matlab.unittest.TestCase
             testCase.verifyTrue(file.isLatestVersion());
         end
 
+        function testSaveCopyKeepsVersionNumberOfObject(testCase)
+            file = nansen.unittest.metadata.helper.VersionedFileFake(testCase.TargetPath);
+            file.save();
+            file.save(true);
+
+            file.saveCopy(fullfile(testCase.TestFolder, "copy.mat"));
+
+            testCase.verifyEqual(file.VersionNumber, int64(2));
+            testCase.verifyTrue(file.isLatestVersion());
+            testCase.verifyEqual(string(file.filepath), testCase.TargetPath);
+        end
+
+        function testSaveCopyCountsWritesToTheCopy(testCase)
+            file = nansen.unittest.metadata.helper.VersionedFileFake(testCase.TargetPath);
+            file.save();
+            file.save(true);
+            copyPath = fullfile(testCase.TestFolder, "copy.mat");
+
+            file.saveCopy(copyPath);
+            firstCopy = load(copyPath);
+            file.saveCopy(copyPath);
+            secondCopy = load(copyPath);
+
+            testCase.verifyEqual(firstCopy.VersionNumber, int64(1));
+            testCase.verifyEqual(secondCopy.VersionNumber, int64(2));
+        end
+
+        function testSaveCopyToOwnFileIsForcedSave(testCase)
+            file = nansen.unittest.metadata.helper.VersionedFileFake(testCase.TargetPath);
+            file.save();
+
+            file.saveCopy(testCase.TargetPath);
+
+            testCase.verifyEqual(file.VersionNumber, int64(2));
+            testCase.verifyTrue(file.isLatestVersion());
+        end
+
+        function testFailedSaveCopyRestoresFilepathAndVersionNumber(testCase)
+            file = nansen.unittest.metadata.helper.VersionedFileFake(testCase.TargetPath);
+            file.save();
+            copyPath = fullfile(testCase.TestFolder, "copy.mat");
+            existingContent = 1;
+            save(copyPath, "existingContent")
+            testCase.makeReadOnly(copyPath);
+
+            testCase.verifyError(@() file.saveCopy(copyPath), 'NANSEN:VersionedFile:SaveFailed');
+
+            testCase.verifyEqual(string(file.filepath), testCase.TargetPath);
+            testCase.verifyEqual(file.VersionNumber, int64(1));
+        end
+
         function testFailedRenameWarnsAndReportsSuccessfulSave(testCase)
             file = nansen.unittest.metadata.helper.VersionedFileFake(testCase.TargetPath);
             file.Data = 1;
