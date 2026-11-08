@@ -1,5 +1,11 @@
 function [sOut, wasAborted] = editStruct(sIn, fieldNames, titleStr, varargin)
 % editStruct opens a GUI for editing fields of a struct/object
+%
+%   Additional name-value pairs are passed to structeditor.App. For example,
+%   'ValidationFcn' checks the entered values when Save is pressed and keeps
+%   the window open if they cannot be saved.
+%
+%   See also structeditor.App
 
     % Determine which fieldnames to include for editing...
     if nargin < 2 || isempty(fieldNames) || isequal(fieldNames, 'all')
