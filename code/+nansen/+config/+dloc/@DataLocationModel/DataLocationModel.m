@@ -87,9 +87,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
             % Superclass constructor. Loads given (or default) archive
             obj@utility.data.StorableCatalog(varargin{:})
 
-            % Initialize the local root path manager
-            obj.initializeLocalRootPathManager();
-
             obj.updateMetadataExtractorFunctionNames()
             obj.tempDevFix()
         end

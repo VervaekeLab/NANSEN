@@ -119,7 +119,9 @@ classdef LocalRootPathManager < handle
                     iSource = source(iDloc);
                     iTarget = target(targetIdx);
 
-                    if ~isempty(iSource)
+                    % A stored data location without root paths holds [],
+                    % which has no fields to read.
+                    if isempty(iSource.RootPath)
                         continue
                     end
 
