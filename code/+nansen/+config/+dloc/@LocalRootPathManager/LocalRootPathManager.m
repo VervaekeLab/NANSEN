@@ -281,15 +281,8 @@ classdef LocalRootPathManager < handle
         %   tf = hasLocalSettingsFile(obj) returns true if a local root
         %   path settings file exists (either .mat or .json format).
 
-            filePath = obj.createSettingsFilepath();
-
-            if isfile(filePath)
-                tf = true;
-            elseif isfile(strrep(filePath, '.mat', '.json'))
-                tf = true;
-            else
-                tf = false;
-            end
+            tf = isfile(obj.createSettingsFilepath('mat')) ...
+                || isfile(obj.createSettingsFilepath('json'));
         end
 
         function S = loadLocalSettings(obj)
@@ -298,12 +291,13 @@ classdef LocalRootPathManager < handle
         %   S = loadLocalSettings(obj) loads and returns the local root
         %   path settings structure from file.
 
-            filePath = obj.createSettingsFilepath();
+            matFilePath = obj.createSettingsFilepath('mat');
+            jsonFilePath = obj.createSettingsFilepath('json');
 
-            if isfile(filePath)
-                S = load(filePath);
-            elseif isfile(strrep(filePath, '.mat', '.json'))
-                S = jsondecode(fileread(strrep(filePath, '.mat', '.json')));
+            if isfile(matFilePath)
+                S = load(matFilePath);
+            elseif isfile(jsonFilePath)
+                S = jsondecode(fileread(jsonFilePath));
             else
                 error('File with local datalocation root paths were not found.')
             end

@@ -115,6 +115,20 @@ classdef LocalRootPathManagerTest < matlab.unittest.TestCase
             testCase.verifyEqual(data(2).RootPath.Value, testCase.LOCAL_ROOT)
         end
 
+        function testSettingsAreFoundInAFolderNamedLikeAMatFile(testCase)
+            % MATLAB's preference folder on Linux is below ~/.matlab, so
+            % only the extension of the file name may decide the format.
+            testCase.Folder = fullfile(testCase.Folder, '.matlab');
+            mkdir(testCase.Folder)
+            testCase.Manager = nansen.config.dloc.LocalRootPathManager(testCase.Folder);
+            testCase.writeLocalSettings(testCase.makeData(testCase.LOCAL_ROOT));
+
+            data = testCase.Manager.importLocalRootPaths( ...
+                testCase.makeData(testCase.SOURCE_ROOT), testCase.preferencesOfAnotherComputer());
+
+            testCase.verifyEqual(data.RootPath.Value, testCase.LOCAL_ROOT)
+        end
+
         function testRootUnknownToTheReferenceIsKept(testCase)
             settings = struct('Uuid', 'location-1', 'RootPath', ...
                 testCase.makeRootPath('other-root', testCase.LOCAL_ROOT, 'Disk', 'External'));
