@@ -687,12 +687,7 @@ classdef ProjectManager < handle
                 end
             end
 
-            % Ensure name and short name are char types.
-            obj.Catalog = S.projectCatalog;
-            for i = 1:numel(obj.Catalog)
-                obj.Catalog(i).Name = char(obj.Catalog(i).Name);
-                obj.Catalog(i).ShortName = char(obj.Catalog(i).ShortName);
-            end
+            obj.Catalog = conformCatalogEntries(S.projectCatalog);
         end
 
         function saveCatalog(obj)
@@ -1058,10 +1053,6 @@ classdef ProjectManager < handle
 
             configFileName = nansen.common.constant.ProjectConfigFilename;
 
-            if ~isfield(obj.Catalog, 'ShortName')
-                [obj.Catalog(:).ShortName] = deal('');
-            end
-
             msg = sprintf( ...
                 "\nProject folders will be updated to work with the latest code changes. " + ...
                 "If any project folder is on a cloud location it is important " + ...
@@ -1098,6 +1089,26 @@ classdef ProjectManager < handle
 
             % Todo: Reorder catalog to original order?
         end
+    end
+end
+
+function catalog = conformCatalogEntries(catalog)
+%conformCatalogEntries Give the entries of a saved catalog the form this class uses
+%
+%   Catalogs saved by older versions have no ShortName field. A project's
+%   short name is its name, as in createProjectInfo. Name, ShortName and
+%   Path are character vectors in memory, while a saved catalog can hold
+%   strings.
+
+    if ~isfield(catalog, 'ShortName')
+        names = {catalog.Name};
+        [catalog.ShortName] = names{:};
+    end
+
+    for i = 1:numel(catalog)
+        catalog(i).Name = char(catalog(i).Name);
+        catalog(i).ShortName = char(catalog(i).ShortName);
+        catalog(i).Path = char(catalog(i).Path);
     end
 end
 
