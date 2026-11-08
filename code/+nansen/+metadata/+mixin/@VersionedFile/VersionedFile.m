@@ -5,8 +5,8 @@ classdef VersionedFile < handle
 %   Optionally override processFileStruct(S) and onAfterLoad().
 %
 %   The save() method writes to a temp file, verifies that it loads, copies
-%   it over the target file, and renames the temp file to a backup. It also
-%   increments a version number on each save. isLatestVersion() compares
+%   it over the target file, and renames the temp file to a backup. Each
+%   successful save increments a version number. isLatestVersion() compares
 %   the in-memory version to the one on disk, allowing detection of
 %   external modifications.
 %
@@ -61,6 +61,9 @@ classdef VersionedFile < handle
         %   verification or the copy fails. If only the rename fails, the
         %   save has succeeded and save issues the warning
         %   NANSEN:VersionedFile:BackupNotUpdated.
+        %
+        %   VersionNumber is incremented once the target file is written,
+        %   so a failed save leaves it unchanged.
 
             if nargin < 2; force = false; end
             wasSaved = false;
@@ -85,9 +88,8 @@ classdef VersionedFile < handle
             S = obj.toFileStruct();
             S = obj.processFileStruct(S);
 
-            versionNumber = obj.loadVersionNumber();
-            obj.VersionNumber = versionNumber + 1;
-            S.VersionNumber = obj.VersionNumber;
+            newVersionNumber = int64(obj.loadVersionNumber()) + 1;
+            S.VersionNumber = newVersionNumber;
 
             [folderPath, fileName, fileExtension] = fileparts(obj.filepath);
             tempPath = fullfile(folderPath, fileName + ".tempsave" + fileExtension);
@@ -98,6 +100,10 @@ classdef VersionedFile < handle
             try
                 verifiedS = load(tempPath); %#ok<NASGU>
                 copyfile(tempPath, obj.filepath)
+
+                % isLatestVersion compares this number with the one in the
+                % file, so it changes only once the file holds the new one.
+                obj.VersionNumber = newVersionNumber;
                 wasSaved = true;
                 obj.markClean();
             catch ME
