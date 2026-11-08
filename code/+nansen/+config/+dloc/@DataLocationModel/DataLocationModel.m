@@ -15,12 +15,10 @@ classdef DataLocationModel < utility.data.StorableCatalog
     end
 
     properties (Dependent)
-        IsDirty % Todo: Dependent on whether data backup is different than data
         DefaultDataLocation
     end
 
     properties (Access = private)
-        DataBackup % Todo: assign this on construction and when model is marked as clean(?)
         LocalRootPathManager nansen.config.dloc.LocalRootPathManager
     end
 
