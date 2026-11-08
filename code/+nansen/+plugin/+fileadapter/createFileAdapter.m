@@ -6,6 +6,10 @@ function createFileAdapter(targetPath, fileAdapterMeta, adapterType)
 %   targetPath is the absolute path to a folder. fileAdapterMeta is an
 %   object of nansen.plugin.fileadapter.FileAdapterMeta
 %
+%   The name in fileAdapterMeta must be a valid MATLAB identifier that no
+%   file adapter in targetPath uses. Any other name is an error, and
+%   nothing is written.
+%
 %   Input Arguments:
 %       targetPath : Pathname of folder to save file adapter in.
 %       fileAdapterMeta : Object with file adapter metadata
@@ -14,6 +18,11 @@ function createFileAdapter(targetPath, fileAdapterMeta, adapterType)
         targetPath (1,1) string % Folder to save file adapter in.
         fileAdapterMeta (1,1) nansen.plugin.fileadapter.FileAdapterMeta % Fileadapter metadata
         adapterType (1,1) string = "R"
+    end
+
+    problem = nansen.plugin.fileadapter.internal.getNameProblem(fileAdapterMeta.Name, targetPath);
+    if strlength(problem) > 0
+        error("NANSEN:CreateFileAdapter:InvalidName", "%s", problem)
     end
 
     % Get path for template

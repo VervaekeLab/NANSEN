@@ -2,7 +2,9 @@ function [S, wasAborted] = uigetFileAdapterAttributes(varargin)
 %uigetFileAdapterAttributes Open dialog for selecting file adapter options.
 %
 %   S = uigetFileAdapterAttributes() opens dialog and returns a struct S
-%   with file adapter attributes.
+%   with file adapter attributes. The dialog stays open until the name can
+%   be used for a new file adapter in the current project, or until the
+%   dialog is cancelled.
 %
 %   S is a struct containing the following fields:
 %       Name : Name of file adapter
@@ -23,8 +25,12 @@ function [S, wasAborted] = uigetFileAdapterAttributes(varargin)
     % Add configuration flags
     S.AdapterType_ = {'Read only', 'Read and write'};
 
+    targetFolder = nansen.plugin.getPluginTargetFolder('fileadapter');
+    getProblem = @(values) nansen.plugin.fileadapter.internal.getNameProblem(values.Name, targetFolder);
+
     [S, wasAborted] = tools.editStruct(S, '', 'Create File Adapter', ...
-        'Prompt', 'Configure new file adapter:');
+        'Prompt', 'Configure new file adapter:', ...
+        'ValidationFcn', getProblem);
 
     if wasAborted; S = struct.empty; return; end
 
