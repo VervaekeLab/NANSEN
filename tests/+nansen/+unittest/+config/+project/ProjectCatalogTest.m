@@ -156,6 +156,31 @@ classdef ProjectCatalogTest < matlab.unittest.TestCase
 
             testCase.verifyEqual(testCase.ProjectManager.Catalog(1).Path, '/tmp/alpha')
         end
+
+        function testMainCatalogGetsEntryFields(testCase)
+        %testMainCatalogGetsEntryFields The fields match those of a new entry
+        %
+        %   A catalog saved on the main branch has a Preferences field and
+        %   no ShortName. ProjectManagerUI addresses the fields by position.
+
+            testCase.writeCatalogFile(testCase.createMainFormatCatalog())
+
+            testCase.ProjectManager.loadCatalog()
+
+            newEntry = nansen.config.project.ProjectManager.getEmptyProjectStruct();
+            testCase.verifyEqual(fieldnames(testCase.ProjectManager.Catalog), fieldnames(newEntry))
+        end
+
+        function testMainCatalogAcceptsProject(testCase)
+        %testMainCatalogAcceptsProject A new entry fits a catalog saved on main
+
+            testCase.writeCatalogFile(testCase.createMainFormatCatalog())
+
+            testCase.ProjectManager.loadCatalog()
+            testCase.ProjectManager.addProject('beta', 'Second', '/tmp/two')
+
+            testCase.verifyEqual(testCase.ProjectManager.ProjectNames, ["alpha", "beta"])
+        end
     end
 
     methods (Access = private)
@@ -167,6 +192,15 @@ classdef ProjectCatalogTest < matlab.unittest.TestCase
             if ~isfolder(catalogFolder); mkdir(catalogFolder); end
 
             save(catalogPath, 'projectCatalog')
+        end
+    end
+
+    methods (Static, Access = private)
+        function catalog = createMainFormatCatalog()
+        %createMainFormatCatalog Create a catalog with the fields saved on main
+
+            catalog = struct('Name', 'alpha', 'Description', 'First', ...
+                'Path', '/tmp/one', 'Preferences', struct());
         end
     end
 end
