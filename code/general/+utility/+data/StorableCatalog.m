@@ -286,16 +286,40 @@ classdef StorableCatalog < handle
             obj.SaveFormat = obj.getFormatFromPath(obj.FilePath);
         end
 
+        function saveIfChanged(obj)
+        %saveIfChanged Save data unless the file already holds the same content
+        %
+        %   For work that runs on every load, such as migrating older data.
+        %   A migration that changes the data reaches the file, and a load
+        %   that changes nothing leaves a file under version control alone.
+            S = obj.cleanStructOnSave(obj.toStruct());
+
+            if ~obj.isCatalogFileContent(S)
+                obj.save()
+            end
+        end
+
+        function tf = isCatalogFileContent(obj, S)
+        %isCatalogFileContent Test if the catalog file holds a catalog struct
+        %
+        %   Json is compared after decoding, so that formatting alone does
+        %   not count as a difference.
+            filePath = nansen.util.path.changeFilenameExtension(obj.FilePath, obj.SaveFormat);
+
+            if ~isfile(filePath)
+                tf = false;
+            elseif strcmp(obj.SaveFormat, 'json')
+                tf = isequaln(jsondecode(fileread(filePath)), jsondecode(obj.encodeAsJson(S)));
+            else
+                tf = isequaln(load(filePath, 'Data', 'Preferences'), S);
+            end
+        end
+
         function writeCatalogFile(obj, S, filePath)
         %writeCatalogFile Write a catalog struct in the format its extension implies
 
             if strcmp(obj.getFormatFromPath(filePath), 'json')
-                % Encode the items, and every struct array nested in them,
-                % as json arrays even when they hold one element or none,
-                % so that a reader in another language does not have to
-                % guess whether a value is a list.
-                S.Data = utility.data.StorableCatalog.encodeStructArraysAsLists(S.Data);
-                utility.filewrite(filePath, jsonencode(S, 'PrettyPrint', true))
+                utility.filewrite(filePath, obj.encodeAsJson(S))
             else
                 save(filePath, '-struct', 'S')
             end
@@ -324,6 +348,17 @@ classdef StorableCatalog < handle
     end
 
     methods (Static, Access = protected)
+
+        function text = encodeAsJson(S)
+        %encodeAsJson Encode a catalog struct as the text of a json catalog file
+        %
+        %   The items, and every struct array nested in them, are written
+        %   as json arrays even when they hold one element or none, so that
+        %   a reader in another language does not have to guess whether a
+        %   value is a list.
+            S.Data = utility.data.StorableCatalog.encodeStructArraysAsLists(S.Data);
+            text = jsonencode(S, 'PrettyPrint', true);
+        end
 
         function format = getFormatFromPath(filePath)
         %getFormatFromPath Save format implied by a catalog file extension

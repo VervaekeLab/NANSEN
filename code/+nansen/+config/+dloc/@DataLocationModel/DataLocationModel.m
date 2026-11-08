@@ -92,15 +92,18 @@ classdef DataLocationModel < utility.data.StorableCatalog
 
             obj.updateMetadataExtractorFunctionNames()
             obj.tempDevFix()
+
+            % Loading and the two steps above bring older data up to date.
+            % That has to be stored, because generated values such as uuids
+            % are referred to from other files.
+            obj.saveIfChanged()
         end
 
         function tempDevFix(obj)
 
-            dirty = false;
-
             % Add default data location to preferences
             if ~isfield(obj.Preferences, 'DefaultDataLocation')
-                dirty = obj.fixDefaultDataLocation() || dirty;
+                obj.fixDefaultDataLocation()
             end
 
             % Rootpath field changed from cell array with 2 cells to root
@@ -110,7 +113,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
 
                 if any(strcmp(rootPath, ''))
                     rootPath(strcmp(rootPath, '')) = [];
-                    dirty = true;
                 end
 
                 obj.Data(i).RootPath = rootPath;
@@ -119,7 +121,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
             % Add 'Type' as a table variable on the third column
             if ~isfield(obj.Data, 'Type')
                 obj.addTypeAsTableVariable()
-                dirty = true;
             end
 
             % Reorder so that Type is the third table variable
@@ -130,19 +131,16 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 obj.Data = orderfields(obj.Data, ...
                     [fieldNamesNew(1:2); 'Type'; fieldNamesNew(3:end)]);
 
-                dirty = true;
             end
 
             if ~isfield(obj.Preferences, 'SourceID')
                 obj.Preferences.SourceID = utility.system.getComputerName(true);
-                dirty = true;
             end
 
             % Add a third variable (DiskName) to root path cell array.
             if ~isempty(obj.Data)
                 if ~isfield( obj.Data(1).RootPath, 'DiskName' )
                     obj.addDiskNameToAllRootPaths()
-                    dirty = true;
                 end
             end
 
@@ -150,7 +148,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
             if ~isempty(obj.Data)
                 if ~isfield( obj.Data(1).RootPath, 'DiskType' )
                     obj.addDiskTypeToAllRootPaths()
-                    dirty = true;
                 end
             end
 
@@ -159,30 +156,21 @@ classdef DataLocationModel < utility.data.StorableCatalog
                 for j = 1:numel(obj.Data(i).SubfolderStructure)
                     if strcmp( obj.Data(i).SubfolderStructure(j).Type, "Animal")
                         obj.Data(i).SubfolderStructure(j).Type = 'Subject';
-                        dirty = true;
                     elseif isstring(obj.Data(i).SubfolderStructure(j).Type)
                         obj.Data(i).SubfolderStructure(j).Type = char(obj.Data(i).SubfolderStructure(j).Type);
-                        dirty = true;
                     end
                     if ~isfield(obj.Data(i).SubfolderStructure, 'IsFolder')
                         [obj.Data(i).SubfolderStructure(:).IsFolder] = deal(true);
-                        dirty = true;
                     end
                 end
                 % Rename Animal ID to Subject ID
                 for j = 1:numel(obj.Data(i).MetaDataDef)
                     if strcmp( obj.Data(i).MetaDataDef(j).VariableName, "Animal ID")
                         obj.Data(i).MetaDataDef(j).VariableName = 'Subject ID';
-                        dirty = true;
                     elseif isstring(obj.Data(i).MetaDataDef(j).VariableName)
                         obj.Data(i).MetaDataDef(j).VariableName = char(obj.Data(i).MetaDataDef(j).VariableName);
-                        dirty = true;
                     end
                 end
-            end
-
-            if dirty
-                obj.save()
             end
         end
     end
@@ -973,7 +961,6 @@ classdef DataLocationModel < utility.data.StorableCatalog
                     obj.Data(i).MetaDataDef(j).FunctionName = functionName;
                 end
             end
-            obj.save()
         end
 
         function initializeLocalRootPathManager(obj)
@@ -1028,24 +1015,19 @@ classdef DataLocationModel < utility.data.StorableCatalog
 
     methods (Access = private)
 
-        function wasSet = fixDefaultDataLocation(obj)
+        function fixDefaultDataLocation(obj)
         %fixDefaultDataLocation Pick a default for a model that has none
         %
         %   Chooses the first data location whose type may be a default,
         %   which excludes read only types such as recorded. When no data
         %   location qualifies the preference is left unset, so that a
         %   default is picked once a qualifying data location is added.
-        %   The output says whether a default was set, so that the caller
-        %   only marks the model dirty when there is something to save.
 
             % Todo: Add uuid, not name
-
-            wasSet = false;
 
             for i = 1:obj.NumDataLocations
                 if obj.Data(i).Type.AllowAsDefault
                     obj.DefaultDataLocation = obj.Data(i).Name;
-                    wasSet = true;
                     return
                 end
             end
