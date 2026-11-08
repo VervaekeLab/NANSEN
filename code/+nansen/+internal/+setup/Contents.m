@@ -4,7 +4,8 @@
 % userpath, missing jars on the Java class path, a too-old Widgets Toolbox.
 %
 % Functions
-%   resolveEmptyUserpath            - Set userpath if it is empty (Linux)
+%   resolveEmptyUserpath            - Ask for a folder and make it MATLAB's userpath
+%   setUserpathFromFolder           - Set MATLAB's userpath from a folder given by the user
 %   addYamlJarToJavaClassPath       - Add the YAML-Matlab jar to the Java class path
 %   addUiwidgetsJarToJavaClassPath  - Add the Widgets Toolbox jar to the Java class path
 %   isUiwidgetsOnJavapath           - True if the Widgets Toolbox jar is on the Java class path
