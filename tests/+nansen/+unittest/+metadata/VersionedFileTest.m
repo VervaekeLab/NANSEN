@@ -112,6 +112,40 @@ classdef VersionedFileTest < matlab.unittest.TestCase
             testCase.verifyEqual(backup.Data, 1);
         end
 
+        function testNonForcedSaveSucceedsAfterFailedCopy(testCase)
+            file = nansen.unittest.metadata.helper.VersionedFileFake(testCase.TargetPath);
+            file.save();
+            testCase.makeReadOnly(testCase.TargetPath);
+            file.Data = 2;
+            file.markModified();
+
+            testCase.verifyError(@() file.save(), 'NANSEN:VersionedFile:SaveFailed');
+
+            testCase.verifyEqual(file.VersionNumber, int64(1));
+            testCase.verifyTrue(file.isLatestVersion());
+
+            fileattrib(testCase.TargetPath, "+w");
+            wasSaved = file.save();
+
+            testCase.verifyTrue(wasSaved);
+            target = load(testCase.TargetPath);
+            testCase.verifyEqual(target.Data, 2);
+            testCase.verifyEqual(target.VersionNumber, int64(2));
+        end
+
+        function testFailedTempFileWriteLeavesVersionNumberUnchanged(testCase)
+            file = nansen.unittest.metadata.helper.VersionedFileFake(testCase.TargetPath);
+            file.save();
+
+            % A folder at the path of the temp file makes writing it fail
+            mkdir(testCase.TempPath)
+
+            testCase.verifyError(@() file.save(true), ?MException);
+
+            testCase.verifyEqual(file.VersionNumber, int64(1));
+            testCase.verifyTrue(file.isLatestVersion());
+        end
+
         function testFailedRenameWarnsAndReportsSuccessfulSave(testCase)
             file = nansen.unittest.metadata.helper.VersionedFileFake(testCase.TargetPath);
             file.Data = 1;

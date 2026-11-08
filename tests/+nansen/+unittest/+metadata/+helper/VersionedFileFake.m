@@ -23,6 +23,10 @@ classdef VersionedFileFake < nansen.metadata.mixin.VersionedFile
             obj.filepath = char(filePath);
         end
 
+        function markModified(obj)
+            obj.HasNoUnsavedChanges = false;
+        end
+
         function markClean(obj)
             obj.HasNoUnsavedChanges = true;
             obj.AfterMarkClean();
