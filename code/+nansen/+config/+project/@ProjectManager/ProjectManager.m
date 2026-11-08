@@ -1096,14 +1096,26 @@ function catalog = conformCatalogEntries(catalog)
 %conformCatalogEntries Give the entries of a saved catalog the form this class uses
 %
 %   Catalogs saved by older versions have no ShortName field. A project's
-%   short name is its name, as in createProjectInfo. Name, ShortName and
-%   Path are character vectors in memory, while a saved catalog can hold
-%   strings.
+%   short name is its name, as in createProjectInfo. They can also hold
+%   fields this class does not use, such as Preferences. A struct array
+%   only accepts an element with the same fields as its own, so such a
+%   catalog could not take a new entry. The fields get the order of a new
+%   entry because ProjectManagerUI addresses them by position. Name,
+%   ShortName and Path are character vectors in memory, while a saved
+%   catalog can hold strings.
+
+    arguments
+        catalog struct
+    end
 
     if ~isfield(catalog, 'ShortName')
         names = {catalog.Name};
         [catalog.ShortName] = names{:};
     end
+
+    newEntry = nansen.config.project.ProjectManager.getEmptyProjectStruct();
+    catalog = rmfield(catalog, setdiff(fieldnames(catalog), fieldnames(newEntry)));
+    catalog = orderfields(catalog, newEntry);
 
     for i = 1:numel(catalog)
         catalog(i).Name = char(catalog(i).Name);
