@@ -35,10 +35,12 @@ function hApp = nansen(userName, flags)
         switch ME.identifier
             case {'NANSEN:UserSession:UserProfileCreationAborted', ...
                     'NANSEN:UserSession:UnexpectedInput', ...
-                    'NANSEN:UserSession:UserNameCaseMismatch'}
+                    'NANSEN:UserSession:UserNameCaseMismatch', ...
+                    'NANSEN:Setup:InstallationIncomplete'}
                 % The user declined or mistyped an answer to a user session
-                % question, or gave a profile name in the wrong case. Show
-                % the message, not a stack trace.
+                % question, gave a profile name in the wrong case, or has
+                % to complete the installation first. Show the message, not
+                % a stack trace.
                 disp(ME.message)
             case 'Nansen:ProjectNotConfigured:MetatableMissing'
                 disp(ME.message)

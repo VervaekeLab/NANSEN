@@ -123,6 +123,9 @@ classdef ProjectFolderUpgradeTest < matlab.unittest.TestCase
         function testFailedUpgradeWarnsWithReason(testCase)
         %testFailedUpgradeWarnsWithReason The warning names cause and remedy
 
+            testCase.assumeEmpty(nansen.internal.setup.findInstallationProblems(), ...
+                "An incomplete installation skips the upgrade")
+
             testCase.stubUpgradeDialogs()
             [projectName, projectFolder] = testCase.createOldFormatProject("not-an-identifier");
             testCase.ProjectManager.addProject(projectName, 'A project', projectFolder)

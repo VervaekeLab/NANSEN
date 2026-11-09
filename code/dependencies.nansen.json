@@ -51,7 +51,7 @@
       "requirementLevel": "required",
       "source": "fex://38527-limit-figure-size",
       "description": "Constrains figure window dimensions",
-      "installCheck": "limitFigSize"
+      "installCheck": "LimitFigSize"
     },
     {
       "name": "cmocean - Perceptually-uniform colormaps",

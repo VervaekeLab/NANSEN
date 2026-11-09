@@ -7,7 +7,8 @@ function setup(userName)
 
     abortIdentifiers = ["NANSEN:UserSession:UserProfileCreationAborted", ...
         "NANSEN:UserSession:UnexpectedInput", ...
-        "NANSEN:UserSession:UserNameCaseMismatch"];
+        "NANSEN:UserSession:UserNameCaseMismatch", ...
+        "NANSEN:Setup:InstallationIncomplete"];
 
     try
         nansen.internal.user.NansenUserSession.instance(userName);
