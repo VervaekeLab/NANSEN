@@ -1,10 +1,11 @@
 classdef ProjectFolderUpgradeTest < matlab.unittest.TestCase
-    %ProjectFolderUpgradeTest What a failed upgrade of a project folder leaves behind
+    %ProjectFolderUpgradeTest What the upgrade of a project folder leaves behind
     %
     %   The upgrade removes a project from the catalog before it creates the
     %   project again in the current layout. A failure has to put the entry
     %   back, or the project can no longer be reached from the project
-    %   manager and its upgrade is never tried again.
+    %   manager and its upgrade is never tried again. A success has to keep
+    %   the settings of the project.
     %
     %   A hyphen makes a project name invalid as a package folder, so
     %   createProject fails for such a name after the project has been
@@ -16,6 +17,12 @@ classdef ProjectFolderUpgradeTest < matlab.unittest.TestCase
     properties
         ProjectManager
         RootFolder (1,1) string
+    end
+
+    properties (Constant)
+        CustomDataLocationName = 'CustomRawdata'
+        CustomVariableName = 'customVariable'
+        TwoPhotonModuleName = "nansen.module.ophys.twophoton"
     end
 
     methods (TestMethodSetup)
@@ -138,9 +145,96 @@ classdef ProjectFolderUpgradeTest < matlab.unittest.TestCase
             testCase.verifySubstring(warningMessage, "If the folder still has the old layout")
             testCase.verifySubstring(warningMessage, string(nansen.rootpath()))
         end
+
+        function testUpgradeKeepsDataLocations(testCase)
+        %testUpgradeKeepsDataLocations The catalog of the project is used
+        %
+        %   createProject writes new catalogs before the catalogs of the
+        %   project are copied in, and a model uses a json file whenever
+        %   there is one. DataLocationModel can only be constructed for the
+        %   current project, so the files are checked here.
+
+            [~, projectFolder] = testCase.createUpgradableProject();
+
+            testCase.upgrade(projectFolder)
+
+            configurationFolder = fullfile(projectFolder, 'configurations');
+            testCase.verifyFalse(isfile(fullfile(configurationFolder, 'datalocation_settings.json')))
+
+            S = load(fullfile(configurationFolder, 'datalocation_settings.mat'));
+            testCase.verifyEqual(S.Data(1).Name, testCase.CustomDataLocationName)
+        end
+
+        function testUpgradeKeepsDataVariables(testCase)
+            [projectName, projectFolder] = testCase.createUpgradableProject();
+
+            testCase.upgrade(projectFolder)
+
+            project = testCase.ProjectManager.getProjectObject(projectName);
+            variableNames = {project.VariableModel.Data.VariableName};
+            testCase.verifyTrue(any(strcmp(variableNames, testCase.CustomVariableName)))
+        end
+
+        function testUpgradeKeepsTwoPhotonModule(testCase)
+        %testUpgradeKeepsTwoPhotonModule The module is listed and loaded
+        %
+        %   A project in the old layout lists no modules, and all of them
+        %   used this one.
+
+            [projectName, projectFolder] = testCase.createUpgradableProject();
+
+            testCase.upgrade(projectFolder)
+
+            project = testCase.ProjectManager.getProjectObject(projectName);
+            includedModules = string({project.IncludedModules.ID});
+            testCase.verifyTrue(any(includedModules == testCase.TwoPhotonModuleName))
+        end
+
+        function testNewCatalogStaysWithoutOldOne(testCase)
+        %testNewCatalogStaysWithoutOldOne A catalog is only replaced by a copy
+
+            [projectName, projectFolder] = testCase.createUpgradableProject();
+            delete(fullfile(projectFolder, 'Configurations', 'filepath_settings.mat'))
+
+            testCase.upgrade(projectFolder)
+
+            project = testCase.ProjectManager.getProjectObject(projectName);
+            testCase.verifyTrue(endsWith(string(project.VariableModel.FilePath), ".json"))
+        end
     end
 
     methods (Access = private)
+
+        function [projectName, projectFolder] = createUpgradableProject(testCase)
+        %createUpgradableProject Create a catalogued project in the old layout
+        %
+        %   The project has the folders that the upgrade copies, and a
+        %   data location and a variable that a new project does not have.
+
+            [projectName, projectFolder] = testCase.createOldFormatProject("upgrade_test");
+            testCase.ProjectManager.addProject(projectName, 'A project', projectFolder)
+
+            mkdir(fullfile(projectFolder, 'Session Methods', ['+', projectName]))
+            mkdir(fullfile(projectFolder, 'Metadata Tables', ['+', projectName], '+tablevar'))
+
+            configurationFolder = fullfile(projectFolder, 'Configurations');
+            mkdir(configurationFolder)
+
+            dataLocationFile = fullfile(configurationFolder, 'datalocation_settings.mat');
+            nansen.config.initializeDataLocationModel(dataLocationFile);
+            S = load(dataLocationFile);
+            S.Data(1).Name = testCase.CustomDataLocationName;
+            save(dataLocationFile, '-struct', 'S')
+
+            variableFile = fullfile(configurationFolder, 'filepath_settings.mat');
+            variableModel = nansen.config.varmodel.VariableModel(variableFile);
+            variableModel.insertItem(variableModel.getDefaultItem(testCase.CustomVariableName));
+            variableModel.save()
+        end
+
+        function upgrade(testCase, projectFolder)
+            nansen.internal.refactor.reorganizeProjectFolder(projectFolder, testCase.ProjectManager)
+        end
 
         function addFieldThatNewEntriesLack(testCase)
         %addFieldThatNewEntriesLack Make the catalog refuse any new entry

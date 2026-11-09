@@ -13,6 +13,7 @@ function reorganizeProjectFolder(projectFolderPath, projectManager)
 %       session methods
 %       table variables
 %       configs
+%   - Select the two-photon module, which every project in the old layout used
 %
 %   If a step fails, the project folder is restored from the backup, a
 %   project that was in the catalog is put back there, and the error is
@@ -78,6 +79,7 @@ function reorganizeProjectFolder(projectFolderPath, projectManager)
         oldConfigFolder = fullfile(projectFolderPathBackup, 'Configurations');
         newConfigFolder = fullfile(projectFolderPath, 'configurations');
         copyfile(oldConfigFolder, newConfigFolder)
+        useCopiedModelCatalogs(newConfigFolder)
 
         % Rename options files:
         L = recursiveDir(fullfile(newConfigFolder, 'custom_options'), 'Type', 'file', 'FileType', 'mat');
@@ -91,6 +93,8 @@ function reorganizeProjectFolder(projectFolderPath, projectManager)
                 movefile(thisFilePath, newFilePath)
             end
         end
+
+        selectTwoPhotonModule(projectFolderPath)
     catch upgradeError
         rollbackErrors = undoUpgrade(projectManager, removedCatalogEntry, ...
             projectFolderPath, projectFolderPathBackup);
@@ -101,6 +105,51 @@ function reorganizeProjectFolder(projectFolderPath, projectManager)
 
         rethrow(upgradeError)
     end
+end
+
+function useCopiedModelCatalogs(configurationFolder)
+%useCopiedModelCatalogs Make the copied model catalogs of a project take effect
+%
+%   createProject writes a new json catalog for the data locations and one
+%   for the data variables, and a model uses the json file whenever there
+%   is one. The copied mat files hold the settings of the project, so a new
+%   json file with a mat file beside it is removed.
+
+    arguments
+        configurationFolder (1,1) string
+    end
+
+    for catalogName = ["datalocation_settings", "filepath_settings"]
+        copiedCatalog = fullfile(configurationFolder, catalogName + ".mat");
+        newCatalog = fullfile(configurationFolder, catalogName + ".json");
+
+        if isfile(copiedCatalog) && isfile(newCatalog)
+            delete(newCatalog)
+        end
+    end
+end
+
+function selectTwoPhotonModule(projectFolderPath)
+%selectTwoPhotonModule Select the module that a project in the old layout used
+%
+%   A project in the old layout lists no modules, and the two-photon module
+%   applied to all of them. A project in the current layout uses only the
+%   modules it lists. The preference is written directly because
+%   Project.setOptionalModules also adds the variables of a module, using
+%   the data locations of the current project. A project in the old layout
+%   has those variables in its own catalog already.
+
+    arguments
+        projectFolderPath (1,1) string
+    end
+
+    twoPhotonModuleName = 'nansen.module.ophys.twophoton';
+
+    configurationFile = fullfile(projectFolderPath, nansen.common.constant.ProjectConfigFilename());
+    projectConfiguration = utility.io.loadjson(configurationFile);
+    projectConfiguration.Preferences.DataModule = ...
+        {twoPhotonModuleName, nansen.common.constant.BaseModuleName()};
+    utility.io.savejson(configurationFile, projectConfiguration)
 end
 
 function rollbackErrors = undoUpgrade(projectManager, catalogEntry, projectFolderPath, backupFolderPath)
