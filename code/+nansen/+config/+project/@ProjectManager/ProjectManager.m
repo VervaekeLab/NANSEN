@@ -1039,22 +1039,24 @@ classdef ProjectManager < handle
                 return
             end
 
+            import nansen.config.project.Project
+
             % Determine path folder (and filename if relevant) based on
             % input keyword
             switch keyword
                 case 'MetaTableCatalog'
-                    saveDir = fullfile(projectRootDir, 'metadata', 'tables');
+                    saveDir = fullfile(projectRootDir, Project.METATABLE_FOLDER_NAME);
                     fileName = 'metatable_catalog.mat';
                 case 'MetaTable'
-                    saveDir = fullfile(projectRootDir, 'metadata', 'tables');
+                    saveDir = fullfile(projectRootDir, Project.METATABLE_FOLDER_NAME);
                 case 'FilePathSettings'
-                    saveDir = fullfile(projectRootDir, 'configurations');
+                    saveDir = fullfile(projectRootDir, Project.CONFIG_FOLDER_NAME);
                     fileName = 'filepath_settings.mat';
                 case {'DataLocationSettings', 'DataLocationCatalog'}
-                    saveDir = fullfile(projectRootDir, 'configurations');
+                    saveDir = fullfile(projectRootDir, Project.CONFIG_FOLDER_NAME);
                     fileName = 'datalocation_settings.mat';
                 case 'PipelineAssignmentModel'
-                    saveDir = fullfile(projectRootDir, 'configurations');
+                    saveDir = fullfile(projectRootDir, Project.CONFIG_FOLDER_NAME);
                     fileName = 'pipeline_settings.mat';
                 case {'figures', 'MultiPartFigures'}
                     saveDir = fullfile(projectRootDir, 'multipart_figures');
