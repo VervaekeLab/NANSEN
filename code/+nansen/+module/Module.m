@@ -32,9 +32,14 @@ classdef Module < handle
     properties (Dependent, SetAccess = private)
         SessionMethods
         TableVariables
-        FileAdapters
         DataVariables % Rename to preset data variables.
         Pipelines
+    end
+
+    % FileAdapters is hidden because its get method warns that it is
+    % deprecated, and the default display reads every visible property.
+    properties (Dependent, SetAccess = private, Hidden)
+        FileAdapters
     end
 
     properties (Dependent)
@@ -143,6 +148,11 @@ classdef Module < handle
             itemType = validatestring(itemType, {'SessionMethod', ...
                 'TableVariable', 'FileAdapter', 'DataVariables', ...
                 'DataLocations'}, 1);
+            if strcmp(itemType, 'FileAdapter')
+                warning('NANSEN:DeprecatedPath:ModuleFileAdapters', ...
+                    ['Module.getTable(''FileAdapter'') is deprecated. ', ...
+                    'Use project.FileAdapterRegistry.list() instead.'])
+            end
             itemTable = obj.rehash(itemType, forceRefresh);
         end
 
@@ -163,6 +173,9 @@ classdef Module < handle
         end
 
         function fileAdapterList = get.FileAdapters(obj)
+            warning('NANSEN:DeprecatedPath:ModuleFileAdapters', ...
+                ['Module.FileAdapters is deprecated. ', ...
+                'Use project.FileAdapterRegistry.list() instead.'])
             itemTable = obj.rehash('FileAdapter');
             fileAdapterList = itemTable.FileAdapterName;
             fileAdapterList = string(fileAdapterList)';

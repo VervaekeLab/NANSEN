@@ -1359,18 +1359,21 @@ classdef FileViewer < nansen.AbstractTabPageModule
 
             fileAdapterMetadata.ImplementationType = 'Class';
             nansen.plugin.fileadapter.createFileAdapter(targetPath, fileAdapterMetadata, adapterType)
+            project.FileAdapterRegistry.markStale()
         end
 
         function onImportFileAdapterFromFile(~)
             project = nansen.getCurrentProject();
             nansen.plugin.fileadapter.importFileAdaptersFromFiles( ...
                 project.getFileAdapterFolder());
+            project.FileAdapterRegistry.markStale()
         end
 
         function onImportFileAdapterFromFolder(~)
             project = nansen.getCurrentProject();
             nansen.plugin.fileadapter.importFileAdaptersFromFolder( ...
                 project.getFileAdapterFolder());
+            project.FileAdapterRegistry.markStale()
         end
 
         function setNodeFilePath(~, treeNode, filePath)

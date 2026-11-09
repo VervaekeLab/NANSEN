@@ -613,7 +613,10 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
                 end
             end
 
-            fileAdapterTable = struct2table(fileAdapterList);
+            % AsArray gives one row per adapter also for a single adapter.
+            % Without it, struct2table makes one row per element of each
+            % field, and fails when SupportedFileTypes holds several types.
+            fileAdapterTable = struct2table(fileAdapterList, AsArray=true);
         end
 
         function result = parseFunctionBasedFileAdapter(filePath)
