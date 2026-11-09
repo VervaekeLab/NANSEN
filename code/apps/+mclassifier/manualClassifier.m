@@ -1408,7 +1408,7 @@ methods % Mostly internal updating
             S.(varNames{i}) = S.(varNames{i})(keep);
         end
 
-        savePath = nansen.util.path.appendToFilename(savePath, '_clean');
+        savePath = appendToFilename(savePath, '_clean');
         save(savePath, '-struct', 'S')
 
         fprintf('Saved classification results to %s\n', savePath)
@@ -1433,7 +1433,7 @@ methods % Mostly internal updating
 
                 case 'append _classified'
                     pickFile = false;
-                    savePath = nansen.util.path.appendToFilename(obj.dataFilePath, '_classified');
+                    savePath = appendToFilename(obj.dataFilePath, '_classified');
 
                 otherwise
                     return
@@ -1675,6 +1675,21 @@ methods (Static, Access = private)
         stringSize = sprintf('%dx%d', numberSize(1), numberSize(2));
     end
 end
+end
+
+function newFilename = appendToFilename(filename, suffix)
+%appendToFilename Add text to the end of a file name, before its extension
+%
+%   This package does not depend on the nansen namespace, so it keeps its
+%   own copy of nansen.util.path.appendToFilename.
+
+    arguments
+        filename (1,:) char {mustBeNonempty}
+        suffix (1,:) char {mustBeNonempty}
+    end
+
+    [folderPath, fileName, extension] = fileparts(filename);
+    newFilename = fullfile(folderPath, [fileName, suffix, extension]);
 end
 
 function str = pval2str(pval, numSignificantValues)
