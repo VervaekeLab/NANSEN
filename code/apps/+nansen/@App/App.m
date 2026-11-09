@@ -101,6 +101,9 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
         % for nansen to update states for data location indicators.
         DiskConnectionMonitor (1,1) nansen.internal.system.DiskConnectionMonitor
 
+        % RestartMonitor - Notices an update that needs a restart of nansen
+        RestartMonitor nansen.internal.user.RestartMonitor
+
         % Context menu for session table. Todo: Need to generalize this to
         % flexibly update when tables are changed.
         SessionContextMenu matlab.ui.container.ContextMenu
@@ -215,6 +218,8 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
                 app.initializeDiskConnectionMonitor()
             end
 
+            app.initializeRestartMonitor()
+
             if nargout == 0
                 clear app
             end
@@ -233,6 +238,10 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
 
             if ~isempty(app.DiskConnectionMonitor)
                 delete(app.DiskConnectionMonitor)
+            end
+
+            if ~isempty(app.RestartMonitor)
+                delete(app.RestartMonitor)
             end
 
             app.deleteMetaTableListeners()
@@ -1711,6 +1720,36 @@ classdef App < uiw.abstract.AppWindow & nansen.mixin.UserSettings & ...
             cache.startFileChangeMonitoring()
             app.MetaTableFileChangedListener = addlistener(cache, ...
                 'FileChangedOnDisk', @(~, evt) app.onMetaTableFileChangedOnDisk(evt));
+        end
+
+        function initializeRestartMonitor(app)
+
+            app.RestartMonitor = nansen.internal.user.RestartMonitor( ...
+                @() app.UserSession.isRestartNeeded());
+
+            addlistener(app.RestartMonitor, 'RestartNeeded', ...
+                @(s, e) app.onRestartNeeded());
+        end
+
+        function onRestartNeeded(app)
+        %onRestartNeeded Offer once to restart after an update that moved data
+        %
+        %   The dialog opens without warning while the user can be typing,
+        %   so the default answer is the one that closes nothing.
+
+            question = ['NANSEN was updated while it was running, and the ' ...
+                'update changes where NANSEN keeps its data. Restart NANSEN ' ...
+                'to finish the update. Until then NANSEN may not find your ' ...
+                'settings and option presets.'];
+
+            answer = app.MessageDisplay.ask(question, ...
+                'Title', 'Restart NANSEN', ...
+                'Alternatives', ["Restart Now", "Later"], ...
+                'DefaultAnswer', "Later");
+
+            if strcmp(answer, 'Restart Now')
+                nansen.restart()
+            end
         end
 
         function initializeDiskConnectionMonitor(app)
