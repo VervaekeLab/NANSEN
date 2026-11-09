@@ -687,12 +687,7 @@ classdef ProjectManager < handle
                 end
             end
 
-            % Ensure name and short name are char types.
-            obj.Catalog = S.projectCatalog;
-            for i = 1:numel(obj.Catalog)
-                obj.Catalog(i).Name = char(obj.Catalog(i).Name);
-                obj.Catalog(i).ShortName = char(obj.Catalog(i).ShortName);
-            end
+            obj.Catalog = conformCatalogEntries(S.projectCatalog);
         end
 
         function saveCatalog(obj)
@@ -1058,10 +1053,6 @@ classdef ProjectManager < handle
 
             configFileName = nansen.common.constant.ProjectConfigFilename;
 
-            if ~isfield(obj.Catalog, 'ShortName')
-                [obj.Catalog(:).ShortName] = deal('');
-            end
-
             msg = sprintf( ...
                 "\nProject folders will be updated to work with the latest code changes. " + ...
                 "If any project folder is on a cloud location it is important " + ...
@@ -1091,7 +1082,7 @@ classdef ProjectManager < handle
                         nansen.internal.refactor.reorganizeProjectFolder(thisProjectDir, obj)
                         nansen.internal.refactor.updateVariableCatalog(thisProjectDir)
                     catch ME
-                        disp(getReport(ME, 'extended'))
+                        showProjectUpgradeWarning(thisProjectDir, ME)
                     end
                 end
             end
@@ -1101,9 +1092,84 @@ classdef ProjectManager < handle
     end
 end
 
+function catalog = conformCatalogEntries(catalog)
+%conformCatalogEntries Give the entries of a saved catalog the form this class uses
+%
+%   Catalogs saved by older versions have no ShortName field. A project's
+%   short name is its name, as in createProjectInfo. They can also hold
+%   fields this class does not use, such as Preferences. A struct array
+%   only accepts an element with the same fields as its own, so such a
+%   catalog could not take a new entry. The fields get the order of a new
+%   entry because ProjectManagerUI addresses them by position. Name,
+%   ShortName and Path are character vectors in memory, while a saved
+%   catalog can hold strings.
+
+    arguments
+        catalog struct
+    end
+
+    if ~isfield(catalog, 'ShortName')
+        names = {catalog.Name};
+        [catalog.ShortName] = names{:};
+    end
+
+    newEntry = nansen.config.project.ProjectManager.getEmptyProjectStruct();
+    catalog = rmfield(catalog, setdiff(fieldnames(catalog), fieldnames(newEntry)));
+    catalog = orderfields(catalog, newEntry);
+
+    for i = 1:numel(catalog)
+        catalog(i).Name = char(catalog(i).Name);
+        catalog(i).ShortName = char(catalog(i).ShortName);
+        catalog(i).Path = char(catalog(i).Path);
+    end
+end
+
 function throwProjectNotFoundError(projectName)
     error('NANSEN:ProjectManager:ProjectNotFound', ...
         'Project with name "%s" does not exist.', projectName)
+end
+
+function showProjectUpgradeWarning(projectFolder, exception)
+%showProjectUpgradeWarning Report a project folder that failed to upgrade
+
+    arguments
+        projectFolder (1,1) string
+        exception (1,1) MException
+    end
+
+    % createProject reports what went wrong as the cause of a general error
+    rootCause = exception;
+    while ~isempty(rootCause.cause)
+        rootCause = rootCause.cause{1};
+    end
+
+    reason = string(rootCause.message);
+    if ~isempty(rootCause.stack)
+        reason = reason + sprintf(" (in %s at line %d)", ...
+            rootCause.stack(1).name, rootCause.stack(1).line);
+    end
+
+    % An upgrade is tried again only for a folder that still lacks the
+    % project file of the current layout, and the state of a folder that
+    % could not be put back is not known.
+    if exception.identifier == "NANSEN:ProjectManager:ProjectRollbackFailed"
+        outcome = string(exception.message);
+    else
+        backupFolder = fullfile(userpath(), "Nansen", "Backup");
+        outcome = "If the folder still has the old layout, the update is tried " + ...
+            "again the next time NANSEN starts in a new MATLAB session. " + ...
+            "Backups made before an update are kept in """ + backupFolder + """.";
+    end
+
+    nansen.common.tracelesswarning( ...
+        "NANSEN:ProjectManager:ProjectUpgradeFailed", ...
+        "Updating the project folder ""%s"" to this version of NANSEN failed.\n" + ...
+        "Reason: %s\n" + ...
+        "%s\n" + ...
+        "If the reason names a function or class that can not be found, run " + ...
+        "nansen_install, which is in ""%s"", to install what NANSEN needs and " + ...
+        "add it to the search path.", ...
+        projectFolder, reason, outcome, nansen.rootpath())
 end
 
 function showProjectMissingWarning(projectName, projectFolder)

@@ -109,5 +109,98 @@ classdef ProjectCatalogTest < matlab.unittest.TestCase
 
             testCase.verifyTrue(testCase.ProjectManager.containsProject("alpha"))
         end
+
+        function testCatalogWithoutShortNamesLoads(testCase)
+        %testCatalogWithoutShortNamesLoads Each entry gets its name as short name
+        %
+        %   Catalogs saved by older versions have no ShortName field. The
+        %   catalog is loaded when a user session starts, so a failure here
+        %   stops NANSEN from starting.
+
+            testCase.writeCatalogFile(struct( ...
+                'Name', {'alpha', 'beta'}, ...
+                'Description', {'First', 'Second'}, ...
+                'Path', {'/tmp/one', '/tmp/two'}))
+
+            testCase.ProjectManager.loadCatalog()
+
+            catalog = testCase.ProjectManager.Catalog;
+            testCase.verifyEqual({catalog.ShortName}, {'alpha', 'beta'})
+        end
+
+        function testEmptyCatalogWithoutShortNamesAcceptsAProject(testCase)
+        %testEmptyCatalogWithoutShortNamesAcceptsAProject The field is added
+        %
+        %   A new entry has a ShortName field, and a struct array only
+        %   accepts an element with the same fields as its own.
+
+            testCase.writeCatalogFile(struct('Name', {}, 'Description', {}, 'Path', {}))
+
+            testCase.ProjectManager.loadCatalog()
+            testCase.ProjectManager.addProject('alpha', 'A project', '/tmp/alpha')
+
+            testCase.verifyEqual(testCase.ProjectManager.ProjectNames, "alpha")
+        end
+
+        function testProjectPathIsLoadedAsCharacterVector(testCase)
+        %testProjectPathIsLoadedAsCharacterVector A saved string is converted
+        %
+        %   The project upgrade builds folder names by concatenating this
+        %   path with character vectors, which gives a string array when
+        %   the path is a string.
+
+            testCase.writeCatalogFile(struct('Name', 'alpha', 'ShortName', 'alpha', ...
+                'Description', 'A project', 'Path', "/tmp/alpha"))
+
+            testCase.ProjectManager.loadCatalog()
+
+            testCase.verifyEqual(testCase.ProjectManager.Catalog(1).Path, '/tmp/alpha')
+        end
+
+        function testMainCatalogGetsEntryFields(testCase)
+        %testMainCatalogGetsEntryFields The fields match those of a new entry
+        %
+        %   A catalog saved on the main branch has a Preferences field and
+        %   no ShortName. ProjectManagerUI addresses the fields by position.
+
+            testCase.writeCatalogFile(testCase.createMainFormatCatalog())
+
+            testCase.ProjectManager.loadCatalog()
+
+            newEntry = nansen.config.project.ProjectManager.getEmptyProjectStruct();
+            testCase.verifyEqual(fieldnames(testCase.ProjectManager.Catalog), fieldnames(newEntry))
+        end
+
+        function testMainCatalogAcceptsProject(testCase)
+        %testMainCatalogAcceptsProject A new entry fits a catalog saved on main
+
+            testCase.writeCatalogFile(testCase.createMainFormatCatalog())
+
+            testCase.ProjectManager.loadCatalog()
+            testCase.ProjectManager.addProject('beta', 'Second', '/tmp/two')
+
+            testCase.verifyEqual(testCase.ProjectManager.ProjectNames, ["alpha", "beta"])
+        end
+    end
+
+    methods (Access = private)
+        function writeCatalogFile(testCase, projectCatalog)
+        %writeCatalogFile Replace the catalog file of the isolated catalog
+
+            catalogPath = testCase.ProjectManager.CatalogPath;
+            catalogFolder = fileparts(catalogPath);
+            if ~isfolder(catalogFolder); mkdir(catalogFolder); end
+
+            save(catalogPath, 'projectCatalog')
+        end
+    end
+
+    methods (Static, Access = private)
+        function catalog = createMainFormatCatalog()
+        %createMainFormatCatalog Create a catalog with the fields saved on main
+
+            catalog = struct('Name', 'alpha', 'Description', 'First', ...
+                'Path', '/tmp/one', 'Preferences', struct());
+        end
     end
 end

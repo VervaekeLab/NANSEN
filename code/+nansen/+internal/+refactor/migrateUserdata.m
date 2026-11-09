@@ -15,7 +15,10 @@ function migrateUserdata(userSession)
             'directory.\n'])
 
     oldPath = fullfile(nansen.rootpath, '_userdata');
-    newPath = userSession.getPrefdir();
+
+    % Project paths built from this folder are written to the project
+    % catalog, which holds character vectors.
+    newPath = char( userSession.getPrefdir() );
 
     dateStr = char( datetime('now', 'Format', 'yyyy_MM_dd') );
     timeStr = char( datetime('now', 'Format', '''T''_HHmmss') );
