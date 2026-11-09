@@ -60,5 +60,55 @@ classdef ProjectFolderLayoutTest < matlab.unittest.TestCase
             testCase.verifyEqual(string(fileparts(catalogPath)), ...
                 string(fullfile(currentProjectFolder, Project.METATABLE_FOLDER_NAME)))
         end
+
+        function testCatalogPathUsesTheConfigurationFolder(testCase)
+        % The comparison is exact, because Configurations and configurations
+        % are different folders on a case sensitive file system
+
+            testCase.applyFixture(nansen.fixture.ProjectFixture)
+
+            project = nansen.getCurrentProject();
+            catalogPath = nansen.config.project.ProjectManager.getProjectCatalogPath('SomeCatalog');
+
+            testCase.verifyEqual(string(fileparts(catalogPath)), ...
+                string(project.getConfigurationFolder()))
+        end
+
+        function testOpeningAProjectBringsItUpToDate(testCase)
+            import nansen.config.project.ProjectFolderLayout
+
+            testCase.applyFixture(nansen.fixture.ProjectFixture)
+
+            projectManager = nansen.ProjectManager();
+            projectName = projectManager.CurrentProject;
+            projectFolder = projectManager.CurrentProjectPath;
+
+            ProjectFolderLayout.write(projectFolder, ProjectFolderLayout.FIRST_VERSION)
+            projectManager.reset()
+
+            projectManager.getProjectObject(projectName);
+
+            testCase.verifyEqual(ProjectFolderLayout.read(projectFolder), ...
+                ProjectFolderLayout.CURRENT_VERSION)
+        end
+
+        function testProjectFromNewerCodeCanNotBeOpened(testCase)
+            import nansen.config.project.ProjectFolderLayout
+
+            testCase.applyFixture(nansen.fixture.ProjectFixture)
+
+            projectManager = nansen.ProjectManager();
+            projectName = projectManager.CurrentProject;
+            projectFolder = projectManager.CurrentProjectPath;
+
+            % Runs before the fixture removes the project
+            testCase.addTeardown(@() ProjectFolderLayout.write(projectFolder))
+
+            ProjectFolderLayout.write(projectFolder, ProjectFolderLayout.CURRENT_VERSION + 1)
+            projectManager.reset()
+
+            testCase.verifyError(@() projectManager.getProjectObject(projectName), ...
+                'NANSEN:Project:LayoutNewer')
+        end
     end
 end
