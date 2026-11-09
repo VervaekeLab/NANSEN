@@ -572,6 +572,7 @@ classdef ProjectManager < handle
                 if isempty(s)
                     projectObj = [];
                 else
+                    nansen.config.project.ProjectFolderLayout.migrate(s.Path)
                     projectObj = nansen.config.project.Project(s.Name, s.Path);
                     obj.ProjectCache(name) = projectObj;
                 end
@@ -994,10 +995,10 @@ classdef ProjectManager < handle
         %   pathStr = getProjectCatalogPath(catalogName, subfolder)
         %   optionally specifies a subfolder within the project root
         %   directory where to store the catalog. Default subfolder is
-        %   /Configurations.
+        %   the configuration folder of the project.
 
             if nargin < 2
-                subfolder = 'Configurations';
+                subfolder = nansen.config.project.Project.CONFIG_FOLDER_NAME;
             end
 
             pm = nansen.ProjectManager;

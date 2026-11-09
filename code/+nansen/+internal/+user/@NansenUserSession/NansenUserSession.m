@@ -406,11 +406,7 @@ classdef NansenUserSession < handle
         %   sessions can start at the same moment. A session with nothing
         %   to migrate does not wait for the lock.
         %
-        %   Only a timeout stops the session. Any other failure means that
-        %   the directory can not be written to, which the move handles by
-        %   using the preference directory for this session.
-        %
-        %   See also nansen.internal.migration.acquireLock
+        %   See also nansen.internal.migration.tryAcquireLock
 
             import nansen.internal.user.UserDataLayout
 
@@ -420,14 +416,8 @@ classdef NansenUserSession < handle
             isBehind = isfolder(userDataDirectory) ...
                 && UserDataLayout.read(userDataDirectory) < UserDataLayout.CURRENT_VERSION;
 
-            if ~hasLegacyFolders && ~isBehind; return; end
-
-            try
-                lock = nansen.internal.migration.acquireLock(userDataDirectory);
-            catch ME
-                if strcmp(ME.identifier, 'NANSEN:Migration:LockTimeout')
-                    rethrow(ME)
-                end
+            if hasLegacyFolders || isBehind
+                lock = nansen.internal.migration.tryAcquireLock(userDataDirectory);
             end
         end
 

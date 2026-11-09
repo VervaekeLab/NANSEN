@@ -32,7 +32,7 @@ classdef AcquireLockTest < matlab.unittest.TestCase
         end
 
         function testReleasingRemovesTheFile(testCase)
-            releaseLock = nansen.internal.migration.acquireLock(testCase.Directory);
+            releaseLock = nansen.internal.migration.acquireLock(testCase.Directory); %#ok<NASGU>
 
             clear releaseLock
 
@@ -49,7 +49,7 @@ classdef AcquireLockTest < matlab.unittest.TestCase
         end
 
         function testLockCanBeTakenAfterRelease(testCase)
-            firstLock = nansen.internal.migration.acquireLock(testCase.Directory);
+            firstLock = nansen.internal.migration.acquireLock(testCase.Directory); %#ok<NASGU>
             clear firstLock
 
             secondLock = nansen.internal.migration.acquireLock(testCase.Directory, TimeoutSeconds=0); %#ok<NASGU>
