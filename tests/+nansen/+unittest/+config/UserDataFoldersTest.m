@@ -484,6 +484,64 @@ classdef UserDataFoldersTest < matlab.unittest.TestCase
             testCase.verifyEqual(UserDataLayout.read(directory), 0)
             testCase.verifyWarningFree(@() UserDataLayout.remove(directory))
         end
+
+        function testAGivenLayoutVersionIsStored(testCase)
+            import nansen.internal.user.UserDataLayout
+
+            directory = testCase.createDirectoryPair();
+            UserDataLayout.write(directory, 7)
+
+            testCase.verifyEqual(UserDataLayout.read(directory), 7)
+        end
+
+        function testNewerLayoutIsRefused(testCase)
+        % This code would write over data that it does not recognise
+
+            import nansen.internal.user.UserDataLayout
+
+            directory = testCase.createDirectoryPair();
+            UserDataLayout.write(directory, UserDataLayout.CURRENT_VERSION + 1)
+
+            testCase.verifyError(@() UserDataLayout.assertSupported(directory), ...
+                'NANSEN:UserSession:UserDataLayoutNewer')
+        end
+
+        function testCurrentAndMissingLayoutsAreSupported(testCase)
+            import nansen.internal.user.UserDataLayout
+
+            directory = testCase.createDirectoryPair();
+            testCase.verifyWarningFree(@() UserDataLayout.assertSupported(directory))
+
+            UserDataLayout.write(directory)
+            testCase.verifyWarningFree(@() UserDataLayout.assertSupported(directory))
+        end
+
+        function testCurrentVersionMatchesTheLastMigrationStep(testCase)
+        % A step that is added without updating CURRENT_VERSION would never run
+
+            import nansen.internal.user.UserDataLayout
+
+            steps = UserDataLayout.getMigrationSteps(testCase.RootFolder);
+
+            testCase.verifyEqual(max([UserDataLayout.FIRST_VERSION, steps.Version]), ...
+                UserDataLayout.CURRENT_VERSION)
+        end
+
+        function testFoldersAreKeptOutOfALaterLayout(testCase)
+        % The target has moved on, so even a folder it lacks would not fit
+
+            [sourceDirectory, targetDirectory] = testCase.createDirectoryPair();
+            testCase.createFile(fullfile(sourceDirectory, "custom_options"), "preset.mat")
+            mkdir(fullfile(sourceDirectory, "settings"))
+
+            result = nansen.internal.user.migrateUserDataFolders( ...
+                sourceDirectory, targetDirectory, testCase.FOLDER_NAMES, CanReceiveFolders=false);
+
+            testCase.verifyEmpty(result.MovedFolderNames)
+            testCase.verifyEqual(result.RenamedFolderNames, "custom_options")
+            testCase.verifyEqual(testCase.listEntries(sourceDirectory), "custom_options.unmigrated")
+            testCase.verifyEmpty(testCase.listEntries(targetDirectory))
+        end
     end
 
     methods (Test) % moveMachineLocalSettings
