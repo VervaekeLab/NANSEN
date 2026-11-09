@@ -441,7 +441,10 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             if ~isfolder(folderPath); mkdir(folderPath); end
 
             % Force file to be saved as .tif if extension was set to .mat
-            filePath = strrep(filePath, '.mat', '.tif');
+            [~, ~, extension] = fileparts(filePath);
+            if strcmp(extension, '.mat')
+                filePath = nansen.util.path.changeFilenameExtension(filePath, '.tif');
+            end
 
             % Call method of ImageStackProcessor
             openTargetStack@nansen.stack.ImageStackProcessor(obj, filePath, ...
@@ -811,7 +814,7 @@ classdef MotionCorrection < nansen.stack.ImageStackProcessor
             rgbArray = imArray;
             rgbArray(:, :, 3, :) = 0;
 
-            newFilepath = strrep(filepath, '.tif', '_rgb.tif');
+            newFilepath = nansen.util.path.appendToFilename(filepath, '_rgb');
 
             nansen.stack.utility.mat2tiffstack( rgbArray, newFilepath, true ) % true to save as rgb.
         end

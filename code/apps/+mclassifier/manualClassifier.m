@@ -1408,7 +1408,7 @@ methods % Mostly internal updating
             S.(varNames{i}) = S.(varNames{i})(keep);
         end
 
-        savePath = strrep(savePath, '.mat', '_clean.mat');
+        savePath = nansen.util.path.appendToFilename(savePath, '_clean');
         save(savePath, '-struct', 'S')
 
         fprintf('Saved classification results to %s\n', savePath)
@@ -1433,7 +1433,7 @@ methods % Mostly internal updating
 
                 case 'append _classified'
                     pickFile = false;
-                    savePath = strrep(obj.dataFilePath, '.mat', '_classified.mat');
+                    savePath = nansen.util.path.appendToFilename(obj.dataFilePath, '_classified');
 
                 otherwise
                     return

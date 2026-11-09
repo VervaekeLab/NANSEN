@@ -536,7 +536,7 @@ classdef (Abstract) FileAdapter < handle & matlab.mixin.CustomDisplay
             if isTemporary
                 filepathMat = [tempname, '.mat'];
             else
-                filepathMat = strrep(filepathNpy, '.npy', '.mat');
+                filepathMat = nansen.util.path.changeFilenameExtension(filepathNpy, '.mat');
             end
 
             if ispc
