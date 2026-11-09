@@ -399,6 +399,38 @@ classdef NansenUserSession < handle
                 || isfile(nansen.config.project.ProjectManager.getCatalogPath(userDataDirectory));
         end
 
+        function lock = lockIfMigrationIsNeeded(obj, preferenceDirectory, userDataDirectory)
+        %lockIfMigrationIsNeeded Keep another MATLAB out while this one migrates
+        %
+        %   Every MATLAB release shares the user data directory, so two
+        %   sessions can start at the same moment. A session with nothing
+        %   to migrate does not wait for the lock.
+        %
+        %   Only a timeout stops the session. Any other failure means that
+        %   the directory can not be written to, which the move handles by
+        %   using the preference directory for this session.
+        %
+        %   See also nansen.internal.migration.acquireLock
+
+            import nansen.internal.user.UserDataLayout
+
+            lock = [];
+
+            hasLegacyFolders = any(isfolder(fullfile(preferenceDirectory, obj.USER_DATA_FOLDER_NAMES)));
+            isBehind = isfolder(userDataDirectory) ...
+                && UserDataLayout.read(userDataDirectory) < UserDataLayout.CURRENT_VERSION;
+
+            if ~hasLegacyFolders && ~isBehind; return; end
+
+            try
+                lock = nansen.internal.migration.acquireLock(userDataDirectory);
+            catch ME
+                if strcmp(ME.identifier, 'NANSEN:Migration:LockTimeout')
+                    rethrow(ME)
+                end
+            end
+        end
+
         function applyUserDataMigrationSteps(obj, userDataDirectory)
         %applyUserDataMigrationSteps Bring a user data directory to the current layout
         %
@@ -658,6 +690,11 @@ classdef NansenUserSession < handle
             userDataDirectory = obj.getCurrentUserDataDirectory();
 
             [isRedirectBroken, redirectFilePath, namedDirectory] = obj.isUserDataRedirectBroken();
+
+            if ~isRedirectBroken
+                % Released when this method returns, also on an error
+                migrationLock = obj.lockIfMigrationIsNeeded(preferenceDirectory, userDataDirectory); %#ok<NASGU>
+            end
 
             if isRedirectBroken
                 % The data belongs in the named directory. Moving it to the
