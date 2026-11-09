@@ -955,7 +955,7 @@ classdef App < mclassifier.manualClassifier & roimanager.roiDisplay & roimanager
                 roiGroupStruct(i).roiClassification = tempRoiGroup(i).roiClassification(keep);
             end
 
-            savePath = strrep(savePath, '.mat', '_clean.mat');
+            savePath = nansen.util.path.appendToFilename(savePath, '_clean');
 
             % Save roigroup using roigroup fileadapter
             fileObj = nansen.dataio.fileadapter.roi.RoiGroup(savePath, '-w');

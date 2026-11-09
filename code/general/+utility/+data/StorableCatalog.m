@@ -729,7 +729,7 @@ classdef StorableCatalog < handle
         function saveToFolder(obj, S)
         %saveToFolder Save catalog to a folder with one file per item
             % Make folder if it does not exist.
-            folderPath = strrep(obj.FilePath, '.mat', '');
+            folderPath = obj.getItemFolderPath();
             if ~isfolder(folderPath); mkdir(folderPath); end
 
             % Create and save a master list
@@ -759,7 +759,7 @@ classdef StorableCatalog < handle
         %   Note: will be slower than loading from single file, but is more
         %   modular, in that its easier to add and remove items.
 
-            folderPath = strrep(obj.FilePath, '.mat', '');
+            folderPath = obj.getItemFolderPath();
 
             L = dir(fullfile(folderPath, '*.mat'));
 
@@ -779,6 +779,14 @@ classdef StorableCatalog < handle
             end
 
             S.Data = cat(2, itemArray{:});
+        end
+
+        function folderPath = getItemFolderPath(obj)
+        %getItemFolderPath Folder of a one-file-per-item catalog
+        %
+        %   The folder is named after the catalog file and sits beside it.
+            [parentFolder, catalogName] = fileparts(obj.FilePath);
+            folderPath = fullfile(parentFolder, catalogName);
         end
     end
 

@@ -225,7 +225,7 @@ methods % Subclass specific methods
     function metadata = getSciScanRecordingInfo(obj)
     %getSciScanRecordingInfo Get recording info from the sciscan ini file
 
-        inifilepath = strrep(obj.FilePath, '.raw', '.ini');
+        inifilepath = nansen.util.path.changeFilenameExtension(obj.FilePath, '.ini');
         inistring = fileread(inifilepath);
 
         metadata = struct();
@@ -408,7 +408,7 @@ methods (Static)
                 isValid = false; return;
             else
                 rawFilePath = fullfile(L.folder, L.name);
-                iniFilePath = strrep(rawFilePath, '.raw', '.ini');
+                iniFilePath = nansen.util.path.changeFilenameExtension(rawFilePath, '.ini');
             end
 
         elseif isfile(pathStr)

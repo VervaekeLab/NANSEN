@@ -376,7 +376,7 @@ classdef TaskProcessor < uiw.mixin.AssignPVPairs
                 catch ME
                     % Back up file
                     dateStr = char(datetime('now'), 'yyyyMMdd_HH_mm_ss');
-                    filePathBackup = strrep(filePath, '.mat', sprintf('corrupted_%s.mat', dateStr));
+                    filePathBackup = nansen.util.path.appendToFilename(filePath, sprintf('corrupted_%s', dateStr));
                     movefile(filePath, filePathBackup);
 
                     warning('Could not load the task list. This might be due to the file being corrupt. The file is backed up, and the task list is reset. If you see this warning several times, please report!')

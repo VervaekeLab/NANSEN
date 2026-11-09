@@ -33,7 +33,7 @@ function saveIcon(iconName)
         hV.Height = hV.Height/hV.Height;
 
         S.imageVector = hV.getVectorStruct;
-        savePath = strrep(loadPath, '.png', '.mat');
+        savePath = nansen.util.path.changeFilenameExtension(loadPath, '.mat');
 
         save(savePath, '-struct', 'S')
     end

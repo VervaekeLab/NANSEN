@@ -704,7 +704,7 @@ classdef ProjectManager < handle
                 save(obj.CatalogPath, 'projectCatalog')
             elseif obj.CatalogSaveFormat == "json"
                 jsonStr = jsonencode(projectCatalog, 'PrettyPrint', true);
-                jsonPath = replace(obj.CatalogPath, '.mat', '.json');
+                jsonPath = nansen.util.path.changeFilenameExtension(obj.CatalogPath, '.json');
                 fid = fopen(jsonPath, 'w');
                 fwrite(fid, jsonStr);
                 fclose(fid);

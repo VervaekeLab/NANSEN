@@ -1,13 +1,66 @@
 classdef PathUtilTest < matlab.unittest.TestCase
     %PathUtilTest Unit tests for nansen.util.path utilities.
     %
-    %   Covers changeFilenameExtension, which must replace only the
-    %   extension of the file name and never alter folder names.
+    %   Covers changeFilenameExtension and appendToFilename, which must
+    %   change only the name of the file and never alter folder names.
     %
     %   Run tests:
     %       runtests('nansen.unittest.util.PathUtilTest')
 
     methods (Test)
+
+        % ----------------------------------------------------------------
+        % appendToFilename
+        % ----------------------------------------------------------------
+
+        function testSuffixGoesBeforeTheExtension(testCase)
+            inputPath = fullfile('/data', 'rois.mat');
+            expected = fullfile('/data', 'rois_clean.mat');
+
+            actual = nansen.util.path.appendToFilename(inputPath, '_clean');
+
+            testCase.verifyEqual(actual, expected);
+        end
+
+        function testSuffixIsAddedForAnyExtension(testCase)
+            % A path without the expected extension must still change, so
+            % that a derived file can not overwrite the one it came from.
+            actual = nansen.util.path.appendToFilename('rois.h5', '_clean');
+
+            testCase.verifyEqual(actual, 'rois_clean.h5');
+        end
+
+        function testSuffixLeavesFoldersContainingTheExtensionAlone(testCase)
+            inputPath = fullfile('/home', '.matlab', 'archive.mat.bak', 'rois.mat');
+            expected = fullfile('/home', '.matlab', 'archive.mat.bak', 'rois_clean.mat');
+
+            actual = nansen.util.path.appendToFilename(inputPath, '_clean');
+
+            testCase.verifyEqual(actual, expected);
+        end
+
+        function testSuffixGoesBeforeTheFinalExtensionOnly(testCase)
+            actual = nansen.util.path.appendToFilename('rois.mat.mat', '_clean');
+
+            testCase.verifyEqual(actual, 'rois.mat_clean.mat');
+        end
+
+        function testSuffixIsAddedToANameWithoutExtension(testCase)
+            actual = nansen.util.path.appendToFilename('rois', '_clean');
+
+            testCase.verifyEqual(actual, 'rois_clean');
+        end
+
+        function testAppendAcceptsStringAndReturnsChar(testCase)
+            actual = nansen.util.path.appendToFilename("rois.mat", "_clean");
+
+            testCase.verifyEqual(actual, 'rois_clean.mat');
+        end
+
+        function testAppendRejectsEmptyInput(testCase)
+            testCase.verifyError(@() nansen.util.path.appendToFilename('', '_clean'), ...
+                'MATLAB:validators:mustBeNonempty');
+        end
 
         % ----------------------------------------------------------------
         % changeFilenameExtension - ordinary use
