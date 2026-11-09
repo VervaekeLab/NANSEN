@@ -319,6 +319,21 @@ classdef UserDataDirectoryTest < matlab.unittest.TestCase
             testCase.verifyWarningFree(@() testCase.UserSession.getCurrentUserDataDirectory())
         end
 
+        function testRestartIsNotNeededInANormalSession(testCase)
+            testCase.verifyFalse(testCase.UserSession.isRestartNeeded())
+        end
+
+        function testDataFromALaterLayoutNeedsARestart(testCase)
+        % Another MATLAB took the directory to a later layout
+
+            import nansen.internal.user.UserDataLayout
+
+            testCase.addTeardown(@() UserDataLayout.write(testCase.DefaultDirectory))
+            UserDataLayout.write(testCase.DefaultDirectory, UserDataLayout.CURRENT_VERSION + 1)
+
+            testCase.verifyTrue(testCase.UserSession.isRestartNeeded())
+        end
+
         function testNewerLayoutStopsTheSession(testCase)
         % Checking out older code must not let it write to newer data
 

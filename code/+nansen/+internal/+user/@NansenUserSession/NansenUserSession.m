@@ -75,6 +75,10 @@ classdef NansenUserSession < handle
         % the code was updated while the session was running.
         StartupLayoutVersion (1,1) double = 0
 
+        % StartupProjectLayoutVersion - Project layout version of the code
+        % that started this session.
+        StartupProjectLayoutVersion (1,1) double = 0
+
         % HasWarnedAboutUpdate - Whether the user was told to restart
         HasWarnedAboutUpdate (1,1) logical = false
     end
@@ -149,6 +153,21 @@ classdef NansenUserSession < handle
 
             tf = nansen.util.path.isSamePath(obj.getCurrentUserDataDirectory(), ...
                 obj.getDefaultUserDataDirectory(obj.CurrentUserName));
+        end
+
+        function tf = isRestartNeeded(obj)
+        %isRestartNeeded Check whether data layouts moved on after this session started
+        %
+        %   True when the code was updated to other layouts while this
+        %   session was running, and when another MATLAB has taken the user
+        %   data directory to a later layout than this session started with.
+        %
+        %   See also nansen.internal.user.RestartMonitor
+
+            import nansen.internal.user.UserDataLayout
+
+            tf = obj.hasCodeLayoutChanged() || ...
+                UserDataLayout.read(obj.getCurrentUserDataDirectory()) > obj.StartupLayoutVersion;
         end
 
         function setUserDataDirectory(obj, newDirectory)
@@ -260,6 +279,7 @@ classdef NansenUserSession < handle
             obj.CurrentUserName = userName;
             obj.SkipProjectCheck = skipProjectCheck;
             obj.StartupLayoutVersion = nansen.internal.user.UserDataLayout.CURRENT_VERSION;
+            obj.StartupProjectLayoutVersion = nansen.config.project.ProjectFolderLayout.CURRENT_VERSION;
 
             % Resolved first, so that a MATLAB without a userpath stops
             % here, before the profile's preference directory is created
@@ -371,9 +391,7 @@ classdef NansenUserSession < handle
         %   so the session then looks for its data where the new code
         %   expects it, while the startup that moves the data has not run.
 
-            import nansen.internal.user.UserDataLayout
-
-            if obj.HasWarnedAboutUpdate || obj.StartupLayoutVersion == UserDataLayout.CURRENT_VERSION
+            if obj.HasWarnedAboutUpdate || ~obj.hasCodeLayoutChanged()
                 return
             end
 
@@ -383,6 +401,13 @@ classdef NansenUserSession < handle
                  'changes where NANSEN keeps its data. Run nansen.restart to ' ...
                  'finish the update. Until then NANSEN may not find your ' ...
                  'settings and option presets.'])
+        end
+
+        function tf = hasCodeLayoutChanged(obj)
+        %hasCodeLayoutChanged Check for an update that changed where data is kept
+
+            tf = obj.StartupLayoutVersion ~= nansen.internal.user.UserDataLayout.CURRENT_VERSION ...
+                || obj.StartupProjectLayoutVersion ~= nansen.config.project.ProjectFolderLayout.CURRENT_VERSION;
         end
 
         function tf = isUserDataDirectoryInitialized(~, userDataDirectory)
