@@ -5,7 +5,11 @@ function newSessionArray = detectNewSessions(metaTable, dataLocationName)
 %   look for session folders based on the current datalocation model
 %   (i.e current project) and make a list of session objects based on
 %   folders. Session objects for all sessions that are not present in the
-%   table is returned.
+%   table is returned. The session objects are of the class that the
+%   metatable creates its entries with: its ItemClassName, or its
+%   MetaTableClass when ItemClassName is empty. This class must be
+%   nansen.metadata.type.Session or a subclass of it. It is checked only
+%   when session folders are found.
 %
 %   INPUTS:
 %       metaTable : a session metatable
@@ -36,8 +40,18 @@ function newSessionArray = detectNewSessions(metaTable, dataLocationName)
         return
     end
 
-    % Todo: Get schema based on selection
-    sessionSchema = @nansen.metadata.type.Session;
+    % New sessions are of the class that the table creates its entries
+    % with, so that their columns match the rows of the table. The class
+    % is checked only when there are folders to make sessions from, so a
+    % table of sessions that do not come from session folders still
+    % reports that no new sessions were found.
+    sessionClassName = metaTable.ItemClassName;
+    if isempty(sessionClassName)
+        sessionClassName = metaTable.MetaTableClass;
+    end
+    validateSessionClass(sessionClassName, metaTable)
+    sessionSchema = str2func(sessionClassName);
+
     args = {'DataLocationModel', dataLocationModel};
 
     % Create a list of session metadata objects
@@ -98,5 +112,30 @@ function sessionArray = validateDataLocationStruct(metaTable, sessionArray, data
         else
             error('Not implemented yet. Please report')
         end
+    end
+end
+
+function validateSessionClass(className, metaTable)
+%validateSessionClass Error unless a class is nansen.metadata.type.Session or a subclass of it
+%
+%   detectNewSessions creates each session by passing a session folder
+%   struct and the DataLocationModel to the class constructor, which are
+%   the inputs of the nansen.metadata.type.Session constructor. The class
+%   must therefore be nansen.metadata.type.Session or a subclass of it,
+%   and it must be on the MATLAB path.
+
+    arguments
+        className {mustBeTextScalar}
+        metaTable (1,1) nansen.metadata.MetaTable
+    end
+
+    sessionClass = meta.class.fromName(className);
+    if isempty(sessionClass) || ~(sessionClass <= ?nansen.metadata.type.Session)
+        error("NANSEN:DetectNewSessions:InvalidSessionClass", ...
+            "Cannot create sessions for the metatable ""%s"" because its session class ""%s"" " + ...
+            "is not nansen.metadata.type.Session or a subclass of it on the MATLAB path. " + ...
+            "Add the folder that defines the class to the MATLAB path, or detect sessions " + ...
+            "for a metatable whose class derives from nansen.metadata.type.Session.", ...
+            metaTable.MetaTableName, className)
     end
 end

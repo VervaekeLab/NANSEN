@@ -375,10 +375,12 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
                     end
 
                     rootUid = obj(iObj).DataLocation(jDl).RootUid;
-                    if isempty(rootUid)
+                    if isempty(rootUid) && ~isempty(S(jDl).RootPath)
                         % If the rootUid is empty, use the last available
                         % rootpath from the model, using this as the
-                        % automatic location.
+                        % automatic location. A data location that has no
+                        % root path yet (a new project's default location
+                        % before it is configured) leaves it empty.
                         rootUid = S(jDl).RootPath(end).Key;
                         obj(iObj).DataLocation(jDl).RootUid = rootUid;
                     end
@@ -1248,6 +1250,13 @@ classdef Session < nansen.metadata.abstract.MetadataEntity & nansen.session.HasS
             % If not root path has been assigned, then assign the last
             % added rootpath (assuming this is the most current)
             if isempty(dlSession.RootIdx) || isnan(dlSession.RootIdx)
+                if isempty(dlModel.RootPath)
+                    error("NANSEN:Session:DataLocationNotConfigured", ...
+                        "Cannot create a session folder in the data location ""%s"" because it " + ...
+                        "has no root folder. Add a root folder for ""%s"" in the data location " + ...
+                        "settings (Nansen > Configure > Datalocations...) and try again.", ...
+                        dataLocationName, dataLocationName)
+                end
                 dlSession.RootUid = dlModel.RootPath(end).Key;
                 dlSession.RootPath = dlModel.RootPath(end).Value;
                 obj.DataLocation(dlIdx) = dlSession;
