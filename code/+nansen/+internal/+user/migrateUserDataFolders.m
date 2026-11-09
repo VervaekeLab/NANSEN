@@ -19,6 +19,12 @@ function result = migrateUserDataFolders(sourceDirectory, targetDirectory, folde
 %   <name>.leftover_2 and so on if that name is taken, and the folder from
 %   sourceDirectory takes its place. The default is true.
 %
+%   result = migrateUserDataFolders(..., CanReceiveFolders=false) states
+%   that targetDirectory has moved on to a later layout than the folders in
+%   sourceDirectory are in. Each of those folders is then renamed to
+%   <name>.unmigrated as above, also when targetDirectory has no folder of
+%   that name. The default is true.
+%
 %   result is a struct with the fields
 %       MovedFolderNames    - names of the folders moved to targetDirectory
 %       RenamedFolderNames  - names of the folders renamed in sourceDirectory
@@ -35,6 +41,7 @@ function result = migrateUserDataFolders(sourceDirectory, targetDirectory, folde
         targetDirectory (1,1) string
         folderNames (1,:) string
         options.IsTargetInitialized (1,1) logical = true
+        options.CanReceiveFolders (1,1) logical = true
     end
 
     sourceFolders = fullfile(sourceDirectory, folderNames);
@@ -52,6 +59,10 @@ function result = migrateUserDataFolders(sourceDirectory, targetDirectory, folde
 
     isLeftover = ~options.IsTargetInitialized & isPresent & isTaken & ~isEmptyCopy;
     isTaken(isLeftover) = false;
+
+    if ~options.CanReceiveFolders
+        isTaken(isPresent) = true;
+    end
 
     isToMove = isPresent & ~isTaken;
     isToRename = isPresent & isTaken & ~isEmptyCopy;

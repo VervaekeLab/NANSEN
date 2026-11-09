@@ -399,6 +399,29 @@ classdef NansenUserSession < handle
                 || isfile(nansen.config.project.ProjectManager.getCatalogPath(userDataDirectory));
         end
 
+        function applyUserDataMigrationSteps(obj, userDataDirectory)
+        %applyUserDataMigrationSteps Bring a user data directory to the current layout
+        %
+        %   A directory without a version file holds the first layout,
+        %   because the move out of the preference directory produces it.
+        %   An error from a step stops the session, since this code can not
+        %   work with a directory in an older layout.
+        %
+        %   See also nansen.internal.migration.applyMigrationSteps
+
+            import nansen.internal.user.UserDataLayout
+
+            if isfolder(userDataDirectory)
+                storedVersion = max(UserDataLayout.read(userDataDirectory), UserDataLayout.FIRST_VERSION);
+
+                nansen.internal.migration.applyMigrationSteps(storedVersion, ...
+                    UserDataLayout.getMigrationSteps(userDataDirectory), ...
+                    @(layoutVersion) UserDataLayout.write(userDataDirectory, layoutVersion))
+            end
+
+            obj.storeUserDataLayoutVersion(userDataDirectory)
+        end
+
         function storeUserDataLayoutVersion(~, userDataDirectory)
         %storeUserDataLayoutVersion Record the layout of a user data directory
         %
@@ -606,6 +629,8 @@ classdef NansenUserSession < handle
         % are made to the code which influence user data, and these actions
         % update userdata if necessary.
 
+            nansen.internal.user.UserDataLayout.assertSupported(obj.getCurrentUserDataDirectory())
+
             % Move _userdata folder from the nansen repository folder to
             % MATLAB's pref dir in order to avoid having preferences saved
             % in the reposiory folder.
@@ -666,9 +691,9 @@ classdef NansenUserSession < handle
                     ME.message)
             end
 
-            % Not stored when the data did not reach this directory
+            % Not done when the data did not reach this directory
             if ~isRedirectBroken && isempty(obj.UserDataDirectoryOverride)
-                obj.storeUserDataLayoutVersion(userDataDirectory)
+                obj.applyUserDataMigrationSteps(userDataDirectory)
             end
         end
 
@@ -687,7 +712,14 @@ classdef NansenUserSession < handle
         %   Those folders are renamed instead, and the data in the
         %   preference directory takes their place.
         %
+        %   The folders in the preference directory hold the first layout.
+        %   This release can be the last to start after another one has
+        %   taken the directory to a later layout, and they are then all
+        %   renamed, because moving them in would mix two layouts.
+        %
         %   See also nansen.internal.user.migrateUserDataFolders
+
+            import nansen.internal.user.UserDataLayout
 
             legacyFolders = fullfile(preferenceDirectory, obj.USER_DATA_FOLDER_NAMES);
             if ~any( isfolder(legacyFolders) ); return; end
@@ -695,7 +727,8 @@ classdef NansenUserSession < handle
             try
                 result = nansen.internal.user.migrateUserDataFolders( ...
                     preferenceDirectory, userDataDirectory, obj.USER_DATA_FOLDER_NAMES, ...
-                    IsTargetInitialized=obj.isUserDataDirectoryInitialized(userDataDirectory));
+                    IsTargetInitialized=obj.isUserDataDirectoryInitialized(userDataDirectory), ...
+                    CanReceiveFolders=UserDataLayout.read(userDataDirectory) <= UserDataLayout.FIRST_VERSION);
             catch ME
                 % Use the old location for this session only. The preference
                 % stays unset, so the move is attempted again next startup.

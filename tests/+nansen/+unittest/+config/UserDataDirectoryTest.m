@@ -318,6 +318,28 @@ classdef UserDataDirectoryTest < matlab.unittest.TestCase
         function testSessionOnCurrentCodeDoesNotAskForARestart(testCase)
             testCase.verifyWarningFree(@() testCase.UserSession.getCurrentUserDataDirectory())
         end
+
+        function testNewerLayoutStopsTheSession(testCase)
+        % Checking out older code must not let it write to newer data
+
+            import nansen.internal.user.NansenUserSession
+            import nansen.internal.user.UserDataLayout
+
+            userName = testCase.UserSession.CurrentUserName;
+
+            % Teardown runs in reverse order. Later tests need the session
+            % of the test profile, or instance() would open the real one.
+            testCase.addTeardown( ...
+                @() NansenUserSession.instance(userName, "force", true, ConfirmNewUser=false))
+            testCase.addTeardown(@() UserDataLayout.write(testCase.DefaultDirectory))
+
+            UserDataLayout.write(testCase.DefaultDirectory, UserDataLayout.CURRENT_VERSION + 1)
+            NansenUserSession.instance(userName, "reset");
+
+            testCase.verifyError( ...
+                @() NansenUserSession.instance(userName, "force", true, ConfirmNewUser=false), ...
+                'NANSEN:UserSession:UserDataLayoutNewer')
+        end
     end
 
     methods (Access = private)
