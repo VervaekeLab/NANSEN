@@ -1,10 +1,11 @@
 classdef NansenUserSessionTest < matlab.unittest.TestCase
     %NansenUserSessionTest Unit tests for nansen.internal.user.NansenUserSession.
     %
-    %   Covers the user profile lookup helpers and the paths through
-    %   instance() which must not ask the user to confirm a new profile.
-    %   The interactive confirmation itself is not covered, because input
-    %   cannot be substituted from a test.
+    %   Covers the user profile lookup helpers, the paths through
+    %   instance() which must not ask the user to confirm a new profile,
+    %   and the error for an empty userpath. The interactive confirmation
+    %   itself is not covered, because input cannot be substituted from a
+    %   test.
     %
     %   Note: Some tests replace the NansenUserSession singleton, so an
     %   interactive session which is open while the tests run is closed.
@@ -62,6 +63,17 @@ classdef NansenUserSessionTest < matlab.unittest.TestCase
             testCase.verifyFalse(any(userNames == ".."));
         end
 
+        function testListUserNamesIncludesProfileWithOnlyUserData(testCase)
+            % The preference directory belongs to one MATLAB release. A
+            % profile created in another release has only its user data
+            % directory here, and must still be listed.
+            userName = testCase.createUserDataDirectory();
+
+            userNames = nansen.internal.user.NansenUserSession.listUserNames();
+
+            testCase.verifyTrue(any(userNames == userName));
+        end
+
         % ----------------------------------------------------------------
         % isExistingUser
         % ----------------------------------------------------------------
@@ -104,6 +116,19 @@ classdef NansenUserSessionTest < matlab.unittest.TestCase
             import nansen.internal.user.NansenUserSession
 
             userName = testCase.createProfileDirectory();
+
+            testCase.verifyError( ...
+                @() NansenUserSession.instance(upper(userName)), ...
+                "NANSEN:UserSession:UserNameCaseMismatch");
+        end
+
+        function testNameDifferingOnlyByCaseFromUserDataIsRefused(testCase)
+            % The user data directory of a profile from another MATLAB
+            % release is matched case insensitively too, so a name that
+            % differs from it only by capitalisation would share it.
+            import nansen.internal.user.NansenUserSession
+
+            userName = testCase.createUserDataDirectory();
 
             testCase.verifyError( ...
                 @() NansenUserSession.instance(upper(userName)), ...
@@ -175,9 +200,76 @@ classdef NansenUserSessionTest < matlab.unittest.TestCase
             testCase.verifyEmpty(userSession);
             testCase.verifyFalse(isfolder(NansenUserSession.getPrefdir(userName)));
         end
+
+        % ----------------------------------------------------------------
+        % A session requires a userpath
+        % ----------------------------------------------------------------
+
+        function testUserDataDirectoryRequiresUserpath(testCase)
+            % The default location is under the userpath, and the
+            % preference directory must not stand in for it, because that
+            % directory belongs to one MATLAB release.
+            import nansen.internal.user.NansenUserSession
+
+            testCase.applyEmptyUserpath();
+
+            testCase.verifyError( ...
+                @() NansenUserSession.getUserDataDirectory("default"), ...
+                "NANSEN:UserSession:EmptyUserpath");
+        end
+
+        function testSessionWithoutUserpathLeavesNoProfile(testCase)
+            % A preference directory left by a failed start would make the
+            % name count as an existing profile.
+            import nansen.internal.user.NansenUserSession
+
+            userName = buildUserName();
+
+            % A singleton left by an earlier test would be returned here
+            % instead of a new session being constructed.
+            NansenUserSession.instance("", "reset");
+
+            testCase.applyEmptyUserpath();
+
+            testCase.verifyError( ...
+                @() NansenUserSession.instance(userName, "check", true, ConfirmNewUser=false), ...
+                "NANSEN:UserSession:EmptyUserpath");
+            testCase.verifyFalse(isfolder(NansenUserSession.getPrefdir(userName)));
+        end
+
+        function testNewProfileIsNotOfferedWithoutUserpath(testCase)
+            % The confirmation must not offer a profile that can not be
+            % created, so the error comes before the question.
+            import nansen.internal.user.NansenUserSession
+
+            testCase.applyEmptyUserpath();
+
+            testCase.verifyError( ...
+                @() NansenUserSession.instance(buildUserName()), ...
+                "NANSEN:UserSession:EmptyUserpath");
+        end
     end
 
     methods (Access = private)
+
+        function applyEmptyUserpath(testCase)
+        % applyEmptyUserpath - Make userpath() return empty for one test
+        %
+        %   A stub earlier on the search path takes the place of userpath,
+        %   because userpath("clear") changes a setting that outlives the
+        %   test run. The stub is written to a temporary folder, because
+        %   the tests folder is on the search path for the whole test run.
+
+            import matlab.unittest.fixtures.PathFixture
+            import matlab.unittest.fixtures.TemporaryFolderFixture
+
+            stubFolder = testCase.applyFixture(TemporaryFolderFixture).Folder;
+            writelines(["function folderPath = userpath()", ...
+                "    folderPath = '';", "end"], fullfile(stubFolder, "userpath.m"))
+
+            testCase.applyFixture(PathFixture(stubFolder));
+            testCase.assertEmpty(userpath());
+        end
 
         function userName = createProfileDirectory(testCase, prefix)
         % createProfileDirectory - Create a throwaway user profile directory
@@ -198,6 +290,23 @@ classdef NansenUserSessionTest < matlab.unittest.TestCase
             mkdir(profileDirectory)
             testCase.addTeardown( ...
                 @() removeDirectoryIfPresent(profileDirectory));
+        end
+
+        function userName = createUserDataDirectory(testCase)
+        % createUserDataDirectory - Create a throwaway user data directory
+        %
+        %   The directory is created in the default location under MATLAB's
+        %   real userpath, without a preference directory, which is what a
+        %   profile created in another MATLAB release leaves on disk.
+
+            import nansen.internal.user.NansenUserSession
+
+            userName = buildUserName();
+            userDataDirectory = NansenUserSession.getDefaultUserDataDirectory(userName);
+
+            mkdir(userDataDirectory)
+            testCase.addTeardown( ...
+                @() removeDirectoryIfPresent(userDataDirectory));
         end
     end
 

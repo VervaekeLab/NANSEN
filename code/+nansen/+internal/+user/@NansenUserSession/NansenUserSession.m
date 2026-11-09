@@ -10,6 +10,9 @@ classdef NansenUserSession < handle
 %   Note: Each user has a separate profile, holding that user's
 %   preferences and projects. Only one profile is active at a time.
 %
+%   A session requires MATLAB's userpath to be set, because the default
+%   location of a user's data is <userpath>/Nansen/profiles/<profile>.
+%
 %   Syntax:
 %       nansen.internal.user.NansenUserSession.instance() returns a
 %       UserSession instance.
@@ -54,11 +57,35 @@ classdef NansenUserSession < handle
 
     properties (Access = private)
         SkipProjectCheck = false
+
+        % UserDataDirectoryOverride - Directory used for this session only,
+        % set when the data could not be moved to where the preference
+        % points. Empty when the preference is authoritative.
+        UserDataDirectoryOverride char = ''
+
+        % RedirectedDirectory - Directory that the redirect file in the
+        % default directory names. It is read when the session starts and
+        % kept for the session, so that a folder that goes missing, such as
+        % an unmounted drive, does not change the directory midway. Empty
+        % when there is no redirect file or it names no existing folder.
+        RedirectedDirectory char = ''
+
+        % StartupLayoutVersion - Layout version of the code that started
+        % this session. It differs from UserDataLayout.CURRENT_VERSION when
+        % the code was updated while the session was running.
+        StartupLayoutVersion (1,1) double = 0
+
+        % HasWarnedAboutUpdate - Whether the user was told to restart
+        HasWarnedAboutUpdate (1,1) logical = false
     end
 
     properties (Constant, Access = private)
         DEFAULT_USER_NAME = "default"
         LOG_UUID = false;
+
+        % USER_DATA_FOLDER_NAMES - The folders that make up a user's data.
+        % These move as a unit; the directory holding them never does.
+        USER_DATA_FOLDER_NAMES = ["projects", "settings", "custom_options", "local"]
     end
 
     properties (Constant, Access = private)
@@ -100,6 +127,117 @@ classdef NansenUserSession < handle
             pm = obj.ProjectManager;
         end
 
+        function folderPath = getCurrentUserDataDirectory(obj)
+        %getCurrentUserDataDirectory Directory holding this user's NANSEN data
+        %
+        %   See also nansen.internal.user.NansenUserSession.getUserDataDirectory
+
+            obj.warnIfUpdatedWhileRunning()
+
+            if ~isempty(obj.UserDataDirectoryOverride)
+                folderPath = obj.UserDataDirectoryOverride;
+                return
+            end
+
+            folderPath = obj.resolveUserDataDirectory( ...
+                obj.Preferences.UserDataDirectory, obj.RedirectedDirectory, ...
+                obj.getDefaultUserDataDirectory(obj.CurrentUserName));
+        end
+
+        function tf = isUserDataDirectoryDefault(obj)
+        %isUserDataDirectoryDefault Check whether the default location is used
+
+            tf = nansen.util.path.isSamePath(obj.getCurrentUserDataDirectory(), ...
+                obj.getDefaultUserDataDirectory(obj.CurrentUserName));
+        end
+
+        function setUserDataDirectory(obj, newDirectory)
+        %setUserDataDirectory Change where this user's NANSEN data is kept
+        %
+        %   setUserDataDirectory(obj, newDirectory) moves the folders that
+        %   hold this user's NANSEN data, projects, settings,
+        %   custom_options and local, into newDirectory and remembers the
+        %   location for later sessions. Other files in the old and the new
+        %   directory stay where they are, except the file that records the
+        %   layout version, which follows the data.
+        %
+        %   setUserDataDirectory(obj, "") moves the data back to the default
+        %   location, <userpath>/Nansen/profiles/<profile>.
+        %
+        %   The move is refused when newDirectory is inside the current
+        %   directory or contains it, and when newDirectory already
+        %   contains one of the folders named above. If a folder fails to
+        %   move, the entries moved before it are moved back.
+        %
+        %   The location is saved in the UserDataDirectory preference of
+        %   this MATLAB release. A location other than the default is also
+        %   written to the file user_data_redirect.txt in the default
+        %   location, which every MATLAB release reads: a release without a
+        %   UserDataDirectory preference of its own uses the directory that
+        %   the file names, if that directory exists. Moving the data back
+        %   to the default location removes the file.
+        %
+        %   Example:
+        %       userSession = nansen.internal.user.NansenUserSession.instance();
+        %       userSession.setUserDataDirectory("/Users/me/Dropbox/Nansen")
+        %
+        %   See also nansen.userdatadir, nansen.internal.user.UserDataRedirect
+
+            arguments
+                obj (1,1) nansen.internal.user.NansenUserSession
+                newDirectory (1,1) string
+            end
+
+            newDirectory = obj.validateUserDataDirectory(newDirectory);
+            oldDirectory = obj.getCurrentUserDataDirectory();
+
+            if nansen.util.path.isSamePath(newDirectory, oldDirectory); return; end
+
+            nansen.internal.user.validateUserDataTarget( ...
+                newDirectory, oldDirectory, obj.USER_DATA_FOLDER_NAMES)
+
+            % Cached project objects, and the current project's entries on
+            % the search path, both point into the old directory. Restore
+            % the current project on the way out, whether or not the move
+            % succeeds.
+            currentProjectName = obj.ProjectManager.CurrentProject;
+            if ~isempty(currentProjectName)
+                obj.ProjectManager.changeProject('', "Verbose", false)
+                restoreCurrentProject = onCleanup( ...
+                    @() obj.ProjectManager.changeProject(currentProjectName, "Verbose", false) );
+            end
+            obj.ProjectManager.reset()
+
+            isNewFolder = ~isfolder(newDirectory);
+            if isNewFolder; mkdir(newDirectory); end
+
+            try
+                nansen.internal.user.moveUserDataFolders( ...
+                    oldDirectory, newDirectory, obj.USER_DATA_FOLDER_NAMES)
+            catch ME
+                if isNewFolder
+                    [~] = rmdir(newDirectory); % Removed only if empty; the output keeps rmdir from throwing
+                end
+                rethrow(ME)
+            end
+
+            obj.Preferences.UserDataDirectory = obj.toPreferenceValue(newDirectory);
+            obj.UserDataDirectoryOverride = '';
+            obj.updateUserDataRedirect(newDirectory)
+            obj.storeUserDataLayoutVersion(newDirectory)
+            nansen.internal.user.UserDataLayout.remove(oldDirectory)
+            obj.ProjectManager.relocate(oldDirectory, newDirectory)
+
+            % The old directory is the user's own when it was a chosen
+            % location, or the preference directory, and either can hold
+            % files that are not NANSEN's. Only an emptied one is removed.
+            if isfolder(oldDirectory) && obj.isEmptyFolder(oldDirectory)
+                rmdir(oldDirectory)
+            end
+
+            fprintf('NANSEN user data directory was changed to "%s"\n', newDirectory)
+        end
+
         function setDataManagerApp(obj, app)
             assert(isa(app, 'nansen.App'), 'DataManager must be of type ''nansen.App''')
             obj.DataManagerApp = app;
@@ -121,14 +259,21 @@ classdef NansenUserSession < handle
             import nansen.config.project.ProjectManager
             obj.CurrentUserName = userName;
             obj.SkipProjectCheck = skipProjectCheck;
+            obj.StartupLayoutVersion = nansen.internal.user.UserDataLayout.CURRENT_VERSION;
+
+            % Resolved first, so that a MATLAB without a userpath stops
+            % here, before the profile's preference directory is created
+            defaultDirectory = obj.getDefaultUserDataDirectory(userName);
 
             obj.Preferences = obj.initializePreferences();
-            preferenceDirectory = obj.getPrefdir(obj.CurrentUserName);
+            obj.RedirectedDirectory = char( ...
+                nansen.internal.user.UserDataRedirect.follow(defaultDirectory) );
 
             obj.preStartup()
 
             obj.AddonManager = nansen.AddonManager();
-            obj.ProjectManager = ProjectManager.instance(preferenceDirectory, 'reset');
+
+            obj.ProjectManager = ProjectManager.instance(obj.getCurrentUserDataDirectory(), 'reset');
 
             obj.postStartup()
             obj.SessionUUID = nansen.util.getuuid();
@@ -217,6 +362,218 @@ classdef NansenUserSession < handle
         end
     end
 
+    methods (Access = private) % User data directory helpers
+
+        function warnIfUpdatedWhileRunning(obj)
+        %warnIfUpdatedWhileRunning Tell the user once to restart after an update
+        %
+        %   MATLAB applies a pulled change to the running session at once,
+        %   so the session then looks for its data where the new code
+        %   expects it, while the startup that moves the data has not run.
+
+            import nansen.internal.user.UserDataLayout
+
+            if obj.HasWarnedAboutUpdate || obj.StartupLayoutVersion == UserDataLayout.CURRENT_VERSION
+                return
+            end
+
+            obj.HasWarnedAboutUpdate = true;
+            warning('NANSEN:UserSession:UpdatedWhileRunning', ...
+                ['NANSEN was updated while it was running, and the update ' ...
+                 'changes where NANSEN keeps its data. Run nansen.restart to ' ...
+                 'finish the update. Until then NANSEN may not find your ' ...
+                 'settings and option presets.'])
+        end
+
+        function tf = isUserDataDirectoryInitialized(~, userDataDirectory)
+        %isUserDataDirectoryInitialized Check whether a directory holds real user data
+        %
+        %   A stored layout version means that a session has finished
+        %   starting in the directory. A project catalog counts too, for a
+        %   directory that was filled without a session. A session that
+        %   keeps running through an update can leave other files there,
+        %   but no catalog, because it saves the catalog to the path it
+        %   read when it started.
+
+            tf = nansen.internal.user.UserDataLayout.read(userDataDirectory) > 0 ...
+                || isfile(nansen.config.project.ProjectManager.getCatalogPath(userDataDirectory));
+        end
+
+        function storeUserDataLayoutVersion(~, userDataDirectory)
+        %storeUserDataLayoutVersion Record the layout of a user data directory
+        %
+        %   A directory that nothing has created yet is not created for
+        %   this, and a version written by newer code is left alone. A
+        %   failure is reported, so that it does not stop the session.
+
+            import nansen.internal.user.UserDataLayout
+
+            if ~isfolder(userDataDirectory); return; end
+            if UserDataLayout.read(userDataDirectory) >= UserDataLayout.CURRENT_VERSION; return; end
+
+            try
+                UserDataLayout.write(userDataDirectory)
+            catch ME
+                warning('NANSEN:UserSession:UserDataLayoutNotStored', ...
+                    'NANSEN could not store its data layout version in "%s".\nReason: %s', ...
+                    userDataDirectory, ME.message)
+            end
+        end
+
+        function folderPath = validateUserDataDirectory(obj, newDirectory)
+        %validateUserDataDirectory Check a requested directory, or supply the default
+
+            if strlength(newDirectory) == 0
+                folderPath = obj.getDefaultUserDataDirectory(obj.CurrentUserName);
+                return
+            end
+
+            folderPath = nansen.util.path.stripTrailingSeparator(char(newDirectory));
+
+            if ~nansen.util.path.isAbsolutePath(folderPath)
+                error('NANSEN:UserSession:RelativeUserDataDirectory', ...
+                    ['"%s" is a relative path. Provide an absolute path, so ' ...
+                     'that the directory is found independently of the ' ...
+                     'current folder.'], folderPath)
+            end
+
+            parentDirectory = fileparts(folderPath);
+            if ~isfolder(parentDirectory)
+                error('NANSEN:UserSession:MissingParentDirectory', ...
+                    ['The parent directory "%s" does not exist. Create it ' ...
+                     'before moving the NANSEN user data directory.'], parentDirectory)
+            end
+        end
+
+        function preferenceValue = toPreferenceValue(obj, folderPath)
+        %toPreferenceValue Convert a directory to the value stored in preferences
+        %
+        %   The default location is stored as an empty value, so that the
+        %   directory keeps following the userpath rather than being
+        %   pinned to the path it happened to resolve to.
+
+            defaultDirectory = obj.getDefaultUserDataDirectory(obj.CurrentUserName);
+
+            if nansen.util.path.isSamePath(folderPath, defaultDirectory)
+                preferenceValue = "";
+            else
+                preferenceValue = string(folderPath);
+            end
+        end
+
+        function updateUserDataRedirect(obj, userDataDirectory)
+        %updateUserDataRedirect Point other MATLAB releases to the user data directory
+        %
+        %   Writes the redirect file in the default directory when the
+        %   user data directory is elsewhere, and removes it when the user
+        %   data directory is the default. A failure is reported as a
+        %   warning, because the data has moved already and this release
+        %   finds it through its preference.
+        %
+        %   See also nansen.internal.user.UserDataRedirect
+
+            import nansen.internal.user.UserDataRedirect
+
+            defaultDirectory = obj.getDefaultUserDataDirectory(obj.CurrentUserName);
+
+            try
+                if nansen.util.path.isSamePath(userDataDirectory, defaultDirectory)
+                    UserDataRedirect.remove(defaultDirectory)
+                    obj.RedirectedDirectory = '';
+                else
+                    UserDataRedirect.write(defaultDirectory, userDataDirectory)
+                    obj.RedirectedDirectory = char(userDataDirectory);
+                end
+            catch ME
+                warning('NANSEN:UserSession:UserDataRedirectNotUpdated', ...
+                    ['NANSEN keeps its data in "%s", but could not update "%s", ' ...
+                     'so other MATLAB releases may not find it there.\nReason: %s'], ...
+                    userDataDirectory, UserDataRedirect.getFilePath(defaultDirectory), ME.message)
+            end
+        end
+
+        function [tf, redirectFilePath, namedDirectory] = isUserDataRedirectBroken(obj)
+        %isUserDataRedirectBroken Check for a redirect file that this session can not follow
+        %
+        %   True when this release has no UserDataDirectory preference and
+        %   the redirect file names a directory that is not an existing
+        %   folder, for example on a drive that is not connected.
+
+            import nansen.internal.user.UserDataRedirect
+
+            defaultDirectory = obj.getDefaultUserDataDirectory(obj.CurrentUserName);
+            redirectFilePath = UserDataRedirect.getFilePath(defaultDirectory);
+            namedDirectory = UserDataRedirect.read(defaultDirectory);
+
+            tf = strlength(obj.Preferences.UserDataDirectory) == 0 ...
+                && isempty(obj.RedirectedDirectory) && strlength(namedDirectory) > 0;
+        end
+    end
+
+    methods (Static, Access = private)
+
+        function folderPath = resolveUserDataDirectory(preferenceValue, redirectedDirectory, defaultDirectory)
+        %resolveUserDataDirectory Choose the user data directory
+        %
+        %   The UserDataDirectory preference of this release comes first,
+        %   then the directory that the redirect file names, and then the
+        %   default location.
+
+            if strlength(preferenceValue) > 0
+                folderPath = char(preferenceValue);
+            elseif strlength(redirectedDirectory) > 0
+                folderPath = char(redirectedDirectory);
+            else
+                folderPath = char(defaultDirectory);
+            end
+        end
+
+        function tf = isEmptyFolder(folderPath)
+        %isEmptyFolder Check whether a folder has no entries left
+
+            listing = dir(folderPath);
+            listing = listing( ~ismember({listing.name}, {'.', '..'}) );
+            tf = isempty(listing);
+        end
+
+        function folderPath = getDefaultUserDataRoot()
+        %getDefaultUserDataRoot Folder holding the default user data directories
+        %
+        %   The folder is under the userpath, which does not belong to a
+        %   MATLAB release, unlike the preference directory. Throws
+        %   NANSEN:UserSession:EmptyUserpath when MATLAB's userpath is empty.
+
+            userPathFolder = userpath();
+
+            if isempty(userPathFolder)
+                error('NANSEN:UserSession:EmptyUserpath', ...
+                    ['MATLAB''s userpath is empty, and NANSEN keeps each ' ...
+                     'user''s data under it. Set a userpath with ' ...
+                     'userpath(folderPath), then start NANSEN again.'])
+            end
+
+            folderPath = fullfile(userPathFolder, 'Nansen', 'profiles');
+        end
+
+        function folderNames = listFolderNames(folderPath)
+        %listFolderNames Names of the folders in a folder, as a row of strings
+        %
+        %   Names that start with a dot, such as "." and "..", are left out.
+        %   Returns an empty row when folderPath is not a folder.
+
+            folderNames = string.empty(1, 0);
+            if ~isfolder(folderPath)
+                return
+            end
+
+            listing = dir(folderPath);
+            listing = listing([listing.isdir]);
+
+            folderNames = reshape(string({listing.name}), 1, []);
+            folderNames(startsWith(folderNames, ".")) = [];
+        end
+    end
+
     methods (Access = private) % Callbacks
 
         function onCurrentProjectChangedInPreferences(obj, ~, ~)
@@ -259,6 +616,177 @@ classdef NansenUserSession < handle
             if contains( getpref('NansenSetup', 'DefaultProjectPath', ''), fullfile(nansen.rootpath, '_userdata'))
                 rmpref('NansenSetup', 'DefaultProjectPath')
             end
+
+            obj.migrateUserDataFromPreferenceDirectory()
+        end
+
+        function migrateUserDataFromPreferenceDirectory(obj)
+        %migrateUserDataFromPreferenceDirectory Move data out of the preference directory
+        %
+        %   The project catalog, the settings and the custom options used to
+        %   live in the preference directory. That directory belongs to a
+        %   single MATLAB release, so the data was left behind when MATLAB
+        %   was upgraded. Move it to the release independent user data
+        %   directory.
+
+            preferenceDirectory = obj.getPrefdir(obj.CurrentUserName);
+            userDataDirectory = obj.getCurrentUserDataDirectory();
+
+            [isRedirectBroken, redirectFilePath, namedDirectory] = obj.isUserDataRedirectBroken();
+
+            if isRedirectBroken
+                % The data belongs in the named directory. Moving it to the
+                % default directory would leave it behind there once the
+                % named directory is available again.
+                warning('NANSEN:UserSession:UserDataRedirectUnavailable', ...
+                    ['"%s" names "%s" as the NANSEN user data directory, but ' ...
+                     'that is not an existing folder. NANSEN uses "%s" for this ' ...
+                     'session, and moves nothing out of MATLAB''s preference ' ...
+                     'directory. Make the folder available, for example by ' ...
+                     'connecting the drive that holds it, and start NANSEN again.'], ...
+                    redirectFilePath, namedDirectory, userDataDirectory)
+
+            elseif ~nansen.util.path.isSamePath(preferenceDirectory, userDataDirectory)
+                % The user can have chosen the preference directory as the
+                % user data directory, and then the data is already there.
+                obj.moveUserDataOutOfPreferenceDirectory(preferenceDirectory, userDataDirectory)
+            end
+
+            % Runs at every startup, in whichever directory this session
+            % uses, so that these files are where nansen.localpath looks
+            % for them also when the move above did not run or failed. A
+            % failure is reported, so that it does not stop the session.
+            try
+                nansen.internal.user.moveMachineLocalSettings(obj.getCurrentUserDataDirectory())
+            catch ME
+                warning('NANSEN:UserSession:MachineLocalSettingsNotMoved', ...
+                    ['NANSEN could not move the task list and the watch folder ' ...
+                     'catalog from the settings folder to the machine specific ' ...
+                     'folder, so this session does not find them.\nReason: %s'], ...
+                    ME.message)
+            end
+
+            % Not stored when the data did not reach this directory
+            if ~isRedirectBroken && isempty(obj.UserDataDirectoryOverride)
+                obj.storeUserDataLayoutVersion(userDataDirectory)
+            end
+        end
+
+        function moveUserDataOutOfPreferenceDirectory(obj, preferenceDirectory, userDataDirectory)
+        %moveUserDataOutOfPreferenceDirectory Move the user data folders and report it
+        %
+        %   The user data directory can already hold data that another
+        %   MATLAB release or another machine moved there first. That data
+        %   is used, and this release's copy of each folder it holds is
+        %   renamed in the preference directory instead of merged into it.
+        %   The preference directory is then left without user data
+        %   folders, so the move is not attempted again at the next start.
+        %
+        %   A directory that no session has set up can only hold what a
+        %   session left behind when it kept running through an update.
+        %   Those folders are renamed instead, and the data in the
+        %   preference directory takes their place.
+        %
+        %   See also nansen.internal.user.migrateUserDataFolders
+
+            legacyFolders = fullfile(preferenceDirectory, obj.USER_DATA_FOLDER_NAMES);
+            if ~any( isfolder(legacyFolders) ); return; end
+
+            try
+                result = nansen.internal.user.migrateUserDataFolders( ...
+                    preferenceDirectory, userDataDirectory, obj.USER_DATA_FOLDER_NAMES, ...
+                    IsTargetInitialized=obj.isUserDataDirectoryInitialized(userDataDirectory));
+            catch ME
+                % Use the old location for this session only. The preference
+                % stays unset, so the move is attempted again next startup.
+                obj.UserDataDirectoryOverride = preferenceDirectory;
+
+                warning('NANSEN:UserSession:UserDataMigrationFailed', ...
+                    ['NANSEN could not move its data from MATLAB''s preference ' ...
+                     'directory, "%s", to "%s", and uses the preference directory ' ...
+                     'for this session. The move is attempted again the next time ' ...
+                     'NANSEN starts.\nReason: %s'], ...
+                    preferenceDirectory, userDataDirectory, ME.message)
+                return
+            end
+
+            % Only this release's own catalog can name project folders that
+            % were kept inside its preference directory
+            [~, catalogFolderName] = fileparts( ...
+                nansen.config.project.ProjectManager.getCatalogDirectory(userDataDirectory));
+
+            if ismember(catalogFolderName, result.MovedFolderNames)
+                obj.repointMigratedProjectPaths(preferenceDirectory, userDataDirectory)
+            end
+
+            if isempty(result.RenamedFolderNames)
+                fprintf(['NANSEN''s project catalog and configurations were moved out ' ...
+                    'of MATLAB''s preference directory to "%s", so that they are kept ' ...
+                    'when MATLAB is upgraded.\n'], userDataDirectory)
+            else
+                obj.warnUserDataSetAside(result, userDataDirectory, catalogFolderName)
+            end
+
+            if ~isempty(result.LeftoverFolderPaths)
+                warning('NANSEN:UserSession:UserDataLeftoversSetAside', ...
+                    ['A NANSEN session that kept running through an update saved ' ...
+                     'files in "%s" before the data had been moved there. The data ' ...
+                     'was moved into place, and those files were renamed:\n%s'], ...
+                    userDataDirectory, strjoin("    " + result.LeftoverFolderPaths, newline))
+            end
+        end
+
+        function warnUserDataSetAside(~, result, userDataDirectory, catalogFolderName)
+        %warnUserDataSetAside Report the folders renamed instead of moved
+
+            message = sprintf(['NANSEN uses the data in "%s", which another MATLAB ' ...
+                'release or another machine moved out of MATLAB''s preference ' ...
+                'directory first. This release''s copy of these folders was not ' ...
+                'merged into it, and was renamed instead:\n%s'], ...
+                userDataDirectory, strjoin("    " + result.RenamedFolderPaths, newline));
+
+            if ~isempty(result.MovedFolderNames)
+                message = [message, sprintf('\nThese folders were moved to "%s": %s.', ...
+                    userDataDirectory, strjoin(result.MovedFolderNames, ', '))];
+            end
+
+            isCatalogRenamed = result.RenamedFolderNames == catalogFolderName;
+
+            if any(isCatalogRenamed)
+                [~, catalogFileName, catalogFileExtension] = fileparts( ...
+                    nansen.config.project.ProjectManager.getCatalogPath(userDataDirectory));
+                renamedCatalogPath = fullfile(result.RenamedFolderPaths(isCatalogRenamed), ...
+                    [catalogFileName, catalogFileExtension]);
+
+                message = [message, sprintf(['\nTo add a project of this release to ' ...
+                    'the catalog in use, select its project folder on the Add Existing ' ...
+                    'Project tab of the project manager, or call ' ...
+                    'nansen.ProjectManager().importProject(projectFolder). The project ' ...
+                    'folders of this release are listed in "%s".'], renamedCatalogPath)];
+            end
+
+            warning('NANSEN:UserSession:UserDataSetAside', '%s', message)
+        end
+
+        function repointMigratedProjectPaths(~, oldDirectory, newDirectory)
+        %repointMigratedProjectPaths Update project paths that moved along
+        %
+        %   An older installation can keep project folders inside the
+        %   preference directory. The project manager does not exist yet at
+        %   this point, so the catalog is updated on file.
+
+            catalogPath = nansen.config.project.ProjectManager.getCatalogPath(newDirectory);
+            if ~isfile(catalogPath); return; end
+
+            S = load(catalogPath, 'projectCatalog');
+
+            [S.projectCatalog, wasChanged] = ...
+                nansen.config.project.ProjectManager.repointProjectPaths( ...
+                    S.projectCatalog, oldDirectory, newDirectory);
+
+            if wasChanged
+                save(catalogPath, '-struct', 'S')
+            end
         end
 
         function runPostConstructionUpdateActions(obj)
@@ -277,6 +805,8 @@ classdef NansenUserSession < handle
             if obj.AddonManager.existExternalToolboxInRepository()
                 obj.AddonManager.moveExternalToolboxes() % Todo: Remove
             end
+
+            obj.ProjectManager.migrateLocalProjectFolders()
 
             obj.ProjectManager.checkProjectsExist()
 
@@ -313,34 +843,86 @@ classdef NansenUserSession < handle
         end
 
         function userRootDirectory = getUserRootDirectory()
-        % getUserRootDirectory - Get the directory holding every user profile
+        % getUserRootDirectory - Get the directory holding the preference directories
         %
-        %   Each user profile is a subdirectory of this directory, named
-        %   after the user.
+        %   Each user profile has a subdirectory of this directory, named
+        %   after the user, which holds the profile's preferences for this
+        %   MATLAB release. The profile's projects and configurations are in
+        %   its user data directory, see getUserDataDirectory.
 
             userRootDirectory = fullfile(prefdir, 'Nansen');
+        end
+
+        function userDataDirectory = getUserDataDirectory(userName)
+        %getUserDataDirectory Get the directory holding a user's NANSEN data
+        %
+        %   userDataDirectory = getUserDataDirectory(userName) returns the
+        %   directory that holds the project catalog and the configurations
+        %   belonging to the named user.
+        %
+        %   This is, in order of precedence:
+        %       1. the UserDataDirectory preference of this MATLAB release,
+        %       2. the directory named by the redirect file in the default
+        %          location, if that directory exists, see
+        %          nansen.internal.user.UserDataRedirect,
+        %       3. the default location, <userpath>/Nansen/profiles/<user>.
+        %   Unlike the preference directory it does not belong to a MATLAB
+        %   release, so it is not left behind when MATLAB is upgraded.
+        %
+        %   Note: The preference and the redirect file are read from file,
+        %   because this is used when there is no session to read them
+        %   from. An active session answers the same question from memory
+        %   with getCurrentUserDataDirectory.
+        %
+        %   See also nansen.internal.user.NansenUserSession/getPrefdir
+
+            import nansen.internal.user.NansenUserSession
+
+            if ~nargin || isempty(userName)
+                className = mfilename('class');
+                userName = nansen.internal.introspection.getConstantPropertyValue(className, 'DEFAULT_USER_NAME');
+            end
+
+            preferenceDirectory = NansenUserSession.getPrefdir(userName);
+            defaultDirectory = NansenUserSession.getDefaultUserDataDirectory(userName);
+
+            preferenceValue = nansen.internal.user.Preferences.readValue(...
+                preferenceDirectory, "UserDataDirectory");
+            redirectedDirectory = nansen.internal.user.UserDataRedirect.follow(defaultDirectory);
+
+            userDataDirectory = NansenUserSession.resolveUserDataDirectory( ...
+                preferenceValue, redirectedDirectory, defaultDirectory);
+        end
+
+        function userDataDirectory = getDefaultUserDataDirectory(userName)
+        %getDefaultUserDataDirectory Location used without a preference or redirect
+        %
+        %   The profiles are kept in their own folder, so that a profile
+        %   name can not collide with the Projects, Add-Ons and Backup
+        %   folders that NANSEN already keeps under the userpath.
+
+            import nansen.internal.user.NansenUserSession
+
+            userDataDirectory = char( fullfile(NansenUserSession.getDefaultUserDataRoot(), userName) );
         end
 
         function userNames = listUserNames()
         % listUserNames - List user profiles that exist on this computer
         %
         %   userNames = listUserNames() returns a sorted string array with
-        %   the name of every user profile which has a preference directory.
+        %   the name of every user profile which has a preference directory
+        %   in this MATLAB release or a user data directory in the default
+        %   location, <userpath>/Nansen/profiles. The preference directory
+        %   belongs to one MATLAB release, so a profile created in another
+        %   release is found by its user data directory.
 
-            userRootDirectory = ...
-                nansen.internal.user.NansenUserSession.getUserRootDirectory();
+            import nansen.internal.user.NansenUserSession
 
-            if ~isfolder(userRootDirectory)
-                userNames = string.empty(1, 0);
-                return
-            end
+            userNames = [ ...
+                NansenUserSession.listFolderNames(NansenUserSession.getUserRootDirectory()), ...
+                NansenUserSession.listFolderNames(NansenUserSession.getDefaultUserDataRoot()) ];
 
-            listing = dir(userRootDirectory);
-            listing = listing([listing.isdir]);
-
-            userNames = reshape(string({listing.name}), 1, []);
-            userNames(startsWith(userNames, ".")) = []; % Drop "." and ".."
-            userNames = sort(userNames);
+            userNames = reshape(unique(userNames), 1, []); % unique also sorts
         end
 
         function tf = isExistingUser(userName)
