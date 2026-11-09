@@ -715,7 +715,8 @@ classdef ProjectManager < handle
 
             projectCatalog = obj.Catalog;  %#ok<NASGU
 
-            if ~isfolder(obj.CatalogDirectory); mkdir(obj.CatalogDirectory); end
+            catalogDirectory = fileparts(obj.CatalogPath);
+            if ~isfolder(catalogDirectory); mkdir(catalogDirectory); end
 
             if obj.CatalogSaveFormat == "mat"
                 save(obj.CatalogPath, 'projectCatalog')

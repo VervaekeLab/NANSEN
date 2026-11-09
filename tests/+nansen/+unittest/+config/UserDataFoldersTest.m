@@ -374,6 +374,116 @@ classdef UserDataFoldersTest < matlab.unittest.TestCase
             testCase.verifyTrue(isfile(fullfile(sourceDirectory, "projects", "project_catalog.mat")))
             testCase.verifyTrue(isfile(fullfile(sourceDirectory, "settings", "app.mat")))
         end
+
+        function testLeftoversGiveWayToTheRealData(testCase)
+        % A session that kept running through an update saved a file at
+        % the new location first. The real data must still end up in place.
+
+            [sourceDirectory, targetDirectory] = testCase.createDirectoryPair();
+            testCase.createFile(fullfile(sourceDirectory, "settings"), "app.mat", "real data")
+            testCase.createFile(fullfile(targetDirectory, "settings"), "app.mat", "leftover")
+
+            result = nansen.internal.user.migrateUserDataFolders( ...
+                sourceDirectory, targetDirectory, testCase.FOLDER_NAMES, IsTargetInitialized=false);
+
+            testCase.verifyEqual(result.MovedFolderNames, "settings")
+            testCase.verifyEmpty(result.RenamedFolderNames)
+            testCase.verifyEqual(result.LeftoverFolderPaths, fullfile(targetDirectory, "settings.leftover"))
+            testCase.verifyEqual(testCase.readFile(targetDirectory, "settings", "app.mat"), "real data")
+            testCase.verifyEqual(testCase.readFile(targetDirectory, "settings.leftover", "app.mat"), "leftover")
+            testCase.verifyEmpty(testCase.listEntries(sourceDirectory))
+        end
+
+        function testLeftoverRenameChoosesUnusedName(testCase)
+            [sourceDirectory, targetDirectory] = testCase.createDirectoryPair();
+            testCase.createFile(fullfile(sourceDirectory, "settings"), "app.mat")
+            testCase.createFile(fullfile(targetDirectory, "settings"), "app.mat")
+            testCase.createFile(fullfile(targetDirectory, "settings.leftover"), "earlier.mat")
+
+            result = nansen.internal.user.migrateUserDataFolders( ...
+                sourceDirectory, targetDirectory, testCase.FOLDER_NAMES, IsTargetInitialized=false);
+
+            testCase.verifyEqual(result.LeftoverFolderPaths, fullfile(targetDirectory, "settings.leftover_2"))
+            testCase.verifyTrue(isfile(fullfile(targetDirectory, "settings.leftover", "earlier.mat")))
+        end
+
+        function testEmptyCopyDoesNotDisplaceWhatTheTargetHolds(testCase)
+        % An empty folder in the source is not real data to make room for
+
+            [sourceDirectory, targetDirectory] = testCase.createDirectoryPair();
+            mkdir(fullfile(sourceDirectory, "settings"))
+            testCase.createFile(fullfile(targetDirectory, "settings"), "app.mat")
+
+            result = nansen.internal.user.migrateUserDataFolders( ...
+                sourceDirectory, targetDirectory, testCase.FOLDER_NAMES, IsTargetInitialized=false);
+
+            testCase.verifyEmpty(result.LeftoverFolderPaths)
+            testCase.verifyEmpty(testCase.listEntries(sourceDirectory))
+            testCase.verifyTrue(isfile(fullfile(targetDirectory, "settings", "app.mat")))
+        end
+
+        function testFailedMigrationRestoresLeftovers(testCase)
+        % projects is set aside, then settings fails to move. Both
+        % directories must be as they were.
+
+            [sourceDirectory, targetDirectory] = testCase.createDirectoryPair();
+            testCase.createFile(fullfile(sourceDirectory, "projects"), "project_catalog.mat")
+            testCase.createFile(fullfile(sourceDirectory, "settings"), "app.mat")
+            testCase.createFile(fullfile(targetDirectory, "projects"), "leftover.mat")
+
+            readOnlyFolder = fullfile(targetDirectory, "settings");
+            mkdir(readOnlyFolder)
+            testCase.makeReadOnly(readOnlyFolder)
+
+            testCase.verifyError( ...
+                @() nansen.internal.user.migrateUserDataFolders( ...
+                    sourceDirectory, targetDirectory, testCase.FOLDER_NAMES, IsTargetInitialized=false), ...
+                'NANSEN:UserSession:MoveUserDataFailed')
+
+            testCase.verifyEqual(testCase.listEntries(sourceDirectory), ["projects", "settings"])
+            testCase.verifyEqual(testCase.listEntries(targetDirectory), ["projects", "settings"])
+            testCase.verifyTrue(isfile(fullfile(targetDirectory, "projects", "leftover.mat")))
+            testCase.verifyTrue(isfile(fullfile(sourceDirectory, "projects", "project_catalog.mat")))
+        end
+    end
+
+    methods (Test) % UserDataLayout
+
+        function testLayoutVersionIsZeroWithoutAFile(testCase)
+            directory = testCase.createDirectoryPair();
+
+            testCase.verifyEqual(nansen.internal.user.UserDataLayout.read(directory), 0)
+        end
+
+        function testWrittenLayoutVersionIsRead(testCase)
+            import nansen.internal.user.UserDataLayout
+
+            directory = testCase.createDirectoryPair();
+            UserDataLayout.write(directory)
+
+            testCase.verifyEqual(UserDataLayout.read(directory), UserDataLayout.CURRENT_VERSION)
+        end
+
+        function testUnreadableLayoutVersionCountsAsZero(testCase)
+            import nansen.internal.user.UserDataLayout
+
+            directory = testCase.createDirectoryPair();
+            testCase.createFile(directory, UserDataLayout.FILENAME, "not a number")
+
+            testCase.verifyEqual(UserDataLayout.read(directory), 0)
+        end
+
+        function testRemovedLayoutVersionIsNotRead(testCase)
+            import nansen.internal.user.UserDataLayout
+
+            directory = testCase.createDirectoryPair();
+            UserDataLayout.write(directory)
+
+            UserDataLayout.remove(directory)
+
+            testCase.verifyEqual(UserDataLayout.read(directory), 0)
+            testCase.verifyWarningFree(@() UserDataLayout.remove(directory))
+        end
     end
 
     methods (Test) % moveMachineLocalSettings

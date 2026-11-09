@@ -1,4 +1,4 @@
-function result = migrateUserDataFolders(sourceDirectory, targetDirectory, folderNames)
+function result = migrateUserDataFolders(sourceDirectory, targetDirectory, folderNames, options)
 %migrateUserDataFolders Move user data folders to a directory that may hold some already
 %
 %   result = migrateUserDataFolders(sourceDirectory, targetDirectory,
@@ -12,13 +12,21 @@ function result = migrateUserDataFolders(sourceDirectory, targetDirectory, folde
 %   is taken, and stays in sourceDirectory. An empty copy is removed
 %   instead, since it holds nothing to keep. No file is deleted.
 %
-%   result is a struct with the fields
-%       MovedFolderNames   - names of the folders moved to targetDirectory
-%       RenamedFolderNames - names of the folders renamed in sourceDirectory
-%       RenamedFolderPaths - paths of those folders after the rename
+%   result = migrateUserDataFolders(..., IsTargetInitialized=false) states
+%   that no session has set up targetDirectory, so that what it holds was
+%   left by a session that kept running while NANSEN was updated. Such a
+%   folder is renamed to <name>.leftover in targetDirectory, or to
+%   <name>.leftover_2 and so on if that name is taken, and the folder from
+%   sourceDirectory takes its place. The default is true.
 %
-%   If a step fails, the steps done before it are undone, so
-%   sourceDirectory is left as it was, and the error is thrown.
+%   result is a struct with the fields
+%       MovedFolderNames    - names of the folders moved to targetDirectory
+%       RenamedFolderNames  - names of the folders renamed in sourceDirectory
+%       RenamedFolderPaths  - paths of those folders after the rename
+%       LeftoverFolderPaths - paths of the folders renamed in targetDirectory
+%
+%   If a step fails, the steps done before it are undone, so both
+%   directories are left as they were, and the error is thrown.
 %
 %   See also nansen.internal.user.moveUserDataFolders
 
@@ -26,6 +34,7 @@ function result = migrateUserDataFolders(sourceDirectory, targetDirectory, folde
         sourceDirectory (1,1) string
         targetDirectory (1,1) string
         folderNames (1,:) string
+        options.IsTargetInitialized (1,1) logical = true
     end
 
     sourceFolders = fullfile(sourceDirectory, folderNames);
@@ -41,17 +50,28 @@ function result = migrateUserDataFolders(sourceDirectory, targetDirectory, folde
         isEmptyCopy(i) = isFolderEmpty(sourceFolders(i));
     end
 
+    isLeftover = ~options.IsTargetInitialized & isPresent & isTaken & ~isEmptyCopy;
+    isTaken(isLeftover) = false;
+
     isToMove = isPresent & ~isTaken;
     isToRename = isPresent & isTaken & ~isEmptyCopy;
     isToRemove = isPresent & isTaken & isEmptyCopy;
 
+    leftoverPaths = strings(size(folderNames));
+    isLeftoverSetAside = false(size(folderNames));
     renamedPaths = strings(size(folderNames));
     isRenamed = false(size(folderNames));
     isRemoved = false(size(folderNames));
 
-    % The copies are set aside before anything moves, because a rename
-    % within sourceDirectory is undone by renaming back.
+    % Folders are set aside before anything moves, because a rename is
+    % undone by renaming back.
     try
+        for i = find(isLeftover)
+            leftoverPaths(i) = findUnusedPath(targetFolders(i) + ".leftover");
+            movefile(targetFolders(i), leftoverPaths(i))
+            isLeftoverSetAside(i) = true;
+        end
+
         for i = find(isToRename)
             renamedPaths(i) = findUnusedPath(sourceFolders(i) + ".unmigrated");
             movefile(sourceFolders(i), renamedPaths(i))
@@ -66,7 +86,9 @@ function result = migrateUserDataFolders(sourceDirectory, targetDirectory, folde
         nansen.internal.user.moveUserDataFolders( ...
             sourceDirectory, targetDirectory, folderNames(isToMove))
     catch MECause
-        notRestored = restoreSetAsideFolders(sourceFolders, renamedPaths, isRenamed, isRemoved);
+        notRestored = [ ...
+            restoreSetAsideFolders(sourceFolders, renamedPaths, isRenamed, isRemoved), ...
+            restoreSetAsideFolders(targetFolders, leftoverPaths, isLeftoverSetAside, false(size(folderNames))) ];
 
         if isempty(notRestored)
             rethrow(MECause)
@@ -83,7 +105,8 @@ function result = migrateUserDataFolders(sourceDirectory, targetDirectory, folde
     result = struct( ...
         'MovedFolderNames', folderNames(isToMove), ...
         'RenamedFolderNames', folderNames(isRenamed), ...
-        'RenamedFolderPaths', renamedPaths(isRenamed) );
+        'RenamedFolderPaths', renamedPaths(isRenamed), ...
+        'LeftoverFolderPaths', leftoverPaths(isLeftoverSetAside) );
 end
 
 function notRestored = restoreSetAsideFolders(sourceFolders, renamedPaths, isRenamed, isRemoved)

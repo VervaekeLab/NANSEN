@@ -287,6 +287,37 @@ classdef UserDataDirectoryTest < matlab.unittest.TestCase
             testCase.verifyTrue(isfile(movedMarkerFilePath))
             testCase.verifyFalse(isfile(markerFilePath))
         end
+
+        function testStartingASessionStoresTheLayoutVersion(testCase)
+        % The next migration reads this number to know where to start
+
+            import nansen.internal.user.NansenUserSession
+            import nansen.internal.user.UserDataLayout
+
+            UserDataLayout.remove(testCase.DefaultDirectory)
+
+            userName = testCase.UserSession.CurrentUserName;
+            NansenUserSession.instance(userName, "reset");
+            NansenUserSession.instance(userName, "force", true, ConfirmNewUser=false);
+
+            testCase.verifyEqual(UserDataLayout.read(testCase.DefaultDirectory), ...
+                UserDataLayout.CURRENT_VERSION)
+        end
+
+        function testLayoutVersionFollowsTheData(testCase)
+        % The directory that no longer holds the data must not claim to be set up
+
+            import nansen.internal.user.UserDataLayout
+
+            newDirectory = testCase.moveUserDataDirectory('versioned');
+
+            testCase.verifyEqual(UserDataLayout.read(newDirectory), UserDataLayout.CURRENT_VERSION)
+            testCase.verifyFalse(isfile(UserDataLayout.getFilePath(testCase.DefaultDirectory)))
+        end
+
+        function testSessionOnCurrentCodeDoesNotAskForARestart(testCase)
+            testCase.verifyWarningFree(@() testCase.UserSession.getCurrentUserDataDirectory())
+        end
     end
 
     methods (Access = private)

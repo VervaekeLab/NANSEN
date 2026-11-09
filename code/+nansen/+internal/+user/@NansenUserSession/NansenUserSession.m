@@ -69,6 +69,14 @@ classdef NansenUserSession < handle
         % an unmounted drive, does not change the directory midway. Empty
         % when there is no redirect file or it names no existing folder.
         RedirectedDirectory char = ''
+
+        % StartupLayoutVersion - Layout version of the code that started
+        % this session. It differs from UserDataLayout.CURRENT_VERSION when
+        % the code was updated while the session was running.
+        StartupLayoutVersion (1,1) double = 0
+
+        % HasWarnedAboutUpdate - Whether the user was told to restart
+        HasWarnedAboutUpdate (1,1) logical = false
     end
 
     properties (Constant, Access = private)
@@ -124,6 +132,8 @@ classdef NansenUserSession < handle
         %
         %   See also nansen.internal.user.NansenUserSession.getUserDataDirectory
 
+            obj.warnIfUpdatedWhileRunning()
+
             if ~isempty(obj.UserDataDirectoryOverride)
                 folderPath = obj.UserDataDirectoryOverride;
                 return
@@ -148,7 +158,8 @@ classdef NansenUserSession < handle
         %   hold this user's NANSEN data, projects, settings,
         %   custom_options and local, into newDirectory and remembers the
         %   location for later sessions. Other files in the old and the new
-        %   directory stay where they are.
+        %   directory stay where they are, except the file that records the
+        %   layout version, which follows the data.
         %
         %   setUserDataDirectory(obj, "") moves the data back to the default
         %   location, <userpath>/Nansen/profiles/<profile>.
@@ -213,6 +224,8 @@ classdef NansenUserSession < handle
             obj.Preferences.UserDataDirectory = obj.toPreferenceValue(newDirectory);
             obj.UserDataDirectoryOverride = '';
             obj.updateUserDataRedirect(newDirectory)
+            obj.storeUserDataLayoutVersion(newDirectory)
+            nansen.internal.user.UserDataLayout.remove(oldDirectory)
             obj.ProjectManager.relocate(oldDirectory, newDirectory)
 
             % The old directory is the user's own when it was a chosen
@@ -246,6 +259,7 @@ classdef NansenUserSession < handle
             import nansen.config.project.ProjectManager
             obj.CurrentUserName = userName;
             obj.SkipProjectCheck = skipProjectCheck;
+            obj.StartupLayoutVersion = nansen.internal.user.UserDataLayout.CURRENT_VERSION;
 
             % Resolved first, so that a MATLAB without a userpath stops
             % here, before the profile's preference directory is created
@@ -349,6 +363,62 @@ classdef NansenUserSession < handle
     end
 
     methods (Access = private) % User data directory helpers
+
+        function warnIfUpdatedWhileRunning(obj)
+        %warnIfUpdatedWhileRunning Tell the user once to restart after an update
+        %
+        %   MATLAB applies a pulled change to the running session at once,
+        %   so the session then looks for its data where the new code
+        %   expects it, while the startup that moves the data has not run.
+
+            import nansen.internal.user.UserDataLayout
+
+            if obj.HasWarnedAboutUpdate || obj.StartupLayoutVersion == UserDataLayout.CURRENT_VERSION
+                return
+            end
+
+            obj.HasWarnedAboutUpdate = true;
+            warning('NANSEN:UserSession:UpdatedWhileRunning', ...
+                ['NANSEN was updated while it was running, and the update ' ...
+                 'changes where NANSEN keeps its data. Run nansen.restart to ' ...
+                 'finish the update. Until then NANSEN may not find your ' ...
+                 'settings and option presets.'])
+        end
+
+        function tf = isUserDataDirectoryInitialized(~, userDataDirectory)
+        %isUserDataDirectoryInitialized Check whether a directory holds real user data
+        %
+        %   A stored layout version means that a session has finished
+        %   starting in the directory. A project catalog counts too, for a
+        %   directory that was filled without a session. A session that
+        %   keeps running through an update can leave other files there,
+        %   but no catalog, because it saves the catalog to the path it
+        %   read when it started.
+
+            tf = nansen.internal.user.UserDataLayout.read(userDataDirectory) > 0 ...
+                || isfile(nansen.config.project.ProjectManager.getCatalogPath(userDataDirectory));
+        end
+
+        function storeUserDataLayoutVersion(~, userDataDirectory)
+        %storeUserDataLayoutVersion Record the layout of a user data directory
+        %
+        %   A directory that nothing has created yet is not created for
+        %   this, and a version written by newer code is left alone. A
+        %   failure is reported, so that it does not stop the session.
+
+            import nansen.internal.user.UserDataLayout
+
+            if ~isfolder(userDataDirectory); return; end
+            if UserDataLayout.read(userDataDirectory) >= UserDataLayout.CURRENT_VERSION; return; end
+
+            try
+                UserDataLayout.write(userDataDirectory)
+            catch ME
+                warning('NANSEN:UserSession:UserDataLayoutNotStored', ...
+                    'NANSEN could not store its data layout version in "%s".\nReason: %s', ...
+                    userDataDirectory, ME.message)
+            end
+        end
 
         function folderPath = validateUserDataDirectory(obj, newDirectory)
         %validateUserDataDirectory Check a requested directory, or supply the default
@@ -595,6 +665,11 @@ classdef NansenUserSession < handle
                      'folder, so this session does not find them.\nReason: %s'], ...
                     ME.message)
             end
+
+            % Not stored when the data did not reach this directory
+            if ~isRedirectBroken && isempty(obj.UserDataDirectoryOverride)
+                obj.storeUserDataLayoutVersion(userDataDirectory)
+            end
         end
 
         function moveUserDataOutOfPreferenceDirectory(obj, preferenceDirectory, userDataDirectory)
@@ -607,6 +682,11 @@ classdef NansenUserSession < handle
         %   The preference directory is then left without user data
         %   folders, so the move is not attempted again at the next start.
         %
+        %   A directory that no session has set up can only hold what a
+        %   session left behind when it kept running through an update.
+        %   Those folders are renamed instead, and the data in the
+        %   preference directory takes their place.
+        %
         %   See also nansen.internal.user.migrateUserDataFolders
 
             legacyFolders = fullfile(preferenceDirectory, obj.USER_DATA_FOLDER_NAMES);
@@ -614,7 +694,8 @@ classdef NansenUserSession < handle
 
             try
                 result = nansen.internal.user.migrateUserDataFolders( ...
-                    preferenceDirectory, userDataDirectory, obj.USER_DATA_FOLDER_NAMES);
+                    preferenceDirectory, userDataDirectory, obj.USER_DATA_FOLDER_NAMES, ...
+                    IsTargetInitialized=obj.isUserDataDirectoryInitialized(userDataDirectory));
             catch ME
                 % Use the old location for this session only. The preference
                 % stays unset, so the move is attempted again next startup.
@@ -644,6 +725,14 @@ classdef NansenUserSession < handle
                     'when MATLAB is upgraded.\n'], userDataDirectory)
             else
                 obj.warnUserDataSetAside(result, userDataDirectory, catalogFolderName)
+            end
+
+            if ~isempty(result.LeftoverFolderPaths)
+                warning('NANSEN:UserSession:UserDataLeftoversSetAside', ...
+                    ['A NANSEN session that kept running through an update saved ' ...
+                     'files in "%s" before the data had been moved there. The data ' ...
+                     'was moved into place, and those files were renamed:\n%s'], ...
+                    userDataDirectory, strjoin("    " + result.LeftoverFolderPaths, newline))
             end
         end
 
