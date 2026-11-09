@@ -428,8 +428,8 @@ classdef MetaTableCatalog < uim.handle
             pm = nansen.ProjectManager();
             projectRootDir = pm.CurrentProjectPath;
 
-            % Todo: get this from project instance...
-            metaTableDir = fullfile(projectRootDir, 'metadata', 'tables');
+            metaTableDir = fullfile(projectRootDir, ...
+                nansen.config.project.Project.METATABLE_FOLDER_NAME);
 
             if ~isfolder(metaTableDir);  mkdir(metaTableDir);    end
 
