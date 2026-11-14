@@ -119,6 +119,12 @@ classdef HasOptionsManager < handle
             end
 
             titleStr = obj.getOptionsEditorTitle();
+
+            % structeditor opens structeditor.App for calls with Visible.
+            % This class and its subclasses need that app: they call place,
+            % edit pages through Name, dataOrig and dataEdit, and in
+            % non-modal mode wait for the AppDestroyed event that
+            % structeditor.App sends on Ok or Cancel.
             editorArgs = {'Visible', obj.OptionsEditorVisible};
 
             if ~isempty(obj.OptionsManager)

@@ -84,20 +84,18 @@ function varargout = changeDataLocationRoot(sessionObject, varargin)
     S.RootPath = rootPath;
     S.RootPath_ = allRootPaths;
 
-    h = structeditor.App(S, 'AdjustFigureSize', true, ...
+    h = structeditor(S, 'AdjustFigureSize', true, ...
         'Title', 'Edit Data Location Rootpaths', ...
         'LabelPosition', 'over', ...
         'CustomFigureSize', [700, 300], ...
         'Prompt', sprintf('Select root directory for %s', dataLocName)); %, ...
 
     h.Title = sprintf('Edit Data Location Rootpath');
-    h.waitfor()
+    [sNew, wasCanceled] = structeditor.waitForResult(h);
 
-    if h.wasCanceled
+    if wasCanceled
         return
     else
-        sNew = h.dataEdit;
-
         for i = 1:numel(sessionObject)
             sessionObject(i).updateRootDirPath(dataLocName, sNew.RootPath)
         end

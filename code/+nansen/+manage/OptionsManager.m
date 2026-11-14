@@ -383,16 +383,11 @@ classdef OptionsManager < handle
             %titleStr = sprintf('Edit options for %s', name);
 
             sEditor = structeditor(obj.Options, 'OptionsManager', obj, 'Title', name);
-            sEditor.waitfor()
-            wasAborted = sEditor.wasCanceled;
+            [editedOptions, wasAborted] = structeditor.waitForResult(sEditor);
 
-            if wasAborted
-                obj.Options = sEditor.dataOrig;
-            else
-                obj.Options = sEditor.dataEdit;
+            if ~wasAborted
+                obj.Options = editedOptions;
             end
-
-            delete(sEditor)
 
             if ~nargout
                 clear wasAborted
@@ -422,7 +417,12 @@ classdef OptionsManager < handle
                 'Prompt', promptStr, ...
                 varargin{:} );
 
-            hOptionsEditor.changeOptionsSelectionDropdownValue(optionsName);
+            if ismethod(hOptionsEditor, 'changeOptionsSelectionDropdownValue')
+                hOptionsEditor.changeOptionsSelectionDropdownValue(optionsName);
+            else
+                plugin = hOptionsEditor.getPlugin("nansen.manage.OptionsManagerPlugin");
+                plugin.setCurrentOptionsName(optionsName);
+            end
         end
 
         function [optsName, optsStruct, wasAborted] = editOptions(obj, optsName, optsStruct)
@@ -448,15 +448,12 @@ classdef OptionsManager < handle
             optsName = obj.unformatName(optsName);
 
             sEditor = obj.openOptionsEditor(optsName, optsStruct);
-            sEditor.waitfor()
+            [editedOptions, wasAborted, editedOptionsName] = ...
+                structeditor.waitForResult(sEditor);
 
-            wasAborted = sEditor.wasCanceled;
-
-            if sEditor.wasCanceled
-                optsStruct = sEditor.dataOrig;
-            else
-                optsStruct = sEditor.dataEdit;
-                optsName = sEditor.currentOptionsName;
+            if ~wasAborted
+                optsStruct = editedOptions;
+                optsName = editedOptionsName;
             end
 
             % Clear modified options!

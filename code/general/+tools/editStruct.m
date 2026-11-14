@@ -62,24 +62,21 @@ function [sOut, wasAborted] = editStruct(sIn, fieldNames, titleStr, varargin)
                     wasAborted = true;
             end
 
+            delete(sEditor)
+
         else
             sEditor = structeditor(sIn, varargin{:});
             sEditor.IsModal = true;
-            sEditor.waitfor()
+            [sOut, wasAborted] = structeditor.waitForResult(sEditor);
 
-            if sEditor.wasCanceled
-                sOut = sEditor.dataOrig;
-                wasAborted = true;
-            else
-                sOut = sEditor.dataEdit;
+            if wasAborted
+                sOut = sIn;
             end
         end
 
         if convertOutputToStruct % See above conversion...
             sOut = cell2struct(sOut, names);
         end
-
-        delete(sEditor)
 
         if nargout == 1
             clear wasAborted
